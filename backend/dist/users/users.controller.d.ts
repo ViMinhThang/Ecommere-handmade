@@ -1,0 +1,217 @@
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateAddressDto } from './dto/create-address.dto';
+export declare class UsersController {
+    private readonly usersService;
+    constructor(usersService: UsersService);
+    create(createUserDto: CreateUserDto): Promise<{
+        addresses: {
+            address: string;
+            phone: string;
+            fullName: string;
+            city: string;
+            district: string;
+            ward: string;
+            isDefault: boolean;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        }[];
+    } & {
+        image: string | null;
+        name: string;
+        email: string;
+        password: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        status: import(".prisma/client").$Enums.UserStatus;
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        ordersCount: number;
+        totalSpent: number;
+        products: number;
+        sales: number;
+        rating: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    findAll(role?: string, status?: string): Promise<({
+        addresses: {
+            address: string;
+            phone: string;
+            fullName: string;
+            city: string;
+            district: string;
+            ward: string;
+            isDefault: boolean;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        }[];
+    } & {
+        image: string | null;
+        name: string;
+        email: string;
+        password: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        status: import(".prisma/client").$Enums.UserStatus;
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        ordersCount: number;
+        totalSpent: number;
+        products: number;
+        sales: number;
+        rating: number;
+        createdAt: Date;
+        updatedAt: Date;
+    })[]>;
+    getStats(): Promise<{
+        total: number;
+        admins: number;
+        sellers: number;
+        customers: number;
+    }>;
+    findOne(id: string): Promise<{
+        addresses: {
+            address: string;
+            phone: string;
+            fullName: string;
+            city: string;
+            district: string;
+            ward: string;
+            isDefault: boolean;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        }[];
+    } & {
+        image: string | null;
+        name: string;
+        email: string;
+        password: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        status: import(".prisma/client").$Enums.UserStatus;
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        ordersCount: number;
+        totalSpent: number;
+        products: number;
+        sales: number;
+        rating: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    update(id: string, updateUserDto: UpdateUserDto): Promise<{
+        addresses: {
+            address: string;
+            phone: string;
+            fullName: string;
+            city: string;
+            district: string;
+            ward: string;
+            isDefault: boolean;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        }[];
+    } & {
+        image: string | null;
+        name: string;
+        email: string;
+        password: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        status: import(".prisma/client").$Enums.UserStatus;
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        ordersCount: number;
+        totalSpent: number;
+        products: number;
+        sales: number;
+        rating: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    remove(id: string): Promise<{
+        image: string | null;
+        name: string;
+        email: string;
+        password: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        status: import(".prisma/client").$Enums.UserStatus;
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        ordersCount: number;
+        totalSpent: number;
+        products: number;
+        sales: number;
+        rating: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    addAddress(id: string, createAddressDto: CreateAddressDto): Promise<{
+        address: string;
+        phone: string;
+        fullName: string;
+        city: string;
+        district: string;
+        ward: string;
+        isDefault: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+    }>;
+    getAddresses(id: string): Promise<{
+        address: string;
+        phone: string;
+        fullName: string;
+        city: string;
+        district: string;
+        ward: string;
+        isDefault: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+    }[]>;
+    updateAddress(userId: string, addressId: string, updateAddressDto: Partial<CreateAddressDto>): Promise<{
+        address: string;
+        phone: string;
+        fullName: string;
+        city: string;
+        district: string;
+        ward: string;
+        isDefault: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+    }>;
+    deleteAddress(userId: string, addressId: string): Promise<{
+        address: string;
+        phone: string;
+        fullName: string;
+        city: string;
+        district: string;
+        ward: string;
+        isDefault: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+    }>;
+}

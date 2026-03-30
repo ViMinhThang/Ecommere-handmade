@@ -1,0 +1,37 @@
+import { IsString, IsEmail, IsOptional, IsEnum, IsArray } from 'class-validator';
+
+export class CreateUserDto {
+  @IsString()
+  name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  password: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(['ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN'], { each: true })
+  roles?: ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[];
+
+  @IsOptional()
+  @IsEnum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'])
+  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  shopName?: string;
+
+  @IsOptional()
+  @IsString()
+  image?: string;
+}

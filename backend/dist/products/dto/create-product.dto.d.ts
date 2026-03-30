@@ -1,0 +1,13 @@
+export declare class ProductImageDto {
+    url: string;
+    isMain?: boolean;
+}
+export declare class CreateProductDto {
+    name: string;
+    description: string;
+    price: number;
+    images: ProductImageDto[];
+    categoryId: string;
+    sellerId: string;
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+}

@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ROLE_USER
+  ROLE_SELLER
+  ROLE_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProductStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id          String     @id @default(uuid())
+  name        String
+  email       String     @unique
+  password    String
+  roles       Role[]     @default([ROLE_USER])
+  status      UserStatus @default(ACTIVE)
+  avatar      String?
+  phone       String?
+  shopName    String?
+  ordersCount Int        @default(0)
+  totalSpent  Float      @default(0)
+  products    Int        @default(0)
+  sales       Int        @default(0)
+  rating      Float      @default(0)
+  image       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  addresses   Address[]
+  sellerProducts Product[] @relation("Product_sellerId_fkey")
+  folders     ImageFolder[]
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName  String
+  phone     String
+  address   String
+  city      String
+  district  String
+  ward      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id           String         @id @default(uuid())
+  name         String         @unique
+  description  String
+  image        String?
+  productsCount Int           @default(0)
+  status       CategoryStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  products     Product[]
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+  sellerId    String
+  seller      User          @relation("Product_sellerId_fkey", fields: [sellerId], references: [id])
+  status      ProductStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  images      ProductImage[]
+
+  @@index([sellerId])
+  @@index([categoryId])
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  url       String
+  isMain    Boolean  @default(false)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model ImageFolder {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  images    Image[]
+
+  @@index([userId])
+}
+
+model Image {
+  id          String      @id @default(uuid())
+  displayName String
+  path        String
+  folderId    String
+  folder      ImageFolder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  deleted     Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  @@index([folderId])
+}
