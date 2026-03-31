@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsArray, IsOptional, IsEnum, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsArray,
+  IsOptional,
+  IsEnum,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ProductImageDto {
@@ -19,16 +26,14 @@ export class CreateProductDto {
   @IsNumber()
   price: number;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductImageDto)
-  images: ProductImageDto[];
+  images?: ProductImageDto[];
 
   @IsString()
   categoryId: string;
-
-  @IsString()
-  sellerId: string;
 
   @IsOptional()
   @IsEnum(['PENDING', 'APPROVED', 'REJECTED'])

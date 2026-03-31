@@ -1,45 +1,103 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto, InventoryChangeReason } from './dto/update-stock.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(sellerId: string, createProductDto: CreateProductDto) {
     const { images, ...productData } = createProductDto;
-    
-    return this.prisma.product.create({
-      data: {
-        ...productData,
-        images: {
-          create: images,
+
+    return this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          ...productData,
+          sellerId,
+          images: {
+            create: images,
+          },
         },
-      },
-      include: {
-        category: true,
-        seller: true,
-        images: true,
-      },
+        include: {
+          category: true,
+          seller: true,
+          images: true,
+        },
+      });
+
+      await tx.category.update({
+        where: { id: product.categoryId },
+        data: { productsCount: { increment: 1 } },
+      });
+
+      return product;
     });
   }
 
-  async findAll(status?: string, categoryId?: string, sellerId?: string) {
-    const where: any = {};
-    if (status) where.status = status.toUpperCase();
+  async findAll(
+    status?: string,
+    categoryId?: string,
+    sellerId?: string,
+    pagination?: PaginationDto,
+  ) {
+    const where: {
+      status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+      categoryId?: string;
+      sellerId?: string;
+    } = {};
+    if (status)
+      where.status = status.toUpperCase() as
+        | 'PENDING'
+        | 'APPROVED'
+        | 'REJECTED';
     if (categoryId) where.categoryId = categoryId;
     if (sellerId) where.sellerId = sellerId;
 
-    return this.prisma.product.findMany({
-      where,
-      include: {
-        category: true,
-        seller: true,
-        images: true,
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          status: true,
+          stock: true,
+          categoryId: true,
+          sellerId: true,
+          sku: true,
+          createdAt: true,
+          updatedAt: true,
+          images: { where: { isMain: true }, take: 1 },
+          category: { select: { id: true, name: true } },
+          seller: { select: { id: true, name: true, shopName: true } },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   }
 
   async findOne(id: string) {
@@ -78,14 +136,26 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
-    return this.prisma.product.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.category.update({
+        where: { id: product.categoryId },
+        data: { productsCount: { decrement: 1 } },
+      });
+      return tx.product.delete({ where: { id } });
+    });
   }
 
   async getStats() {
     const total = await this.prisma.product.count();
-    const pending = await this.prisma.product.count({ where: { status: 'PENDING' } });
-    const approved = await this.prisma.product.count({ where: { status: 'APPROVED' } });
-    const rejected = await this.prisma.product.count({ where: { status: 'REJECTED' } });
+    const pending = await this.prisma.product.count({
+      where: { status: 'PENDING' },
+    });
+    const approved = await this.prisma.product.count({
+      where: { status: 'APPROVED' },
+    });
+    const rejected = await this.prisma.product.count({
+      where: { status: 'REJECTED' },
+    });
 
     return { total, pending, approved, rejected };
   }
@@ -125,24 +195,32 @@ export class ProductsService {
       throw new NotFoundException(`Product with ID ${productId} not found`);
     }
 
-    const newStock = product.stock + updateStockDto.quantity;
-    if (newStock < 0) {
-      throw new BadRequestException('Insufficient stock');
-    }
+    const updatedProduct = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.product.findUnique({ where: { id: productId } });
+      if (!current) {
+        throw new NotFoundException(`Product with ID ${productId} not found`);
+      }
 
-    const [updatedProduct] = await this.prisma.$transaction([
-      this.prisma.product.update({
+      const newStock = current.stock + updateStockDto.quantity;
+      if (newStock < 0) {
+        throw new BadRequestException('Insufficient stock');
+      }
+
+      const updated = await tx.product.update({
         where: { id: productId },
-        data: { stock: newStock },
-      }),
-      this.prisma.inventoryLog.create({
+        data: { stock: { increment: updateStockDto.quantity } },
+      });
+
+      await tx.inventoryLog.create({
         data: {
           productId,
           change: updateStockDto.quantity,
           reason: updateStockDto.reason,
         },
-      }),
-    ]);
+      });
+
+      return updated;
+    });
 
     return updatedProduct;
   }
@@ -170,12 +248,7 @@ export class ProductsService {
 
   async getLowStockProducts(sellerId?: string) {
     const products = await this.prisma.product.findMany({
-      where: {
-        stock: {
-          lte: 10,
-        },
-        ...(sellerId ? { sellerId } : {}),
-      },
+      where: sellerId ? { sellerId } : {},
       include: {
         category: true,
         seller: true,
@@ -184,19 +257,7 @@ export class ProductsService {
         stock: 'asc',
       },
     });
-    return products;
-  }
 
-  async updateStatus(id: string, status: 'APPROVED' | 'REJECTED') {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
-    });
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
-    }
-    return this.prisma.product.update({
-      where: { id },
-      data: { status },
-    });
+    return products.filter((p) => p.stock <= p.lowStockThreshold);
   }
 }

@@ -45,7 +45,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MediaService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
-const fs = __importStar(require("fs"));
+const fs_1 = require("fs");
 const path = __importStar(require("path"));
 let MediaService = class MediaService {
     prisma;
@@ -62,10 +62,10 @@ let MediaService = class MediaService {
     }
     async getFolders(userId) {
         return this.prisma.imageFolder.findMany({
-            where: { userId, deleted: false },
+            where: { userId, deletedAt: null },
             include: {
                 _count: {
-                    select: { images: { where: { deleted: false } } },
+                    select: { images: { where: { deletedAt: null } } },
                 },
             },
             orderBy: { createdAt: 'desc' },
@@ -73,10 +73,10 @@ let MediaService = class MediaService {
     }
     async getFolder(userId, folderId) {
         const folder = await this.prisma.imageFolder.findFirst({
-            where: { id: folderId, userId, deleted: false },
+            where: { id: folderId, userId, deletedAt: null },
             include: {
                 images: {
-                    where: { deleted: false },
+                    where: { deletedAt: null },
                     orderBy: { createdAt: 'desc' },
                 },
             },
@@ -105,25 +105,23 @@ let MediaService = class MediaService {
         if (!folder) {
             throw new common_1.NotFoundException('Folder not found');
         }
-        return this.prisma.imageFolder.update({
+        return this.prisma.imageFolder.delete({
             where: { id: folderId },
-            data: { deleted: true },
         });
     }
     async uploadImage(userId, folderId, file, displayName) {
         const folder = await this.prisma.imageFolder.findFirst({
-            where: { id: folderId, userId, deleted: false },
+            where: { id: folderId, userId, deletedAt: null },
         });
         if (!folder) {
             throw new common_1.NotFoundException('Folder not found');
         }
         const uploadPath = path.join('uploads', userId, folderId);
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        const fileName = `${Date.now()}-${file.originalname}`;
+        await fs_1.promises.mkdir(uploadPath, { recursive: true });
+        const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const fileName = `${Date.now()}-${safeName}`;
         const filePath = path.join(uploadPath, fileName);
-        fs.writeFileSync(filePath, file.buffer);
+        await fs_1.promises.writeFile(filePath, file.buffer);
         return this.prisma.image.create({
             data: {
                 displayName,
@@ -134,13 +132,13 @@ let MediaService = class MediaService {
     }
     async getImages(userId, folderId) {
         const folder = await this.prisma.imageFolder.findFirst({
-            where: { id: folderId, userId, deleted: false },
+            where: { id: folderId, userId, deletedAt: null },
         });
         if (!folder) {
             throw new common_1.NotFoundException('Folder not found');
         }
         return this.prisma.image.findMany({
-            where: { folderId, deleted: false },
+            where: { folderId, deletedAt: null },
             orderBy: { createdAt: 'desc' },
         });
     }
@@ -152,9 +150,8 @@ let MediaService = class MediaService {
         if (!image || image.folder.userId !== userId) {
             throw new common_1.NotFoundException('Image not found');
         }
-        return this.prisma.image.update({
+        return this.prisma.image.delete({
             where: { id: imageId },
-            data: { deleted: true },
         });
     }
     async getImage(userId, imageId) {
@@ -162,7 +159,7 @@ let MediaService = class MediaService {
             where: { id: imageId },
             include: { folder: true },
         });
-        if (!image || image.folder.userId !== userId || image.deleted) {
+        if (!image || image.folder.userId !== userId) {
             throw new common_1.NotFoundException('Image not found');
         }
         return image;

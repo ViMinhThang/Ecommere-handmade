@@ -1,9 +1,5 @@
-export declare enum InventoryChangeReason {
-    ORDER = "ORDER",
-    MANUAL = "MANUAL",
-    RESTOCK = "RESTOCK",
-    RETURN = "RETURN"
-}
+import { InventoryChangeReason } from '@prisma/client';
+export { InventoryChangeReason };
 export declare class UpdateStockDto {
     quantity: number;
     reason: InventoryChangeReason;

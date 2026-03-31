@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  Matches,
+} from 'class-validator';
 
 export class ResetPasswordDto {
   @IsEmail()
@@ -10,6 +16,10 @@ export class ResetPasswordDto {
   otpCode: string;
 
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(8)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+  })
   newPassword: string;
 }

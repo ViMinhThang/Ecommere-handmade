@@ -8,33 +8,43 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
+const throttler_1 = require("@nestjs/throttler");
 const app_controller_1 = require("./app.controller");
-const app_service_1 = require("./app.service");
+const prisma_module_1 = require("./prisma/prisma.module");
 const users_module_1 = require("./users/users.module");
 const categories_module_1 = require("./categories/categories.module");
 const products_module_1 = require("./products/products.module");
 const media_module_1 = require("./media/media.module");
 const auth_module_1 = require("./auth/auth.module");
-const serve_static_1 = require("@nestjs/serve-static");
-const path_1 = require("path");
+const vouchers_module_1 = require("./vouchers/vouchers.module");
+const flash_sales_module_1 = require("./flash-sales/flash-sales.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+            }),
+            throttler_1.ThrottlerModule.forRoot([
+                {
+                    ttl: 60000,
+                    limit: 10,
+                },
+            ]),
+            prisma_module_1.PrismaModule,
             users_module_1.UsersModule,
             categories_module_1.CategoriesModule,
             products_module_1.ProductsModule,
             media_module_1.MediaModule,
             auth_module_1.AuthModule,
-            serve_static_1.ServeStaticModule.forRoot({
-                rootPath: (0, path_1.join)(__dirname, '..', 'uploads'),
-                serveRoot: '/media',
-            }),
+            vouchers_module_1.VouchersModule,
+            flash_sales_module_1.FlashSalesModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        providers: [],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

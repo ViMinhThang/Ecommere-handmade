@@ -1,26 +1,60 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Roles('ROLE_ADMIN')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  findAll(@Query('role') role?: string, @Query('status') status?: string) {
-    return this.usersService.findAll(role, status);
+  @Roles('ROLE_ADMIN')
+  findAll(
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+    @Query() pagination?: PaginationDto,
+  ) {
+    return this.usersService.findAll(role, status, pagination);
   }
 
   @Get('stats')
+  @Roles('ROLE_ADMIN')
   getStats() {
     return this.usersService.getStats();
+  }
+
+  @Get(':id/addresses')
+  getAddresses(@Param('id') id: string) {
+    return this.usersService.getAddresses(id);
+  }
+
+  @Post(':id/addresses')
+  addAddress(
+    @Param('id') id: string,
+    @Body() createAddressDto: CreateAddressDto,
+  ) {
+    return this.usersService.addAddress(id, createAddressDto);
   }
 
   @Get(':id')
@@ -29,24 +63,15 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @Roles('ROLE_ADMIN')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
+  @Roles('ROLE_ADMIN')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
-  }
-
-  // Address endpoints
-  @Post(':id/addresses')
-  addAddress(@Param('id') id: string, @Body() createAddressDto: CreateAddressDto) {
-    return this.usersService.addAddress(id, createAddressDto);
-  }
-
-  @Get(':id/addresses')
-  getAddresses(@Param('id') id: string) {
-    return this.usersService.getAddresses(id);
   }
 
   @Patch(':userId/addresses/:addressId')
@@ -59,7 +84,10 @@ export class UsersController {
   }
 
   @Delete(':userId/addresses/:addressId')
-  deleteAddress(@Param('userId') userId: string, @Param('addressId') addressId: string) {
+  deleteAddress(
+    @Param('userId') userId: string,
+    @Param('addressId') addressId: string,
+  ) {
     return this.usersService.deleteAddress(userId, addressId);
   }
 }

@@ -1,27 +1,37 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
 import { MediaModule } from './media/media.module';
 import { AuthModule } from './auth/auth.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
+import { VouchersModule } from './vouchers/vouchers.module';
+import { FlashSalesModule } from './flash-sales/flash-sales.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
+    PrismaModule,
     UsersModule,
     CategoriesModule,
     ProductsModule,
     MediaModule,
     AuthModule,
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
-      serveRoot: '/media',
-    }),
+    VouchersModule,
+    FlashSalesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [],
 })
 export class AppModule {}

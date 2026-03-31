@@ -1,4 +1,10 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsEnum,
+  IsArray,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -30,18 +36,4 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   shopName?: string;
-
-  @IsOptional()
-  @IsString()
-  image?: string;
-
-  @IsOptional()
-  @IsString()
-  otpCode?: string;
-
-  @IsOptional()
-  otpExpires?: Date;
-
-  @IsOptional()
-  isEmailVerified?: boolean;
 }

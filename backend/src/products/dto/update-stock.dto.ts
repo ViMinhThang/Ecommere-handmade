@@ -1,11 +1,7 @@
-import { IsNumber, IsEnum, IsOptional } from 'class-validator';
+import { IsNumber, IsEnum } from 'class-validator';
+import { InventoryChangeReason } from '@prisma/client';
 
-export enum InventoryChangeReason {
-  ORDER = 'ORDER',
-  MANUAL = 'MANUAL',
-  RESTOCK = 'RESTOCK',
-  RETURN = 'RETURN',
-}
+export { InventoryChangeReason };
 
 export class UpdateStockDto {
   @IsNumber()

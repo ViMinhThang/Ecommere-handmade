@@ -3,26 +3,29 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  private processRoles(roles?: ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[]): ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[] {
+  private processRoles(
+    roles?: ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[],
+  ): ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[] {
     if (!roles || roles.length === 0) {
       return ['ROLE_USER'];
     }
-    
+
     const roleSet = new Set(roles);
-    
+
     if (roleSet.has('ROLE_ADMIN')) {
       return ['ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN'];
     }
-    
+
     if (roleSet.has('ROLE_SELLER')) {
       return ['ROLE_USER', 'ROLE_SELLER'];
     }
-    
+
     return ['ROLE_USER'];
   }
 
@@ -39,23 +42,79 @@ export class UsersService {
     });
   }
 
-  async findAll(role?: string, status?: string) {
-    const where: any = {};
+  async findAll(role?: string, status?: string, pagination?: PaginationDto) {
+    const where: {
+      roles?: { has: 'ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN' };
+      status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
+    } = {};
     if (role) {
-      where.roles = { has: role.toUpperCase() };
+      where.roles = {
+        has: role.toUpperCase() as 'ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN',
+      };
     }
-    if (status) where.status = status.toUpperCase();
+    if (status)
+      where.status = status.toUpperCase() as
+        | 'ACTIVE'
+        | 'INACTIVE'
+        | 'SUSPENDED'
+        | 'PENDING';
 
-    return this.prisma.user.findMany({ 
-      where,
-      include: { addresses: true },
-    });
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          roles: true,
+          status: true,
+          avatar: true,
+          phone: true,
+          shopName: true,
+          isEmailVerified: true,
+          createdAt: true,
+          updatedAt: true,
+          addresses: true,
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({ 
+    const user = await this.prisma.user.findUnique({
       where: { id },
-      include: { addresses: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        roles: true,
+        status: true,
+        avatar: true,
+        phone: true,
+        shopName: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        addresses: true,
+      },
     });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -64,7 +123,7 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ 
+    return this.prisma.user.findUnique({
       where: { email },
     });
   }
@@ -74,12 +133,12 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    
+
     let roles = user.roles;
     if (updateUserDto.roles) {
       roles = this.processRoles(updateUserDto.roles);
     }
-    
+
     return this.prisma.user.update({
       where: { id },
       data: {
@@ -100,14 +159,17 @@ export class UsersService {
 
   async getStats() {
     const total = await this.prisma.user.count();
-    const admins = await this.prisma.user.count({ where: { roles: { has: 'ROLE_ADMIN' } } });
-    const sellers = await this.prisma.user.count({ where: { roles: { has: 'ROLE_SELLER' } } });
+    const admins = await this.prisma.user.count({
+      where: { roles: { has: 'ROLE_ADMIN' } },
+    });
+    const sellers = await this.prisma.user.count({
+      where: { roles: { has: 'ROLE_SELLER' } },
+    });
     const customers = total - sellers;
 
     return { total, admins, sellers, customers };
   }
 
-  // Address methods
   async addAddress(userId: string, createAddressDto: CreateAddressDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -135,7 +197,11 @@ export class UsersService {
     });
   }
 
-  async updateAddress(userId: string, addressId: string, updateAddressDto: Partial<CreateAddressDto>) {
+  async updateAddress(
+    userId: string,
+    addressId: string,
+    updateAddressDto: Partial<CreateAddressDto>,
+  ) {
     const address = await this.prisma.address.findFirst({
       where: { id: addressId, userId },
     });
@@ -164,5 +230,20 @@ export class UsersService {
       throw new NotFoundException(`Address not found`);
     }
     return this.prisma.address.delete({ where: { id: addressId } });
+  }
+
+  async updateOtpFields(
+    userId: string,
+    data: {
+      otpCode?: string | null;
+      otpExpires?: Date | null;
+      isEmailVerified?: boolean;
+      password?: string;
+    },
+  ) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
   }
 }

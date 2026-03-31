@@ -42,22 +42,68 @@ let UsersService = class UsersService {
             },
         });
     }
-    async findAll(role, status) {
+    async findAll(role, status, pagination) {
         const where = {};
         if (role) {
-            where.roles = { has: role.toUpperCase() };
+            where.roles = {
+                has: role.toUpperCase(),
+            };
         }
         if (status)
             where.status = status.toUpperCase();
-        return this.prisma.user.findMany({
-            where,
-            include: { addresses: true },
-        });
+        const page = pagination?.page ?? 1;
+        const limit = pagination?.limit ?? 20;
+        const skip = (page - 1) * limit;
+        const [data, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    roles: true,
+                    status: true,
+                    avatar: true,
+                    phone: true,
+                    shopName: true,
+                    isEmailVerified: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    addresses: true,
+                },
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+            }),
+            this.prisma.user.count({ where }),
+        ]);
+        return {
+            data,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
     async findOne(id) {
         const user = await this.prisma.user.findUnique({
             where: { id },
-            include: { addresses: true },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                roles: true,
+                status: true,
+                avatar: true,
+                phone: true,
+                shopName: true,
+                isEmailVerified: true,
+                createdAt: true,
+                updatedAt: true,
+                addresses: true,
+            },
         });
         if (!user) {
             throw new common_1.NotFoundException(`User with ID ${id} not found`);
@@ -96,8 +142,12 @@ let UsersService = class UsersService {
     }
     async getStats() {
         const total = await this.prisma.user.count();
-        const admins = await this.prisma.user.count({ where: { roles: { has: 'ROLE_ADMIN' } } });
-        const sellers = await this.prisma.user.count({ where: { roles: { has: 'ROLE_SELLER' } } });
+        const admins = await this.prisma.user.count({
+            where: { roles: { has: 'ROLE_ADMIN' } },
+        });
+        const sellers = await this.prisma.user.count({
+            where: { roles: { has: 'ROLE_SELLER' } },
+        });
         const customers = total - sellers;
         return { total, admins, sellers, customers };
     }
@@ -150,6 +200,12 @@ let UsersService = class UsersService {
             throw new common_1.NotFoundException(`Address not found`);
         }
         return this.prisma.address.delete({ where: { id: addressId } });
+    }
+    async updateOtpFields(userId, data) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data,
+        });
     }
 };
 exports.UsersService = UsersService;

@@ -1,20 +1,31 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  @Post()
-  create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoriesService.create(createCategoryDto);
-  }
-
   @Get()
-  findAll(@Query('status') status?: string) {
-    return this.categoriesService.findAll(status);
+  findAll(
+    @Query('status') status?: string,
+    @Query() pagination?: PaginationDto,
+  ) {
+    return this.categoriesService.findAll(status, pagination);
   }
 
   @Get('stats')
@@ -22,17 +33,32 @@ export class CategoriesController {
     return this.categoriesService.getStats();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post()
+  @Roles('ROLE_ADMIN')
+  create(@Body() createCategoryDto: CreateCategoryDto) {
+    return this.categoriesService.create(createCategoryDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.categoriesService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
+  @Roles('ROLE_ADMIN')
+  update(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
     return this.categoriesService.update(id, updateCategoryDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
+  @Roles('ROLE_ADMIN')
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);
   }

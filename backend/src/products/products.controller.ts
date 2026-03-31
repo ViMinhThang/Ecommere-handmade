@@ -1,16 +1,44 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { Request as ExpressRequest } from 'express';
 
+interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    id: string;
+    email: string;
+    roles: string[];
+  };
+}
+
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  create(
+    @Request() req: AuthenticatedRequest,
+    @Body() createProductDto: CreateProductDto,
+  ) {
+    return this.productsService.create(req.user.id, createProductDto);
   }
 
   @Get()
@@ -18,8 +46,14 @@ export class ProductsController {
     @Query('status') status?: string,
     @Query('categoryId') categoryId?: string,
     @Query('sellerId') sellerId?: string,
+    @Query() pagination?: PaginationDto,
   ) {
-    return this.productsService.findAll(status, categoryId, sellerId);
+    return this.productsService.findAll(
+      status,
+      categoryId,
+      sellerId,
+      pagination,
+    );
   }
 
   @Get('stats')
@@ -43,11 +77,13 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productsService.update(id, updateProductDto);
   }
 
   @Delete(':id')
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }
@@ -58,6 +94,7 @@ export class ProductsController {
   }
 
   @Patch(':id/stock')
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   updateStock(@Param('id') id: string, @Body() updateStockDto: UpdateStockDto) {
     return this.productsService.updateStock(id, updateStockDto);
   }
@@ -65,15 +102,5 @@ export class ProductsController {
   @Get(':id/inventory-log')
   getInventoryLog(@Param('id') id: string) {
     return this.productsService.getInventoryLog(id);
-  }
-
-  @Patch(':id/approve')
-  approve(@Param('id') id: string) {
-    return this.productsService.updateStatus(id, 'APPROVED');
-  }
-
-  @Patch(':id/reject')
-  reject(@Param('id') id: string) {
-    return this.productsService.updateStatus(id, 'REJECTED');
   }
 }

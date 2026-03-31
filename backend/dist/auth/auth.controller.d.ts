@@ -35,5 +35,6 @@ export declare class AuthController {
     }>;
     refresh(refreshToken: string): Promise<{
         accessToken: string;
+        refreshToken: string;
     }>;
 }

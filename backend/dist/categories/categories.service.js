@@ -22,11 +22,31 @@ let CategoriesService = class CategoriesService {
             data: createCategoryDto,
         });
     }
-    async findAll(status) {
+    async findAll(status, pagination) {
         const where = {};
         if (status)
             where.status = status.toUpperCase();
-        return this.prisma.category.findMany({ where });
+        const page = pagination?.page ?? 1;
+        const limit = pagination?.limit ?? 20;
+        const skip = (page - 1) * limit;
+        const [data, total] = await Promise.all([
+            this.prisma.category.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+            }),
+            this.prisma.category.count({ where }),
+        ]);
+        return {
+            data,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
     async findOne(id) {
         const category = await this.prisma.category.findUnique({ where: { id } });
@@ -54,9 +74,25 @@ let CategoriesService = class CategoriesService {
     }
     async getStats() {
         const total = await this.prisma.category.count();
-        const active = await this.prisma.category.count({ where: { status: 'ACTIVE' } });
-        const inactive = await this.prisma.category.count({ where: { status: 'INACTIVE' } });
+        const active = await this.prisma.category.count({
+            where: { status: 'ACTIVE' },
+        });
+        const inactive = await this.prisma.category.count({
+            where: { status: 'INACTIVE' },
+        });
         return { total, active, inactive };
+    }
+    async incrementProductsCount(categoryId) {
+        await this.prisma.category.update({
+            where: { id: categoryId },
+            data: { productsCount: { increment: 1 } },
+        });
+    }
+    async decrementProductsCount(categoryId) {
+        await this.prisma.category.update({
+            where: { id: categoryId },
+            data: { productsCount: { decrement: 1 } },
+        });
     }
 };
 exports.CategoriesService = CategoriesService;

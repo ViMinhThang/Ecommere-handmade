@@ -50,14 +50,16 @@ let MailerService = MailerService_1 = class MailerService {
     logger = new common_1.Logger(MailerService_1.name);
     transporter;
     constructor() {
+        const user = process.env.SMTP_USER;
+        const pass = process.env.SMTP_PASS;
+        if (!user || !pass) {
+            throw new Error('SMTP_USER and SMTP_PASS environment variables are required');
+        }
         this.transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST || 'smtp.gmail.com',
             port: parseInt(process.env.SMTP_PORT || '587'),
             secure: false,
-            auth: {
-                user: process.env.SMTP_USER || 'demo@gmail.com',
-                pass: process.env.SMTP_PASS || 'demo_password',
-            },
+            auth: { user, pass },
         });
     }
     async sendOtpEmail(email, otp, type) {
@@ -78,7 +80,9 @@ let MailerService = MailerService_1 = class MailerService {
         }
         catch (error) {
             this.logger.error(`Failed to send OTP email to ${email}`, error);
-            console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
+            if (process.env.NODE_ENV !== 'production') {
+                this.logger.log(`[DEV MODE] OTP for ${email}: ${otp}`);
+            }
         }
     }
 };

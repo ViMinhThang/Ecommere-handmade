@@ -10,13 +10,12 @@ exports.MediaModule = void 0;
 const common_1 = require("@nestjs/common");
 const media_service_1 = require("./media.service");
 const media_controller_1 = require("./media.controller");
-const prisma_service_1 = require("../prisma/prisma.service");
 let MediaModule = class MediaModule {
 };
 exports.MediaModule = MediaModule;
 exports.MediaModule = MediaModule = __decorate([
     (0, common_1.Module)({
-        providers: [media_service_1.MediaService, prisma_service_1.PrismaService],
+        providers: [media_service_1.MediaService],
         controllers: [media_controller_1.MediaController],
         exports: [media_service_1.MediaService],
     })

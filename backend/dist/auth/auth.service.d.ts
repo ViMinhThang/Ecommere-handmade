@@ -1,14 +1,18 @@
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { MailerService } from './mailer/mailer.service';
 export declare class AuthService {
     private usersService;
     private jwtService;
     private mailerService;
-    constructor(usersService: UsersService, jwtService: JwtService, mailerService: MailerService);
+    private prisma;
+    constructor(usersService: UsersService, jwtService: JwtService, mailerService: MailerService, prisma: PrismaService);
     private generateOtp;
+    private hashOtp;
     private getOtpExpiration;
+    private validateOtp;
     register(registerDto: RegisterDto): Promise<{
         message: string;
         email: string;
@@ -37,8 +41,20 @@ export declare class AuthService {
     }>;
     refreshToken(refreshToken: string): Promise<{
         accessToken: string;
+        refreshToken: string;
     }>;
     validateUser(userId: string): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        isEmailVerified: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
             phone: string;
@@ -48,30 +64,10 @@ export declare class AuthService {
             ward: string;
             isDefault: boolean;
             id: string;
+            deletedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
         }[];
-    } & {
-        image: string | null;
-        name: string;
-        email: string;
-        password: string;
-        roles: import(".prisma/client").$Enums.Role[];
-        status: import(".prisma/client").$Enums.UserStatus;
-        avatar: string | null;
-        phone: string | null;
-        shopName: string | null;
-        otpCode: string | null;
-        otpExpires: Date | null;
-        isEmailVerified: boolean;
-        id: string;
-        ordersCount: number;
-        totalSpent: number;
-        products: number;
-        sales: number;
-        rating: number;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
 }

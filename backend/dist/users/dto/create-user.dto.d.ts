@@ -7,8 +7,4 @@ export declare class CreateUserDto {
     avatar?: string;
     phone?: string;
     shopName?: string;
-    image?: string;
-    otpCode?: string;
-    otpExpires?: Date;
-    isEmailVerified?: boolean;
 }

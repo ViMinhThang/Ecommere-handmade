@@ -11,13 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateStockDto = exports.InventoryChangeReason = void 0;
 const class_validator_1 = require("class-validator");
-var InventoryChangeReason;
-(function (InventoryChangeReason) {
-    InventoryChangeReason["ORDER"] = "ORDER";
-    InventoryChangeReason["MANUAL"] = "MANUAL";
-    InventoryChangeReason["RESTOCK"] = "RESTOCK";
-    InventoryChangeReason["RETURN"] = "RETURN";
-})(InventoryChangeReason || (exports.InventoryChangeReason = InventoryChangeReason = {}));
+const client_1 = require("@prisma/client");
+Object.defineProperty(exports, "InventoryChangeReason", { enumerable: true, get: function () { return client_1.InventoryChangeReason; } });
 class UpdateStockDto {
     quantity;
     reason;
@@ -28,7 +23,7 @@ __decorate([
     __metadata("design:type", Number)
 ], UpdateStockDto.prototype, "quantity", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(InventoryChangeReason),
+    (0, class_validator_1.IsEnum)(client_1.InventoryChangeReason),
     __metadata("design:type", String)
 ], UpdateStockDto.prototype, "reason", void 0);
 //# sourceMappingURL=update-stock.dto.js.map

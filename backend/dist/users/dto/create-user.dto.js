@@ -20,10 +20,6 @@ class CreateUserDto {
     avatar;
     phone;
     shopName;
-    image;
-    otpCode;
-    otpExpires;
-    isEmailVerified;
 }
 exports.CreateUserDto = CreateUserDto;
 __decorate([
@@ -64,22 +60,4 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "shopName", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreateUserDto.prototype, "image", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreateUserDto.prototype, "otpCode", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Date)
-], CreateUserDto.prototype, "otpExpires", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Boolean)
-], CreateUserDto.prototype, "isEmailVerified", void 0);
 //# sourceMappingURL=create-user.dto.js.map

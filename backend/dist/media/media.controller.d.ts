@@ -1,100 +1,109 @@
 import { MediaService } from './media.service';
 import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
+import { Request as ExpressRequest } from 'express';
+interface AuthenticatedRequest extends ExpressRequest {
+    user: {
+        id: string;
+        email: string;
+        roles: string[];
+    };
+}
 export declare class MediaController {
     private readonly mediaService;
     constructor(mediaService: MediaService);
-    createFolder(userId: string, createFolderDto: CreateFolderDto): Promise<{
+    createFolder(req: AuthenticatedRequest, createFolderDto: CreateFolderDto): Promise<{
         name: string;
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        deleted: boolean;
     }>;
-    getFolders(userId: string): Promise<({
+    getFolders(req: AuthenticatedRequest): Promise<({
         _count: {
             images: number;
         };
     } & {
         name: string;
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        deleted: boolean;
     })[]>;
-    getFolder(userId: string, folderId: string): Promise<{
+    getFolder(req: AuthenticatedRequest, folderId: string): Promise<{
         images: {
             id: string;
+            deletedAt: Date | null;
             createdAt: Date;
             displayName: string;
-            deleted: boolean;
             path: string;
             folderId: string;
         }[];
     } & {
         name: string;
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        deleted: boolean;
     }>;
-    updateFolder(userId: string, folderId: string, updateFolderDto: UpdateFolderDto): Promise<{
+    updateFolder(req: AuthenticatedRequest, folderId: string, updateFolderDto: UpdateFolderDto): Promise<{
         name: string;
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        deleted: boolean;
     }>;
-    deleteFolder(userId: string, folderId: string): Promise<{
+    deleteFolder(req: AuthenticatedRequest, folderId: string): Promise<{
         name: string;
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        deleted: boolean;
     }>;
-    uploadImage(userId: string, folderId: string, file: Express.Multer.File, displayName: string): Promise<{
+    uploadImage(req: AuthenticatedRequest, folderId: string, file: Express.Multer.File, displayName: string): Promise<{
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         displayName: string;
-        deleted: boolean;
         path: string;
         folderId: string;
     }>;
-    getImages(userId: string, folderId: string): Promise<{
+    getImages(req: AuthenticatedRequest, folderId: string): Promise<{
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         displayName: string;
-        deleted: boolean;
         path: string;
         folderId: string;
     }[]>;
-    getImage(userId: string, imageId: string): Promise<{
+    getImage(req: AuthenticatedRequest, imageId: string): Promise<{
         folder: {
             name: string;
             id: string;
+            deletedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            deleted: boolean;
         };
     } & {
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         displayName: string;
-        deleted: boolean;
         path: string;
         folderId: string;
     }>;
-    deleteImage(userId: string, imageId: string): Promise<{
+    deleteImage(req: AuthenticatedRequest, imageId: string): Promise<{
         id: string;
+        deletedAt: Date | null;
         createdAt: Date;
         displayName: string;
-        deleted: boolean;
         path: string;
         folderId: string;
     }>;
 }
+export {};

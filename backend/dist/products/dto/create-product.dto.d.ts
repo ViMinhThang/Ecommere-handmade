@@ -6,9 +6,8 @@ export declare class CreateProductDto {
     name: string;
     description: string;
     price: number;
-    images: ProductImageDto[];
+    images?: ProductImageDto[];
     categoryId: string;
-    sellerId: string;
     status?: 'PENDING' | 'APPROVED' | 'REJECTED';
     stock?: number;
     lowStockThreshold?: number;
