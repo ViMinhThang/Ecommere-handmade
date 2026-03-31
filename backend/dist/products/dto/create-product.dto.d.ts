@@ -10,4 +10,7 @@ export declare class CreateProductDto {
     categoryId: string;
     sellerId: string;
     status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    stock?: number;
+    lowStockThreshold?: number;
+    sku?: string;
 }

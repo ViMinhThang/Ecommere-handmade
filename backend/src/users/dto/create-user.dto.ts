@@ -34,4 +34,14 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   image?: string;
+
+  @IsOptional()
+  @IsString()
+  otpCode?: string;
+
+  @IsOptional()
+  otpExpires?: Date;
+
+  @IsOptional()
+  isEmailVerified?: boolean;
 }

@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const products_service_1 = require("./products.service");
 const create_product_dto_1 = require("./dto/create-product.dto");
 const update_product_dto_1 = require("./dto/update-product.dto");
+const update_stock_dto_1 = require("./dto/update-stock.dto");
 let ProductsController = class ProductsController {
     productsService;
     constructor(productsService) {
@@ -34,6 +35,9 @@ let ProductsController = class ProductsController {
     getBySeller(sellerId) {
         return this.productsService.getBySeller(sellerId);
     }
+    getLowStock(sellerId) {
+        return this.productsService.getLowStockProducts(sellerId);
+    }
     findOne(id) {
         return this.productsService.findOne(id);
     }
@@ -42,6 +46,21 @@ let ProductsController = class ProductsController {
     }
     remove(id) {
         return this.productsService.remove(id);
+    }
+    getInventory(id) {
+        return this.productsService.getInventory(id);
+    }
+    updateStock(id, updateStockDto) {
+        return this.productsService.updateStock(id, updateStockDto);
+    }
+    getInventoryLog(id) {
+        return this.productsService.getInventoryLog(id);
+    }
+    approve(id) {
+        return this.productsService.updateStatus(id, 'APPROVED');
+    }
+    reject(id) {
+        return this.productsService.updateStatus(id, 'REJECTED');
     }
 };
 exports.ProductsController = ProductsController;
@@ -75,6 +94,13 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getBySeller", null);
 __decorate([
+    (0, common_1.Get)('low-stock'),
+    __param(0, (0, common_1.Query)('sellerId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "getLowStock", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -96,6 +122,42 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Get)(':id/inventory'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "getInventory", null);
+__decorate([
+    (0, common_1.Patch)(':id/stock'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_stock_dto_1.UpdateStockDto]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "updateStock", null);
+__decorate([
+    (0, common_1.Get)(':id/inventory-log'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "getInventoryLog", null);
+__decorate([
+    (0, common_1.Patch)(':id/approve'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "approve", null);
+__decorate([
+    (0, common_1.Patch)(':id/reject'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "reject", null);
 exports.ProductsController = ProductsController = __decorate([
     (0, common_1.Controller)('products'),
     __metadata("design:paramtypes", [products_service_1.ProductsService])

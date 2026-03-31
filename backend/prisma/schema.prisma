@@ -32,26 +32,29 @@ enum ProductStatus {
 }
 
 model User {
-  id          String     @id @default(uuid())
-  name        String
-  email       String     @unique
-  password    String
-  roles       Role[]     @default([ROLE_USER])
-  status      UserStatus @default(ACTIVE)
-  avatar      String?
-  phone       String?
-  shopName    String?
-  ordersCount Int        @default(0)
-  totalSpent  Float      @default(0)
-  products    Int        @default(0)
-  sales       Int        @default(0)
-  rating      Float      @default(0)
-  image       String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  addresses   Address[]
+  id            String     @id @default(uuid())
+  name          String
+  email         String     @unique
+  password      String
+  roles         Role[]     @default([ROLE_USER])
+  status        UserStatus @default(ACTIVE)
+  avatar        String?
+  phone         String?
+  shopName      String?
+  ordersCount   Int        @default(0)
+  totalSpent    Float      @default(0)
+  products      Int        @default(0)
+  sales         Int        @default(0)
+  rating        Float      @default(0)
+  image         String?
+  otpCode       String?
+  otpExpires    DateTime?
+  isEmailVerified Boolean  @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  addresses     Address[]
   sellerProducts Product[] @relation("Product_sellerId_fkey")
-  folders     ImageFolder[]
+  folders       ImageFolder[]
 }
 
 model Address {
@@ -82,18 +85,22 @@ model Category {
 }
 
 model Product {
-  id          String        @id @default(uuid())
-  name        String
-  description String
-  price       Float
-  categoryId  String
-  category    Category      @relation(fields: [categoryId], references: [id])
-  sellerId    String
-  seller      User          @relation("Product_sellerId_fkey", fields: [sellerId], references: [id])
-  status      ProductStatus @default(PENDING)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  images      ProductImage[]
+  id               String        @id @default(uuid())
+  name             String
+  description      String
+  price            Float
+  categoryId       String
+  category         Category      @relation(fields: [categoryId], references: [id])
+  sellerId         String
+  seller           User          @relation("Product_sellerId_fkey", fields: [sellerId], references: [id])
+  status           ProductStatus @default(PENDING)
+  stock            Int           @default(0)
+  lowStockThreshold Int          @default(10)
+  sku              String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  images           ProductImage[]
+  inventoryLogs    InventoryLog[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -133,4 +140,22 @@ model Image {
   createdAt   DateTime    @default(now())
 
   @@index([folderId])
+}
+
+enum InventoryChangeReason {
+  ORDER
+  MANUAL
+  RESTOCK
+  RETURN
+}
+
+model InventoryLog {
+  id        String               @id @default(uuid())
+  productId String
+  product   Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  change    Int
+  reason    InventoryChangeReason
+  createdAt DateTime             @default(now())
+
+  @@index([productId])
 }

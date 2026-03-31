@@ -33,4 +33,16 @@ export class CreateProductDto {
   @IsOptional()
   @IsEnum(['PENDING', 'APPROVED', 'REJECTED'])
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  @IsOptional()
+  @IsNumber()
+  stock?: number;
+
+  @IsOptional()
+  @IsNumber()
+  lowStockThreshold?: number;
+
+  @IsOptional()
+  @IsString()
+  sku?: string;
 }

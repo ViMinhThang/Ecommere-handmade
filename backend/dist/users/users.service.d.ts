@@ -30,6 +30,9 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -63,6 +66,9 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -96,6 +102,9 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -105,6 +114,28 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
     }>;
+    findByEmail(email: string): Promise<{
+        image: string | null;
+        name: string;
+        email: string;
+        password: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        status: import(".prisma/client").$Enums.UserStatus;
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
+        id: string;
+        ordersCount: number;
+        totalSpent: number;
+        products: number;
+        sales: number;
+        rating: number;
+        createdAt: Date;
+        updatedAt: Date;
+    } | null>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<{
         addresses: {
             address: string;
@@ -129,6 +160,9 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -148,6 +182,9 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;

@@ -29,6 +29,9 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -62,6 +65,9 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -101,6 +107,9 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -134,6 +143,9 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;
@@ -153,6 +165,9 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        otpCode: string | null;
+        otpExpires: Date | null;
+        isEmailVerified: boolean;
         id: string;
         ordersCount: number;
         totalSpent: number;

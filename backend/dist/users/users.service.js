@@ -64,6 +64,11 @@ let UsersService = class UsersService {
         }
         return user;
     }
+    async findByEmail(email) {
+        return this.prisma.user.findUnique({
+            where: { email },
+        });
+    }
     async update(id, updateUserDto) {
         const user = await this.prisma.user.findUnique({ where: { id } });
         if (!user) {

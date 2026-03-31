@@ -33,6 +33,9 @@ class CreateProductDto {
     categoryId;
     sellerId;
     status;
+    stock;
+    lowStockThreshold;
+    sku;
 }
 exports.CreateProductDto = CreateProductDto;
 __decorate([
@@ -66,4 +69,19 @@ __decorate([
     (0, class_validator_1.IsEnum)(['PENDING', 'APPROVED', 'REJECTED']),
     __metadata("design:type", String)
 ], CreateProductDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateProductDto.prototype, "stock", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateProductDto.prototype, "lowStockThreshold", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductDto.prototype, "sku", void 0);
 //# sourceMappingURL=create-product.dto.js.map

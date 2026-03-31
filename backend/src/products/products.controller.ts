@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { UpdateStockDto } from './dto/update-stock.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -31,6 +32,11 @@ export class ProductsController {
     return this.productsService.getBySeller(sellerId);
   }
 
+  @Get('low-stock')
+  getLowStock(@Query('sellerId') sellerId?: string) {
+    return this.productsService.getLowStockProducts(sellerId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
@@ -44,5 +50,30 @@ export class ProductsController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
+  }
+
+  @Get(':id/inventory')
+  getInventory(@Param('id') id: string) {
+    return this.productsService.getInventory(id);
+  }
+
+  @Patch(':id/stock')
+  updateStock(@Param('id') id: string, @Body() updateStockDto: UpdateStockDto) {
+    return this.productsService.updateStock(id, updateStockDto);
+  }
+
+  @Get(':id/inventory-log')
+  getInventoryLog(@Param('id') id: string) {
+    return this.productsService.getInventoryLog(id);
+  }
+
+  @Patch(':id/approve')
+  approve(@Param('id') id: string) {
+    return this.productsService.updateStatus(id, 'APPROVED');
+  }
+
+  @Patch(':id/reject')
+  reject(@Param('id') id: string) {
+    return this.productsService.updateStatus(id, 'REJECTED');
   }
 }
