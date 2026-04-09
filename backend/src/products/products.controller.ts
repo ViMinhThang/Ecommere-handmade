@@ -14,9 +14,9 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
+import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { Request as ExpressRequest } from 'express';
 
 interface AuthenticatedRequest extends ExpressRequest {
@@ -27,11 +27,11 @@ interface AuthenticatedRequest extends ExpressRequest {
   };
 }
 
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   create(
@@ -42,30 +42,28 @@ export class ProductsController {
   }
 
   @Get()
-  findAll(
-    @Query('status') status?: string,
-    @Query('categoryId') categoryId?: string,
-    @Query('sellerId') sellerId?: string,
-    @Query() pagination?: PaginationDto,
-  ) {
+  findAll(@Query() query: ListProductsQueryDto) {
     return this.productsService.findAll(
-      status,
-      categoryId,
-      sellerId,
-      pagination,
+      query.status,
+      query.categoryId,
+      query.sellerId,
+      query,
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('stats')
   getStats() {
     return this.productsService.getStats();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('seller/:sellerId')
   getBySeller(@Param('sellerId') sellerId: string) {
     return this.productsService.getBySeller(sellerId);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('low-stock')
   getLowStock(@Query('sellerId') sellerId?: string) {
     return this.productsService.getLowStockProducts(sellerId);
@@ -76,29 +74,34 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productsService.update(id, updateProductDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id/inventory')
   getInventory(@Param('id') id: string) {
     return this.productsService.getInventory(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/stock')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   updateStock(@Param('id') id: string, @Body() updateStockDto: UpdateStockDto) {
     return this.productsService.updateStock(id, updateStockDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id/inventory-log')
   getInventoryLog(@Param('id') id: string) {
     return this.productsService.getInventoryLog(id);

@@ -35,6 +35,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       status = HttpStatus.BAD_REQUEST;
+      const errorMsg = `Prisma error: ${exception.code} - ${exception.message} - ${JSON.stringify(exception.meta)}`;
+      this.logger.error(errorMsg, exception.stack);
       switch (exception.code) {
         case 'P2002':
           message = 'A record with this value already exists';
@@ -46,9 +48,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           error = 'Not Found';
           break;
         default:
-          message = 'Database error';
+          message = 'Database error: ' + exception.message;
           error = 'Database Error';
       }
+    } else if (exception instanceof Prisma.PrismaClientInitializationError) {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Database connection error: ' + exception.message;
+      error = 'Database Error';
+      this.logger.error(`Prisma init error: ${exception.message}`, exception.stack);
+    } else if (exception instanceof Prisma.PrismaClientRustPanicError) {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Database connection error';
+      error = 'Database Error';
+      this.logger.error(`Prisma panic: ${exception.message}`, exception.stack);
     }
 
     this.logger.error(

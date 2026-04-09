@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -33,7 +34,7 @@ export declare class AuthController {
     resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{
         message: string;
     }>;
-    refresh(refreshToken: string): Promise<{
+    refresh(refreshToken: string | undefined, req: ExpressRequest): Promise<{
         accessToken: string;
         refreshToken: string;
     }>;

@@ -15,12 +15,31 @@ const passport_1 = require("@nestjs/passport");
 const passport_jwt_1 = require("passport-jwt");
 const config_1 = require("@nestjs/config");
 const auth_service_1 = require("../auth.service");
+const ACCESS_TOKEN_COOKIE = 'auth_access_token';
+function extractJwtFromCookie(req) {
+    if (!req?.headers?.cookie) {
+        return null;
+    }
+    const cookieEntries = req.headers.cookie.split(';');
+    for (const entry of cookieEntries) {
+        const [rawName, ...rawValueParts] = entry.trim().split('=');
+        if (rawName !== ACCESS_TOKEN_COOKIE) {
+            continue;
+        }
+        const rawValue = rawValueParts.join('=');
+        return rawValue ? decodeURIComponent(rawValue) : null;
+    }
+    return null;
+}
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
     authService;
     configService;
     constructor(authService, configService) {
         super({
-            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromExtractors([
+                passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+                extractJwtFromCookie,
+            ]),
             ignoreExpiration: false,
             secretOrKey: configService.getOrThrow('JWT_SECRET'),
         });

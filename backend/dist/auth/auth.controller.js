@@ -21,6 +21,22 @@ const login_dto_1 = require("./dto/login.dto");
 const verify_otp_dto_1 = require("./dto/verify-otp.dto");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
+const REFRESH_TOKEN_COOKIE = 'auth_refresh_token';
+function extractCookieValue(req, key) {
+    if (!req.headers.cookie) {
+        return undefined;
+    }
+    const cookieEntries = req.headers.cookie.split(';');
+    for (const entry of cookieEntries) {
+        const [rawName, ...rawValueParts] = entry.trim().split('=');
+        if (rawName !== key) {
+            continue;
+        }
+        const rawValue = rawValueParts.join('=');
+        return rawValue ? decodeURIComponent(rawValue) : undefined;
+    }
+    return undefined;
+}
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -41,8 +57,13 @@ let AuthController = class AuthController {
     async resetPassword(resetPasswordDto) {
         return this.authService.resetPassword(resetPasswordDto.email, resetPasswordDto.otpCode, resetPasswordDto.newPassword);
     }
-    async refresh(refreshToken) {
-        return this.authService.refreshToken(refreshToken);
+    async refresh(refreshToken, req) {
+        const cookieToken = extractCookieValue(req, REFRESH_TOKEN_COOKIE);
+        const resolvedToken = refreshToken || cookieToken;
+        if (!resolvedToken) {
+            throw new common_1.UnauthorizedException('Refresh token is required');
+        }
+        return this.authService.refreshToken(resolvedToken);
     }
 };
 exports.AuthController = AuthController;
@@ -95,8 +116,9 @@ __decorate([
     (0, throttler_1.Throttle)({ default: { limit: 10, ttl: 60000 } }),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Body)('refreshToken')),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "refresh", null);
 exports.AuthController = AuthController = __decorate([

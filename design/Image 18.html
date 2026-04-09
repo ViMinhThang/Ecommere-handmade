@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Atelier | Inventory Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#1c1c18",
+                    "tertiary-container": "#716656",
+                    "surface": "#fdf9f3",
+                    "on-error": "#ffffff",
+                    "inverse-surface": "#31302d",
+                    "on-error-container": "#93000a",
+                    "outline": "#87736b",
+                    "on-tertiary": "#ffffff",
+                    "surface-container": "#f1ede7",
+                    "background": "#fdf9f3",
+                    "on-secondary-fixed-variant": "#3a4b3a",
+                    "primary-fixed-dim": "#ffb4a2",
+                    "surface-variant": "#e6e2dc",
+                    "secondary-container": "#d4e8d1",
+                    "on-tertiary-fixed-variant": "#4f4537",
+                    "on-tertiary-fixed": "#221a0e",
+                    "on-surface": "#1c1c18",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed-variant": "#7a2f1c",
+                    "error": "#ba1a1a",
+                    "surface-bright": "#fdf9f3",
+                    "secondary": "#516351",
+                    "on-primary-container": "#ffe1da",
+                    "on-tertiary-container": "#f4e5d1",
+                    "on-surface-variant": "#54433c",
+                    "inverse-on-surface": "#f4f0ea",
+                    "on-secondary": "#ffffff",
+                    "surface-container-highest": "#e6e2dc",
+                    "surface-container-low": "#f7f3ed",
+                    "error-container": "#ffdad6",
+                    "surface-tint": "#984631",
+                    "on-primary": "#ffffff",
+                    "inverse-primary": "#ffb4a2",
+                    "on-primary-fixed": "#3c0700",
+                    "surface-dim": "#dddad4",
+                    "surface-container-high": "#ebe8e2",
+                    "primary-container": "#a44e39",
+                    "tertiary-fixed-dim": "#d3c4b1",
+                    "tertiary-fixed": "#f0e0cc",
+                    "primary-fixed": "#ffdad2",
+                    "primary": "#853724",
+                    "secondary-fixed": "#d4e8d1",
+                    "tertiary": "#584e3f",
+                    "secondary-fixed-dim": "#b8ccb6",
+                    "on-secondary-fixed": "#0f1f11",
+                    "on-secondary-container": "#576957",
+                    "outline-variant": "#dac1b8"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.375rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "1rem"
+            },
+            "fontFamily": {
+                    "headline": ["Noto Serif"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+        h1, h2, h3 { font-family: 'Noto Serif', serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- SideNavBar (from JSON) -->
+<aside class="fixed left-0 top-0 h-full w-64 border-r border-[#dac1b8]/15 bg-[#f7f3ed] dark:bg-[#1c1c18] flex flex-col py-8 px-4 gap-4 z-50">
+<div class="flex items-center gap-3 px-2 mb-6">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" data-icon="brush">brush</span>
+</div>
+<div>
+<h2 class="text-xl font-noto-serif text-[#853724] leading-tight">The Atelier</h2>
+<p class="text-xs font-manrope font-medium tracking-wide text-[#54433c] opacity-70">Master Curator</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[#54433c] hover:bg-[#ebe8e2] transition-all hover:translate-x-1 duration-200 rounded-md font-manrope font-medium tracking-wide" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<!-- Inventory is Active -->
+<a class="flex items-center gap-3 px-3 py-2 text-[#853724] font-bold bg-[#ffffff] rounded-md shadow-sm transition-all translate-x-1 font-manrope tracking-wide" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span>Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#54433c] hover:bg-[#ebe8e2] transition-all hover:translate-x-1 duration-200 rounded-md font-manrope font-medium tracking-wide" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Orders</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#54433c] hover:bg-[#ebe8e2] transition-all hover:translate-x-1 duration-200 rounded-md font-manrope font-medium tracking-wide" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#54433c] hover:bg-[#ebe8e2] transition-all hover:translate-x-1 duration-200 rounded-md font-manrope font-medium tracking-wide" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="mt-auto space-y-1">
+<button class="w-full bg-primary text-on-primary py-3 rounded-md mb-6 font-bold flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(133,55,36,0.15)] active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                New Listing
+            </button>
+<a class="flex items-center gap-3 px-3 py-2 text-[#54433c] hover:bg-[#ebe8e2] transition-all rounded-md font-manrope font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#54433c] hover:bg-[#ebe8e2] transition-all rounded-md font-manrope font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 flex-1 p-10 max-w-7xl mx-auto">
+<!-- Header Section -->
+<header class="flex justify-between items-end mb-12">
+<div>
+<nav class="flex items-center gap-2 text-sm text-on-surface-variant mb-2">
+<span>The Atelier</span>
+<span class="material-symbols-outlined text-xs" data-icon="chevron_right">chevron_right</span>
+<span class="text-primary font-medium">Inventory</span>
+</nav>
+<h1 class="text-4xl font-headline font-bold text-on-surface -tracking-wider">Inventory</h1>
+</div>
+<button class="px-6 py-3 bg-primary text-on-primary rounded-md font-bold flex items-center gap-2 shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                List New Item
+            </button>
+</header>
+<!-- Low Stock Alert Banner -->
+<section class="mb-10 p-5 rounded-xl bg-error-container/30 border border-error/10 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-error-container rounded-full flex items-center justify-center text-error">
+<span class="material-symbols-outlined" data-icon="priority_high">priority_high</span>
+</div>
+<div>
+<h3 class="text-lg font-headline font-bold text-on-error-container">Low Stock Alert</h3>
+<p class="text-sm text-on-error-container/80">3 items are currently below your threshold. Replenishment recommended.</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-bold text-error border border-error/20 rounded-md hover:bg-error/5 transition-colors">View Items</button>
+</div>
+</section>
+<!-- Search and Filter Bar -->
+<section class="mb-8 p-6 bg-surface-container rounded-xl flex flex-col md:flex-row gap-6 items-center">
+<div class="relative flex-1 w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50" data-icon="search">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border-none border-b-2 border-outline-variant focus:border-primary ring-0 transition-colors rounded-t-md text-on-surface" placeholder="Search by item name or SKU..." type="text"/>
+</div>
+<div class="flex gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+<div class="relative min-w-[140px]">
+<select class="appearance-none w-full px-4 py-3 bg-surface-container-lowest border-none border-b-2 border-outline-variant text-sm font-medium focus:border-primary ring-0 rounded-t-md">
+<option>Category: All</option>
+<option>Ceramics</option>
+<option>Textiles</option>
+<option>Glassware</option>
+</select>
+</div>
+<div class="relative min-w-[140px]">
+<select class="appearance-none w-full px-4 py-3 bg-surface-container-lowest border-none border-b-2 border-outline-variant text-sm font-medium focus:border-primary ring-0 rounded-t-md">
+<option>Status: All</option>
+<option>Active</option>
+<option>Out of Stock</option>
+<option>Draft</option>
+</select>
+</div>
+<button class="px-5 py-3 bg-surface-container-high text-primary font-bold rounded-md flex items-center gap-2 hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+                    More Filters
+                </button>
+</div>
+</section>
+<!-- Bulk Actions -->
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-4">
+<label class="flex items-center gap-2 cursor-pointer group">
+<div class="w-5 h-5 border-2 border-outline-variant rounded group-hover:border-primary transition-colors flex items-center justify-center">
+<div class="w-2 h-2 bg-primary rounded-sm opacity-0 group-active:opacity-100"></div>
+</div>
+<span class="text-sm font-medium text-on-surface-variant">Select All (48 items)</span>
+</label>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60">Bulk Actions:</span>
+<button class="px-3 py-1.5 text-xs font-bold bg-surface-container-high rounded text-on-surface-variant hover:text-primary transition-colors">Update Price</button>
+<button class="px-3 py-1.5 text-xs font-bold bg-surface-container-high rounded text-on-surface-variant hover:text-primary transition-colors">Change Status</button>
+<button class="px-3 py-1.5 text-xs font-bold bg-error-container text-error rounded hover:bg-error/10 transition-colors">Archive</button>
+</div>
+</div>
+<!-- Inventory Table -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-[0_40px_80px_-20px_rgba(84,67,60,0.08)] overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant/10">
+<tr>
+<th class="p-6 w-12"></th>
+<th class="p-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Product</th>
+<th class="p-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">SKU</th>
+<th class="p-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Category</th>
+<th class="p-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Price</th>
+<th class="p-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Stock</th>
+<th class="p-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Status</th>
+<th class="p-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Item 1 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="p-6">
+<div class="w-5 h-5 border-2 border-outline-variant rounded cursor-pointer hover:border-primary transition-colors"></div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container relative">
+<img alt="Hand-thrown ceramic vase" class="w-full h-full object-cover" data-alt="close-up of a hand-thrown speckled ceramic vase with soft earthy texture on a neutral minimalist background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqH5aRUs78Ru3uV1PevaUMHX3WpgRjWsT-Rqg108JQtrlGV-AYyRUVVPtyiRd-NIvHyF_PNfHyRKYBO2ZI7RCO3V7TwNNhavilFZkUCXltmdwp_BxLMLbOMl0dyOqB15r1aDV71mf9orevbVY1NpGowOkZXRO-TYZ__4BIuat6EsKfQ2iZndnTgvoa1xZ7_5caQ-9i_OTgT7ur4JFivVpT6Bktx4peZ4Dg-EysoM3bW_Lo5BC-8FI-yNK9-h862OJiqjhjEAX-BgQ"/>
+</div>
+<div>
+<p class="font-bold text-on-surface group-hover:text-primary transition-colors">Speckled Earth Vase</p>
+<p class="text-xs text-on-surface-variant">Hand-thrown Stoneware</p>
+</div>
+</div>
+</td>
+<td class="p-6 font-mono text-sm text-on-surface-variant">CR-2044-S</td>
+<td class="p-6">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold">Ceramics</span>
+</td>
+<td class="p-6 font-bold text-on-surface">$124.00</td>
+<td class="p-6">
+<div class="flex flex-col gap-1.5">
+<span class="text-sm font-medium">12 in stock</span>
+<div class="w-24 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-[60%] h-full bg-secondary"></div>
+</div>
+</div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-2 text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-sm font-bold">Active</span>
+</div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded-md transition-colors" title="Edit">
+<span class="material-symbols-outlined" data-icon="edit">edit</span>
+</button>
+<button class="p-2 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded-md transition-colors" title="View Store">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 text-on-surface-variant hover:text-error rounded-md transition-colors" title="Delete">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 2 (Low Stock) -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="p-6">
+<div class="w-5 h-5 border-2 border-outline-variant rounded cursor-pointer hover:border-primary transition-colors"></div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container relative">
+<img alt="Linen table runner" class="w-full h-full object-cover" data-alt="folded natural indigo-dyed linen textiles with visible weave texture and organic frayed edges" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1tF6IV1-QgVsIwfeJdbssKn-LZPmCLVMJmZwPLSaZWi2hw5gwos8eStDj39tP3HqkmckQirNY9Ivh-jQdNEc2_d5n24lkkVOdVe-Q3iJA5WqGB_fLLPGN-HYKgo01bgy4kIEJ5no0_ySUn3fsak1C2vPZUQTD4ndfgKREAvQOIdAAXkSlylwj-70xZqJd03wFD6hFDyoRfQnCOAmJyZF-Ul3wBPvAJxcyoPYONWQHFtkrj-rmNNKUTyUnJjLQQaDgUIhhfJ8dARI"/>
+</div>
+<div>
+<p class="font-bold text-on-surface group-hover:text-primary transition-colors">Indigo Indigo Linen Runner</p>
+<p class="text-xs text-on-surface-variant">Organic Flax Fiber</p>
+</div>
+</div>
+</td>
+<td class="p-6 font-mono text-sm text-on-surface-variant">TX-8812-M</td>
+<td class="p-6">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold">Textiles</span>
+</td>
+<td class="p-6 font-bold text-on-surface">$85.00</td>
+<td class="p-6">
+<div class="flex flex-col gap-1.5">
+<span class="text-sm font-bold text-error">2 in stock</span>
+<div class="w-24 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-[15%] h-full bg-error"></div>
+</div>
+</div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-2 text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-sm font-bold">Active</span>
+</div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded-md transition-colors">
+<span class="material-symbols-outlined" data-icon="edit">edit</span>
+</button>
+<button class="p-2 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded-md transition-colors">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 text-on-surface-variant hover:text-error rounded-md transition-colors">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 3 (Draft) -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="p-6">
+<div class="w-5 h-5 border-2 border-outline-variant rounded cursor-pointer hover:border-primary transition-colors"></div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container relative">
+<img alt="Oak serving board" class="w-full h-full object-cover" data-alt="polished reclaimed oak serving board with dark charred edges and rich wood grain in warm natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsy3uE15EXemKiXdC9XhB6NPDETKhsHgeeoJS5Tvo1rIqtnjnnxQV0vW4JzXE3Oh9CXWPkGqD_vp-x8it1Uw0VpPHn8ZldndFMWB7ckYcViuHG9g0Af7LH2wtBPidwMd-c4DknoUWtRPLwvBzDVAChTLfQvmi_7a7i0Pmu_ZHFjDlsBlzRYDUWQrCGvuQ6wfaubX6focgMK6VQhuxgBWwhcXI1F0rkH1BFo38TxVUW3nOmfXl_6W1FNH0g52SaFPPfu-ija9Zf39g"/>
+</div>
+<div>
+<p class="font-bold text-on-surface group-hover:text-primary transition-colors">Charred Oak Platter</p>
+<p class="text-xs text-on-surface-variant">Reclaimed Hardwood</p>
+</div>
+</div>
+</td>
+<td class="p-6 font-mono text-sm text-on-surface-variant">WD-5501-L</td>
+<td class="p-6">
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant rounded-full text-xs font-bold">Woodwork</span>
+</td>
+<td class="p-6 font-bold text-on-surface">$145.00</td>
+<td class="p-6">
+<div class="flex flex-col gap-1.5 text-on-surface-variant/40">
+<span class="text-sm font-medium">--</span>
+<div class="w-24 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+</div>
+</div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-2 text-on-surface-variant/50">
+<span class="w-2 h-2 rounded-full bg-outline-variant"></span>
+<span class="text-sm font-bold italic">Draft</span>
+</div>
+</td>
+<td class="p-6">
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded-md transition-colors">
+<span class="material-symbols-outlined" data-icon="edit">edit</span>
+</button>
+<button class="p-2 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded-md transition-colors">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 text-on-surface-variant hover:text-error rounded-md transition-colors">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination -->
+<div class="p-6 bg-surface-container-low flex justify-between items-center">
+<span class="text-sm text-on-surface-variant font-medium">Showing 1-10 of 48 items</span>
+<div class="flex gap-1">
+<button class="w-10 h-10 flex items-center justify-center rounded hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded bg-primary text-on-primary font-bold">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded hover:bg-surface-container-highest font-bold">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded hover:bg-surface-container-highest font-bold">3</button>
+<button class="w-10 h-10 flex items-center justify-center rounded hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Empty Footer Spacing -->
+<div class="h-24"></div>
+</main>
+</body></html>

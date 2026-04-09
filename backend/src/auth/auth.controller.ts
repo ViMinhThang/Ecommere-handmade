@@ -1,11 +1,41 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+
+const REFRESH_TOKEN_COOKIE = 'auth_refresh_token';
+
+function extractCookieValue(req: ExpressRequest, key: string): string | undefined {
+  if (!req.headers.cookie) {
+    return undefined;
+  }
+
+  const cookieEntries = req.headers.cookie.split(';');
+  for (const entry of cookieEntries) {
+    const [rawName, ...rawValueParts] = entry.trim().split('=');
+    if (rawName !== key) {
+      continue;
+    }
+
+    const rawValue = rawValueParts.join('=');
+    return rawValue ? decodeURIComponent(rawValue) : undefined;
+  }
+
+  return undefined;
+}
 
 @Controller('auth')
 export class AuthController {
@@ -52,7 +82,17 @@ export class AuthController {
   @Post('refresh')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body('refreshToken') refreshToken: string) {
-    return this.authService.refreshToken(refreshToken);
+  async refresh(
+    @Body('refreshToken') refreshToken: string | undefined,
+    @Req() req: ExpressRequest,
+  ) {
+    const cookieToken = extractCookieValue(req, REFRESH_TOKEN_COOKIE);
+    const resolvedToken = refreshToken || cookieToken;
+
+    if (!resolvedToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+
+    return this.authService.refreshToken(resolvedToken);
   }
 }

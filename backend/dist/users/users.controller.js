@@ -18,9 +18,9 @@ const users_service_1 = require("./users.service");
 const create_user_dto_1 = require("./dto/create-user.dto");
 const update_user_dto_1 = require("./dto/update-user.dto");
 const create_address_dto_1 = require("./dto/create-address.dto");
+const list_users_query_dto_1 = require("./dto/list-users-query.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
-const pagination_dto_1 = require("../common/dto/pagination.dto");
 let UsersController = class UsersController {
     usersService;
     constructor(usersService) {
@@ -29,8 +29,8 @@ let UsersController = class UsersController {
     create(createUserDto) {
         return this.usersService.create(createUserDto);
     }
-    findAll(role, status, pagination) {
-        return this.usersService.findAll(role, status, pagination);
+    findAll(query) {
+        return this.usersService.findAll(query.role, query.status, query);
     }
     getStats() {
         return this.usersService.getStats();
@@ -69,11 +69,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     (0, roles_guard_1.Roles)('ROLE_ADMIN'),
-    __param(0, (0, common_1.Query)('role')),
-    __param(1, (0, common_1.Query)('status')),
-    __param(2, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, pagination_dto_1.PaginationDto]),
+    __metadata("design:paramtypes", [list_users_query_dto_1.ListUsersQueryDto]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "findAll", null);
 __decorate([

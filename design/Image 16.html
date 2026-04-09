@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ceramics | The Artisanal Curator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed": "#f0e0cc",
+                        "inverse-surface": "#31302d",
+                        "on-primary-fixed": "#3c0700",
+                        "primary-container": "#a44e39",
+                        "surface-container-low": "#f7f3ed",
+                        "on-primary-container": "#ffe1da",
+                        "on-primary-fixed-variant": "#7a2f1c",
+                        "tertiary": "#584e3f",
+                        "secondary-fixed-dim": "#b8ccb6",
+                        "secondary-fixed": "#d4e8d1",
+                        "on-surface": "#1c1c18",
+                        "primary-fixed-dim": "#ffb4a2",
+                        "surface-container": "#f1ede7",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#716656",
+                        "on-secondary": "#ffffff",
+                        "surface": "#fdf9f3",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#984631",
+                        "on-tertiary-fixed": "#221a0e",
+                        "surface-container-high": "#ebe8e2",
+                        "outline-variant": "#dac1b8",
+                        "primary": "#853724",
+                        "surface-variant": "#e6e2dc",
+                        "on-secondary-fixed-variant": "#3a4b3a",
+                        "background": "#fdf9f3",
+                        "primary-fixed": "#ffdad2",
+                        "surface-container-highest": "#e6e2dc",
+                        "on-secondary-container": "#576957",
+                        "surface-bright": "#fdf9f3",
+                        "inverse-on-surface": "#f4f0ea",
+                        "tertiary-fixed-dim": "#d3c4b1",
+                        "inverse-primary": "#ffb4a2",
+                        "on-secondary-fixed": "#0f1f11",
+                        "on-tertiary-container": "#f4e5d1",
+                        "secondary-container": "#d4e8d1",
+                        "secondary": "#516351",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#54433c",
+                        "on-background": "#1c1c18",
+                        "on-tertiary-fixed-variant": "#4f4537",
+                        "on-error-container": "#93000a",
+                        "outline": "#87736b",
+                        "surface-dim": "#dddad4"
+                    },
+                    fontFamily: {
+                        "headline": ["Noto Serif"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+        h1, h2, h3, .serif-italic { font-family: 'Noto Serif', serif; font-style: italic; }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#fdf9f3]/85 backdrop-blur-xl shadow-[0_40px_40px_rgba(84,67,60,0.06)] flex justify-between items-center px-8 py-4 max-w-full mx-auto">
+<div class="text-2xl font-serif italic text-[#853724]">The Artisanal Curator</div>
+<div class="hidden md:flex items-center space-x-8 font-noto-serif italic tracking-tight">
+<a class="text-[#853724] border-b-2 border-[#853724] pb-1 hover:text-[#853724] transition-colors duration-300" href="#">Ceramics</a>
+<a class="text-[#54433c] font-medium hover:text-[#853724] transition-colors duration-300" href="#">Textiles</a>
+<a class="text-[#54433c] font-medium hover:text-[#853724] transition-colors duration-300" href="#">Woodwork</a>
+<a class="text-[#54433c] font-medium hover:text-[#853724] transition-colors duration-300" href="#">Jewelry</a>
+</div>
+<div class="flex items-center space-x-6 text-[#853724]">
+<button class="scale-95 duration-200 ease-out flex items-center">
+<span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+</button>
+<button class="scale-95 duration-200 ease-out flex items-center">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</button>
+</div>
+</nav>
+<main class="pt-32 px-8 max-w-[1600px] mx-auto min-h-screen">
+<!-- Header Section -->
+<header class="mb-16">
+<h1 class="text-5xl md:text-6xl text-primary mb-4 tracking-tight">The Ceramic Gallery</h1>
+<p class="text-on-surface-variant max-w-xl font-body leading-relaxed">
+                Hand-thrown vessels and sculptural forms from independent studios worldwide. Each piece carries the distinct fingerprint of its creator and the spirit of the earth from which it was formed.
+            </p>
+</header>
+<div class="flex flex-col lg:flex-row gap-12">
+<!-- Sidebar Filters -->
+<aside class="w-full lg:w-64 flex-shrink-0">
+<div class="sticky top-32 space-y-12">
+<!-- Category Filter -->
+<section>
+<h3 class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-6">Price Range</h3>
+<div class="space-y-4">
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline-variant text-primary rounded-sm focus:ring-primary/20" type="checkbox"/>
+<span class="ml-3 text-sm text-on-surface group-hover:text-primary transition-colors">Under $100</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline-variant text-primary rounded-sm focus:ring-primary/20" type="checkbox"/>
+<span class="ml-3 text-sm text-on-surface group-hover:text-primary transition-colors">$100 — $250</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input checked="" class="w-4 h-4 border-outline-variant text-primary rounded-sm focus:ring-primary/20" type="checkbox"/>
+<span class="ml-3 text-sm text-on-surface group-hover:text-primary transition-colors">$250 — $500</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline-variant text-primary rounded-sm focus:ring-primary/20" type="checkbox"/>
+<span class="ml-3 text-sm text-on-surface group-hover:text-primary transition-colors">$500+</span>
+</label>
+</div>
+</section>
+<!-- Material Filter -->
+<section>
+<h3 class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-6">Material</h3>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 bg-secondary-container text-on-secondary-container text-xs rounded-full font-medium">Stoneware</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface text-xs rounded-full font-medium hover:bg-secondary-container hover:text-on-secondary-container transition-all">Porcelain</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface text-xs rounded-full font-medium hover:bg-secondary-container hover:text-on-secondary-container transition-all">Terracotta</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface text-xs rounded-full font-medium hover:bg-secondary-container hover:text-on-secondary-container transition-all">Raku</button>
+</div>
+</section>
+<!-- Lead Time -->
+<section>
+<h3 class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-6">Availability</h3>
+<div class="space-y-4">
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline-variant text-primary focus:ring-primary/20" name="lead" type="radio"/>
+<span class="ml-3 text-sm text-on-surface">Ready to Ship</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline-variant text-primary focus:ring-primary/20" name="lead" type="radio"/>
+<span class="ml-3 text-sm text-on-surface">2-4 Weeks</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline-variant text-primary focus:ring-primary/20" name="lead" type="radio"/>
+<span class="ml-3 text-sm text-on-surface">Custom Commission</span>
+</label>
+</div>
+</section>
+<div class="pt-4 border-t-2 border-outline-variant/10">
+<button class="text-sm font-bold text-primary flex items-center group">
+                            Clear all filters
+                            <span class="material-symbols-outlined ml-2 text-sm transition-transform group-hover:translate-x-1" data-icon="close">close</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Product Grid -->
+<div class="flex-grow">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
+<!-- Product Card 1 -->
+<div class="group">
+<div class="relative overflow-hidden aspect-[4/5] bg-surface-container mb-6 rounded-lg">
+<img alt="Ceramic Vase" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Close-up of a textured matte black ceramic vase with organic asymmetrical edges against a soft beige studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdELcpP3tz-yi20eLhUMdTTmY91JCJpCQczeYy9sSGqG4s0EuwDayB-EwHc9RNQVWA1HYk1Uw5Ks5cTyQt-8yJq4h1Ng4YD7VwtyPrroncIqwPMYUjUII8_hJQe0eWE4-NWDgyARNXcASGmYs7qovON9H--LoFkskhFnK_ZP_sKCC3CKshJYYw9i1O3gzt3qWXe-l8Rg0dVo5bIAOEl_J24iXW1jXdDRs-2R0mNvyFdQ0vC9LizOffy487ibFfH8aIImqc67WvI2E"/>
+<div class="absolute inset-0 bg-on-surface/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="px-8 py-3 bg-surface text-primary font-bold text-sm tracking-wide rounded-md shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    Quick View
+                                </button>
+</div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-xl text-on-surface mb-1">Obsidian Vessel No. 04</h3>
+<p class="text-secondary text-sm font-medium italic">by Elena Garside</p>
+</div>
+<span class="text-primary font-bold">$340</span>
+</div>
+</div>
+<!-- Product Card 2 (Asymmetric shift) -->
+<div class="group md:mt-12">
+<div class="relative overflow-hidden aspect-[4/5] bg-surface-container mb-6 rounded-lg">
+<img alt="White Porcelain Bowl" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Delicate translucent white porcelain bowl with gold leaf rim detailing sitting on a weathered wooden surface in natural morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0pJqrVUiMKmfpuoDcB2iRGXYtpwJRazTvg8UmUI7lFcoMuJS6Lpccix0v0_OVaGSyUwgde9M1Ezxw5ISfbaWp6Cm8_EKPG9XDkgfaeQJ8sZYHYP0IpAWQi4kaMqYMyE52dGdu4kOLig3N96HAhlWSCtFjvz_ItiiCvZs9Rb1d2fzDpJ_QG-NCs8n-LBAv9yDBr5Me6p_Dw0tOJCvzlXMvBNecfkNpXPDAAVhp_raFaqHccnlW6U9kY7nukZ1l9P8LX-Bb_Yqlv60"/>
+<div class="absolute inset-0 bg-on-surface/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="px-8 py-3 bg-surface text-primary font-bold text-sm tracking-wide rounded-md shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    Quick View
+                                </button>
+</div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-xl text-on-surface mb-1">Ethereal Silk Bowl</h3>
+<p class="text-secondary text-sm font-medium italic">by Studio Maru</p>
+</div>
+<span class="text-primary font-bold">$185</span>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="group">
+<div class="relative overflow-hidden aspect-[4/5] bg-surface-container mb-6 rounded-lg">
+<img alt="Stoneware Pitcher" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Handcrafted rustic stoneware pitcher with earthy terracotta and sage green glaze patterns standing on a stone plinth" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAS7gnSeLIq85kFTBBAlc8Yr45PlWfxSX4spyjr8qOG7ATV5_5BgBBrzCPaX8Rpyl1tzYYkXvOoEsGmzaApOrWQ5U4BBUfIOD0x0VOjI8_VcwfMHgYLOcbYX7d-DNERtqHHP36qCyHxM_2yAomx7XDjXFtLIsWyzjArgIjFQ6mONr0ol6F59j3BZKvZfWT47IcKUCiugqk3KL26kBzi8gF1_31JgMDqZBto2Jm94bTaZdqzUtMWoi5va2zvAaPuCQP8PMxPXScDP4"/>
+<div class="absolute inset-0 bg-on-surface/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="px-8 py-3 bg-surface text-primary font-bold text-sm tracking-wide rounded-md shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    Quick View
+                                </button>
+</div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-xl text-on-surface mb-1">Terra Pitcher</h3>
+<p class="text-secondary text-sm font-medium italic">by Aris Thorne</p>
+</div>
+<span class="text-primary font-bold">$210</span>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="group">
+<div class="relative overflow-hidden aspect-[4/5] bg-surface-container mb-6 rounded-lg">
+<img alt="Ceramic Sculpture" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Abstract minimalist ceramic sculpture with flowing curves and a speckled sand-colored glaze in a bright gallery setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBd8iy-RGXgvjdakJT5BMC7r0owHKTPrsHmmrJjS-WVv-BC-1amrKND9LqfIfYimHHmZzi--nxi1obZWpAlWpAWxnhnWgYEiwgQ3r7kvD5LkdOOPCAeDHIhIwz-2QiRzoTGIAXnplCoFRtHUfXPk_bCTLPbrgUxKATKyS0YGou7Jm3_C_md7fyg9zN3jsqTJTQhEq5sAdnhMGNYCLUShSMEeVlruSYVj9zbPZx3o9cQvX_g1jvWJhuVoLMA91ZYVLNhGmukge42JbM"/>
+<div class="absolute inset-0 bg-on-surface/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="px-8 py-3 bg-surface text-primary font-bold text-sm tracking-wide rounded-md shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    Quick View
+                                </button>
+</div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-xl text-on-surface mb-1">Form No. 88</h3>
+<p class="text-secondary text-sm font-medium italic">by Kintsugi Collective</p>
+</div>
+<span class="text-primary font-bold">$420</span>
+</div>
+</div>
+<!-- Product Card 5 (Asymmetric shift) -->
+<div class="group md:mt-12">
+<div class="relative overflow-hidden aspect-[4/5] bg-surface-container mb-6 rounded-lg">
+<img alt="Glazed Plates" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Set of four shallow ceramic plates with a deep sage reactive glaze and raw clay base edges stacked neatly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCj3ZZFeCvuXTpgIB5K7kJCrXiUS2X79jNrf_uIFmB7PNe-OFPP6UfsPNCeHmr1QYoOd3ck3M98bTrpnc-KxGBOpGLrgVMJC9VSSsV13fwlMdfkPd8ilbV6V9U4CYdEoe601cpU-Zw2BLuF9o66FbuFkIjdNiw4hg0YyZp7xYytRlXVCaMjhBPWrwgeXd3yOoeXMbSn5TZsLXO8uyxQAUl3PEJf_-IQfOIEUPQLvQ1xxhi9NnQkWOahZTloG19Nioin4TenfBVy6Rk"/>
+<div class="absolute inset-0 bg-on-surface/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="px-8 py-3 bg-surface text-primary font-bold text-sm tracking-wide rounded-md shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    Quick View
+                                </button>
+</div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-xl text-on-surface mb-1">Sage Horizon Plates</h3>
+<p class="text-secondary text-sm font-medium italic">by Nordic Earth</p>
+</div>
+<span class="text-primary font-bold">$290</span>
+</div>
+</div>
+<!-- Product Card 6 -->
+<div class="group">
+<div class="relative overflow-hidden aspect-[4/5] bg-surface-container mb-6 rounded-lg">
+<img alt="Textured Mug" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Handcrafted chunky ceramic mug with a thumbprint texture and a warm ochre glaze being held by a potter in an apron" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBucEQPFGwD_lhKBpv85lWSD8AhSn2_qbw80pQbUqizjWw9SkDM3ofLzBspM3ZztwD2k4NixvnJz8u2z53C7lW0T_bosrv_FlNY8Lf-ubkwQ2sTKejAKXzJFBdR0uY7A_7Exb0TMnVQbWhc8O6LqaJQtDbpTVp1cFrKsgejYnVwWTnnSmLHFTvrYd8pnzNZSLLBLXdWfSD_1SjDhiJB6_1aK4k1phEI-oLAuNPDP7IGTDCQPa9FVbP2fAc1UmLA_eGrbZkM3us-Ld8"/>
+<div class="absolute inset-0 bg-on-surface/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="px-8 py-3 bg-surface text-primary font-bold text-sm tracking-wide rounded-md shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    Quick View
+                                </button>
+</div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-xl text-on-surface mb-1">Morning Ritual Mug</h3>
+<p class="text-secondary text-sm font-medium italic">by Clay &amp; Soul</p>
+</div>
+<span class="text-primary font-bold">$65</span>
+</div>
+</div>
+</div>
+<!-- Pagination/Load More -->
+<div class="mt-24 flex justify-center">
+<button class="px-12 py-4 bg-primary text-on-primary rounded-md font-bold text-sm tracking-widest flex items-center group">
+                        LOAD MORE PIECES
+                        <span class="material-symbols-outlined ml-3 transition-transform group-hover:translate-y-1" data-icon="keyboard_arrow_down">keyboard_arrow_down</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full mt-24 bg-[#ebe8e2] grid grid-cols-1 md:grid-cols-2 gap-12 px-12 py-20">
+<div class="space-y-6">
+<div class="font-serif text-lg text-[#853724]">The Artisanal Curator</div>
+<p class="font-manrope text-sm tracking-wide text-[#54433c] max-w-md opacity-80 leading-relaxed">
+                Celebrating the mastery of human hands. We bridge the gap between global artisans and conscious collectors, fostering a world where objects tell stories of heritage and heart.
+            </p>
+<p class="font-manrope text-sm tracking-wide text-[#516351]">© 2024 The Artisanal Curator. Crafted with Intent.</p>
+</div>
+<div class="grid grid-cols-2 gap-8 font-manrope text-sm tracking-wide">
+<div class="space-y-4">
+<h4 class="font-bold text-[#853724] mb-6 uppercase text-xs tracking-[0.2em]">Curation</h4>
+<a class="block text-[#54433c] hover:text-[#853724] transition-all" href="#">Shipping &amp; Returns</a>
+<a class="block text-[#54433c] hover:text-[#853724] transition-all" href="#">Sustainability</a>
+<a class="block text-[#54433c] hover:text-[#853724] transition-all" href="#">Artisan Story</a>
+<a class="block text-[#54433c] hover:text-[#853724] transition-all" href="#">Privacy</a>
+</div>
+<div class="space-y-4">
+<h4 class="font-bold text-[#853724] mb-6 uppercase text-xs tracking-[0.2em]">Contact</h4>
+<p class="text-[#54433c] opacity-80">London, United Kingdom</p>
+<p class="text-[#54433c] opacity-80">hello@artisanalcurator.com</p>
+<div class="flex space-x-4 pt-4">
+<span class="material-symbols-outlined text-[#853724]" data-icon="share">share</span>
+<span class="material-symbols-outlined text-[#853724]" data-icon="mail">mail</span>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

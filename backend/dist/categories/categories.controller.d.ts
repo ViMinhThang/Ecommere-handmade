@@ -1,11 +1,11 @@
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
+import { ListCategoriesQueryDto } from './dto/list-categories-query.dto';
 export declare class CategoriesController {
     private readonly categoriesService;
     constructor(categoriesService: CategoriesService);
-    findAll(status?: string, pagination?: PaginationDto): Promise<{
+    findAll(query: ListCategoriesQueryDto): Promise<{
         data: {
             image: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;

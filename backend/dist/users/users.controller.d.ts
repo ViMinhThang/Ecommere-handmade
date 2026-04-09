@@ -2,7 +2,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
@@ -38,7 +38,7 @@ export declare class UsersController {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    findAll(role?: string, status?: string, pagination?: PaginationDto): Promise<{
+    findAll(query: ListUsersQueryDto): Promise<{
         data: {
             status: import(".prisma/client").$Enums.UserStatus;
             name: string;

@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { VersioningType } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import * as path from 'path';
+import * as express from 'express';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { Request, Response, NextFunction } from 'express';
@@ -38,6 +40,8 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   app.enableVersioning({
@@ -46,9 +50,25 @@ async function bootstrap() {
   });
 
   app.use((req: Request, _res: Response, next: NextFunction) => {
-    req.headers['x-request-id'] = req.headers['x-request-id'] || uuidv4();
+    req.headers['x-request-id'] = req.headers['x-request-id'];
     next();
   });
+
+  // Serve static files from uploads directory
+  const uploadsPath = path.join(process.cwd(), 'uploads');
+  app.use(
+    '/uploads',
+    express.static(uploadsPath, {
+      maxAge: '1d',
+      etag: false,
+      setHeaders: (res) => {
+        const origin = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.set('Access-Control-Allow-Origin', origin);
+        res.set('Access-Control-Allow-Credentials', 'true');
+        res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      },
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('E-commerce API')

@@ -13,9 +13,9 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { PaginationDto } from '../common/dto/pagination.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
@@ -30,12 +30,8 @@ export class UsersController {
 
   @Get()
   @Roles('ROLE_ADMIN')
-  findAll(
-    @Query('role') role?: string,
-    @Query('status') status?: string,
-    @Query() pagination?: PaginationDto,
-  ) {
-    return this.usersService.findAll(role, status, pagination);
+  findAll(@Query() query: ListUsersQueryDto) {
+    return this.usersService.findAll(query.role, query.status, query);
   }
 
   @Get('stats')

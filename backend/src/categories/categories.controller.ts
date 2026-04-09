@@ -12,20 +12,17 @@ import {
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { ListCategoriesQueryDto } from './dto/list-categories-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
-  findAll(
-    @Query('status') status?: string,
-    @Query() pagination?: PaginationDto,
-  ) {
-    return this.categoriesService.findAll(status, pagination);
+  findAll(@Query() query: ListCategoriesQueryDto) {
+    return this.categoriesService.findAll(query.status, query);
   }
 
   @Get('stats')

@@ -18,9 +18,9 @@ const products_service_1 = require("./products.service");
 const create_product_dto_1 = require("./dto/create-product.dto");
 const update_product_dto_1 = require("./dto/update-product.dto");
 const update_stock_dto_1 = require("./dto/update-stock.dto");
+const list_products_query_dto_1 = require("./dto/list-products-query.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
-const pagination_dto_1 = require("../common/dto/pagination.dto");
 let ProductsController = class ProductsController {
     productsService;
     constructor(productsService) {
@@ -29,8 +29,8 @@ let ProductsController = class ProductsController {
     create(req, createProductDto) {
         return this.productsService.create(req.user.id, createProductDto);
     }
-    findAll(status, categoryId, sellerId, pagination) {
-        return this.productsService.findAll(status, categoryId, sellerId, pagination);
+    findAll(query) {
+        return this.productsService.findAll(query.status, query.categoryId, query.sellerId, query);
     }
     getStats() {
         return this.productsService.getStats();
@@ -62,6 +62,7 @@ let ProductsController = class ProductsController {
 };
 exports.ProductsController = ProductsController;
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Post)(),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
     __param(0, (0, common_1.Request)()),
@@ -72,21 +73,20 @@ __decorate([
 ], ProductsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('status')),
-    __param(1, (0, common_1.Query)('categoryId')),
-    __param(2, (0, common_1.Query)('sellerId')),
-    __param(3, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, pagination_dto_1.PaginationDto]),
+    __metadata("design:paramtypes", [list_products_query_dto_1.ListProductsQueryDto]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)('stats'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getStats", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)('seller/:sellerId'),
     __param(0, (0, common_1.Param)('sellerId')),
     __metadata("design:type", Function),
@@ -94,6 +94,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getBySeller", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)('low-stock'),
     __param(0, (0, common_1.Query)('sellerId')),
     __metadata("design:type", Function),
@@ -108,6 +109,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "findOne", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Patch)(':id'),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
     __param(0, (0, common_1.Param)('id')),
@@ -117,6 +119,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "update", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Delete)(':id'),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
     __param(0, (0, common_1.Param)('id')),
@@ -125,6 +128,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "remove", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)(':id/inventory'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -132,6 +136,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getInventory", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Patch)(':id/stock'),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
     __param(0, (0, common_1.Param)('id')),
@@ -141,6 +146,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "updateStock", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)(':id/inventory-log'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -148,7 +154,6 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getInventoryLog", null);
 exports.ProductsController = ProductsController = __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Controller)('products'),
     __metadata("design:paramtypes", [products_service_1.ProductsService])
 ], ProductsController);

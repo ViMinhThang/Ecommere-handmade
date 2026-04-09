@@ -2,7 +2,7 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
+import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { Request as ExpressRequest } from 'express';
 interface AuthenticatedRequest extends ExpressRequest {
     user: {
@@ -66,7 +66,7 @@ export declare class ProductsController {
         sku: string | null;
         sellerId: string;
     }>;
-    findAll(status?: string, categoryId?: string, sellerId?: string, pagination?: PaginationDto): Promise<{
+    findAll(query: ListProductsQueryDto): Promise<{
         data: {
             category: {
                 name: string;
