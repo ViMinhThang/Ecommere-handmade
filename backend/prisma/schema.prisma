@@ -101,6 +101,7 @@ model Product {
   stock            Int           @default(0)
   lowStockThreshold Int          @default(10)
   sku              String?
+  descriptionImages String[]     @default([])
   deletedAt        DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt

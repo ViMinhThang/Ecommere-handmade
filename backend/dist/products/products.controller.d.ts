@@ -14,6 +14,10 @@ interface AuthenticatedRequest extends ExpressRequest {
 export declare class ProductsController {
     private readonly productsService;
     constructor(productsService: ProductsService);
+    uploadImage(file: Express.Multer.File): Promise<{
+        url: string;
+        fileName: string;
+    }>;
     create(req: AuthenticatedRequest, createProductDto: CreateProductDto): Promise<{
         category: {
             image: string | null;
@@ -60,6 +64,7 @@ export declare class ProductsController {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -138,6 +143,7 @@ export declare class ProductsController {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -182,6 +188,7 @@ export declare class ProductsController {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -234,13 +241,14 @@ export declare class ProductsController {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
         sku: string | null;
         sellerId: string;
     }>;
-    update(id: string, updateProductDto: UpdateProductDto): Promise<{
+    update(id: string, updateProductDto: UpdateProductDto): Promise<({
         category: {
             image: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
@@ -286,12 +294,13 @@ export declare class ProductsController {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
         sku: string | null;
         sellerId: string;
-    }>;
+    }) | null>;
     remove(id: string): Promise<{
         status: import(".prisma/client").$Enums.ProductStatus;
         name: string;
@@ -301,6 +310,7 @@ export declare class ProductsController {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -323,6 +333,7 @@ export declare class ProductsController {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;

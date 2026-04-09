@@ -27,6 +27,9 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

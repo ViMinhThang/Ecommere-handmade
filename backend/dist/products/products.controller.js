@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const products_service_1 = require("./products.service");
 const create_product_dto_1 = require("./dto/create-product.dto");
 const update_product_dto_1 = require("./dto/update-product.dto");
@@ -25,6 +26,10 @@ let ProductsController = class ProductsController {
     productsService;
     constructor(productsService) {
         this.productsService = productsService;
+    }
+    uploadImage(file) {
+        console.log('Received file:', file);
+        return this.productsService.uploadImage(file);
     }
     create(req, createProductDto) {
         return this.productsService.create(req.user.id, createProductDto);
@@ -61,6 +66,18 @@ let ProductsController = class ProductsController {
     }
 };
 exports.ProductsController = ProductsController;
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, common_1.Post)('upload'),
+    (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        limits: { fileSize: 5 * 1024 * 1024 }
+    })),
+    __param(0, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "uploadImage", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Post)(),

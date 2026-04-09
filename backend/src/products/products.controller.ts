@@ -9,7 +9,10 @@ import {
   Query,
   UseGuards,
   Request,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -30,6 +33,17 @@ interface AuthenticatedRequest extends ExpressRequest {
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post('upload')
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  }))
+  uploadImage(@UploadedFile() file: Express.Multer.File) {
+    console.log('Received file:', file);
+    return this.productsService.uploadImage(file);
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()

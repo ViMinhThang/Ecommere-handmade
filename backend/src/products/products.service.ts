@@ -4,6 +4,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto, InventoryChangeReason } from './dto/update-stock.dto';
@@ -12,6 +14,24 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
+
+  async uploadImage(file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng cung cấp file ảnh');
+    }
+    const uploadPath = path.join('uploads', 'products');
+    await fs.mkdir(uploadPath, { recursive: true });
+
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileName = `${Date.now()}-${safeName}`;
+    const filePath = path.join(uploadPath, fileName);
+    await fs.writeFile(filePath, file.buffer);
+
+    return {
+      url: `products/${fileName}`,
+      fileName: fileName
+    };
+  }
 
   async create(sellerId: string, createProductDto: CreateProductDto) {
     const { images, ...productData } = createProductDto;
@@ -116,18 +136,44 @@ export class ProductsService {
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
+    const { images, ...productData } = updateProductDto;
+
     const product = await this.prisma.product.findUnique({ where: { id } });
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
-    return this.prisma.product.update({
-      where: { id },
-      data: updateProductDto,
-      include: {
-        category: true,
-        seller: true,
-        images: true,
-      },
+
+    return this.prisma.$transaction(async (tx) => {
+      // If images are provided, replace them
+      if (images) {
+        await tx.productImage.deleteMany({
+          where: { productId: id },
+        });
+
+        await tx.product.update({
+          where: { id },
+          data: {
+            ...productData,
+            images: {
+              create: images,
+            },
+          },
+        });
+      } else {
+        await tx.product.update({
+          where: { id },
+          data: productData,
+        });
+      }
+
+      return tx.product.findUnique({
+        where: { id },
+        include: {
+          category: true,
+          seller: true,
+          images: true,
+        },
+      });
     });
   }
 

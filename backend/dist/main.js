@@ -56,6 +56,8 @@ async function bootstrap() {
     validateEnv();
     const logger = new common_1.Logger('Bootstrap');
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ limit: '10mb', extended: true }));
     app.useGlobalPipes(new common_1.ValidationPipe({
         transform: true,
         whitelist: true,

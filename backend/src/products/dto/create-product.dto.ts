@@ -32,6 +32,11 @@ export class CreateProductDto {
   @Type(() => ProductImageDto)
   images?: ProductImageDto[];
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  descriptionImages?: string[];
+
   @IsString()
   categoryId: string;
 

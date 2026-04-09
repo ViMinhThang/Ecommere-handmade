@@ -6,6 +6,10 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 export declare class ProductsService {
     private prisma;
     constructor(prisma: PrismaService);
+    uploadImage(file: Express.Multer.File): Promise<{
+        url: string;
+        fileName: string;
+    }>;
     create(sellerId: string, createProductDto: CreateProductDto): Promise<{
         category: {
             image: string | null;
@@ -52,6 +56,7 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -141,13 +146,14 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
         sku: string | null;
         sellerId: string;
     }>;
-    update(id: string, updateProductDto: UpdateProductDto): Promise<{
+    update(id: string, updateProductDto: UpdateProductDto): Promise<({
         category: {
             image: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
@@ -193,12 +199,13 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
         sku: string | null;
         sellerId: string;
-    }>;
+    }) | null>;
     remove(id: string): Promise<{
         status: import(".prisma/client").$Enums.ProductStatus;
         name: string;
@@ -208,6 +215,7 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -249,6 +257,7 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -271,6 +280,7 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -294,6 +304,7 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
@@ -338,6 +349,7 @@ export declare class ProductsService {
         updatedAt: Date;
         description: string;
         price: import("@prisma/client/runtime/library").Decimal;
+        descriptionImages: string[];
         categoryId: string;
         stock: number;
         lowStockThreshold: number;
