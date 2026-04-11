@@ -7,10 +7,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { Prisma } from '@prisma/client';
+import { VouchersService } from '../vouchers/vouchers.service';
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly vouchersService: VouchersService,
+  ) {}
 
   private readonly cartInclude = {
     items: {
@@ -280,6 +284,70 @@ export class CartService {
     });
 
     return suggestions.slice(0, limit);
+  }
+
+  async applyVoucher(userId: string, code: string) {
+    const cart = await this.getCart(userId);
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('Cart is empty');
+    }
+
+    const voucher = await this.vouchersService.findByCode(code);
+
+    if (!voucher.isActive) {
+      throw new BadRequestException('Voucher is inactive');
+    }
+
+    if (new Date(voucher.endDate) <= new Date()) {
+      throw new BadRequestException('Voucher has expired');
+    }
+
+    // Filter items matching the category
+    const eligibleItems = cart.items.filter(
+      (item) => item.product.categoryId === voucher.categoryId,
+    );
+
+    if (eligibleItems.length === 0) {
+      throw new BadRequestException(
+        `Voucher này chỉ áp dụng cho các sản phẩm thuộc danh mục: ${voucher.category?.name || 'Không xác định'}`,
+      );
+    }
+
+    const eligibleSubtotal = eligibleItems.reduce(
+      (sum, item) => sum + Number(item.product.price) * item.quantity,
+      0,
+    );
+
+    // Find matching range
+    const matchedRange = voucher.ranges.find(
+      (range) =>
+        eligibleSubtotal >= Number(range.minPrice) &&
+        eligibleSubtotal < Number(range.maxPrice),
+    );
+
+    if (!matchedRange) {
+      const minRequired = Math.min(
+        ...voucher.ranges.map((r) => Number(r.minPrice)),
+      );
+      if (eligibleSubtotal < minRequired) {
+        throw new BadRequestException(
+          `Giá trị đơn hàng tối thiểu cho các sản phẩm hợp lệ là: ${minRequired.toLocaleString('vi-VN')} vnđ. Hiện tại: ${eligibleSubtotal.toLocaleString('vi-VN')} vnđ`,
+        );
+      }
+      throw new BadRequestException('Voucher không áp dụng cho mức giá này');
+    }
+
+    const discountAmount = Math.round(
+      (eligibleSubtotal * Number(matchedRange.discountPercent)) / 100,
+    );
+
+    return {
+      code: voucher.code,
+      discountAmount,
+      eligibleSubtotal,
+      discountPercent: Number(matchedRange.discountPercent),
+      message: 'Áp dụng voucher thành công',
+    };
   }
 
   private async getOrCreateCart(userId: string) {

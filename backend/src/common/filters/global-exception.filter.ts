@@ -21,14 +21,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let error = 'Internal Server Error';
+    let errors: string[] = [];
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
       if (typeof res === 'object' && res !== null && 'message' in res) {
-        message = Array.isArray(res.message)
-          ? res.message.join(', ')
-          : (res.message as string);
+        if (Array.isArray(res.message)) {
+          errors = res.message as string[];
+          message = errors.join(', ');
+        } else {
+          message = res.message as string;
+        }
       }
       if (typeof res === 'object' && res !== null && 'error' in res) {
         error = res.error as string;
@@ -75,6 +79,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       statusCode: status,
       message,
       error,
+      errors: errors.length > 0 ? errors : undefined,
       timestamp: new Date().toISOString(),
       path: request.url,
     });

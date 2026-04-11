@@ -49,7 +49,7 @@ export class UsersService {
     const roles = this.processRoles(createUserDto.roles);
     const password = createUserDto.password || 'Handmade@123';
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     return this.prisma.user.create({
       data: {
         name: createUserDto.name,

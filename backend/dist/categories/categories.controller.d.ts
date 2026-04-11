@@ -7,16 +7,16 @@ export declare class CategoriesController {
     constructor(categoriesService: CategoriesService);
     findAll(query: ListCategoriesQueryDto): Promise<{
         data: {
-            status: import(".prisma/client").$Enums.CategoryStatus;
-            id: string;
-            name: string;
-            description: string | null;
             image: string | null;
-            slug: string | null;
-            productsCount: number;
+            status: import(".prisma/client").$Enums.CategoryStatus;
+            name: string;
+            id: string;
             deletedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
+            slug: string | null;
+            productsCount: number;
         }[];
         meta: {
             page: number;
@@ -31,63 +31,63 @@ export declare class CategoriesController {
         inactive: number;
     }>;
     create(createCategoryDto: CreateCategoryDto): Promise<{
-        status: import(".prisma/client").$Enums.CategoryStatus;
-        id: string;
-        name: string;
-        description: string | null;
         image: string | null;
-        slug: string | null;
-        productsCount: number;
+        status: import(".prisma/client").$Enums.CategoryStatus;
+        name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        slug: string | null;
+        productsCount: number;
     }>;
     findBySlug(slug: string): Promise<{
-        status: import(".prisma/client").$Enums.CategoryStatus;
-        id: string;
-        name: string;
-        description: string | null;
         image: string | null;
-        slug: string | null;
-        productsCount: number;
+        status: import(".prisma/client").$Enums.CategoryStatus;
+        name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        slug: string | null;
+        productsCount: number;
     }>;
     findOne(id: string): Promise<{
-        status: import(".prisma/client").$Enums.CategoryStatus;
-        id: string;
-        name: string;
-        description: string | null;
         image: string | null;
-        slug: string | null;
-        productsCount: number;
+        status: import(".prisma/client").$Enums.CategoryStatus;
+        name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        slug: string | null;
+        productsCount: number;
     }>;
     update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<{
-        status: import(".prisma/client").$Enums.CategoryStatus;
-        id: string;
-        name: string;
-        description: string | null;
         image: string | null;
-        slug: string | null;
-        productsCount: number;
+        status: import(".prisma/client").$Enums.CategoryStatus;
+        name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        slug: string | null;
+        productsCount: number;
     }>;
     remove(id: string): Promise<{
-        status: import(".prisma/client").$Enums.CategoryStatus;
-        id: string;
-        name: string;
-        description: string | null;
         image: string | null;
-        slug: string | null;
-        productsCount: number;
+        status: import(".prisma/client").$Enums.CategoryStatus;
+        name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        slug: string | null;
+        productsCount: number;
     }>;
 }

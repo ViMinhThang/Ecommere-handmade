@@ -12,6 +12,7 @@ import {
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { ApplyVoucherDto } from './dto/apply-voucher.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
@@ -55,5 +56,13 @@ export class CartController {
   @Get('suggestions')
   getSuggestions(@Request() req: AuthenticatedRequest) {
     return this.cartService.getSuggestions(req.user.id);
+  }
+
+  @Post('apply-voucher')
+  applyVoucher(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: ApplyVoucherDto,
+  ) {
+    return this.cartService.applyVoucher(req.user.id, dto.code);
   }
 }
