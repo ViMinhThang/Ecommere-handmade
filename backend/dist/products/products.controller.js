@@ -28,7 +28,6 @@ let ProductsController = class ProductsController {
         this.productsService = productsService;
     }
     uploadImage(file) {
-        console.log('Received file:', file);
         return this.productsService.uploadImage(file);
     }
     create(req, createProductDto) {
@@ -49,11 +48,11 @@ let ProductsController = class ProductsController {
     findOne(id) {
         return this.productsService.findOne(id);
     }
-    update(id, updateProductDto) {
-        return this.productsService.update(id, updateProductDto);
+    update(req, id, updateProductDto) {
+        return this.productsService.update(id, updateProductDto, req.user.id, req.user.roles);
     }
-    remove(id) {
-        return this.productsService.remove(id);
+    remove(req, id) {
+        return this.productsService.remove(id, req.user.id, req.user.roles);
     }
     getInventory(id) {
         return this.productsService.getInventory(id);
@@ -71,7 +70,7 @@ __decorate([
     (0, common_1.Post)('upload'),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
-        limits: { fileSize: 5 * 1024 * 1024 }
+        limits: { fileSize: 5 * 1024 * 1024 },
     })),
     __param(0, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
@@ -129,19 +128,21 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Patch)(':id'),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_product_dto_1.UpdateProductDto]),
+    __metadata("design:paramtypes", [Object, String, update_product_dto_1.UpdateProductDto]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "update", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Delete)(':id'),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "remove", null);
 __decorate([

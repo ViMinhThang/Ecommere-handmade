@@ -41,6 +41,7 @@ const common_1 = require("@nestjs/common");
 const helmet_1 = __importDefault(require("helmet"));
 const swagger_1 = require("@nestjs/swagger");
 const common_2 = require("@nestjs/common");
+const uuid_1 = require("uuid");
 const path = __importStar(require("path"));
 const express = __importStar(require("express"));
 const app_module_1 = require("./app.module");
@@ -75,8 +76,10 @@ async function bootstrap() {
         type: common_2.VersioningType.URI,
         defaultVersion: '1',
     });
-    app.use((req, _res, next) => {
-        req.headers['x-request-id'] = req.headers['x-request-id'];
+    app.use((req, res, next) => {
+        const requestId = req.headers['x-request-id'] || (0, uuid_1.v4)();
+        req.headers['x-request-id'] = requestId;
+        res.setHeader('x-request-id', requestId);
         next();
     });
     const uploadsPath = path.join(process.cwd(), 'uploads');

@@ -32,8 +32,8 @@ export class AuthService {
     return randomInt(OTP_MIN, OTP_MAX + 1).toString();
   }
 
-  private hashOtp(otp: string): string {
-    return createHash('sha256').update(otp).digest('hex');
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   private getOtpExpiration(): Date {
@@ -54,7 +54,7 @@ export class AuthService {
     if (!user.otpCode) {
       throw new UnauthorizedException('Invalid OTP code');
     }
-    const hashedOtp = this.hashOtp(otpCode);
+    const hashedOtp = this.hashToken(otpCode);
     if (user.otpCode !== hashedOtp) {
       throw new UnauthorizedException('Invalid OTP code');
     }
@@ -75,7 +75,7 @@ export class AuthService {
       const otpExpires = this.getOtpExpiration();
 
       await this.usersService.updateOtpFields(existingUser.id, {
-        otpCode: this.hashOtp(otpCode),
+        otpCode: this.hashToken(otpCode),
         otpExpires,
       });
 
@@ -105,7 +105,7 @@ export class AuthService {
     });
 
     await this.usersService.updateOtpFields(user.id, {
-      otpCode: this.hashOtp(otpCode),
+      otpCode: this.hashToken(otpCode),
       otpExpires,
     });
 
@@ -164,7 +164,7 @@ export class AuthService {
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
-        token: this.hashOtp(refreshToken),
+        token: this.hashToken(refreshToken),
         expiresAt,
       },
     });
@@ -192,7 +192,7 @@ export class AuthService {
       const otpExpires = this.getOtpExpiration();
 
       await this.usersService.updateOtpFields(user.id, {
-        otpCode: this.hashOtp(otpCode),
+        otpCode: this.hashToken(otpCode),
         otpExpires,
       });
 
@@ -224,7 +224,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken);
-      const hashedToken = this.hashOtp(refreshToken);
+      const hashedToken = this.hashToken(refreshToken);
 
       const storedToken = await this.prisma.refreshToken.findUnique({
         where: { token: hashedToken },
@@ -263,14 +263,14 @@ export class AuthService {
         where: { id: storedToken.id },
         data: {
           revoked: true,
-          replacedByToken: this.hashOtp(newRefreshToken),
+          replacedByToken: this.hashToken(newRefreshToken),
         },
       });
 
       await this.prisma.refreshToken.create({
         data: {
           userId: payload.sub,
-          token: this.hashOtp(newRefreshToken),
+          token: this.hashToken(newRefreshToken),
           expiresAt: newExpiresAt,
         },
       });

@@ -14,6 +14,7 @@ export declare class CategoriesService {
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        slug: string | null;
         productsCount: number;
     }>;
     findAll(status?: string, pagination?: PaginationDto): Promise<{
@@ -26,6 +27,7 @@ export declare class CategoriesService {
             createdAt: Date;
             updatedAt: Date;
             description: string | null;
+            slug: string | null;
             productsCount: number;
         }[];
         meta: {
@@ -44,6 +46,19 @@ export declare class CategoriesService {
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        slug: string | null;
+        productsCount: number;
+    }>;
+    findBySlug(slug: string): Promise<{
+        image: string | null;
+        status: import(".prisma/client").$Enums.CategoryStatus;
+        name: string;
+        id: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string | null;
+        slug: string | null;
         productsCount: number;
     }>;
     update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<{
@@ -55,6 +70,7 @@ export declare class CategoriesService {
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        slug: string | null;
         productsCount: number;
     }>;
     remove(id: string): Promise<{
@@ -66,6 +82,7 @@ export declare class CategoriesService {
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        slug: string | null;
         productsCount: number;
     }>;
     getStats(): Promise<{

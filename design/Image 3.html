@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-bright": "#fdf9f3",
+              "on-primary-container": "#ffe1da",
+              "surface": "#fdf9f3",
+              "secondary-container": "#d4e8d1",
+              "secondary-fixed-dim": "#b8ccb6",
+              "on-surface-variant": "#54433c",
+              "surface-dim": "#dddad4",
+              "on-error": "#ffffff",
+              "tertiary-container": "#716656",
+              "on-tertiary-fixed": "#221a0e",
+              "surface-container-low": "#f7f3ed",
+              "surface-variant": "#e6e2dc",
+              "surface-container-highest": "#e6e2dc",
+              "primary-fixed": "#ffdad2",
+              "surface-container": "#f1ede7",
+              "background": "#fdf9f3",
+              "tertiary-fixed-dim": "#d3c4b1",
+              "on-tertiary-container": "#f4e5d1",
+              "outline": "#87736b",
+              "on-primary-fixed-variant": "#7a2f1c",
+              "secondary-fixed": "#d4e8d1",
+              "primary-fixed-dim": "#ffb4a2",
+              "on-surface": "#1c1c18",
+              "primary": "#853724",
+              "error-container": "#ffdad6",
+              "surface-tint": "#984631",
+              "secondary": "#516351",
+              "on-secondary-container": "#576957",
+              "on-primary-fixed": "#3c0700",
+              "on-error-container": "#93000a",
+              "surface-container-high": "#ebe8e2",
+              "error": "#ba1a1a",
+              "outline-variant": "#dac1b8",
+              "on-background": "#1c1c18",
+              "tertiary-fixed": "#f0e0cc",
+              "on-primary": "#ffffff",
+              "inverse-surface": "#31302d",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary-fixed": "#0f1f11",
+              "on-tertiary-fixed-variant": "#4f4537",
+              "inverse-on-surface": "#f4f0ea",
+              "on-secondary": "#ffffff",
+              "inverse-primary": "#ffb4a2",
+              "on-secondary-fixed-variant": "#3a4b3a",
+              "on-tertiary": "#ffffff",
+              "tertiary": "#584e3f",
+              "primary-container": "#a44e39"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .font-noto-serif { font-family: 'Noto Serif', serif; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#fdf9f3]/85 backdrop-blur-xl shadow-[0_40px_40px_rgba(84,67,60,0.06)]">
+<div class="flex justify-between items-center px-8 py-4 max-w-full mx-auto">
+<div class="flex items-center gap-12">
+<span class="text-2xl font-serif italic text-[#853724] font-noto-serif italic tracking-tight">The Artisanal Curator</span>
+<div class="hidden md:flex gap-8">
+<a class="text-[#54433c] font-medium hover:text-[#853724] transition-colors duration-300" href="#">Ceramics</a>
+<a class="text-[#54433c] font-medium hover:text-[#853724] transition-colors duration-300" href="#">Textiles</a>
+<a class="text-[#54433c] font-medium hover:text-[#853724] transition-colors duration-300" href="#">Woodwork</a>
+<a class="text-[#54433c] font-medium hover:text-[#853724] transition-colors duration-300" href="#">Jewelry</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors duration-300" data-icon="search">search</button>
+<button class="material-symbols-outlined text-[#853724] transition-colors duration-300 scale-95 duration-200 ease-out" data-icon="shopping_bag" style="font-variation-settings: 'FILL' 1;">shopping_bag</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors duration-300" data-icon="person">person</button>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto min-h-screen">
+<header class="mb-16">
+<h1 class="text-5xl font-headline font-bold text-primary tracking-tight italic mb-4">Your Shopping Bag</h1>
+<p class="text-on-surface-variant font-body">Carefully selected items, waiting for their new home.</p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-16">
+<!-- Product List Area -->
+<div class="lg:col-span-8 space-y-12">
+<!-- Cart Item 1 -->
+<div class="flex flex-col md:flex-row gap-8 bg-surface-container-low p-6 rounded-xl transition-all duration-300 hover:shadow-[0_20px_40px_rgba(84,67,60,0.04)]">
+<div class="w-full md:w-48 h-64 md:h-48 overflow-hidden rounded-lg bg-surface-variant flex-shrink-0">
+<img alt="The Vesica Earthenware Vase" class="w-full h-full object-cover" data-alt="Close-up of a hand-thrown terracotta vase with organic curves and subtle glaze textures in a bright studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAUuH6xR2OaNRqPVBLcl_nOC8JrhCeZjksI1yRpZ6yF5PSHJkC6A26-ELvvuowHBjdmgR-d2HNV449yt9-8HwYccgzbEKXH5Vmq2ID-TiN8NKipMAaCYvZqgcYrRhPadrNF-Uv74avxukFbxGhZTvTHL3JNEv2dfHvZPA5K_VMoUjp0Do7lLxbForMA0BM9Yi3_YLQw8W3qEGdStxiMuEBT5yFfwwWDCUDBULo598LdE0ZqnvGkiEodHz5dcUtox4993QDqoYbUrE"/>
+</div>
+<div class="flex-grow flex flex-col justify-between py-2">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-2xl font-headline font-bold text-on-surface mb-2 tracking-tight">The Vesica Earthenware Vase</h3>
+<p class="text-secondary font-medium mb-4">Hand-thrown Terracotta, Smoked Glaze</p>
+</div>
+<button class="material-symbols-outlined text-outline-variant hover:text-error transition-colors" data-icon="close">close</button>
+</div>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center bg-surface-container-highest rounded-full px-4 py-2 gap-4">
+<button class="material-symbols-outlined text-sm font-bold" data-icon="remove">remove</button>
+<span class="font-manrope font-semibold w-6 text-center">1</span>
+<button class="material-symbols-outlined text-sm font-bold" data-icon="add">add</button>
+</div>
+<span class="text-xl font-manrope font-bold text-primary">$420.00</span>
+</div>
+</div>
+</div>
+<!-- Cart Item 2 -->
+<div class="flex flex-col md:flex-row gap-8 bg-surface-container-low p-6 rounded-xl transition-all duration-300 hover:shadow-[0_20px_40px_rgba(84,67,60,0.04)]">
+<div class="w-full md:w-48 h-64 md:h-48 overflow-hidden rounded-lg bg-surface-variant flex-shrink-0">
+<img alt="Raw Linen Throw" class="w-full h-full object-cover" data-alt="Detailed texture of a heavy-weave raw linen blanket in natural flax color draped over an oak chair in soft morning sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9hlBc73NVlwt7bw7n3P-HKAUPGOsafTEfYlx3BTgTWCbwMgWVuFfYXcW7BYG_GefSnBN0N_vCGl63ib7bph8fxQdPvIrMowRqNYlT8s7hrREN_EzF23zo7uS_mte2Mi1TI-AhEjVgJj6xMM1Oa7cdXi1CCNSLYrMZ7_VIaT1AgWX2AB9vRNtUCa0Cx4Nsc51f2zLHyIM9s9lq1D6XcYlhAGevav-O8EOBphVWwcsv0wDibl2_xXFsOJtjbvpcR2BmG0YIegFGndQ"/>
+</div>
+<div class="flex-grow flex flex-col justify-between py-2">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-2xl font-headline font-bold text-on-surface mb-2 tracking-tight">Raw Linen Weaver Throw</h3>
+<p class="text-secondary font-medium mb-4">Organic Flax, Hand-fringed Edge</p>
+</div>
+<button class="material-symbols-outlined text-outline-variant hover:text-error transition-colors" data-icon="close">close</button>
+</div>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center bg-surface-container-highest rounded-full px-4 py-2 gap-4">
+<button class="material-symbols-outlined text-sm font-bold" data-icon="remove">remove</button>
+<span class="font-manrope font-semibold w-6 text-center">1</span>
+<button class="material-symbols-outlined text-sm font-bold" data-icon="add">add</button>
+</div>
+<span class="text-xl font-manrope font-bold text-primary">$285.00</span>
+</div>
+</div>
+</div>
+<!-- Suggested Addition -->
+<div class="mt-20">
+<h4 class="text-lg font-headline italic text-on-surface-variant mb-6 border-b border-outline-variant/20 pb-4">Artisans you might enjoy...</h4>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+<div class="bg-surface-container p-4 rounded-lg">
+<div class="aspect-square mb-4 overflow-hidden rounded-md">
+<img alt="Ceramic Scent Burner" class="w-full h-full object-cover" data-alt="Small sculptural ceramic oil burner with a matte white finish on a wooden surface with a soft shadow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKRYyG45Ti5uB_tmnvKSQmjMocWjDykx98x6-goeWuVFAR9ohG6EIpQ3HYOeOXcMV6FuSAn6KKFRiGl7Pd8fN3RpVhpASRaLSCh8HFR9IjGqOU8ylyoHoKAYEUW51SzoQV5PgJL59ZyhjH3mq_xWURzyAeeWYl3YKvLfW_seXruGQzLqnEqhwGbWZvh1-UQJkPnQBvLgJLNcL2Iz3EiVor8XnrB1cdm-9E83eE1Qv7qcd5FmCNbjE2uvzR9Tkuvlp2C07YbTjZ2pY"/>
+</div>
+<p class="font-manrope text-sm font-semibold text-on-surface">Obscura Scent Burner</p>
+<p class="font-manrope text-xs text-primary">$95.00</p>
+</div>
+<div class="bg-surface-container p-4 rounded-lg">
+<div class="aspect-square mb-4 overflow-hidden rounded-md">
+<img alt="Handmade Soap Set" class="w-full h-full object-cover" data-alt="Artisanal bar soaps wrapped in textured paper and twine with dried flower accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuJ2W0UC-v7qPi9l0JmO6rSVRkg3CRVcLcZFDsEKExvv2WCfAjoEDW1sp3u3eFJqWy1PcKdXTkXvs7xx-paA3cieEmbs2Hez1f25czmsd_hQ8nMWri2-fnGaU1Nr9RvI2FLZzgcrhD58PF4Kfu-gFYVapliPUGsbmBm2aKB33kNpLL0EBP1m1i6Uy7kjmgbjyu6Rtm65wBxUote-zgLbCp4FZZvFAVJ7DXdUNwEL9a2KPWwAc9tvd7fIoY9us3rFgWr8umQNGnnPw"/>
+</div>
+<p class="font-manrope text-sm font-semibold text-on-surface">Botanical Soap Trio</p>
+<p class="font-manrope text-xs text-primary">$45.00</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Summary Area -->
+<aside class="lg:col-span-4">
+<div class="sticky top-32 bg-surface-container-high p-10 rounded-xl">
+<h2 class="text-3xl font-headline font-bold text-on-surface mb-8 tracking-tight">Summary</h2>
+<div class="space-y-6 mb-10">
+<div class="flex justify-between items-center text-on-surface-variant">
+<span class="font-manrope">Subtotal</span>
+<span class="font-manrope font-semibold">$705.00</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span class="font-manrope">Shipping</span>
+<span class="font-manrope font-semibold italic">Calculated at next step</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span class="font-manrope">Taxes (Estimated)</span>
+<span class="font-manrope font-semibold">$56.40</span>
+</div>
+<div class="pt-6 border-t border-outline-variant/30 flex justify-between items-end">
+<span class="text-xl font-headline font-bold text-on-surface">Total</span>
+<span class="text-3xl font-manrope font-extrabold text-primary tracking-tighter">$761.40</span>
+</div>
+</div>
+<div class="space-y-4">
+<button class="w-full bg-primary text-on-primary py-5 rounded-md font-manrope font-bold tracking-wide hover:opacity-90 transition-opacity flex items-center justify-center gap-3 shadow-[0_10px_20px_rgba(133,55,36,0.15)]">
+                            Proceed to Checkout
+                            <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="w-full bg-surface-container-lowest text-primary py-4 rounded-md font-manrope font-semibold hover:bg-white transition-colors">
+                            Continue Browsing
+                        </button>
+</div>
+<div class="mt-10 p-6 bg-secondary-container/30 rounded-lg">
+<div class="flex gap-4 items-start">
+<span class="material-symbols-outlined text-secondary" data-icon="eco">eco</span>
+<div>
+<p class="text-sm font-manrope font-bold text-on-secondary-container">Sustainability Pledge</p>
+<p class="text-xs font-manrope text-on-secondary-container mt-1 opacity-80 leading-relaxed">Each order is packed using 100% biodegradable materials and carbon-neutral shipping methods.</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full mt-24 bg-[#ebe8e2] dark:bg-[#151512] transition-colors duration-300">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12 px-12 py-20 w-full">
+<div class="space-y-8">
+<span class="font-serif text-lg text-[#853724] font-noto-serif">The Artisanal Curator</span>
+<p class="text-[#54433c] max-w-sm font-manrope text-sm tracking-wide leading-relaxed">
+                    Connecting discerning collectors with world-class artisans who honor tradition through contemporary form.
+                </p>
+<div class="flex gap-6">
+<span class="material-symbols-outlined text-[#516351]" data-icon="potted_plant">potted_plant</span>
+<span class="material-symbols-outlined text-[#516351]" data-icon="handyman">handyman</span>
+<span class="material-symbols-outlined text-[#516351]" data-icon="public">public</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div class="space-y-4">
+<h5 class="font-manrope text-xs font-bold uppercase tracking-widest text-[#853724]">Collection</h5>
+<ul class="space-y-2">
+<li><a class="text-[#54433c] font-manrope text-sm hover:text-[#853724] transition-all" href="#">Shipping &amp; Returns</a></li>
+<li><a class="text-[#54433c] font-manrope text-sm hover:text-[#853724] transition-all" href="#">Sustainability</a></li>
+<li><a class="text-[#54433c] font-manrope text-sm hover:text-[#853724] transition-all" href="#">Artisan Story</a></li>
+<li><a class="text-[#54433c] font-manrope text-sm hover:text-[#853724] transition-all" href="#">Privacy</a></li>
+</ul>
+</div>
+<div class="flex flex-col justify-end">
+<p class="text-[#54433c] font-manrope text-sm text-right opacity-80">© 2024 The Artisanal Curator. Crafted with Intent.</p>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

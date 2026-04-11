@@ -1,19 +1,12 @@
 import { MediaService } from './media.service';
 import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
-import { Request as ExpressRequest } from 'express';
-interface AuthenticatedRequest extends ExpressRequest {
-    user: {
-        id: string;
-        email: string;
-        roles: string[];
-    };
-}
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 export declare class MediaController {
     private readonly mediaService;
     constructor(mediaService: MediaService);
     createFolder(req: AuthenticatedRequest, createFolderDto: CreateFolderDto): Promise<{
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -24,8 +17,8 @@ export declare class MediaController {
             images: number;
         };
     } & {
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -41,24 +34,24 @@ export declare class MediaController {
             folderId: string;
         }[];
     } & {
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
     }>;
     updateFolder(req: AuthenticatedRequest, folderId: string, updateFolderDto: UpdateFolderDto): Promise<{
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
     }>;
     deleteFolder(req: AuthenticatedRequest, folderId: string): Promise<{
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -82,8 +75,8 @@ export declare class MediaController {
     }[]>;
     getImage(req: AuthenticatedRequest, imageId: string): Promise<{
         folder: {
-            name: string;
             id: string;
+            name: string;
             deletedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
@@ -106,4 +99,3 @@ export declare class MediaController {
         folderId: string;
     }>;
 }
-export {};

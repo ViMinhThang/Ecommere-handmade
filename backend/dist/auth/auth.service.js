@@ -70,8 +70,8 @@ let AuthService = class AuthService {
     generateOtp() {
         return (0, crypto_1.randomInt)(OTP_MIN, OTP_MAX + 1).toString();
     }
-    hashOtp(otp) {
-        return (0, crypto_1.createHash)('sha256').update(otp).digest('hex');
+    hashToken(token) {
+        return (0, crypto_1.createHash)('sha256').update(token).digest('hex');
     }
     getOtpExpiration() {
         return new Date(Date.now() + OTP_EXPIRATION_MS);
@@ -83,7 +83,7 @@ let AuthService = class AuthService {
         if (!user.otpCode) {
             throw new common_1.UnauthorizedException('Invalid OTP code');
         }
-        const hashedOtp = this.hashOtp(otpCode);
+        const hashedOtp = this.hashToken(otpCode);
         if (user.otpCode !== hashedOtp) {
             throw new common_1.UnauthorizedException('Invalid OTP code');
         }
@@ -100,7 +100,7 @@ let AuthService = class AuthService {
             const otpCode = this.generateOtp();
             const otpExpires = this.getOtpExpiration();
             await this.usersService.updateOtpFields(existingUser.id, {
-                otpCode: this.hashOtp(otpCode),
+                otpCode: this.hashToken(otpCode),
                 otpExpires,
             });
             await this.mailerService.sendOtpEmail(existingUser.email, otpCode, 'register');
@@ -118,7 +118,7 @@ let AuthService = class AuthService {
             roles: ['ROLE_USER'],
         });
         await this.usersService.updateOtpFields(user.id, {
-            otpCode: this.hashOtp(otpCode),
+            otpCode: this.hashToken(otpCode),
             otpExpires,
         });
         await this.mailerService.sendOtpEmail(user.email, otpCode, 'register');
@@ -164,7 +164,7 @@ let AuthService = class AuthService {
         await this.prisma.refreshToken.create({
             data: {
                 userId: user.id,
-                token: this.hashOtp(refreshToken),
+                token: this.hashToken(refreshToken),
                 expiresAt,
             },
         });
@@ -188,7 +188,7 @@ let AuthService = class AuthService {
             const otpCode = this.generateOtp();
             const otpExpires = this.getOtpExpiration();
             await this.usersService.updateOtpFields(user.id, {
-                otpCode: this.hashOtp(otpCode),
+                otpCode: this.hashToken(otpCode),
                 otpExpires,
             });
             await this.mailerService.sendOtpEmail(email, otpCode, 'forgot');
@@ -212,7 +212,7 @@ let AuthService = class AuthService {
     async refreshToken(refreshToken) {
         try {
             const payload = this.jwtService.verify(refreshToken);
-            const hashedToken = this.hashOtp(refreshToken);
+            const hashedToken = this.hashToken(refreshToken);
             const storedToken = await this.prisma.refreshToken.findUnique({
                 where: { token: hashedToken },
             });
@@ -237,13 +237,13 @@ let AuthService = class AuthService {
                 where: { id: storedToken.id },
                 data: {
                     revoked: true,
-                    replacedByToken: this.hashOtp(newRefreshToken),
+                    replacedByToken: this.hashToken(newRefreshToken),
                 },
             });
             await this.prisma.refreshToken.create({
                 data: {
                     userId: payload.sub,
-                    token: this.hashOtp(newRefreshToken),
+                    token: this.hashToken(newRefreshToken),
                     expiresAt: newExpiresAt,
                 },
             });

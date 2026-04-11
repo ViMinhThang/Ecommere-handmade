@@ -7,6 +7,17 @@ export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
     create(createUserDto: CreateUserDto): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        isEmailVerified: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
             phone: string;
@@ -21,22 +32,6 @@ export declare class UsersController {
             updatedAt: Date;
             userId: string;
         }[];
-    } & {
-        status: import(".prisma/client").$Enums.UserStatus;
-        name: string;
-        email: string;
-        password: string;
-        roles: import(".prisma/client").$Enums.Role[];
-        avatar: string | null;
-        phone: string | null;
-        shopName: string | null;
-        id: string;
-        otpCode: string | null;
-        otpExpires: Date | null;
-        isEmailVerified: boolean;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     findAll(query: ListUsersQueryDto): Promise<{
         data: {
@@ -135,6 +130,17 @@ export declare class UsersController {
         }[];
     }>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        isEmailVerified: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
             phone: string;
@@ -149,22 +155,6 @@ export declare class UsersController {
             updatedAt: Date;
             userId: string;
         }[];
-    } & {
-        status: import(".prisma/client").$Enums.UserStatus;
-        name: string;
-        email: string;
-        password: string;
-        roles: import(".prisma/client").$Enums.Role[];
-        avatar: string | null;
-        phone: string | null;
-        shopName: string | null;
-        id: string;
-        otpCode: string | null;
-        otpExpires: Date | null;
-        isEmailVerified: boolean;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     remove(id: string): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;

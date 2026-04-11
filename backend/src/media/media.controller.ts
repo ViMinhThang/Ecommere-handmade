@@ -17,14 +17,7 @@ import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request as ExpressRequest } from 'express';
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: {
-    id: string;
-    email: string;
-    roles: string[];
-  };
-}
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/;
 const MAGIC_BYTES: Record<string, number[][]> = {

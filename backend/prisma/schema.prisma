@@ -51,6 +51,7 @@ model User {
   sellerProducts Product[] @relation("Product_sellerId_fkey")
   folders       ImageFolder[]
   refreshTokens RefreshToken[]
+  cart          Cart?
 
   @@index([status])
 }
@@ -76,7 +77,8 @@ model Category {
   name         String         @unique
   description  String?
   image        String?
-  productsCount Int           @default(0)
+  slug             String?       @unique
+  productsCount    Int           @default(0)
   status       CategoryStatus @default(ACTIVE)
   deletedAt    DateTime?
   createdAt    DateTime       @default(now())
@@ -101,12 +103,14 @@ model Product {
   stock            Int           @default(0)
   lowStockThreshold Int          @default(10)
   sku              String?
-  descriptionImages String[]     @default([])
+  tags              String[]      @default([])
+  descriptionImages String[]      @default([])
   deletedAt        DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   images           ProductImage[]
   inventoryLogs    InventoryLog[]
+  cartItems        CartItem[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -257,4 +261,29 @@ model RefreshToken {
 
   @@index([userId])
   @@index([token])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  deletedAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
 }

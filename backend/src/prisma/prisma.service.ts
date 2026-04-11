@@ -15,6 +15,7 @@ const SOFT_DELETE_MODELS = [
   'flashSale',
   'flashSaleCategory',
   'flashSaleRange',
+  'cart',
 ];
 
 @Injectable()

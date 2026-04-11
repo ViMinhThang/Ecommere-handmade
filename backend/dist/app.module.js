@@ -19,6 +19,7 @@ const media_module_1 = require("./media/media.module");
 const auth_module_1 = require("./auth/auth.module");
 const vouchers_module_1 = require("./vouchers/vouchers.module");
 const flash_sales_module_1 = require("./flash-sales/flash-sales.module");
+const cart_module_1 = require("./cart/cart.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -42,6 +43,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             vouchers_module_1.VouchersModule,
             flash_sales_module_1.FlashSalesModule,
+            cart_module_1.CartModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],

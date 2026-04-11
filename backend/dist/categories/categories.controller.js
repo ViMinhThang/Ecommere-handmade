@@ -34,6 +34,9 @@ let CategoriesController = class CategoriesController {
     create(createCategoryDto) {
         return this.categoriesService.create(createCategoryDto);
     }
+    findBySlug(slug) {
+        return this.categoriesService.findBySlug(slug);
+    }
     findOne(id) {
         return this.categoriesService.findOne(id);
     }
@@ -69,6 +72,13 @@ __decorate([
 ], CategoriesController.prototype, "create", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, common_1.Get)('s/:slug'),
+    __param(0, (0, common_1.Param)('slug')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], CategoriesController.prototype, "findBySlug", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),

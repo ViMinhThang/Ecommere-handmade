@@ -10,7 +10,7 @@ export declare class AuthService {
     private prisma;
     constructor(usersService: UsersService, jwtService: JwtService, mailerService: MailerService, prisma: PrismaService);
     private generateOtp;
-    private hashOtp;
+    private hashToken;
     private getOtpExpiration;
     private validateOtp;
     register(registerDto: RegisterDto): Promise<{

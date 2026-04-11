@@ -10,6 +10,7 @@ import { MediaModule } from './media/media.module';
 import { AuthModule } from './auth/auth.module';
 import { VouchersModule } from './vouchers/vouchers.module';
 import { FlashSalesModule } from './flash-sales/flash-sales.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { FlashSalesModule } from './flash-sales/flash-sales.module';
     AuthModule,
     VouchersModule,
     FlashSalesModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [],

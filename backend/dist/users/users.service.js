@@ -17,6 +17,20 @@ let UsersService = class UsersService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    userSelect = {
+        id: true,
+        name: true,
+        email: true,
+        roles: true,
+        status: true,
+        avatar: true,
+        phone: true,
+        shopName: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        addresses: true,
+    };
     processRoles(roles) {
         if (!roles || roles.length === 0) {
             return ['ROLE_USER'];
@@ -37,9 +51,7 @@ let UsersService = class UsersService {
                 ...createUserDto,
                 roles,
             },
-            include: {
-                addresses: true,
-            },
+            select: this.userSelect,
         });
     }
     async findAll(role, status, pagination) {
@@ -90,20 +102,7 @@ let UsersService = class UsersService {
     async findOne(id) {
         const user = await this.prisma.user.findUnique({
             where: { id },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                roles: true,
-                status: true,
-                avatar: true,
-                phone: true,
-                shopName: true,
-                isEmailVerified: true,
-                createdAt: true,
-                updatedAt: true,
-                addresses: true,
-            },
+            select: this.userSelect,
         });
         if (!user) {
             throw new common_1.NotFoundException(`User with ID ${id} not found`);
@@ -130,7 +129,7 @@ let UsersService = class UsersService {
                 ...updateUserDto,
                 roles,
             },
-            include: { addresses: true },
+            select: this.userSelect,
         });
     }
     async remove(id) {
@@ -141,13 +140,11 @@ let UsersService = class UsersService {
         return this.prisma.user.delete({ where: { id } });
     }
     async getStats() {
-        const total = await this.prisma.user.count();
-        const admins = await this.prisma.user.count({
-            where: { roles: { has: 'ROLE_ADMIN' } },
-        });
-        const sellers = await this.prisma.user.count({
-            where: { roles: { has: 'ROLE_SELLER' } },
-        });
+        const [total, admins, sellers] = await Promise.all([
+            this.prisma.user.count({ where: { deletedAt: null } }),
+            this.prisma.user.count({ where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null } }),
+            this.prisma.user.count({ where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null } }),
+        ]);
         const customers = total - sellers;
         return { total, admins, sellers, customers };
     }

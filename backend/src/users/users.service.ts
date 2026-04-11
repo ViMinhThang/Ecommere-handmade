@@ -9,6 +9,21 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  private readonly userSelect = {
+    id: true,
+    name: true,
+    email: true,
+    roles: true,
+    status: true,
+    avatar: true,
+    phone: true,
+    shopName: true,
+    isEmailVerified: true,
+    createdAt: true,
+    updatedAt: true,
+    addresses: true,
+  };
+
   private processRoles(
     roles?: ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[],
   ): ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[] {
@@ -36,9 +51,7 @@ export class UsersService {
         ...createUserDto,
         roles,
       },
-      include: {
-        addresses: true,
-      },
+      select: this.userSelect,
     });
   }
 
@@ -101,20 +114,7 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        roles: true,
-        status: true,
-        avatar: true,
-        phone: true,
-        shopName: true,
-        isEmailVerified: true,
-        createdAt: true,
-        updatedAt: true,
-        addresses: true,
-      },
+      select: this.userSelect,
     });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -145,7 +145,7 @@ export class UsersService {
         ...updateUserDto,
         roles,
       },
-      include: { addresses: true },
+      select: this.userSelect,
     });
   }
 
@@ -158,13 +158,11 @@ export class UsersService {
   }
 
   async getStats() {
-    const total = await this.prisma.user.count();
-    const admins = await this.prisma.user.count({
-      where: { roles: { has: 'ROLE_ADMIN' } },
-    });
-    const sellers = await this.prisma.user.count({
-      where: { roles: { has: 'ROLE_SELLER' } },
-    });
+    const [total, admins, sellers] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({ where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null } }),
+      this.prisma.user.count({ where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null } }),
+    ]);
     const customers = total - sellers;
 
     return { total, admins, sellers, customers };
