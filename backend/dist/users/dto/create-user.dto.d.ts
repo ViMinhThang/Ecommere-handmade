@@ -7,4 +7,13 @@ export declare class CreateUserDto {
     avatar?: string;
     phone?: string;
     shopName?: string;
+    sellerTitle?: string;
+    sellerBio?: string;
+    sellerAbout?: string;
+    sellerHeroImage?: string;
+    sellerAboutImage?: string;
+    sellerStat1Label?: string;
+    sellerStat1Value?: string;
+    sellerStat2Label?: string;
+    sellerStat2Value?: string;
 }

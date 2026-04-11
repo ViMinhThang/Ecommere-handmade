@@ -3,9 +3,37 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
+    updateProfile(req: AuthenticatedRequest, updateUserDto: UpdateUserDto): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        id: string;
+        isEmailVerified: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        addresses: {
+            address: string;
+            phone: string;
+            fullName: string;
+            city: string;
+            district: string;
+            ward: string;
+            isDefault: boolean;
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        }[];
+    }>;
     create(createUserDto: CreateUserDto): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
         name: string;
@@ -165,6 +193,15 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
         id: string;
         otpCode: string | null;
         otpExpires: Date | null;

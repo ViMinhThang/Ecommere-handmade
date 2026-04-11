@@ -41,6 +41,15 @@ model User {
   avatar        String?
   phone         String?
   shopName      String?
+  sellerTitle      String?
+  sellerBio        String?
+  sellerAbout      String?
+  sellerHeroImage  String?
+  sellerAboutImage String?
+  sellerStat1Label String?
+  sellerStat1Value String?
+  sellerStat2Label String?
+  sellerStat2Value String?
   otpCode       String?
   otpExpires    DateTime?
   isEmailVerified Boolean  @default(false)
