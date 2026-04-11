@@ -17,6 +17,7 @@ export declare class CategoriesService {
         slug: string | null;
         productsCount: number;
     }>;
+    private generateSlug;
     findAll(status?: string, pagination?: PaginationDto): Promise<{
         data: {
             image: string | null;

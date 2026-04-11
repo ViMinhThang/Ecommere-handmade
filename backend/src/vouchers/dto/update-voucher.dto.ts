@@ -7,7 +7,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateVoucherRangeDto } from './create-voucher-range.dto';
+import { UpdateVoucherRangeDto } from './update-voucher-range.dto';
 
 export class UpdateVoucherDto {
   @IsString()
@@ -36,7 +36,7 @@ export class UpdateVoucherDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateVoucherRangeDto)
+  @Type(() => UpdateVoucherRangeDto)
   @IsOptional()
-  ranges?: CreateVoucherRangeDto[];
+  ranges?: UpdateVoucherRangeDto[];
 }

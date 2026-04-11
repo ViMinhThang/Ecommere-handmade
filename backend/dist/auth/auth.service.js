@@ -54,8 +54,8 @@ const OTP_MIN = 100000;
 const OTP_MAX = 999999;
 const OTP_EXPIRATION_MS = 10 * 60 * 1000;
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+const ACCESS_TOKEN_EXPIRY = '30d';
+const REFRESH_TOKEN_EXPIRY = '30d';
 let AuthService = class AuthService {
     usersService;
     jwtService;
@@ -160,7 +160,7 @@ let AuthService = class AuthService {
             expiresIn: REFRESH_TOKEN_EXPIRY,
         });
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+        expiresAt.setDate(expiresAt.getDate() + 30);
         await this.prisma.refreshToken.create({
             data: {
                 userId: user.id,
@@ -232,7 +232,7 @@ let AuthService = class AuthService {
                 roles: payload.roles,
             }, { expiresIn: REFRESH_TOKEN_EXPIRY });
             const newExpiresAt = new Date();
-            newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+            newExpiresAt.setDate(newExpiresAt.getDate() + 30);
             await this.prisma.refreshToken.update({
                 where: { id: storedToken.id },
                 data: {

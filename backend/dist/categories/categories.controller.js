@@ -38,7 +38,7 @@ let CategoriesController = class CategoriesController {
         return this.categoriesService.findBySlug(slug);
     }
     findOne(id) {
-        return this.categoriesService.findOne(id);
+        return this.categoriesService.findBySlug(id);
     }
     update(id, updateCategoryDto) {
         return this.categoriesService.update(id, updateCategoryDto);

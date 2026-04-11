@@ -5,8 +5,8 @@ export declare class MediaController {
     private readonly mediaService;
     constructor(mediaService: MediaService);
     createFolder(req: AuthenticatedRequest, createFolderDto: CreateFolderDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -17,8 +17,8 @@ export declare class MediaController {
             images: number;
         };
     } & {
-        id: string;
         name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -34,24 +34,24 @@ export declare class MediaController {
             folderId: string;
         }[];
     } & {
-        id: string;
         name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
     }>;
     updateFolder(req: AuthenticatedRequest, folderId: string, updateFolderDto: UpdateFolderDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
     }>;
     deleteFolder(req: AuthenticatedRequest, folderId: string): Promise<{
-        id: string;
         name: string;
+        id: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -75,8 +75,8 @@ export declare class MediaController {
     }[]>;
     getImage(req: AuthenticatedRequest, imageId: string): Promise<{
         folder: {
-            id: string;
             name: string;
+            id: string;
             deletedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;

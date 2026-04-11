@@ -15,8 +15,6 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
-
-
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
 export class CartController {
@@ -28,10 +26,7 @@ export class CartController {
   }
 
   @Post('items')
-  addItem(
-    @Request() req: AuthenticatedRequest,
-    @Body() dto: AddToCartDto,
-  ) {
+  addItem(@Request() req: AuthenticatedRequest, @Body() dto: AddToCartDto) {
     return this.cartService.addItem(req.user.id, dto);
   }
 

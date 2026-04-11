@@ -55,7 +55,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Database connection error: ' + exception.message;
       error = 'Database Error';
-      this.logger.error(`Prisma init error: ${exception.message}`, exception.stack);
+      this.logger.error(
+        `Prisma init error: ${exception.message}`,
+        exception.stack,
+      );
     } else if (exception instanceof Prisma.PrismaClientRustPanicError) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Database connection error';

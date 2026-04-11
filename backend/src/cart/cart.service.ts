@@ -30,7 +30,10 @@ export class CartService {
     return this.getCartTransactional(userId, this.prisma);
   }
 
-  private async getCartTransactional(userId: string, tx: Prisma.TransactionClient | PrismaService) {
+  private async getCartTransactional(
+    userId: string,
+    tx: Prisma.TransactionClient | PrismaService,
+  ) {
     let cart = await tx.cart.findUnique({
       where: { userId },
       include: this.cartInclude,
@@ -102,7 +105,11 @@ export class CartService {
     });
   }
 
-  async updateItemQuantity(userId: string, productId: string, dto: UpdateCartItemDto) {
+  async updateItemQuantity(
+    userId: string,
+    productId: string,
+    dto: UpdateCartItemDto,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const cart = await this.getOrCreateCartTransactional(userId, tx);
 
@@ -201,7 +208,9 @@ export class CartService {
     }
 
     const cartProductIds = cart.items.map((item) => item.productId);
-    const categoryIds = [...new Set(cart.items.map((item) => item.product.categoryId))];
+    const categoryIds = [
+      ...new Set(cart.items.map((item) => item.product.categoryId)),
+    ];
 
     const suggestions = await this.prisma.$transaction(async (tx) => {
       // Fetch buffer from all relevant categories sorted by newest
@@ -277,7 +286,10 @@ export class CartService {
     return this.getOrCreateCartTransactional(userId, this.prisma);
   }
 
-  private async getOrCreateCartTransactional(userId: string, tx: Prisma.TransactionClient | PrismaService) {
+  private async getOrCreateCartTransactional(
+    userId: string,
+    tx: Prisma.TransactionClient | PrismaService,
+  ) {
     let cart = await tx.cart.findUnique({
       where: { userId },
     });

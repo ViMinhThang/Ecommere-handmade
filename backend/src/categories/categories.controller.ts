@@ -45,7 +45,7 @@ export class CategoriesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.categoriesService.findOne(id);
+    return this.categoriesService.findBySlug(id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

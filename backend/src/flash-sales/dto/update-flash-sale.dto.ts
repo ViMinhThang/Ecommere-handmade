@@ -7,7 +7,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateFlashSaleRangeDto } from './create-flash-sale-range.dto';
+import { UpdateFlashSaleRangeDto } from './update-flash-sale-range.dto';
 
 export class UpdateFlashSaleDto {
   @IsString()
@@ -41,7 +41,7 @@ export class UpdateFlashSaleDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateFlashSaleRangeDto)
+  @Type(() => UpdateFlashSaleRangeDto)
   @IsOptional()
-  ranges?: CreateFlashSaleRangeDto[];
+  ranges?: UpdateFlashSaleRangeDto[];
 }

@@ -4,6 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -46,10 +47,19 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     const roles = this.processRoles(createUserDto.roles);
+    const password = createUserDto.password || 'Handmade@123';
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
     return this.prisma.user.create({
       data: {
-        ...createUserDto,
+        name: createUserDto.name,
+        email: createUserDto.email,
+        password: hashedPassword,
         roles,
+        avatar: createUserDto.avatar,
+        phone: createUserDto.phone,
+        shopName: createUserDto.shopName,
+        status: createUserDto.status,
       },
       select: this.userSelect,
     });
@@ -59,7 +69,10 @@ export class UsersService {
     const where: {
       roles?: { has: 'ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN' };
       status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
-    } = {};
+      deletedAt: null;
+    } = {
+      deletedAt: null,
+    };
     if (role) {
       where.roles = {
         has: role.toUpperCase() as 'ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN',
@@ -160,8 +173,12 @@ export class UsersService {
   async getStats() {
     const [total, admins, sellers] = await Promise.all([
       this.prisma.user.count({ where: { deletedAt: null } }),
-      this.prisma.user.count({ where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null } }),
-      this.prisma.user.count({ where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null } }),
+      this.prisma.user.count({
+        where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null },
+      }),
+      this.prisma.user.count({
+        where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null },
+      }),
     ]);
     const customers = total - sellers;
 
