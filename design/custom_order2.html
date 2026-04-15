@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sketch Review | The Artisanal Curator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAF9F6; /* Brand cream background */
+        }
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+        .bg-brand {
+            background-color: #A35C3D;
+        }
+        .text-brand {
+            color: #A35C3D;
+        }
+        .border-brand {
+            border-color: #A35C3D;
+        }
+        /* Custom progress bar line styles */
+        .progress-line {
+            height: 2px;
+            flex-grow: 1;
+            background-color: #E2E8F0;
+        }
+        .progress-line.active {
+            background-color: #A35C3D;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Navigation Header -->
+    <header class="max-w-7xl mx-auto w-full px-6 py-8 flex items-center justify-between">
+        <div class="text-xl font-serif font-bold text-brand tracking-tight italic">The Artisanal Curator</div>
+        
+        <nav class="hidden md:flex items-center space-x-10 text-sm font-medium text-slate-500">
+            <a href="#" class="hover:text-slate-900 transition-colors">Gallery</a>
+            <a href="#" class="hover:text-slate-900 transition-colors">Our Story</a>
+            <a href="#" class="text-brand border-b-2 border-brand pb-1">Custom Studio</a>
+            <a href="#" class="hover:text-slate-900 transition-colors">Collections</a>
+        </nav>
+
+        <div class="flex items-center space-x-6">
+            <button class="text-slate-600 hover:text-slate-900 transition-colors">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+            </button>
+            <button class="text-slate-600 hover:text-slate-900 transition-colors">
+                <i data-lucide="user" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Progress Tracker Section -->
+    <section class="max-w-6xl mx-auto w-full px-6 py-12">
+        <div class="flex items-center justify-between relative">
+            
+            <!-- Step 1: Completed -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full bg-[#5C6E5E] flex items-center justify-center text-white shadow-sm">
+                    <i data-lucide="check" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-3">Consultation</span>
+            </div>
+
+            <div class="progress-line active mx-4"></div>
+
+            <!-- Step 2: Active -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full border-2 border-brand bg-white flex items-center justify-center">
+                    <div class="w-2.5 h-2.5 rounded-full bg-brand"></div>
+                </div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-brand mt-3">Sketch Phase</span>
+            </div>
+
+            <div class="progress-line mx-4"></div>
+
+            <!-- Step 3: Upcoming -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold">
+                    03
+                </div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-3">Crafting</span>
+            </div>
+
+            <div class="progress-line mx-4"></div>
+
+            <!-- Step 4: Upcoming -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold">
+                    04
+                </div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-3">Finishing</span>
+            </div>
+
+            <div class="progress-line mx-4"></div>
+
+            <!-- Step 5: End -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
+                    <i data-lucide="truck" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-3">Shipped</span>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 py-12 mb-20">
+        
+        <!-- Left Column: Sketch Placeholder -->
+        <div class="aspect-[4/5] bg-[#EBE9E4] rounded-sm flex items-center justify-center relative shadow-inner overflow-hidden">
+            <!-- Simulated Sketch/Image Overlay -->
+            <div class="absolute inset-0 border-[20px] border-white/10 pointer-events-none"></div>
+            <div class="w-full h-full opacity-50 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.02)_100%)]"></div>
+        </div>
+
+        <!-- Right Column: Review & Interaction -->
+        <div class="flex flex-col">
+            <h1 class="text-6xl font-serif font-bold mb-6 text-slate-900 leading-tight">Sketch Review</h1>
+            <p class="text-slate-500 leading-relaxed mb-10 text-lg">
+                Your custom <span class="text-brand font-semibold">Terra & Thread</span> vessel is taking shape. Please review the proposed silhouette and texture details before we move to the firing stage.
+            </p>
+
+            <!-- Artisan's Note Card -->
+            <div class="bg-[#F2EEE6] rounded-xl p-8 mb-10 border border-slate-200/40 shadow-sm">
+                <div class="flex items-center space-x-3 mb-6">
+                    <i data-lucide="pen-tool" class="w-5 h-5 text-brand"></i>
+                    <h2 class="text-sm uppercase tracking-widest font-bold text-slate-800 italic font-serif">Artisan's Note</h2>
+                </div>
+                <p class="text-slate-600 italic leading-relaxed mb-8 text-base">
+                    "For this piece, I've interpreted your request for 'organic movement' by introducing a soft, asymmetrical ripple near the rim. We'll be using the Red Earth clay sourced from the valley, finished with a matte sage wash to highlight the tactile grooves."
+                </p>
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-full overflow-hidden bg-slate-300">
+                        <!-- Placeholder for Elena V. Profile Pic -->
+                        <div class="w-full h-full bg-slate-400 flex items-center justify-center text-white">
+                             <i data-lucide="user" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-bold tracking-widest uppercase text-slate-900">Elena V. • Lead Ceramicist</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Specs -->
+            <div class="space-y-8 mb-12">
+                <div class="flex justify-between items-end border-b border-slate-200 pb-4">
+                    <div>
+                        <span class="text-[10px] uppercase tracking-widest font-bold text-slate-400 block mb-1">Item</span>
+                        <h3 class="text-2xl font-serif font-bold text-slate-900">The Terra & Thread Vessel</h3>
+                    </div>
+                    <span class="text-xl font-serif font-bold text-brand">$420.00</span>
+                </div>
+
+                <div>
+                    <span class="text-[10px] uppercase tracking-widest font-bold text-slate-400 block mb-4">Customizations</span>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="px-4 py-2 bg-[#DCE4DE] text-[#5C6E5E] text-[10px] font-bold rounded-full uppercase tracking-wider">Red Earth Clay</span>
+                        <span class="px-4 py-2 bg-[#DCE4DE] text-[#5C6E5E] text-[10px] font-bold rounded-full uppercase tracking-wider">Matte Sage Finish</span>
+                        <span class="px-4 py-2 bg-[#DCE4DE] text-[#5C6E5E] text-[10px] font-bold rounded-full uppercase tracking-wider">Large (14")</span>
+                        <span class="px-4 py-2 bg-[#DCE4DE] text-[#5C6E5E] text-[10px] font-bold rounded-full uppercase tracking-wider">Asymmetric Rim</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-4">
+                <button class="bg-brand w-full text-white py-5 rounded-md font-bold text-sm tracking-[0.2em] uppercase flex items-center justify-center space-x-3 shadow-lg shadow-brand/20 hover:opacity-90 transition-opacity">
+                    <span>Approve Sketch</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+                <button class="w-full bg-[#EBE9E4] text-slate-600 py-5 rounded-md font-bold text-sm tracking-[0.2em] uppercase hover:bg-slate-200 transition-colors">
+                    Request Revisions
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#EBE9E4]/50 py-16 mt-auto border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <div class="text-xl font-serif font-bold text-brand italic mb-8">The Artisanal Curator</div>
+            
+            <div class="flex flex-wrap justify-center gap-10 text-xs font-semibold text-slate-500 uppercase tracking-widest mb-10">
+                <a href="#" class="hover:text-slate-900 transition-colors">Privacy</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">Terms</a>
+                <a href="#" class="hover:text-slate-900 transition-colors border-b border-brand pb-0.5">Provenance Registry</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">Contact</a>
+            </div>
+
+            <div class="text-[11px] text-slate-400 font-medium tracking-wide">
+                © 2024 The Artisanal Curator. Hand-crafted Excellence.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

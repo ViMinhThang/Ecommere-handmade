@@ -93,9 +93,9 @@ export class ProductsService {
     if (query?.minPrice !== undefined || query?.maxPrice !== undefined) {
       where.price = {};
       if (query.minPrice !== undefined)
-        (where.price as Prisma.FloatFilter).gte = query.minPrice;
+        (where.price as Prisma.DecimalFilter).gte = query.minPrice;
       if (query.maxPrice !== undefined)
-        (where.price as Prisma.FloatFilter).lte = query.maxPrice;
+        (where.price as Prisma.DecimalFilter).lte = query.maxPrice;
     }
 
     if (query?.tag) {

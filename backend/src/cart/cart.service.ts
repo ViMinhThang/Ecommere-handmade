@@ -255,9 +255,11 @@ export class CartService {
           const group = grouped.get(catId);
           if (group && group.length > 0) {
             const product = group.shift();
-            picks.push(product);
-            addedIds.add(product.id);
-            addedInRound = true;
+            if (product) {
+              picks.push(product);
+              addedIds.add(product.id);
+              addedInRound = true;
+            }
           }
           if (picks.length >= limit) break;
         }

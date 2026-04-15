@@ -6,6 +6,7 @@ A full-stack, modern E-commerce platform designed for handmade products. Built w
 
 - **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS v4, TanStack Query, Shadcn UI.
 - **Backend:** NestJS 11, Prisma ORM, PostgreSQL, JWT Authentication.
+- **Payments:** Stripe SDK & `@stripe/react-stripe-js` (Synchronous Intent Flow).
 - **AI Infrastructure:** Antigravity Kit (20 specialist agents, 36 skills).
 
 ---
@@ -28,7 +29,7 @@ Configure environment variables:
 ```bash
 cp .env.example .env
 ```
-*Note: Edit `.env` and update `DATABASE_URL` with your PostgreSQL credentials.*
+*Note: Edit `.env` and update `DATABASE_URL` with your PostgreSQL credentials. You also need to add `STRIPE_SECRET_KEY=sk_test_...` to utilize the checkout backend functionality.*
 
 Initialize the database and run the seeder:
 ```bash
@@ -53,7 +54,9 @@ Start the development server:
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser. 
+
+*Note: You must set `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...` inside `frontend/.env.local` to render the Stripe UI components on the checkout page.*
 
 ---
 
@@ -65,6 +68,20 @@ To explore the platform's administrative features, use the following credentials
 - **Role:** `ROLE_ADMIN`
 
 *(Tip: Use the "Auto-fill" button on the login screen for quick access.)*
+
+---
+
+## ✨ Features & Architecture Highlights
+
+### 🎨 The Artisanal "Discovery" Experience
+The platform features a highly curated, fully Vietnamese-localized `Discovery` component designed around a premium "paper engineer" aesthetic. It emphasizes vibrant photography, a sharp 0-radius micro-layout (`--radius: 0rem`), and a bespoke commission flow intended to bridge the digital experience with physical craftsmanship.
+
+### 💳 Stripe & Multi-Seller Architecture
+Operating under a "Master/Sub" order paradigm, a unified Shopping Cart handles checkout using **Stripe Elements** (`PaymentIntent`). 
+Upon checkout:
+1. Inventory logic prevents overselling by safely deducting stock immediately upon checkout initiation.
+2. The transaction branches into multi-vendor `SubOrder` records—keeping platform metrics cohesive while enabling easy payouts for individual sellers.
+3. The platform uses a highly secure, webhook-free **Synchronous Polling Gateway**, performing direct backend-to-backend queries to Stripe to verify successful intents before sealing the order state to `PAID`.
 
 ---
 

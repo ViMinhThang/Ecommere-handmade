@@ -12,6 +12,8 @@ import { VouchersModule } from './vouchers/vouchers.module';
 import { FlashSalesModule } from './flash-sales/flash-sales.module';
 import { CartModule } from './cart/cart.module';
 import { ChatModule } from './chat/chat.module';
+import { StripeModule } from './stripe/stripe.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { ChatModule } from './chat/chat.module';
     FlashSalesModule,
     CartModule,
     ChatModule,
+    StripeModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [],

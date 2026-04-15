@@ -44,11 +44,8 @@ export declare class AuthService {
         refreshToken: string;
     }>;
     validateUser(userId: string): Promise<{
-        id: string;
-        name: string;
         status: import(".prisma/client").$Enums.UserStatus;
-        createdAt: Date;
-        updatedAt: Date;
+        name: string;
         email: string;
         roles: import(".prisma/client").$Enums.Role[];
         avatar: string | null;
@@ -64,19 +61,22 @@ export declare class AuthService {
         sellerStat2Label: string | null;
         sellerStat2Value: string | null;
         isEmailVerified: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
-            id: string;
-            deletedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
             phone: string;
-            userId: string;
             fullName: string;
             city: string;
             district: string;
             ward: string;
             isDefault: boolean;
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
         }[];
     }>;
 }
