@@ -51,6 +51,15 @@ export declare class AuthService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
         id: string;
         isEmailVerified: boolean;
         createdAt: Date;

@@ -24,6 +24,11 @@ import type { AuthenticatedRequest } from '../common/interfaces/authenticated-re
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('me')
+  getMe(@Request() req: AuthenticatedRequest) {
+    return this.usersService.findOne(req.user.id);
+  }
+
   @Patch('profile')
   updateProfile(
     @Request() req: AuthenticatedRequest,

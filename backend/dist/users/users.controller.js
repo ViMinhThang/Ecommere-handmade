@@ -26,6 +26,9 @@ let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
     }
+    getMe(req) {
+        return this.usersService.findOne(req.user.id);
+    }
     updateProfile(req, updateUserDto) {
         return this.usersService.update(req.user.id, updateUserDto);
     }
@@ -61,6 +64,13 @@ let UsersController = class UsersController {
     }
 };
 exports.UsersController = UsersController;
+__decorate([
+    (0, common_1.Get)('me'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getMe", null);
 __decorate([
     (0, common_1.Patch)('profile'),
     __param(0, (0, common_1.Request)()),
