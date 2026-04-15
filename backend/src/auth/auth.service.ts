@@ -19,6 +19,12 @@ const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 const ACCESS_TOKEN_EXPIRY = '30d';
 const REFRESH_TOKEN_EXPIRY = '30d';
 
+interface JwtPayload {
+  sub: string;
+  email: string;
+  roles: string[];
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -150,7 +156,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email, roles: user.roles };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      roles: user.roles,
+    };
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: ACCESS_TOKEN_EXPIRY,
     });
@@ -223,7 +233,7 @@ export class AuthService {
 
   async refreshToken(refreshToken: string) {
     try {
-      const payload = this.jwtService.verify(refreshToken);
+      const payload = this.jwtService.verify<JwtPayload>(refreshToken);
       const hashedToken = this.hashToken(refreshToken);
 
       const storedToken = await this.prisma.refreshToken.findUnique({

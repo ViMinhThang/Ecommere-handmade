@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -75,7 +76,7 @@ export class CategoriesService {
     if (!category) {
       try {
         return await this.findOne(slug);
-      } catch (e) {
+      } catch (_e) {
         throw new NotFoundException(
           `Category with slug or ID ${slug} not found`,
         );
@@ -91,7 +92,7 @@ export class CategoriesService {
     }
 
     const { slug, name, ...rest } = updateCategoryDto;
-    const data: any = { ...rest };
+    const data: Prisma.CategoryUpdateInput = { ...rest };
 
     if (slug !== undefined) {
       data.slug = slug;

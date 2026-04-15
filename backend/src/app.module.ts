@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { VouchersModule } from './vouchers/vouchers.module';
 import { FlashSalesModule } from './flash-sales/flash-sales.module';
 import { CartModule } from './cart/cart.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CartModule } from './cart/cart.module';
     VouchersModule,
     FlashSalesModule,
     CartModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [],

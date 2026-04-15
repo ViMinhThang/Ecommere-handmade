@@ -76,7 +76,7 @@ let CategoriesService = class CategoriesService {
             try {
                 return await this.findOne(slug);
             }
-            catch (e) {
+            catch (_e) {
                 throw new common_1.NotFoundException(`Category with slug or ID ${slug} not found`);
             }
         }

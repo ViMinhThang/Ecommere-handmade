@@ -5,7 +5,6 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('CategoriesService', () => {
   let service: CategoriesService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     category: {
@@ -27,7 +26,6 @@ describe('CategoriesService', () => {
     }).compile();
 
     service = module.get<CategoriesService>(CategoriesService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {

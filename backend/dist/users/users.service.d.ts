@@ -10,6 +10,7 @@ export declare class UsersService {
     private processRoles;
     create(createUserDto: CreateUserDto): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
+        id: string;
         name: string;
         email: string;
         roles: import(".prisma/client").$Enums.Role[];
@@ -25,51 +26,50 @@ export declare class UsersService {
         sellerStat1Value: string | null;
         sellerStat2Label: string | null;
         sellerStat2Value: string | null;
-        id: string;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
         addresses: {
             address: string;
+            id: string;
             phone: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
             fullName: string;
             city: string;
             district: string;
             ward: string;
             isDefault: boolean;
-            id: string;
-            deletedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
         }[];
     }>;
     findAll(role?: string, status?: string, pagination?: PaginationDto): Promise<{
         data: {
             status: import(".prisma/client").$Enums.UserStatus;
+            id: string;
             name: string;
             email: string;
             roles: import(".prisma/client").$Enums.Role[];
             avatar: string | null;
             phone: string | null;
             shopName: string | null;
-            id: string;
             isEmailVerified: boolean;
             createdAt: Date;
             updatedAt: Date;
             addresses: {
                 address: string;
+                id: string;
                 phone: string;
+                deletedAt: Date | null;
+                createdAt: Date;
+                updatedAt: Date;
+                userId: string;
                 fullName: string;
                 city: string;
                 district: string;
                 ward: string;
                 isDefault: boolean;
-                id: string;
-                deletedAt: Date | null;
-                createdAt: Date;
-                updatedAt: Date;
-                userId: string;
             }[];
         }[];
         meta: {
@@ -81,6 +81,7 @@ export declare class UsersService {
     }>;
     findOne(id: string): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
+        id: string;
         name: string;
         email: string;
         roles: import(".prisma/client").$Enums.Role[];
@@ -96,27 +97,27 @@ export declare class UsersService {
         sellerStat1Value: string | null;
         sellerStat2Label: string | null;
         sellerStat2Value: string | null;
-        id: string;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
         addresses: {
             address: string;
+            id: string;
             phone: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
             fullName: string;
             city: string;
             district: string;
             ward: string;
             isDefault: boolean;
-            id: string;
-            deletedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
         }[];
     }>;
     findByEmail(email: string): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
+        id: string;
         name: string;
         email: string;
         password: string;
@@ -133,7 +134,6 @@ export declare class UsersService {
         sellerStat1Value: string | null;
         sellerStat2Label: string | null;
         sellerStat2Value: string | null;
-        id: string;
         otpCode: string | null;
         otpExpires: Date | null;
         isEmailVerified: boolean;
@@ -143,6 +143,7 @@ export declare class UsersService {
     } | null>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
+        id: string;
         name: string;
         email: string;
         roles: import(".prisma/client").$Enums.Role[];
@@ -158,27 +159,27 @@ export declare class UsersService {
         sellerStat1Value: string | null;
         sellerStat2Label: string | null;
         sellerStat2Value: string | null;
-        id: string;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
         addresses: {
             address: string;
+            id: string;
             phone: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
             fullName: string;
             city: string;
             district: string;
             ward: string;
             isDefault: boolean;
-            id: string;
-            deletedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
         }[];
     }>;
     remove(id: string): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
+        id: string;
         name: string;
         email: string;
         password: string;
@@ -195,7 +196,6 @@ export declare class UsersService {
         sellerStat1Value: string | null;
         sellerStat2Label: string | null;
         sellerStat2Value: string | null;
-        id: string;
         otpCode: string | null;
         otpExpires: Date | null;
         isEmailVerified: boolean;
@@ -211,59 +211,59 @@ export declare class UsersService {
     }>;
     addAddress(userId: string, createAddressDto: CreateAddressDto): Promise<{
         address: string;
+        id: string;
         phone: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
         fullName: string;
         city: string;
         district: string;
         ward: string;
         isDefault: boolean;
-        id: string;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
     }>;
     getAddresses(userId: string): Promise<{
         address: string;
+        id: string;
         phone: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
         fullName: string;
         city: string;
         district: string;
         ward: string;
         isDefault: boolean;
-        id: string;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
     }[]>;
     updateAddress(userId: string, addressId: string, updateAddressDto: Partial<CreateAddressDto>): Promise<{
         address: string;
+        id: string;
         phone: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
         fullName: string;
         city: string;
         district: string;
         ward: string;
         isDefault: boolean;
-        id: string;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
     }>;
     deleteAddress(userId: string, addressId: string): Promise<{
         address: string;
+        id: string;
         phone: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
         fullName: string;
         city: string;
         district: string;
         ward: string;
         isDefault: boolean;
-        id: string;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
     }>;
     updateOtpFields(userId: string, data: {
         otpCode?: string | null;
@@ -272,6 +272,7 @@ export declare class UsersService {
         password?: string;
     }): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
+        id: string;
         name: string;
         email: string;
         password: string;
@@ -288,7 +289,6 @@ export declare class UsersService {
         sellerStat1Value: string | null;
         sellerStat2Label: string | null;
         sellerStat2Value: string | null;
-        id: string;
         otpCode: string | null;
         otpExpires: Date | null;
         isEmailVerified: boolean;

@@ -33,7 +33,7 @@ describe('AppController', () => {
 
       expect(result.status).toBe('ok');
       expect(result.database).toBe('connected');
-      expect(prismaService.$queryRaw).toHaveBeenCalled();
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
 
     it('should throw SERVICE_UNAVAILABLE when database is disconnected', async () => {

@@ -20,6 +20,7 @@ const auth_module_1 = require("./auth/auth.module");
 const vouchers_module_1 = require("./vouchers/vouchers.module");
 const flash_sales_module_1 = require("./flash-sales/flash-sales.module");
 const cart_module_1 = require("./cart/cart.module");
+const chat_module_1 = require("./chat/chat.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -44,6 +45,7 @@ exports.AppModule = AppModule = __decorate([
             vouchers_module_1.VouchersModule,
             flash_sales_module_1.FlashSalesModule,
             cart_module_1.CartModule,
+            chat_module_1.ChatModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],

@@ -8,7 +8,7 @@ export class SellersController {
   @Get(':id')
   async getSeller(@Param('id') id: string) {
     const user = await this.usersService.findOne(id);
-    
+
     // Check if the user is a seller
     if (!user.roles.includes('ROLE_SELLER')) {
       throw new NotFoundException('Seller not found');

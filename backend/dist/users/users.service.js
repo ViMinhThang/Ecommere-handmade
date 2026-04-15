@@ -101,6 +101,7 @@ let UsersService = class UsersService {
                 phone: createUserDto.phone,
                 shopName: createUserDto.shopName,
                 status: createUserDto.status,
+                isEmailVerified: createUserDto.isEmailVerified ?? false,
             },
             select: this.userSelect,
         });
@@ -215,6 +216,12 @@ let UsersService = class UsersService {
                 where: { userId },
                 data: { isDefault: false },
             });
+        }
+        const addressCount = await this.prisma.address.count({
+            where: { userId },
+        });
+        if (addressCount >= 5) {
+            throw new common_1.BadRequestException('Maximum 5 addresses allowed');
         }
         return this.prisma.address.create({
             data: {

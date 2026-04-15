@@ -11,7 +11,6 @@ import * as path from 'path';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto, InventoryChangeReason } from './dto/update-stock.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 
 @Injectable()
@@ -83,18 +82,20 @@ export class ProductsService {
     sellerId?: string,
     query?: ListProductsQueryDto,
   ) {
-    const where: any = { deletedAt: null };
+    const where: Prisma.ProductWhereInput = { deletedAt: null };
 
     // Basic filters
-    if (status) where.status = status.toUpperCase();
+    if (status) where.status = status.toUpperCase() as any;
     if (categoryId) where.categoryId = categoryId;
     if (sellerId) where.sellerId = sellerId;
 
     // Advanced filters from query DTO
     if (query?.minPrice !== undefined || query?.maxPrice !== undefined) {
       where.price = {};
-      if (query.minPrice !== undefined) where.price.gte = query.minPrice;
-      if (query.maxPrice !== undefined) where.price.lte = query.maxPrice;
+      if (query.minPrice !== undefined)
+        (where.price as Prisma.FloatFilter).gte = query.minPrice;
+      if (query.maxPrice !== undefined)
+        (where.price as Prisma.FloatFilter).lte = query.maxPrice;
     }
 
     if (query?.tag) {

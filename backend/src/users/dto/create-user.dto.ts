@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsEnum,
   IsArray,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -73,4 +74,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   sellerStat2Value?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isEmailVerified?: boolean;
 }

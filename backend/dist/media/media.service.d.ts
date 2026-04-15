@@ -4,8 +4,8 @@ export declare class MediaService {
     private prisma;
     constructor(prisma: PrismaService);
     createFolder(userId: string, createFolderDto: CreateFolderDto): Promise<{
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -16,8 +16,8 @@ export declare class MediaService {
             images: number;
         };
     } & {
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -33,24 +33,24 @@ export declare class MediaService {
             folderId: string;
         }[];
     } & {
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
     }>;
     updateFolder(userId: string, folderId: string, updateFolderDto: UpdateFolderDto): Promise<{
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
     }>;
     deleteFolder(userId: string, folderId: string): Promise<{
-        name: string;
         id: string;
+        name: string;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -82,8 +82,8 @@ export declare class MediaService {
     }>;
     getImage(userId: string, imageId: string): Promise<{
         folder: {
-            name: string;
             id: string;
+            name: string;
             deletedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;

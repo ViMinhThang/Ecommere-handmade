@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -69,6 +73,7 @@ export class UsersService {
         phone: createUserDto.phone,
         shopName: createUserDto.shopName,
         status: createUserDto.status,
+        isEmailVerified: createUserDto.isEmailVerified ?? false,
       },
       select: this.userSelect,
     });
@@ -205,6 +210,14 @@ export class UsersService {
         where: { userId },
         data: { isDefault: false },
       });
+    }
+
+    const addressCount = await this.prisma.address.count({
+      where: { userId },
+    });
+
+    if (addressCount >= 5) {
+      throw new BadRequestException('Maximum 5 addresses allowed');
     }
 
     return this.prisma.address.create({

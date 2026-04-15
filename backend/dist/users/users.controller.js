@@ -33,7 +33,10 @@ let UsersController = class UsersController {
         return this.usersService.update(req.user.id, updateUserDto);
     }
     create(createUserDto) {
-        return this.usersService.create(createUserDto);
+        return this.usersService.create({
+            ...createUserDto,
+            isEmailVerified: true,
+        });
     }
     findAll(query) {
         return this.usersService.findAll(query.role, query.status, query);

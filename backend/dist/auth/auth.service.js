@@ -152,7 +152,11 @@ let AuthService = class AuthService {
         if (!isPasswordValid) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
-        const payload = { sub: user.id, email: user.email, roles: user.roles };
+        const payload = {
+            sub: user.id,
+            email: user.email,
+            roles: user.roles,
+        };
         const accessToken = this.jwtService.sign(payload, {
             expiresIn: ACCESS_TOKEN_EXPIRY,
         });

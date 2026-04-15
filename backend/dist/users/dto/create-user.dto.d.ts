@@ -16,4 +16,5 @@ export declare class CreateUserDto {
     sellerStat1Value?: string;
     sellerStat2Label?: string;
     sellerStat2Value?: string;
+    isEmailVerified?: boolean;
 }

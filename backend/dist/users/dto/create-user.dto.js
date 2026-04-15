@@ -29,6 +29,7 @@ class CreateUserDto {
     sellerStat1Value;
     sellerStat2Label;
     sellerStat2Value;
+    isEmailVerified;
 }
 exports.CreateUserDto = CreateUserDto;
 __decorate([
@@ -115,4 +116,9 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "sellerStat2Value", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateUserDto.prototype, "isEmailVerified", void 0);
 //# sourceMappingURL=create-user.dto.js.map

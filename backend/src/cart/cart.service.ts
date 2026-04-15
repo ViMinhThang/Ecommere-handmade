@@ -9,6 +9,10 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { Prisma } from '@prisma/client';
 import { VouchersService } from '../vouchers/vouchers.service';
 
+type ProductWithRelations = Prisma.ProductGetPayload<{
+  include: { images: true; category: true };
+}>;
+
 @Injectable()
 export class CartService {
   constructor(
@@ -190,7 +194,10 @@ export class CartService {
       });
     }
   }
-  async getSuggestions(userId: string, limit = 6) {
+  async getSuggestions(
+    userId: string,
+    limit = 6,
+  ): Promise<ProductWithRelations[]> {
     const cart = await this.prisma.cart.findUnique({
       where: { userId },
       include: {
@@ -231,13 +238,13 @@ export class CartService {
       });
 
       // Group by categoryId
-      const grouped = new Map<string, any[]>();
+      const grouped = new Map<string, ProductWithRelations[]>();
       for (const p of pool) {
         if (!grouped.has(p.categoryId)) grouped.set(p.categoryId, []);
-        grouped.get(p.categoryId)!.push(p);
+        grouped.get(p.categoryId)!.push(p as ProductWithRelations);
       }
 
-      const picks = [];
+      const picks: ProductWithRelations[] = [];
       const addedIds = new Set<string>();
 
       // Round-robin distribution

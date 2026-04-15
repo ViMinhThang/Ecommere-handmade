@@ -54,7 +54,7 @@ describe('CategoriesController', () => {
 
       const response = await controller.findAll();
 
-      expect(categoriesService.findAll).toHaveBeenCalled();
+      expect(mockCategoriesService.findAll).toHaveBeenCalled();
       expect(response).toEqual(result);
     });
   });

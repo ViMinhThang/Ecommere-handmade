@@ -61,6 +61,10 @@ model User {
   folders       ImageFolder[]
   refreshTokens RefreshToken[]
   cart          Cart?
+  customerConversations ChatConversation[] @relation("ChatConversationCustomer")
+  sellerConversations   ChatConversation[] @relation("ChatConversationSeller")
+  sentChatMessages      ChatMessage[]      @relation("ChatMessageSender")
+  chatReadStates        ChatConversationReadState[] @relation("ChatConversationReadUser")
 
   @@index([status])
 }
@@ -120,10 +124,63 @@ model Product {
   images           ProductImage[]
   inventoryLogs    InventoryLog[]
   cartItems        CartItem[]
+  chatContextConversations ChatConversation[]
 
   @@index([sellerId])
   @@index([categoryId])
   @@index([status])
+}
+
+enum ChatMessageType {
+  TEXT
+  IMAGE
+}
+
+model ChatConversation {
+  id               String   @id @default(uuid())
+  customerId       String
+  sellerId         String
+  contextProductId String?
+  customer         User     @relation("ChatConversationCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  seller           User     @relation("ChatConversationSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  contextProduct   Product? @relation(fields: [contextProductId], references: [id], onDelete: SetNull)
+  messages         ChatMessage[]
+  readStates       ChatConversationReadState[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([customerId, sellerId])
+  @@index([customerId])
+  @@index([sellerId])
+  @@index([updatedAt])
+}
+
+model ChatMessage {
+  id             String          @id @default(uuid())
+  conversationId String
+  senderId       String
+  type           ChatMessageType
+  payload        Json
+  createdAt      DateTime        @default(now())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User             @relation("ChatMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+model ChatConversationReadState {
+  id             String           @id @default(uuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User             @relation("ChatConversationReadUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([conversationId, userId])
+  @@index([userId])
 }
 
 model ProductImage {

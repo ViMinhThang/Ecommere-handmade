@@ -40,7 +40,10 @@ export class UsersController {
   @Post()
   @Roles('ROLE_ADMIN')
   create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+    return this.usersService.create({
+      ...createUserDto,
+      isEmailVerified: true,
+    });
   }
 
   @Get()
