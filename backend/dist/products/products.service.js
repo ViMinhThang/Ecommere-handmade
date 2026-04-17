@@ -135,7 +135,9 @@ let ProductsService = class ProductsService {
                     seller: { select: { id: true, name: true, shopName: true } },
                 },
                 orderBy: {
-                    [query?.sortBy === 'soldQuantity' ? 'createdAt' : (query?.sortBy || 'createdAt')]: query?.order || 'desc',
+                    [query?.sortBy === 'soldQuantity'
+                        ? 'createdAt'
+                        : query?.sortBy || 'createdAt']: query?.order || 'desc',
                 },
                 skip,
                 take: limit,

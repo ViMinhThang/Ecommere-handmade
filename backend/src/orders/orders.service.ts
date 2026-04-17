@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 
@@ -28,13 +32,18 @@ export class OrdersService {
 
     // 2. Validate stock and calculate total / group by seller
     let totalAmount = 0;
-    const sellerSubOrders = new Map<string, { subTotal: number, items: any[] }>();
+    const sellerSubOrders = new Map<
+      string,
+      { subTotal: number; items: any[] }
+    >();
 
     for (const item of cart.items) {
       if (item.product.stock < item.quantity) {
-        throw new BadRequestException(`Product ${item.product.name} is out of stock or insufficient quantity (Available: ${item.product.stock})`);
+        throw new BadRequestException(
+          `Product ${item.product.name} is out of stock or insufficient quantity (Available: ${item.product.stock})`,
+        );
       }
-      
+
       const itemSubtotal = Number(item.product.price) * item.quantity;
       totalAmount += itemSubtotal;
 
@@ -48,7 +57,11 @@ export class OrdersService {
     }
 
     // 3. Create Stripe PaymentIntent
-    const paymentIntent = await this.stripeService.createPaymentIntent(totalAmount, 'vnd', { userId });
+    const paymentIntent = await this.stripeService.createPaymentIntent(
+      totalAmount,
+      'vnd',
+      { userId },
+    );
 
     // 4. Create Order Transaction (deduct stock immediately)
     const order = await this.prisma.$transaction(async (tx) => {
@@ -66,7 +79,9 @@ export class OrdersService {
           customerId: userId,
           totalAmount,
           paymentIntentId: paymentIntent.id,
-          shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : undefined,
+          shippingAddress: shippingAddress
+            ? JSON.stringify(shippingAddress)
+            : undefined,
           status: 'PENDING',
         },
       });
@@ -83,7 +98,7 @@ export class OrdersService {
         });
 
         // Create Order Items
-        const orderItems = data.items.map(item => ({
+        const orderItems = data.items.map((item) => ({
           subOrderId: subOrder.id,
           productId: item.productId,
           quantity: item.quantity,
@@ -123,7 +138,8 @@ export class OrdersService {
     }
 
     // Synchronously verify with Stripe
-    const isPaid = await this.stripeService.verifyPaymentIntent(paymentIntentId);
+    const isPaid =
+      await this.stripeService.verifyPaymentIntent(paymentIntentId);
 
     if (!isPaid) {
       throw new BadRequestException('Payment was not successful in Stripe');
@@ -300,7 +316,11 @@ export class OrdersService {
     });
   }
 
-  async updateSubOrderStatus(sellerId: string, subOrderId: string, status: any) {
+  async updateSubOrderStatus(
+    sellerId: string,
+    subOrderId: string,
+    status: any,
+  ) {
     const subOrder = await this.prisma.subOrder.findUnique({
       where: { id: subOrderId },
     });
@@ -329,15 +349,15 @@ export class OrdersService {
 
     // Define status hierarchy for "minimum progress"
     const statusHierarchy: Record<string, number> = {
-      'PENDING': 0,
-      'PAID': 1,
-      'PROCESSING': 2,
-      'SHIPPED': 3,
-      'DELIVERED': 4,
-      'CANCELLED': -1, // Special case
+      PENDING: 0,
+      PAID: 1,
+      PROCESSING: 2,
+      SHIPPED: 3,
+      DELIVERED: 4,
+      CANCELLED: -1, // Special case
     };
 
-    const activeSubOrders = subOrders.filter(so => so.status !== 'CANCELLED');
+    const activeSubOrders = subOrders.filter((so) => so.status !== 'CANCELLED');
 
     let newMasterStatus: any;
 
@@ -345,10 +365,14 @@ export class OrdersService {
       newMasterStatus = 'CANCELLED';
     } else {
       // Find the minimum progress among active sub-orders
-      const minStatusWeight = Math.min(...activeSubOrders.map(so => statusHierarchy[so.status] ?? 0));
-      
+      const minStatusWeight = Math.min(
+        ...activeSubOrders.map((so) => statusHierarchy[so.status] ?? 0),
+      );
+
       // Reverse map the weights to status
-      newMasterStatus = Object.keys(statusHierarchy).find(key => statusHierarchy[key] === minStatusWeight);
+      newMasterStatus = Object.keys(statusHierarchy).find(
+        (key) => statusHierarchy[key] === minStatusWeight,
+      );
     }
 
     if (newMasterStatus) {

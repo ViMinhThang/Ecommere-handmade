@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Req, UseGuards, Get, Param, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  Get,
+  Param,
+  Patch,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -14,7 +23,10 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard)
   @Post('confirm-payment')
-  async confirmPayment(@Req() req: any, @Body() body: { paymentIntentId: string }) {
+  async confirmPayment(
+    @Req() req: any,
+    @Body() body: { paymentIntentId: string },
+  ) {
     return this.ordersService.confirmPayment(req.user.id, body.paymentIntentId);
   }
 
@@ -44,7 +56,11 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('sub-order/:id/status')
-  async updateStatus(@Req() req: any, @Param('id') id: string, @Body('status') status: string) {
+  async updateStatus(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body('status') status: string,
+  ) {
     return this.ordersService.updateSubOrderStatus(req.user.id, id, status);
   }
 }
