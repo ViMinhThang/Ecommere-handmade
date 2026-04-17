@@ -23,6 +23,7 @@ const SOFT_DELETE_MODELS = [
     'flashSale',
     'flashSaleCategory',
     'flashSaleRange',
+    'cart',
 ];
 let PrismaService = class PrismaService extends client_1.PrismaClient {
     async onModuleInit() {

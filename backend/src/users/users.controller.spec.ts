@@ -59,7 +59,7 @@ describe('UsersController', () => {
 
       const result = await controller.create(dto);
 
-      expect(usersService.create).toHaveBeenCalledWith(dto);
+      expect(mockUsersService.create).toHaveBeenCalledWith(dto);
       expect(result.id).toBe('1');
     });
   });
@@ -74,7 +74,7 @@ describe('UsersController', () => {
 
       const response = await controller.findAll();
 
-      expect(usersService.findAll).toHaveBeenCalled();
+      expect(mockUsersService.findAll).toHaveBeenCalled();
       expect(response).toEqual(result);
     });
   });
@@ -86,7 +86,7 @@ describe('UsersController', () => {
 
       const result = await controller.findOne('1');
 
-      expect(usersService.findOne).toHaveBeenCalledWith('1');
+      expect(mockUsersService.findOne).toHaveBeenCalledWith('1');
       expect(result).toEqual(user);
     });
   });
@@ -97,7 +97,7 @@ describe('UsersController', () => {
 
       const result = await controller.remove('1');
 
-      expect(usersService.remove).toHaveBeenCalledWith('1');
+      expect(mockUsersService.remove).toHaveBeenCalledWith('1');
       expect(result).toEqual({ id: '1' });
     });
   });

@@ -15,6 +15,7 @@ class CreateCategoryDto {
     name;
     description;
     image;
+    slug;
     status;
 }
 exports.CreateCategoryDto = CreateCategoryDto;
@@ -31,6 +32,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateCategoryDto.prototype, "image", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateCategoryDto.prototype, "slug", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(['ACTIVE', 'INACTIVE']),

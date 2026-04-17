@@ -54,8 +54,8 @@ const OTP_MIN = 100000;
 const OTP_MAX = 999999;
 const OTP_EXPIRATION_MS = 10 * 60 * 1000;
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+const ACCESS_TOKEN_EXPIRY = '30d';
+const REFRESH_TOKEN_EXPIRY = '30d';
 let AuthService = class AuthService {
     usersService;
     jwtService;
@@ -70,8 +70,8 @@ let AuthService = class AuthService {
     generateOtp() {
         return (0, crypto_1.randomInt)(OTP_MIN, OTP_MAX + 1).toString();
     }
-    hashOtp(otp) {
-        return (0, crypto_1.createHash)('sha256').update(otp).digest('hex');
+    hashToken(token) {
+        return (0, crypto_1.createHash)('sha256').update(token).digest('hex');
     }
     getOtpExpiration() {
         return new Date(Date.now() + OTP_EXPIRATION_MS);
@@ -83,7 +83,7 @@ let AuthService = class AuthService {
         if (!user.otpCode) {
             throw new common_1.UnauthorizedException('Invalid OTP code');
         }
-        const hashedOtp = this.hashOtp(otpCode);
+        const hashedOtp = this.hashToken(otpCode);
         if (user.otpCode !== hashedOtp) {
             throw new common_1.UnauthorizedException('Invalid OTP code');
         }
@@ -100,7 +100,7 @@ let AuthService = class AuthService {
             const otpCode = this.generateOtp();
             const otpExpires = this.getOtpExpiration();
             await this.usersService.updateOtpFields(existingUser.id, {
-                otpCode: this.hashOtp(otpCode),
+                otpCode: this.hashToken(otpCode),
                 otpExpires,
             });
             await this.mailerService.sendOtpEmail(existingUser.email, otpCode, 'register');
@@ -118,7 +118,7 @@ let AuthService = class AuthService {
             roles: ['ROLE_USER'],
         });
         await this.usersService.updateOtpFields(user.id, {
-            otpCode: this.hashOtp(otpCode),
+            otpCode: this.hashToken(otpCode),
             otpExpires,
         });
         await this.mailerService.sendOtpEmail(user.email, otpCode, 'register');
@@ -152,7 +152,11 @@ let AuthService = class AuthService {
         if (!isPasswordValid) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
-        const payload = { sub: user.id, email: user.email, roles: user.roles };
+        const payload = {
+            sub: user.id,
+            email: user.email,
+            roles: user.roles,
+        };
         const accessToken = this.jwtService.sign(payload, {
             expiresIn: ACCESS_TOKEN_EXPIRY,
         });
@@ -160,11 +164,11 @@ let AuthService = class AuthService {
             expiresIn: REFRESH_TOKEN_EXPIRY,
         });
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+        expiresAt.setDate(expiresAt.getDate() + 30);
         await this.prisma.refreshToken.create({
             data: {
                 userId: user.id,
-                token: this.hashOtp(refreshToken),
+                token: this.hashToken(refreshToken),
                 expiresAt,
             },
         });
@@ -188,7 +192,7 @@ let AuthService = class AuthService {
             const otpCode = this.generateOtp();
             const otpExpires = this.getOtpExpiration();
             await this.usersService.updateOtpFields(user.id, {
-                otpCode: this.hashOtp(otpCode),
+                otpCode: this.hashToken(otpCode),
                 otpExpires,
             });
             await this.mailerService.sendOtpEmail(email, otpCode, 'forgot');
@@ -212,7 +216,7 @@ let AuthService = class AuthService {
     async refreshToken(refreshToken) {
         try {
             const payload = this.jwtService.verify(refreshToken);
-            const hashedToken = this.hashOtp(refreshToken);
+            const hashedToken = this.hashToken(refreshToken);
             const storedToken = await this.prisma.refreshToken.findUnique({
                 where: { token: hashedToken },
             });
@@ -232,18 +236,18 @@ let AuthService = class AuthService {
                 roles: payload.roles,
             }, { expiresIn: REFRESH_TOKEN_EXPIRY });
             const newExpiresAt = new Date();
-            newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+            newExpiresAt.setDate(newExpiresAt.getDate() + 30);
             await this.prisma.refreshToken.update({
                 where: { id: storedToken.id },
                 data: {
                     revoked: true,
-                    replacedByToken: this.hashOtp(newRefreshToken),
+                    replacedByToken: this.hashToken(newRefreshToken),
                 },
             });
             await this.prisma.refreshToken.create({
                 data: {
                     userId: payload.sub,
-                    token: this.hashOtp(newRefreshToken),
+                    token: this.hashToken(newRefreshToken),
                     expiresAt: newExpiresAt,
                 },
             });

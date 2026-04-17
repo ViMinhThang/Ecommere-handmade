@@ -5,7 +5,6 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('UsersService', () => {
   let service: UsersService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     user: {
@@ -35,7 +34,6 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -54,7 +52,7 @@ describe('UsersService', () => {
 
       const result = await service.create(dto);
 
-      expect(prisma.user.create).toHaveBeenCalledWith(
+      expect(mockPrismaService.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ roles: ['ROLE_USER'] }),
         }),
@@ -101,7 +99,7 @@ describe('UsersService', () => {
 
       await service.findAll('ROLE_ADMIN');
 
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect(mockPrismaService.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             roles: { has: 'ROLE_ADMIN' },

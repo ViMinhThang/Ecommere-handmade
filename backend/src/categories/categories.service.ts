@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -9,9 +10,24 @@ export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
+    const { slug, ...rest } = createCategoryDto;
+    const generatedSlug = slug || this.generateSlug(createCategoryDto.name);
+
     return this.prisma.category.create({
-      data: createCategoryDto,
+      data: {
+        ...rest,
+        slug: generatedSlug,
+      },
     });
+  }
+
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   async findAll(status?: string, pagination?: PaginationDto) {
@@ -53,14 +69,40 @@ export class CategoriesService {
     return category;
   }
 
+  async findBySlug(slug: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { slug },
+    });
+    if (!category) {
+      try {
+        return await this.findOne(slug);
+      } catch (_e) {
+        throw new NotFoundException(
+          `Category with slug or ID ${slug} not found`,
+        );
+      }
+    }
+    return category;
+  }
+
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
     const category = await this.prisma.category.findUnique({ where: { id } });
     if (!category) {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
+
+    const { slug, name, ...rest } = updateCategoryDto;
+    const data: Prisma.CategoryUpdateInput = { ...rest };
+
+    if (slug !== undefined) {
+      data.slug = slug;
+    } else if (name && !category.slug) {
+      data.slug = this.generateSlug(name);
+    }
+
     return this.prisma.category.update({
       where: { id },
-      data: updateCategoryDto,
+      data,
     });
   }
 

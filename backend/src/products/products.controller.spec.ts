@@ -59,7 +59,7 @@ describe('ProductsController', () => {
 
       const response = await controller.findAll();
 
-      expect(productsService.findAll).toHaveBeenCalled();
+      expect(mockProductsService.findAll).toHaveBeenCalled();
       expect(response).toEqual(result);
     });
   });

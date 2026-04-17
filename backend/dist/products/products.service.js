@@ -44,6 +44,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const fs_1 = require("fs");
 const path = __importStar(require("path"));
@@ -57,6 +58,15 @@ let ProductsService = class ProductsService {
         if (!file) {
             throw new common_1.BadRequestException('Vui lòng cung cấp file ảnh');
         }
+        const aloudMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/gif',
+        ];
+        if (!aloudMimeTypes.includes(file.mimetype)) {
+            throw new common_1.BadRequestException('Chỉ chấp nhận các loại file ảnh (jpeg, png, webp, gif)');
+        }
         const uploadPath = path.join('uploads', 'products');
         await fs_1.promises.mkdir(uploadPath, { recursive: true });
         const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -65,7 +75,7 @@ let ProductsService = class ProductsService {
         await fs_1.promises.writeFile(filePath, file.buffer);
         return {
             url: `products/${fileName}`,
-            fileName: fileName
+            fileName: fileName,
         };
     }
     async create(sellerId, createProductDto) {
@@ -92,47 +102,52 @@ let ProductsService = class ProductsService {
             return product;
         });
     }
-    async findAll(status, categoryId, sellerId, pagination) {
-        const where = {};
+    async findAll(status, categoryId, sellerId, query) {
+        const where = { deletedAt: null };
         if (status)
             where.status = status.toUpperCase();
         if (categoryId)
             where.categoryId = categoryId;
         if (sellerId)
             where.sellerId = sellerId;
-        const page = pagination?.page ?? 1;
-        const limit = pagination?.limit ?? 20;
+        if (query?.minPrice !== undefined || query?.maxPrice !== undefined) {
+            where.price = {};
+            if (query.minPrice !== undefined)
+                where.price.gte = query.minPrice;
+            if (query.maxPrice !== undefined)
+                where.price.lte = query.maxPrice;
+        }
+        if (query?.tag) {
+            where.tags = { has: query.tag };
+        }
+        if (query?.readyToShip) {
+            where.stock = { gt: 0 };
+        }
+        const page = Number(query?.page) || 1;
+        const limit = Number(query?.limit) || 20;
         const skip = (page - 1) * limit;
         const [data, total] = await Promise.all([
             this.prisma.product.findMany({
                 where,
-                select: {
-                    id: true,
-                    name: true,
-                    price: true,
-                    status: true,
-                    stock: true,
-                    categoryId: true,
-                    sellerId: true,
-                    sku: true,
-                    createdAt: true,
-                    updatedAt: true,
+                include: {
                     images: { where: { isMain: true }, take: 1 },
-                    category: { select: { id: true, name: true } },
+                    category: { select: { id: true, name: true, slug: true } },
                     seller: { select: { id: true, name: true, shopName: true } },
+                },
+                orderBy: {
+                    [query?.sortBy === 'soldQuantity' ? 'createdAt' : (query?.sortBy || 'createdAt')]: query?.order || 'desc',
                 },
                 skip,
                 take: limit,
-                orderBy: { createdAt: 'desc' },
             }),
             this.prisma.product.count({ where }),
         ]);
         return {
             data,
             meta: {
+                total,
                 page,
                 limit,
-                total,
                 totalPages: Math.ceil(total / limit),
             },
         };
@@ -151,11 +166,14 @@ let ProductsService = class ProductsService {
         }
         return product;
     }
-    async update(id, updateProductDto) {
+    async update(id, updateProductDto, userId, userRoles) {
         const { images, ...productData } = updateProductDto;
         const product = await this.prisma.product.findUnique({ where: { id } });
         if (!product) {
             throw new common_1.NotFoundException(`Product with ID ${id} not found`);
+        }
+        if (!userRoles.includes('ROLE_ADMIN') && product.sellerId !== userId) {
+            throw new common_1.ForbiddenException('Bạn chỉ có quyền chỉnh sửa sản phẩm của chính mình');
         }
         return this.prisma.$transaction(async (tx) => {
             if (images) {
@@ -188,10 +206,13 @@ let ProductsService = class ProductsService {
             });
         });
     }
-    async remove(id) {
+    async remove(id, userId, userRoles) {
         const product = await this.prisma.product.findUnique({ where: { id } });
         if (!product) {
             throw new common_1.NotFoundException(`Product with ID ${id} not found`);
+        }
+        if (!userRoles.includes('ROLE_ADMIN') && product.sellerId !== userId) {
+            throw new common_1.ForbiddenException('Bạn chỉ có quyền xóa sản phẩm của chính mình');
         }
         return this.prisma.$transaction(async (tx) => {
             await tx.category.update({
@@ -202,17 +223,23 @@ let ProductsService = class ProductsService {
         });
     }
     async getStats() {
-        const total = await this.prisma.product.count();
-        const pending = await this.prisma.product.count({
-            where: { status: 'PENDING' },
+        const stats = await this.prisma.product.groupBy({
+            by: ['status'],
+            _count: true,
+            where: { deletedAt: null },
         });
-        const approved = await this.prisma.product.count({
-            where: { status: 'APPROVED' },
-        });
-        const rejected = await this.prisma.product.count({
-            where: { status: 'REJECTED' },
-        });
-        return { total, pending, approved, rejected };
+        const result = {
+            total: 0,
+            pending: 0,
+            approved: 0,
+            rejected: 0,
+        };
+        for (const s of stats) {
+            const status = s.status.toLowerCase();
+            result[status] = s._count;
+            result.total += s._count;
+        }
+        return result;
     }
     async getBySeller(sellerId) {
         return this.prisma.product.findMany({
@@ -289,17 +316,18 @@ let ProductsService = class ProductsService {
         });
     }
     async getLowStockProducts(sellerId) {
-        const products = await this.prisma.product.findMany({
-            where: sellerId ? { sellerId } : {},
-            include: {
-                category: true,
-                seller: true,
-            },
-            orderBy: {
-                stock: 'asc',
-            },
-        });
-        return products.filter((p) => p.stock <= p.lowStockThreshold);
+        const sellerFilter = sellerId
+            ? client_1.Prisma.sql `AND p."sellerId" = ${sellerId}`
+            : client_1.Prisma.empty;
+        return this.prisma.$queryRaw `
+      SELECT p.*, c.name as "categoryName"
+      FROM "Product" p
+      LEFT JOIN "Category" c ON p."categoryId" = c.id
+      WHERE p.stock <= p."lowStockThreshold"
+      AND p."deletedAt" IS NULL
+      ${sellerFilter}
+      ORDER BY p.stock ASC
+    `;
     }
 };
 exports.ProductsService = ProductsService;

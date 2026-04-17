@@ -1,4 +1,10 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsArray,
+} from 'class-validator';
 
 export class UpdateProductDto {
   @IsOptional()

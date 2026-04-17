@@ -1,13 +1,42 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
+
+  private readonly userSelect = {
+    id: true,
+    name: true,
+    email: true,
+    roles: true,
+    status: true,
+    avatar: true,
+    phone: true,
+    shopName: true,
+    sellerTitle: true,
+    sellerBio: true,
+    sellerAbout: true,
+    sellerHeroImage: true,
+    sellerAboutImage: true,
+    sellerStat1Label: true,
+    sellerStat1Value: true,
+    sellerStat2Label: true,
+    sellerStat2Value: true,
+    isEmailVerified: true,
+    createdAt: true,
+    updatedAt: true,
+    addresses: true,
+  };
 
   private processRoles(
     roles?: ('ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN')[],
@@ -31,14 +60,22 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     const roles = this.processRoles(createUserDto.roles);
+    const password = createUserDto.password || 'Handmade@123';
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     return this.prisma.user.create({
       data: {
-        ...createUserDto,
+        name: createUserDto.name,
+        email: createUserDto.email,
+        password: hashedPassword,
         roles,
+        avatar: createUserDto.avatar,
+        phone: createUserDto.phone,
+        shopName: createUserDto.shopName,
+        status: createUserDto.status,
+        isEmailVerified: createUserDto.isEmailVerified ?? false,
       },
-      include: {
-        addresses: true,
-      },
+      select: this.userSelect,
     });
   }
 
@@ -46,7 +83,10 @@ export class UsersService {
     const where: {
       roles?: { has: 'ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN' };
       status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
-    } = {};
+      deletedAt: null;
+    } = {
+      deletedAt: null,
+    };
     if (role) {
       where.roles = {
         has: role.toUpperCase() as 'ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN',
@@ -101,20 +141,7 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        roles: true,
-        status: true,
-        avatar: true,
-        phone: true,
-        shopName: true,
-        isEmailVerified: true,
-        createdAt: true,
-        updatedAt: true,
-        addresses: true,
-      },
+      select: this.userSelect,
     });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -145,7 +172,7 @@ export class UsersService {
         ...updateUserDto,
         roles,
       },
-      include: { addresses: true },
+      select: this.userSelect,
     });
   }
 
@@ -158,13 +185,15 @@ export class UsersService {
   }
 
   async getStats() {
-    const total = await this.prisma.user.count();
-    const admins = await this.prisma.user.count({
-      where: { roles: { has: 'ROLE_ADMIN' } },
-    });
-    const sellers = await this.prisma.user.count({
-      where: { roles: { has: 'ROLE_SELLER' } },
-    });
+    const [total, admins, sellers] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({
+        where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null },
+      }),
+      this.prisma.user.count({
+        where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null },
+      }),
+    ]);
     const customers = total - sellers;
 
     return { total, admins, sellers, customers };
@@ -181,6 +210,14 @@ export class UsersService {
         where: { userId },
         data: { isDefault: false },
       });
+    }
+
+    const addressCount = await this.prisma.address.count({
+      where: { userId },
+    });
+
+    if (addressCount >= 5) {
+      throw new BadRequestException('Maximum 5 addresses allowed');
     }
 
     return this.prisma.address.create({

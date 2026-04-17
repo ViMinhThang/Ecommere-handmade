@@ -19,6 +19,13 @@ const media_module_1 = require("./media/media.module");
 const auth_module_1 = require("./auth/auth.module");
 const vouchers_module_1 = require("./vouchers/vouchers.module");
 const flash_sales_module_1 = require("./flash-sales/flash-sales.module");
+const cart_module_1 = require("./cart/cart.module");
+const chat_module_1 = require("./chat/chat.module");
+const stripe_module_1 = require("./stripe/stripe.module");
+const orders_module_1 = require("./orders/orders.module");
+const custom_orders_module_1 = require("./custom-orders/custom-orders.module");
+const analytics_module_1 = require("./analytics/analytics.module");
+const reviews_module_1 = require("./reviews/reviews.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -42,6 +49,13 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             vouchers_module_1.VouchersModule,
             flash_sales_module_1.FlashSalesModule,
+            cart_module_1.CartModule,
+            chat_module_1.ChatModule,
+            stripe_module_1.StripeModule,
+            orders_module_1.OrdersModule,
+            custom_orders_module_1.CustomOrdersModule,
+            analytics_module_1.AnalyticsModule,
+            reviews_module_1.ReviewsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],

@@ -18,7 +18,10 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const REFRESH_TOKEN_COOKIE = 'auth_refresh_token';
 
-function extractCookieValue(req: ExpressRequest, key: string): string | undefined {
+function extractCookieValue(
+  req: ExpressRequest,
+  key: string,
+): string | undefined {
   if (!req.headers.cookie) {
     return undefined;
   }

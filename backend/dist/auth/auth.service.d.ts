@@ -10,7 +10,7 @@ export declare class AuthService {
     private prisma;
     constructor(usersService: UsersService, jwtService: JwtService, mailerService: MailerService, prisma: PrismaService);
     private generateOtp;
-    private hashOtp;
+    private hashToken;
     private getOtpExpiration;
     private validateOtp;
     register(registerDto: RegisterDto): Promise<{
@@ -51,8 +51,17 @@ export declare class AuthService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
-        id: string;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
         isEmailVerified: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         addresses: {

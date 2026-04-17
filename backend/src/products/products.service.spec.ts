@@ -6,7 +6,7 @@ import { InventoryChangeReason } from './dto/update-stock.dto';
 
 describe('ProductsService', () => {
   let service: ProductsService;
-  let prisma: PrismaService;
+  let service: ProductsService;
 
   const mockPrisma = {
     product: {
@@ -42,8 +42,8 @@ describe('ProductsService', () => {
         create: jest.fn(),
       },
     };
-    mockPrisma.$transaction = jest.fn(
-      async (cb: (tx: typeof mockTx) => unknown) => cb(mockTx),
+    mockPrisma.$transaction = jest.fn((cb: (tx: typeof mockTx) => unknown) =>
+      cb(mockTx),
     );
 
     const module: TestingModule = await Test.createTestingModule({
@@ -54,7 +54,6 @@ describe('ProductsService', () => {
     }).compile();
 
     service = module.get<ProductsService>(ProductsService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -72,7 +71,7 @@ describe('ProductsService', () => {
       const product = { id: '1', ...dto, sellerId: 'seller1' };
       mockPrisma.product.create.mockResolvedValue(product);
       mockPrisma.$transaction = jest.fn(
-        async (cb: (tx: typeof mockTx) => unknown) => {
+        (cb: (tx: typeof mockTx) => unknown) => {
           mockTx.product.findUnique.mockResolvedValue({ stock: 10 });
           mockTx.product.update.mockResolvedValue(product);
           return cb(mockTx);
@@ -122,7 +121,7 @@ describe('ProductsService', () => {
     it('should throw BadRequestException for insufficient stock', async () => {
       mockPrisma.product.findUnique.mockResolvedValue({ id: '1', stock: 5 });
       mockPrisma.$transaction = jest.fn(
-        async (cb: (tx: typeof mockTx) => unknown) => {
+        (cb: (tx: typeof mockTx) => unknown) => {
           mockTx.product.findUnique.mockResolvedValue({ stock: 5 });
           return cb(mockTx);
         },

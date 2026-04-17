@@ -1,13 +1,6 @@
 import { MediaService } from './media.service';
 import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
-import { Request as ExpressRequest } from 'express';
-interface AuthenticatedRequest extends ExpressRequest {
-    user: {
-        id: string;
-        email: string;
-        roles: string[];
-    };
-}
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 export declare class MediaController {
     private readonly mediaService;
     constructor(mediaService: MediaService);
@@ -106,4 +99,3 @@ export declare class MediaController {
         folderId: string;
     }>;
 }
-export {};

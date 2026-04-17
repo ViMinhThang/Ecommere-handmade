@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - The Artisanal Curator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F6F1;
+        }
+        .font-serif {
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .summary-card {
+            background-color: #F2F0EB;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-stone-800 min-h-screen flex flex-col">
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-6xl mx-auto px-6 py-12 lg:py-24">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Side: Order Details & Items -->
+            <div class="lg:col-span-8 summary-card p-8 lg:p-12">
+                <!-- Order Header Info -->
+                <div class="flex flex-col md:flex-row justify-between mb-16 gap-8">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest font-semibold text-stone-500 mb-2">Order Reference</p>
+                        <h2 class="font-serif text-3xl md:text-4xl text-stone-800 italic">#ATC-8829-2024</h2>
+                    </div>
+                    <div class="md:text-right">
+                        <p class="text-[10px] uppercase tracking-widest font-semibold text-stone-500 mb-2">Expected Arrival</p>
+                        <h2 class="font-serif text-3xl md:text-4xl text-stone-800 italic leading-tight">Nov 14 — Nov 18</h2>
+                    </div>
+                </div>
+
+                <!-- Items List -->
+                <div class="space-y-12">
+                    <!-- Item 1 -->
+                    <div class="flex gap-6 items-start">
+                        <div class="w-24 h-24 md:w-32 md:h-32 bg-stone-200 flex-shrink-0 rounded-sm"></div>
+                        <div class="flex-grow flex flex-col md:flex-row justify-between">
+                            <div>
+                                <h3 class="font-serif text-xl md:text-2xl text-stone-800 italic mb-1">Earth-Tone Studio Vase</h3>
+                                <p class="text-xs text-stone-500 uppercase tracking-wide">Ceramics / Stone Grey</p>
+                            </div>
+                            <div class="mt-2 md:mt-0 md:text-right">
+                                <p class="font-serif text-lg text-stone-800">$124.00</p>
+                                <p class="text-[10px] text-stone-400 uppercase tracking-widest mt-1">Qty: 1</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="flex gap-6 items-start">
+                        <div class="w-24 h-24 md:w-32 md:h-32 bg-stone-200 flex-shrink-0 rounded-sm"></div>
+                        <div class="flex-grow flex flex-col md:flex-row justify-between">
+                            <div>
+                                <h3 class="font-serif text-xl md:text-2xl text-stone-800 italic mb-1">Hand-Woven Moss Linen Runner</h3>
+                                <p class="text-xs text-stone-500 uppercase tracking-wide">Textiles / Sage</p>
+                            </div>
+                            <div class="mt-2 md:mt-0 md:text-right">
+                                <p class="font-serif text-lg text-stone-800">$86.00</p>
+                                <p class="text-[10px] text-stone-400 uppercase tracking-widest mt-1">Qty: 1</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Summary & Shipping -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Order Summary -->
+                <div class="summary-card p-8">
+                    <h3 class="font-serif text-2xl italic mb-8">Order Summary</h3>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-stone-500">Subtotal</span>
+                            <span class="font-medium">$210.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-stone-500">Artisan Shipping</span>
+                            <span class="font-medium">$12.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-stone-500">Estimated Tax</span>
+                            <span class="font-medium">$16.80</span>
+                        </div>
+                        <div class="pt-6 border-t border-stone-300 flex justify-between items-baseline">
+                            <span class="font-serif text-2xl italic">Total</span>
+                            <span class="font-serif text-3xl italic text-[#8B4513] tracking-tight">$238.80</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Info -->
+                <div class="summary-card p-8">
+                    <h3 class="font-serif text-2xl italic mb-6">Shipping To</h3>
+                    <div class="text-sm text-stone-600 leading-relaxed space-y-1">
+                        <p class="text-stone-800 font-medium">Eleanor Vance</p>
+                        <p>1284 Artisans Row</p>
+                        <p>Hudson Valley, NY 12534</p>
+                        <p>United States</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#EAE7E0] py-16">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
+                <div>
+                    <h3 class="font-serif italic text-xl text-[#8B4513] mb-4">The Artisanal Curator</h3>
+                    <p class="text-[10px] text-stone-400 uppercase tracking-tighter">
+                        &copy; 2024 The Artisanal Curator. Crafted with intent.
+                    </p>
+                </div>
+                
+                <nav class="flex flex-wrap gap-x-8 gap-y-4 text-[10px] uppercase tracking-widest font-semibold text-stone-600">
+                    <a href="#" class="hover:text-[#8B4513] transition-colors">Shipping & Returns</a>
+                    <a href="#" class="hover:text-[#8B4513] transition-colors">Sustainability</a>
+                    <a href="#" class="hover:text-[#8B4513] transition-colors">Artisan Story</a>
+                    <a href="#" class="hover:text-[#8B4513] transition-colors">Privacy</a>
+                </nav>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

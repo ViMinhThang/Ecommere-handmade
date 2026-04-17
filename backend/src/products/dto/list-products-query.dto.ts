@@ -13,4 +13,25 @@ export class ListProductsQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   sellerId?: string;
+
+  @IsOptional()
+  minPrice?: number;
+
+  @IsOptional()
+  maxPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  tag?: string;
+
+  @IsOptional()
+  readyToShip?: boolean;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @IsOptional()
+  @IsString()
+  order?: 'asc' | 'desc';
 }

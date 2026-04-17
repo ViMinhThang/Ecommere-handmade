@@ -6,8 +6,29 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 export declare class UsersService {
     private prisma;
     constructor(prisma: PrismaService);
+    private readonly userSelect;
     private processRoles;
     create(createUserDto: CreateUserDto): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
             phone: string;
@@ -22,22 +43,6 @@ export declare class UsersService {
             updatedAt: Date;
             userId: string;
         }[];
-    } & {
-        status: import(".prisma/client").$Enums.UserStatus;
-        name: string;
-        email: string;
-        password: string;
-        roles: import(".prisma/client").$Enums.Role[];
-        avatar: string | null;
-        phone: string | null;
-        shopName: string | null;
-        id: string;
-        otpCode: string | null;
-        otpExpires: Date | null;
-        isEmailVerified: boolean;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     findAll(role?: string, status?: string, pagination?: PaginationDto): Promise<{
         data: {
@@ -48,8 +53,8 @@ export declare class UsersService {
             avatar: string | null;
             phone: string | null;
             shopName: string | null;
-            id: string;
             isEmailVerified: boolean;
+            id: string;
             createdAt: Date;
             updatedAt: Date;
             addresses: {
@@ -82,8 +87,17 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
-        id: string;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
         isEmailVerified: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         addresses: {
@@ -110,15 +124,44 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
         id: string;
         otpCode: string | null;
         otpExpires: Date | null;
-        isEmailVerified: boolean;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
     } | null>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
             phone: string;
@@ -133,22 +176,6 @@ export declare class UsersService {
             updatedAt: Date;
             userId: string;
         }[];
-    } & {
-        status: import(".prisma/client").$Enums.UserStatus;
-        name: string;
-        email: string;
-        password: string;
-        roles: import(".prisma/client").$Enums.Role[];
-        avatar: string | null;
-        phone: string | null;
-        shopName: string | null;
-        id: string;
-        otpCode: string | null;
-        otpExpires: Date | null;
-        isEmailVerified: boolean;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     remove(id: string): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
@@ -159,10 +186,19 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
         id: string;
         otpCode: string | null;
         otpExpires: Date | null;
-        isEmailVerified: boolean;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -243,10 +279,19 @@ export declare class UsersService {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
         id: string;
         otpCode: string | null;
         otpExpires: Date | null;
-        isEmailVerified: boolean;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;

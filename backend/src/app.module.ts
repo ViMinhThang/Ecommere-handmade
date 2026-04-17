@@ -10,6 +10,13 @@ import { MediaModule } from './media/media.module';
 import { AuthModule } from './auth/auth.module';
 import { VouchersModule } from './vouchers/vouchers.module';
 import { FlashSalesModule } from './flash-sales/flash-sales.module';
+import { CartModule } from './cart/cart.module';
+import { ChatModule } from './chat/chat.module';
+import { StripeModule } from './stripe/stripe.module';
+import { OrdersModule } from './orders/orders.module';
+import { CustomOrdersModule } from './custom-orders/custom-orders.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -30,6 +37,13 @@ import { FlashSalesModule } from './flash-sales/flash-sales.module';
     AuthModule,
     VouchersModule,
     FlashSalesModule,
+    CartModule,
+    ChatModule,
+    StripeModule,
+    OrdersModule,
+    CustomOrdersModule,
+    AnalyticsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [],

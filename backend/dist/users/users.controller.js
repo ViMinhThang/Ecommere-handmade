@@ -26,8 +26,17 @@ let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
     }
+    getMe(req) {
+        return this.usersService.findOne(req.user.id);
+    }
+    updateProfile(req, updateUserDto) {
+        return this.usersService.update(req.user.id, updateUserDto);
+    }
     create(createUserDto) {
-        return this.usersService.create(createUserDto);
+        return this.usersService.create({
+            ...createUserDto,
+            isEmailVerified: true,
+        });
     }
     findAll(query) {
         return this.usersService.findAll(query.role, query.status, query);
@@ -58,6 +67,21 @@ let UsersController = class UsersController {
     }
 };
 exports.UsersController = UsersController;
+__decorate([
+    (0, common_1.Get)('me'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getMe", null);
+__decorate([
+    (0, common_1.Patch)('profile'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, update_user_dto_1.UpdateUserDto]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "updateProfile", null);
 __decorate([
     (0, common_1.Post)(),
     (0, roles_guard_1.Roles)('ROLE_ADMIN'),

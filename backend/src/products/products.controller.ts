@@ -20,16 +20,7 @@ import { UpdateStockDto } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { Request as ExpressRequest } from 'express';
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: {
-    id: string;
-    email: string;
-    roles: string[];
-  };
-}
-
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -37,11 +28,12 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('upload')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
-  @UseInterceptors(FileInterceptor('file', {
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
-  }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    }),
+  )
   uploadImage(@UploadedFile() file: Express.Multer.File) {
-    console.log('Received file:', file);
     return this.productsService.uploadImage(file);
   }
 
@@ -91,15 +83,24 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(id, updateProductDto);
+  update(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    return this.productsService.update(
+      id,
+      updateProductDto,
+      req.user.id,
+      req.user.roles,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
-  remove(@Param('id') id: string) {
-    return this.productsService.remove(id);
+  remove(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.productsService.remove(id, req.user.id, req.user.roles);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

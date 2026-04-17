@@ -3,10 +3,31 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
-    create(createUserDto: CreateUserDto): Promise<{
+    getMe(req: AuthenticatedRequest): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
             phone: string;
@@ -21,22 +42,78 @@ export declare class UsersController {
             updatedAt: Date;
             userId: string;
         }[];
-    } & {
+    }>;
+    updateProfile(req: AuthenticatedRequest, updateUserDto: UpdateUserDto): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
         name: string;
         email: string;
-        password: string;
         roles: import(".prisma/client").$Enums.Role[];
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
-        id: string;
-        otpCode: string | null;
-        otpExpires: Date | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
         isEmailVerified: boolean;
-        deletedAt: Date | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        addresses: {
+            address: string;
+            phone: string;
+            fullName: string;
+            city: string;
+            district: string;
+            ward: string;
+            isDefault: boolean;
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        }[];
+    }>;
+    create(createUserDto: CreateUserDto): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        addresses: {
+            address: string;
+            phone: string;
+            fullName: string;
+            city: string;
+            district: string;
+            ward: string;
+            isDefault: boolean;
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        }[];
     }>;
     findAll(query: ListUsersQueryDto): Promise<{
         data: {
@@ -47,8 +124,8 @@ export declare class UsersController {
             avatar: string | null;
             phone: string | null;
             shopName: string | null;
-            id: string;
             isEmailVerified: boolean;
+            id: string;
             createdAt: Date;
             updatedAt: Date;
             addresses: {
@@ -115,8 +192,17 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
-        id: string;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
         isEmailVerified: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         addresses: {
@@ -135,6 +221,26 @@ export declare class UsersController {
         }[];
     }>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<{
+        status: import(".prisma/client").$Enums.UserStatus;
+        name: string;
+        email: string;
+        roles: import(".prisma/client").$Enums.Role[];
+        avatar: string | null;
+        phone: string | null;
+        shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         addresses: {
             address: string;
             phone: string;
@@ -149,22 +255,6 @@ export declare class UsersController {
             updatedAt: Date;
             userId: string;
         }[];
-    } & {
-        status: import(".prisma/client").$Enums.UserStatus;
-        name: string;
-        email: string;
-        password: string;
-        roles: import(".prisma/client").$Enums.Role[];
-        avatar: string | null;
-        phone: string | null;
-        shopName: string | null;
-        id: string;
-        otpCode: string | null;
-        otpExpires: Date | null;
-        isEmailVerified: boolean;
-        deletedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     remove(id: string): Promise<{
         status: import(".prisma/client").$Enums.UserStatus;
@@ -175,10 +265,19 @@ export declare class UsersController {
         avatar: string | null;
         phone: string | null;
         shopName: string | null;
+        sellerTitle: string | null;
+        sellerBio: string | null;
+        sellerAbout: string | null;
+        sellerHeroImage: string | null;
+        sellerAboutImage: string | null;
+        sellerStat1Label: string | null;
+        sellerStat1Value: string | null;
+        sellerStat2Label: string | null;
+        sellerStat2Value: string | null;
+        isEmailVerified: boolean;
         id: string;
         otpCode: string | null;
         otpExpires: Date | null;
-        isEmailVerified: boolean;
         deletedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;

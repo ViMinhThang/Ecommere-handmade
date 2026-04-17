@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const SOFT_DELETE_MODELS = [
   'user',
@@ -15,6 +15,7 @@ const SOFT_DELETE_MODELS = [
   'flashSale',
   'flashSaleCategory',
   'flashSaleRange',
+  'cart',
 ];
 
 @Injectable()
@@ -23,7 +24,7 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   async onModuleInit() {
-    this.$use(async (params, next) => {
+    this.$use(async (params: Prisma.MiddlewareParams, next) => {
       if (
         SOFT_DELETE_MODELS.includes(params.model?.toLowerCase() || '') &&
         (params.action === 'findUnique' ||

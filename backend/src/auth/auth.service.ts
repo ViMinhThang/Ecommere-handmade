@@ -16,8 +16,14 @@ const OTP_MIN = 100000;
 const OTP_MAX = 999999;
 const OTP_EXPIRATION_MS = 10 * 60 * 1000;
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+const ACCESS_TOKEN_EXPIRY = '30d';
+const REFRESH_TOKEN_EXPIRY = '30d';
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+  roles: string[];
+}
 
 @Injectable()
 export class AuthService {
@@ -32,8 +38,8 @@ export class AuthService {
     return randomInt(OTP_MIN, OTP_MAX + 1).toString();
   }
 
-  private hashOtp(otp: string): string {
-    return createHash('sha256').update(otp).digest('hex');
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   private getOtpExpiration(): Date {
@@ -54,7 +60,7 @@ export class AuthService {
     if (!user.otpCode) {
       throw new UnauthorizedException('Invalid OTP code');
     }
-    const hashedOtp = this.hashOtp(otpCode);
+    const hashedOtp = this.hashToken(otpCode);
     if (user.otpCode !== hashedOtp) {
       throw new UnauthorizedException('Invalid OTP code');
     }
@@ -75,7 +81,7 @@ export class AuthService {
       const otpExpires = this.getOtpExpiration();
 
       await this.usersService.updateOtpFields(existingUser.id, {
-        otpCode: this.hashOtp(otpCode),
+        otpCode: this.hashToken(otpCode),
         otpExpires,
       });
 
@@ -105,7 +111,7 @@ export class AuthService {
     });
 
     await this.usersService.updateOtpFields(user.id, {
-      otpCode: this.hashOtp(otpCode),
+      otpCode: this.hashToken(otpCode),
       otpExpires,
     });
 
@@ -150,7 +156,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email, roles: user.roles };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      roles: user.roles,
+    };
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: ACCESS_TOKEN_EXPIRY,
     });
@@ -159,12 +169,12 @@ export class AuthService {
     });
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
-        token: this.hashOtp(refreshToken),
+        token: this.hashToken(refreshToken),
         expiresAt,
       },
     });
@@ -192,7 +202,7 @@ export class AuthService {
       const otpExpires = this.getOtpExpiration();
 
       await this.usersService.updateOtpFields(user.id, {
-        otpCode: this.hashOtp(otpCode),
+        otpCode: this.hashToken(otpCode),
         otpExpires,
       });
 
@@ -223,8 +233,8 @@ export class AuthService {
 
   async refreshToken(refreshToken: string) {
     try {
-      const payload = this.jwtService.verify(refreshToken);
-      const hashedToken = this.hashOtp(refreshToken);
+      const payload = this.jwtService.verify<JwtPayload>(refreshToken);
+      const hashedToken = this.hashToken(refreshToken);
 
       const storedToken = await this.prisma.refreshToken.findUnique({
         where: { token: hashedToken },
@@ -257,20 +267,20 @@ export class AuthService {
       );
 
       const newExpiresAt = new Date();
-      newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+      newExpiresAt.setDate(newExpiresAt.getDate() + 30);
 
       await this.prisma.refreshToken.update({
         where: { id: storedToken.id },
         data: {
           revoked: true,
-          replacedByToken: this.hashOtp(newRefreshToken),
+          replacedByToken: this.hashToken(newRefreshToken),
         },
       });
 
       await this.prisma.refreshToken.create({
         data: {
           userId: payload.sub,
-          token: this.hashOtp(newRefreshToken),
+          token: this.hashToken(newRefreshToken),
           expiresAt: newExpiresAt,
         },
       });

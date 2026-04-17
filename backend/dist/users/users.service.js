@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -12,11 +45,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const bcrypt = __importStar(require("bcrypt"));
 let UsersService = class UsersService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
     }
+    userSelect = {
+        id: true,
+        name: true,
+        email: true,
+        roles: true,
+        status: true,
+        avatar: true,
+        phone: true,
+        shopName: true,
+        sellerTitle: true,
+        sellerBio: true,
+        sellerAbout: true,
+        sellerHeroImage: true,
+        sellerAboutImage: true,
+        sellerStat1Label: true,
+        sellerStat1Value: true,
+        sellerStat2Label: true,
+        sellerStat2Value: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        addresses: true,
+    };
     processRoles(roles) {
         if (!roles || roles.length === 0) {
             return ['ROLE_USER'];
@@ -32,18 +89,27 @@ let UsersService = class UsersService {
     }
     async create(createUserDto) {
         const roles = this.processRoles(createUserDto.roles);
+        const password = createUserDto.password || 'Handmade@123';
+        const hashedPassword = await bcrypt.hash(password, 10);
         return this.prisma.user.create({
             data: {
-                ...createUserDto,
+                name: createUserDto.name,
+                email: createUserDto.email,
+                password: hashedPassword,
                 roles,
+                avatar: createUserDto.avatar,
+                phone: createUserDto.phone,
+                shopName: createUserDto.shopName,
+                status: createUserDto.status,
+                isEmailVerified: createUserDto.isEmailVerified ?? false,
             },
-            include: {
-                addresses: true,
-            },
+            select: this.userSelect,
         });
     }
     async findAll(role, status, pagination) {
-        const where = {};
+        const where = {
+            deletedAt: null,
+        };
         if (role) {
             where.roles = {
                 has: role.toUpperCase(),
@@ -90,20 +156,7 @@ let UsersService = class UsersService {
     async findOne(id) {
         const user = await this.prisma.user.findUnique({
             where: { id },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                roles: true,
-                status: true,
-                avatar: true,
-                phone: true,
-                shopName: true,
-                isEmailVerified: true,
-                createdAt: true,
-                updatedAt: true,
-                addresses: true,
-            },
+            select: this.userSelect,
         });
         if (!user) {
             throw new common_1.NotFoundException(`User with ID ${id} not found`);
@@ -130,7 +183,7 @@ let UsersService = class UsersService {
                 ...updateUserDto,
                 roles,
             },
-            include: { addresses: true },
+            select: this.userSelect,
         });
     }
     async remove(id) {
@@ -141,13 +194,15 @@ let UsersService = class UsersService {
         return this.prisma.user.delete({ where: { id } });
     }
     async getStats() {
-        const total = await this.prisma.user.count();
-        const admins = await this.prisma.user.count({
-            where: { roles: { has: 'ROLE_ADMIN' } },
-        });
-        const sellers = await this.prisma.user.count({
-            where: { roles: { has: 'ROLE_SELLER' } },
-        });
+        const [total, admins, sellers] = await Promise.all([
+            this.prisma.user.count({ where: { deletedAt: null } }),
+            this.prisma.user.count({
+                where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null },
+            }),
+            this.prisma.user.count({
+                where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null },
+            }),
+        ]);
         const customers = total - sellers;
         return { total, admins, sellers, customers };
     }
@@ -161,6 +216,12 @@ let UsersService = class UsersService {
                 where: { userId },
                 data: { isDefault: false },
             });
+        }
+        const addressCount = await this.prisma.address.count({
+            where: { userId },
+        });
+        if (addressCount >= 5) {
+            throw new common_1.BadRequestException('Maximum 5 addresses allowed');
         }
         return this.prisma.address.create({
             data: {
