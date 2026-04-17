@@ -108,7 +108,7 @@ export class ChatController {
   @Post('conversations/:conversationId/messages/image')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 5 * 1024 * 1024 },
+      limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_req, file, callback) => {
         if (!ALLOWED_IMAGE_TYPES.test(file.mimetype)) {
           callback(
