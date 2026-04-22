@@ -278,6 +278,7 @@ model Voucher {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   ranges      VoucherRange[]
+  carts       Cart[]
 
   @@index([categoryId])
 }
@@ -357,13 +358,15 @@ model RefreshToken {
 }
 
 model Cart {
-  id        String     @id @default(uuid())
-  userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
-  deletedAt DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id               String     @id @default(uuid())
+  userId           String     @unique
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appliedVoucherId String?
+  appliedVoucher   Voucher?   @relation(fields: [appliedVoucherId], references: [id], onDelete: SetNull)
+  items            CartItem[]
+  deletedAt        DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 }
 
 model CartItem {
@@ -386,6 +389,8 @@ model Order {
   customerId      String
   customer        User        @relation(fields: [customerId], references: [id])
   totalAmount     Decimal
+  discountAmount  Decimal     @default(0)
+  voucherCode     String?
   status          OrderStatus @default(PENDING)
   paymentIntentId String?     @unique
   shippingAddress Json?
@@ -397,16 +402,17 @@ model Order {
 }
 
 model SubOrder {
-  id        String      @id @default(uuid())
-  orderId   String
-  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sellerId  String
-  seller    User        @relation(fields: [sellerId], references: [id])
-  subTotal  Decimal
-  status    OrderStatus @default(PENDING)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  items     OrderItem[]
+  id             String      @id @default(uuid())
+  orderId        String
+  order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerId       String
+  seller         User        @relation(fields: [sellerId], references: [id])
+  subTotal       Decimal
+  discountAmount Decimal     @default(0)
+  status         OrderStatus @default(PENDING)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
 
   @@index([orderId])
   @@index([sellerId])

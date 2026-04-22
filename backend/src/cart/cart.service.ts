@@ -8,6 +8,7 @@ import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { Prisma } from '@prisma/client';
 import { VouchersService } from '../vouchers/vouchers.service';
+import { FlashSalesService } from '../flash-sales/flash-sales.service';
 
 type ProductWithRelations = Prisma.ProductGetPayload<{
   include: { images: true; category: true };
@@ -18,9 +19,16 @@ export class CartService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vouchersService: VouchersService,
+    private readonly flashSalesService: FlashSalesService,
   ) {}
 
   private readonly cartInclude = {
+    appliedVoucher: {
+      include: {
+        ranges: true,
+        category: true,
+      },
+    },
     items: {
       include: {
         product: {
@@ -35,7 +43,79 @@ export class CartService {
   };
 
   async getCart(userId: string) {
-    return this.getCartTransactional(userId, this.prisma);
+    const cart = await this.getCartTransactional(userId, this.prisma);
+    return this.enrichCartWithDiscounts(cart);
+  }
+
+  private async enrichCartWithDiscounts(cart: any) {
+    let subtotal = 0;
+    const enrichedItems = await Promise.all(
+      cart.items.map(async (item: any) => {
+        const pricing = await this.flashSalesService.calculateEffectivePrice(
+          Number(item.product.price),
+          item.product.categoryId,
+        );
+        const itemTotal = pricing.discountedPrice * item.quantity;
+        subtotal += itemTotal;
+        return {
+          ...item,
+          pricing,
+        };
+      }),
+    );
+
+    let discountAmount = 0;
+    let appliedVoucher = null;
+
+    if (cart.appliedVoucher) {
+      const voucher = cart.appliedVoucher;
+      // Filter items matching the category
+      const eligibleItems = enrichedItems.filter(
+        (item) => item.product.categoryId === voucher.categoryId,
+      );
+
+      const eligibleSubtotal = eligibleItems.reduce(
+        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+        0,
+      );
+
+      // Find matching range
+      const matchedRange = voucher.ranges.find(
+        (range: any) =>
+          eligibleSubtotal >= Number(range.minPrice) &&
+          eligibleSubtotal < Number(range.maxPrice),
+      );
+
+      if (
+        matchedRange &&
+        voucher.isActive &&
+        new Date(voucher.endDate) > new Date()
+      ) {
+        discountAmount = Math.round(
+          (eligibleSubtotal * Number(matchedRange.discountPercent)) / 100,
+        );
+        appliedVoucher = {
+          code: voucher.code,
+          discountAmount,
+          discountPercent: Number(matchedRange.discountPercent),
+        };
+      } else {
+        // Voucher no longer valid or doesn't match, clear it
+        await this.prisma.cart.update({
+          where: { id: cart.id },
+          data: { appliedVoucherId: null },
+        });
+      }
+    }
+
+    return {
+      ...cart,
+      items: enrichedItems,
+      subtotal,
+      discountAmount,
+      total: subtotal - discountAmount,
+      appliedVoucher,
+    };
   }
 
   private async getCartTransactional(
@@ -296,11 +376,7 @@ export class CartService {
   }
 
   async applyVoucher(userId: string, code: string) {
-    const cart = await this.getCart(userId);
-    if (!cart || cart.items.length === 0) {
-      throw new BadRequestException('Cart is empty');
-    }
-
+    const cart = await this.getOrCreateCart(userId);
     const voucher = await this.vouchersService.findByCode(code);
 
     if (!voucher.isActive) {
@@ -311,52 +387,33 @@ export class CartService {
       throw new BadRequestException('Voucher has expired');
     }
 
-    // Filter items matching the category
-    const eligibleItems = cart.items.filter(
+    // Check if cart has items in that category
+    const cartWithItems = await this.getCart(userId);
+    const hasEligibleItems = cartWithItems.items.some(
       (item) => item.product.categoryId === voucher.categoryId,
     );
 
-    if (eligibleItems.length === 0) {
+    if (!hasEligibleItems) {
       throw new BadRequestException(
         `Voucher này chỉ áp dụng cho các sản phẩm thuộc danh mục: ${voucher.category?.name || 'Không xác định'}`,
       );
     }
 
-    const eligibleSubtotal = eligibleItems.reduce(
-      (sum, item) => sum + Number(item.product.price) * item.quantity,
-      0,
-    );
+    await this.prisma.cart.update({
+      where: { id: cart.id },
+      data: { appliedVoucherId: voucher.id },
+    });
 
-    // Find matching range
-    const matchedRange = voucher.ranges.find(
-      (range) =>
-        eligibleSubtotal >= Number(range.minPrice) &&
-        eligibleSubtotal < Number(range.maxPrice),
-    );
+    return this.getCart(userId);
+  }
 
-    if (!matchedRange) {
-      const minRequired = Math.min(
-        ...voucher.ranges.map((r) => Number(r.minPrice)),
-      );
-      if (eligibleSubtotal < minRequired) {
-        throw new BadRequestException(
-          `Giá trị đơn hàng tối thiểu cho các sản phẩm hợp lệ là: ${minRequired.toLocaleString('vi-VN')} vnđ. Hiện tại: ${eligibleSubtotal.toLocaleString('vi-VN')} vnđ`,
-        );
-      }
-      throw new BadRequestException('Voucher không áp dụng cho mức giá này');
-    }
-
-    const discountAmount = Math.round(
-      (eligibleSubtotal * Number(matchedRange.discountPercent)) / 100,
-    );
-
-    return {
-      code: voucher.code,
-      discountAmount,
-      eligibleSubtotal,
-      discountPercent: Number(matchedRange.discountPercent),
-      message: 'Áp dụng voucher thành công',
-    };
+  async removeVoucher(userId: string) {
+    const cart = await this.getOrCreateCart(userId);
+    await this.prisma.cart.update({
+      where: { id: cart.id },
+      data: { appliedVoucherId: null },
+    });
+    return this.getCart(userId);
   }
 
   private async getOrCreateCart(userId: string) {

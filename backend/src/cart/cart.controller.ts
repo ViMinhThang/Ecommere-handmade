@@ -65,4 +65,9 @@ export class CartController {
   ) {
     return this.cartService.applyVoucher(req.user.id, dto.code);
   }
+
+  @Post('remove-voucher')
+  removeVoucher(@Request() req: AuthenticatedRequest) {
+    return this.cartService.removeVoucher(req.user.id);
+  }
 }

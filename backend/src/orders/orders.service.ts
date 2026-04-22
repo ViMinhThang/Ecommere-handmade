@@ -5,33 +5,25 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
+import { CartService } from '../cart/cart.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private stripeService: StripeService,
+    private cartService: CartService,
   ) {}
 
   async checkout(userId: string, shippingAddress: any) {
-    // 1. Get user cart
-    const cart = await this.prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
+    // 1. Get enriched user cart (with flash sales and voucher discounts)
+    const cart = await this.cartService.getCart(userId);
 
     if (!cart || cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
 
-    // 2. Validate stock and calculate total / group by seller
-    let totalAmount = 0;
+    // 2. Group items by seller and prepare suborder data
     const sellerSubOrders = new Map<
       string,
       { subTotal: number; items: any[] }
@@ -44,8 +36,8 @@ export class OrdersService {
         );
       }
 
-      const itemSubtotal = Number(item.product.price) * item.quantity;
-      totalAmount += itemSubtotal;
+      const itemEffectivePrice = item.pricing.discountedPrice;
+      const itemSubtotal = itemEffectivePrice * item.quantity;
 
       const sellerId = item.product.sellerId;
       if (!sellerSubOrders.has(sellerId)) {
@@ -56,14 +48,20 @@ export class OrdersService {
       sellerData.items.push(item);
     }
 
-    // 3. Create Stripe PaymentIntent
+    // 3. Allocate voucher discount proportionally across suborders (if any)
+    const totalVoucherDiscount = cart.discountAmount;
+    const voucherCode = cart.appliedVoucher?.code;
+    const shippingFee = 25000; // Flat shipping fee in VND
+    const totalAmount = cart.total + shippingFee;
+
+    // 4. Create Stripe PaymentIntent
     const paymentIntent = await this.stripeService.createPaymentIntent(
       totalAmount,
       'vnd',
-      { userId },
+      { userId, voucherCode: voucherCode || '' },
     );
 
-    // 4. Create Order Transaction (deduct stock immediately)
+    // 5. Create Order Transaction
     const order = await this.prisma.$transaction(async (tx) => {
       // Deduct stock
       for (const item of cart.items) {
@@ -78,6 +76,8 @@ export class OrdersService {
         data: {
           customerId: userId,
           totalAmount,
+          discountAmount: totalVoucherDiscount,
+          voucherCode,
           paymentIntentId: paymentIntent.id,
           shippingAddress: shippingAddress
             ? JSON.stringify(shippingAddress)
@@ -86,13 +86,30 @@ export class OrdersService {
         },
       });
 
-      // Create SubOrders
-      for (const [sellerId, data] of sellerSubOrders.entries()) {
+      // Calculate proportional discounts for suborders
+      let remainingDiscount = totalVoucherDiscount;
+      const subOrderEntries = Array.from(sellerSubOrders.entries());
+
+      for (let i = 0; i < subOrderEntries.length; i++) {
+        const [sellerId, data] = subOrderEntries[i];
+        let subOrderDiscount = 0;
+
+        if (totalVoucherDiscount > 0) {
+          if (i === subOrderEntries.length - 1) {
+            subOrderDiscount = remainingDiscount;
+          } else {
+            const subtotalWeight = data.subTotal / (cart.subtotal || 1);
+            subOrderDiscount = Math.round(totalVoucherDiscount * subtotalWeight);
+            remainingDiscount -= subOrderDiscount;
+          }
+        }
+
         const subOrder = await tx.subOrder.create({
           data: {
             orderId: newOrder.id,
             sellerId,
             subTotal: data.subTotal,
+            discountAmount: subOrderDiscount,
             status: 'PENDING',
           },
         });
@@ -102,13 +119,18 @@ export class OrdersService {
           subOrderId: subOrder.id,
           productId: item.productId,
           quantity: item.quantity,
-          price: item.product.price,
+          price: item.pricing.discountedPrice, // Store the price at time of purchase
         }));
         await tx.orderItem.createMany({ data: orderItems });
       }
 
       // Clear cart
-      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+      await this.cartService.clearCart(userId);
+      // Also clear applied voucher since it's used
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: { appliedVoucherId: null },
+      });
 
       return newOrder;
     });

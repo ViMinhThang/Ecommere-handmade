@@ -12,10 +12,14 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto, InventoryChangeReason } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
+import { FlashSalesService } from '../flash-sales/flash-sales.service';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private flashSalesService: FlashSalesService,
+  ) {}
 
   async uploadImage(file: Express.Multer.File) {
     if (!file) {
@@ -129,8 +133,18 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
+    const enrichedData = await Promise.all(
+      data.map(async (product) => {
+        const pricing = await this.flashSalesService.calculateEffectivePrice(
+          Number(product.price),
+          product.categoryId,
+        );
+        return { ...product, pricing };
+      }),
+    );
+
     return {
-      data,
+      data: enrichedData,
       meta: {
         total,
         page,
@@ -152,7 +166,13 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
-    return product;
+    
+    const pricing = await this.flashSalesService.calculateEffectivePrice(
+      Number(product.price),
+      product.categoryId,
+    );
+    
+    return { ...product, pricing };
   }
 
   async update(

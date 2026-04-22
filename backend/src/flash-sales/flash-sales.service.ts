@@ -84,6 +84,59 @@ export class FlashSalesService {
     });
   }
 
+  async getActiveFlashSaleForCategory(categoryId: string) {
+    const now = new Date();
+    return this.prisma.flashSale.findFirst({
+      where: {
+        isActive: true,
+        startAt: { lte: now },
+        endAt: { gte: now },
+        categories: {
+          some: { categoryId },
+        },
+      },
+      include: {
+        ranges: true,
+      },
+    });
+  }
+
+  async calculateEffectivePrice(price: number, categoryId: string) {
+    const flashSale = await this.getActiveFlashSaleForCategory(categoryId);
+    if (!flashSale) {
+      return {
+        originalPrice: price,
+        discountedPrice: price,
+        discountPercent: 0,
+        flashSaleId: null,
+      };
+    }
+
+    const matchedRange = flashSale.ranges.find(
+      (range) =>
+        price >= Number(range.minPrice) && price <= Number(range.maxPrice),
+    );
+
+    if (!matchedRange) {
+      return {
+        originalPrice: price,
+        discountedPrice: price,
+        discountPercent: 0,
+        flashSaleId: flashSale.id,
+      };
+    }
+
+    const discountPercent = Number(matchedRange.discountPercent);
+    const discountedPrice = Math.round(price * (1 - discountPercent / 100));
+
+    return {
+      originalPrice: price,
+      discountedPrice,
+      discountPercent,
+      flashSaleId: flashSale.id,
+    };
+  }
+
   async findOne(id: string) {
     const flashSale = await this.prisma.flashSale.findUnique({
       where: { id },
