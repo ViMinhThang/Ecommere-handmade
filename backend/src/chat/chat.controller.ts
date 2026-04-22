@@ -1,65 +1,64 @@
 import {
-  BadRequestException,
-  Body,
   Controller,
   Get,
-  Param,
   Post,
-  Query,
-  Request,
-  UploadedFile,
+  Body,
+  Param,
   UseGuards,
+  Request,
+  Query,
   UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { CursorQueryDto } from './dto/cursor-query.dto';
 import { SendTextMessageDto } from './dto/send-text-message.dto';
+import { SendCustomOrderOfferDto } from './dto/send-custom-order-offer.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
+import { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/;
-const MAGIC_BYTES: Record<string, number[][]> = {
-  'image/jpeg': [[0xff, 0xd8, 0xff]],
-  'image/png': [[0x89, 0x50, 0x4e, 0x47]],
-  'image/gif': [[0x47, 0x49, 0x46, 0x38]],
-  'image/webp': [[0x52, 0x49, 0x46, 0x46]],
-};
 
-function validateFileContent(file: Express.Multer.File): void {
-  const signatures = MAGIC_BYTES[file.mimetype];
-  if (!signatures) {
-    return;
-  }
-
-  for (const signature of signatures) {
-    let matches = true;
-    for (let i = 0; i < signature.length; i++) {
-      if (file.buffer[i] !== signature[i]) {
-        matches = false;
-        break;
-      }
-    }
-
-    if (matches) {
-      return;
-    }
-  }
-
-  throw new BadRequestException('File content does not match declared type');
-}
-
-@UseGuards(JwtAuthGuard)
 @Controller('chat')
+@UseGuards(JwtAuthGuard)
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly chatGateway: ChatGateway,
   ) {}
 
-  @Post('conversations/start')
+  @Get('conversations')
+  getConversations(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.chatService.getConversations(req.user.id, query);
+  }
+
+  @Get('conversations/:conversationId')
+  getConversation(
+    @Request() req: AuthenticatedRequest,
+    @Param('conversationId') conversationId: string,
+  ) {
+    return this.chatService.getConversationDetails(
+      req.user.id,
+      conversationId,
+    );
+  }
+
+  @Get('conversations/:conversationId/messages')
+  getMessages(
+    @Request() req: AuthenticatedRequest,
+    @Param('conversationId') conversationId: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.chatService.getMessages(req.user.id, conversationId, query);
+  }
+
+  @Post('conversations')
   async startConversation(
     @Request() req: AuthenticatedRequest,
     @Body() dto: StartConversationDto,
@@ -70,23 +69,6 @@ export class ChatController {
     );
     await this.chatGateway.emitConversationUpdated(conversation.id);
     return conversation;
-  }
-
-  @Get('conversations')
-  listConversations(
-    @Request() req: AuthenticatedRequest,
-    @Query() query: CursorQueryDto,
-  ) {
-    return this.chatService.listConversations(req.user.id, query);
-  }
-
-  @Get('conversations/:conversationId/messages')
-  getMessages(
-    @Request() req: AuthenticatedRequest,
-    @Param('conversationId') conversationId: string,
-    @Query() query: CursorQueryDto,
-  ) {
-    return this.chatService.getMessages(req.user.id, conversationId, query);
   }
 
   @Post('conversations/:conversationId/messages/text')
@@ -100,8 +82,24 @@ export class ChatController {
       conversationId,
       dto,
     );
-    await this.chatGateway.emitMessageCreated(conversationId, message);
-    await this.chatGateway.emitConversationUpdated(conversationId);
+    this.chatGateway.emitMessageCreated(conversationId, message);
+    this.chatGateway.emitConversationUpdated(conversationId);
+    return message;
+  }
+
+  @Post('conversations/:conversationId/messages/offer')
+  async sendCustomOrderOffer(
+    @Request() req: AuthenticatedRequest,
+    @Param('conversationId') conversationId: string,
+    @Body() dto: SendCustomOrderOfferDto,
+  ) {
+    const message = await this.chatService.sendCustomOrderOffer(
+      req.user.id,
+      conversationId,
+      dto,
+    );
+    this.chatGateway.emitMessageCreated(conversationId, message);
+    this.chatGateway.emitConversationUpdated(conversationId);
     return message;
   }
 
@@ -111,13 +109,7 @@ export class ChatController {
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_req, file, callback) => {
         if (!ALLOWED_IMAGE_TYPES.test(file.mimetype)) {
-          callback(
-            new BadRequestException(
-              'Only JPEG, PNG, GIF, and WebP images are allowed',
-            ),
-            false,
-          );
-          return;
+          return callback(new Error('Only image files are allowed'), false);
         }
         callback(null, true);
       },
@@ -129,42 +121,29 @@ export class ChatController {
     @UploadedFile() file: Express.Multer.File,
     @Body('caption') caption?: string,
   ) {
-    if (!file) {
-      throw new BadRequestException('Image file is required');
-    }
-
-    if (caption && caption.length > 2000) {
-      throw new BadRequestException('Caption must be at most 2000 characters');
-    }
-
-    validateFileContent(file);
     const message = await this.chatService.sendImageMessage(
       req.user.id,
       conversationId,
       file,
       caption,
     );
-
-    await this.chatGateway.emitMessageCreated(conversationId, message);
-    await this.chatGateway.emitConversationUpdated(conversationId);
+    this.chatGateway.emitMessageCreated(conversationId, message);
+    this.chatGateway.emitConversationUpdated(conversationId);
     return message;
   }
 
   @Post('conversations/:conversationId/read')
-  async markConversationRead(
+  async markAsRead(
     @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
-    const result = await this.chatService.markConversationRead(
-      req.user.id,
-      conversationId,
-    );
-    await this.chatGateway.emitConversationUpdated(conversationId);
-    return result;
+    await this.chatService.markAsRead(req.user.id, conversationId);
+    this.chatGateway.emitConversationUpdated(conversationId);
+    return { success: true };
   }
 
   @Get('unread-count')
   getUnreadCount(@Request() req: AuthenticatedRequest) {
-    return this.chatService.getUnreadCount(req.user.id);
+    return this.chatService.getTotalUnreadCount(req.user.id);
   }
 }

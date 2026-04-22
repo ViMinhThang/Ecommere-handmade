@@ -166,12 +166,12 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
-    
+
     const pricing = await this.flashSalesService.calculateEffectivePrice(
       Number(product.price),
       product.categoryId,
     );
-    
+
     return { ...product, pricing };
   }
 

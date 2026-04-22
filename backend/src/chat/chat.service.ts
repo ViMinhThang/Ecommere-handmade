@@ -10,6 +10,7 @@ import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { CursorQueryDto } from './dto/cursor-query.dto';
 import { SendTextMessageDto } from './dto/send-text-message.dto';
+import { SendCustomOrderOfferDto } from './dto/send-custom-order-offer.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
 
 const CHAT_USER_SELECT = {
@@ -263,6 +264,82 @@ export class ChatService {
           senderId: currentUserId,
           type: ChatMessageType.TEXT,
           payload: { text },
+        },
+        include: {
+          sender: {
+            select: CHAT_USER_SELECT,
+          },
+        },
+      });
+
+      await tx.chatConversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: created.createdAt },
+      });
+
+      await tx.chatConversationReadState.upsert({
+        where: {
+          conversationId_userId: {
+            conversationId: conversation.id,
+            userId: currentUserId,
+          },
+        },
+        update: {
+          lastReadAt: created.createdAt,
+        },
+        create: {
+          conversationId: conversation.id,
+          userId: currentUserId,
+          lastReadAt: created.createdAt,
+        },
+      });
+
+      return created;
+    });
+
+    return this.mapMessage(result);
+  }
+
+  async sendCustomOrderOffer(
+    currentUserId: string,
+    conversationId: string,
+    dto: SendCustomOrderOfferDto,
+  ): Promise<ChatMessageDto> {
+    const conversation = await this.getConversationForParticipant(
+      conversationId,
+      currentUserId,
+    );
+
+    // Verify custom order exists and belongs to this seller-customer pair
+    const customOrder = await this.prisma.customOrder.findUnique({
+      where: { id: dto.customOrderId },
+    });
+
+    if (!customOrder) {
+      throw new NotFoundException('Custom order not found');
+    }
+
+    if (
+      customOrder.sellerId !== conversation.sellerId ||
+      customOrder.customerId !== conversation.customerId
+    ) {
+      throw new BadRequestException(
+        'Custom order does not match this conversation participants',
+      );
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.chatMessage.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: currentUserId,
+          type: ChatMessageType.CUSTOM_ORDER_OFFER,
+          payload: {
+            text: dto.message,
+            customOrderId: dto.customOrderId,
+            price: Number(customOrder.price),
+            title: customOrder.title,
+          },
         },
         include: {
           sender: {

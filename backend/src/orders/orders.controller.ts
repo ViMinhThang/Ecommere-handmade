@@ -2,14 +2,16 @@ import {
   Controller,
   Post,
   Body,
-  Req,
   UseGuards,
   Get,
   Param,
   Patch,
+  Request,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import { OrderStatus } from '@prisma/client';
 
 @Controller('orders')
 export class OrdersController {
@@ -17,14 +19,17 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard)
   @Post('checkout')
-  async checkout(@Req() req: any, @Body() body: { shippingAddress: any }) {
+  async checkout(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { shippingAddress: any },
+  ) {
     return this.ordersService.checkout(req.user.id, body.shippingAddress);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('confirm-payment')
   async confirmPayment(
-    @Req() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { paymentIntentId: string },
   ) {
     return this.ordersService.confirmPayment(req.user.id, body.paymentIntentId);
@@ -32,34 +37,40 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('my-orders')
-  async getMyOrders(@Req() req: any) {
+  async getMyOrders(@Request() req: AuthenticatedRequest) {
     return this.ordersService.findAllSubOrdersByUser(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  async getOrder(@Req() req: any, @Param('id') id: string) {
-    return this.ordersService.findOrderById(req.user.id, id);
+  @Get('seller-orders')
+  async getSellerOrders(@Request() req: AuthenticatedRequest) {
+    return this.ordersService.findAllSubOrdersBySeller(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('sub-order/:id')
-  async getSubOrder(@Req() req: any, @Param('id') id: string) {
+  async getSubOrder(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     return this.ordersService.findSubOrderById(req.user.id, id);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('seller-orders')
-  async getSellerOrders(@Req() req: any) {
-    return this.ordersService.findAllSubOrdersBySeller(req.user.id);
+  @Get(':id')
+  async getOrder(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.ordersService.findOrderById(req.user.id, id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('sub-order/:id/status')
   async updateStatus(
-    @Req() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body('status') status: string,
+    @Body('status') status: OrderStatus,
   ) {
     return this.ordersService.updateSubOrderStatus(req.user.id, id, status);
   }

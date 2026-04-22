@@ -13,7 +13,11 @@ export class AnalyticsService {
     OrderStatus.DELIVERED,
   ];
 
-  async getSellerRevenueOverTime(sellerId: string, startDate: string, endDate: string) {
+  async getSellerRevenueOverTime(
+    sellerId: string,
+    startDate: string,
+    endDate: string,
+  ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
@@ -38,7 +42,7 @@ export class AnalyticsService {
 
     // Group by day for the chart
     const revenueMap = new Map<string, number>();
-    
+
     // Initialize map with all days in range to ensure zero-revenue days are shown
     const currentDate = new Date(start);
     while (currentDate <= end) {
@@ -47,7 +51,7 @@ export class AnalyticsService {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    subOrders.forEach(so => {
+    subOrders.forEach((so) => {
       const dateStr = so.createdAt.toISOString().split('T')[0];
       const existing = revenueMap.get(dateStr) || 0;
       revenueMap.set(dateStr, existing + Number(so.subTotal));
@@ -59,7 +63,11 @@ export class AnalyticsService {
     }));
   }
 
-  async getSellerRevenueByCategory(sellerId: string, month: number, year: number) {
+  async getSellerRevenueByCategory(
+    sellerId: string,
+    month: number,
+    year: number,
+  ) {
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
@@ -85,7 +93,7 @@ export class AnalyticsService {
 
     const categoryMap = new Map<string, number>();
 
-    orderItems.forEach(item => {
+    orderItems.forEach((item) => {
       const categoryName = item.product.category.name;
       const amount = Number(item.price) * item.quantity;
       const existing = categoryMap.get(categoryName) || 0;

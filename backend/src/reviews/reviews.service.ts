@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderStatus } from '@prisma/client';
 
@@ -6,13 +11,16 @@ import { OrderStatus } from '@prisma/client';
 export class ReviewsService {
   constructor(private prisma: PrismaService) {}
 
-  async createReview(userId: string, data: {
-    productId: string;
-    orderItemId: string;
-    rating: number;
-    comment?: string;
-    images?: string[];
-  }) {
+  async createReview(
+    userId: string,
+    data: {
+      productId: string;
+      orderItemId: string;
+      rating: number;
+      comment?: string;
+      images?: string[];
+    },
+  ) {
     // 1. Check if the orderItem exists and belongs to the user via Order -> customerId
     const orderItem = await this.prisma.orderItem.findUnique({
       where: { id: data.orderItemId },
@@ -35,7 +43,9 @@ export class ReviewsService {
 
     // 2. Check if sub-order is DELIVERED
     if (orderItem.subOrder.status !== OrderStatus.DELIVERED) {
-      throw new BadRequestException('Bạn chỉ có thể đánh giá sau khi nhận được hàng');
+      throw new BadRequestException(
+        'Bạn chỉ có thể đánh giá sau khi nhận được hàng',
+      );
     }
 
     // 3. Prevent duplicate reviews for the same orderItem

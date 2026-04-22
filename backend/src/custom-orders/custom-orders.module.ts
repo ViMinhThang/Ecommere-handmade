@@ -7,6 +7,6 @@ import { StripeModule } from '../stripe/stripe.module';
 @Module({
   imports: [PrismaModule, StripeModule],
   providers: [CustomOrdersService],
-  controllers: [CustomOrdersController]
+  controllers: [CustomOrdersController],
 })
 export class CustomOrdersModule {}

@@ -6,12 +6,41 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, Voucher, VoucherRange } from '@prisma/client';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { FlashSalesService } from '../flash-sales/flash-sales.service';
+import {
+  EnrichedCart,
+  EnrichedCartItem,
+} from '../common/interfaces/commerce.interface';
 
-type ProductWithRelations = Prisma.ProductGetPayload<{
-  include: { images: true; category: true };
+type CartWithItems = Prisma.CartGetPayload<{
+  include: {
+    appliedVoucher: {
+      include: {
+        ranges: true;
+        category: true;
+      };
+    };
+    items: {
+      include: {
+        product: {
+          include: {
+            images: true;
+            category: true;
+            seller: {
+              select: {
+                id: true;
+                name: true;
+                shopName: true;
+                avatar: true;
+              };
+            };
+          };
+        };
+      };
+    };
+  };
 }>;
 
 @Injectable()
@@ -35,6 +64,14 @@ export class CartService {
           include: {
             images: true,
             category: true,
+            seller: {
+              select: {
+                id: true,
+                name: true,
+                shopName: true,
+                avatar: true,
+              },
+            },
           },
         },
       },
@@ -42,86 +79,115 @@ export class CartService {
     },
   };
 
-  async getCart(userId: string) {
+  async getCart(userId: string): Promise<EnrichedCart> {
     const cart = await this.getCartTransactional(userId, this.prisma);
-    return this.enrichCartWithDiscounts(cart);
+    return this.enrichCart(cart);
   }
 
-  private async enrichCartWithDiscounts(cart: any) {
-    let subtotal = 0;
-    const enrichedItems = await Promise.all(
-      cart.items.map(async (item: any) => {
+  private async enrichCart(cart: CartWithItems): Promise<EnrichedCart> {
+    const enrichedItems = await this.enrichCartItems(cart.items);
+    const subtotal = this.calculateSubtotal(enrichedItems);
+    const voucherResult = await this.processAppliedVoucher(cart, enrichedItems);
+
+    return {
+      id: cart.id,
+      userId: cart.userId,
+      items: enrichedItems,
+      subtotal,
+      discountAmount: voucherResult.discountAmount,
+      total: subtotal - voucherResult.discountAmount,
+      appliedVoucher: voucherResult.appliedVoucher,
+    };
+  }
+
+  private async enrichCartItems(items: any[]): Promise<EnrichedCartItem[]> {
+    return Promise.all(
+      items.map(async (item) => {
         const pricing = await this.flashSalesService.calculateEffectivePrice(
           Number(item.product.price),
           item.product.categoryId,
         );
-        const itemTotal = pricing.discountedPrice * item.quantity;
-        subtotal += itemTotal;
         return {
           ...item,
           pricing,
-        };
+        } as EnrichedCartItem;
       }),
     );
+  }
 
-    let discountAmount = 0;
-    let appliedVoucher = null;
+  private calculateSubtotal(items: EnrichedCartItem[]): number {
+    return items.reduce(
+      (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+      0,
+    );
+  }
 
-    if (cart.appliedVoucher) {
-      const voucher = cart.appliedVoucher;
-      // Filter items matching the category
-      const eligibleItems = enrichedItems.filter(
-        (item) => item.product.categoryId === voucher.categoryId,
+  private async processAppliedVoucher(
+    cart: CartWithItems,
+    enrichedItems: EnrichedCartItem[],
+  ) {
+    if (!cart.appliedVoucher) {
+      return { discountAmount: 0, appliedVoucher: null };
+    }
+
+    const voucher = cart.appliedVoucher;
+    const eligibleItems = enrichedItems.filter(
+      (item) => item.product.categoryId === voucher.categoryId,
+    );
+
+    const eligibleSubtotal = eligibleItems.reduce(
+      (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+      0,
+    );
+
+    const matchedRange = this.findMatchingVoucherRange(
+      voucher.ranges,
+      eligibleSubtotal,
+    );
+
+    if (this.isVoucherValid(voucher, matchedRange)) {
+      const discountAmount = Math.round(
+        (eligibleSubtotal * Number(matchedRange.discountPercent)) / 100,
       );
-
-      const eligibleSubtotal = eligibleItems.reduce(
-        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
-        0,
-      );
-
-      // Find matching range
-      const matchedRange = voucher.ranges.find(
-        (range: any) =>
-          eligibleSubtotal >= Number(range.minPrice) &&
-          eligibleSubtotal < Number(range.maxPrice),
-      );
-
-      if (
-        matchedRange &&
-        voucher.isActive &&
-        new Date(voucher.endDate) > new Date()
-      ) {
-        discountAmount = Math.round(
-          (eligibleSubtotal * Number(matchedRange.discountPercent)) / 100,
-        );
-        appliedVoucher = {
+      return {
+        discountAmount,
+        appliedVoucher: {
           code: voucher.code,
           discountAmount,
           discountPercent: Number(matchedRange.discountPercent),
-        };
-      } else {
-        // Voucher no longer valid or doesn't match, clear it
-        await this.prisma.cart.update({
-          where: { id: cart.id },
-          data: { appliedVoucherId: null },
-        });
-      }
+        },
+      };
     }
 
-    return {
-      ...cart,
-      items: enrichedItems,
-      subtotal,
-      discountAmount,
-      total: subtotal - discountAmount,
-      appliedVoucher,
-    };
+    // Voucher no longer valid or doesn't match, clear it
+    await this.prisma.cart.update({
+      where: { id: cart.id },
+      data: { appliedVoucherId: null },
+    });
+    return { discountAmount: 0, appliedVoucher: null };
+  }
+
+  private findMatchingVoucherRange(
+    ranges: VoucherRange[],
+    eligibleSubtotal: number,
+  ) {
+    return ranges.find(
+      (range) =>
+        eligibleSubtotal >= Number(range.minPrice) &&
+        eligibleSubtotal < Number(range.maxPrice),
+    );
+  }
+
+  private isVoucherValid(voucher: Voucher, matchedRange?: VoucherRange) {
+    return (
+      matchedRange && voucher.isActive && new Date(voucher.endDate) > new Date()
+    );
   }
 
   private async getCartTransactional(
     userId: string,
     tx: Prisma.TransactionClient | PrismaService,
-  ) {
+  ): Promise<CartWithItems> {
     let cart = await tx.cart.findUnique({
       where: { userId },
       include: this.cartInclude,
@@ -134,245 +200,103 @@ export class CartService {
       });
     }
 
-    return cart;
+    return cart as CartWithItems;
   }
 
-  async addItem(userId: string, dto: AddToCartDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const product = await tx.product.findUnique({
-        where: { id: dto.productId, deletedAt: null },
-      });
-
-      if (!product) {
-        throw new NotFoundException('Product not found');
-      }
-
-      if (product.stock < dto.quantity) {
-        throw new BadRequestException(
-          `Insufficient stock. Available: ${product.stock}`,
-        );
-      }
-
-      const cart = await this.getOrCreateCartTransactional(userId, tx);
-
-      const existingItem = await tx.cartItem.findUnique({
-        where: {
-          cartId_productId: {
-            cartId: cart.id,
-            productId: dto.productId,
-          },
-        },
-      });
-
-      const newQuantity = existingItem
-        ? existingItem.quantity + dto.quantity
-        : dto.quantity;
-
-      if (newQuantity > product.stock) {
-        throw new BadRequestException(
-          `Cannot add ${dto.quantity} more. You already have ${existingItem?.quantity || 0} in cart. Available stock: ${product.stock}`,
-        );
-      }
-
-      await tx.cartItem.upsert({
-        where: {
-          cartId_productId: {
-            cartId: cart.id,
-            productId: dto.productId,
-          },
-        },
-        update: { quantity: newQuantity },
-        create: {
-          cartId: cart.id,
-          productId: dto.productId,
-          quantity: dto.quantity,
-        },
-      });
-
-      return this.getCartTransactional(userId, tx);
-    });
-  }
-
-  async updateItemQuantity(
-    userId: string,
-    productId: string,
-    dto: UpdateCartItemDto,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const cart = await this.getOrCreateCartTransactional(userId, tx);
-
-      const existingItem = await tx.cartItem.findUnique({
-        where: {
-          cartId_productId: {
-            cartId: cart.id,
-            productId,
-          },
-        },
-      });
-
-      if (!existingItem) {
-        throw new NotFoundException('Item not found in cart');
-      }
-
-      if (dto.quantity === 0) {
-        await tx.cartItem.delete({
-          where: { id: existingItem.id },
-        });
-        return this.getCartTransactional(userId, tx);
-      }
-
-      const product = await tx.product.findUnique({
-        where: { id: productId },
-      });
-
-      if (product && dto.quantity > product.stock) {
-        throw new BadRequestException(
-          `Insufficient stock. Available: ${product.stock}`,
-        );
-      }
-
-      await tx.cartItem.update({
-        where: { id: existingItem.id },
-        data: { quantity: dto.quantity },
-      });
-
-      return this.getCartTransactional(userId, tx);
-    });
-  }
-
-  async removeItem(userId: string, productId: string) {
+  async addToCart(userId: string, dto: AddToCartDto) {
     const cart = await this.getOrCreateCart(userId);
 
     const existingItem = await this.prisma.cartItem.findUnique({
       where: {
         cartId_productId: {
           cartId: cart.id,
-          productId,
+          productId: dto.productId,
         },
       },
     });
 
-    if (!existingItem) {
+    if (existingItem) {
+      return this.prisma.cartItem.update({
+        where: { id: existingItem.id },
+        data: { quantity: existingItem.quantity + (dto.quantity || 1) },
+      });
+    }
+
+    return this.prisma.cartItem.create({
+      data: {
+        cartId: cart.id,
+        productId: dto.productId,
+        quantity: dto.quantity || 1,
+      },
+    });
+  }
+
+  async updateItemQuantity(userId: string, dto: UpdateCartItemDto) {
+    const cart = await this.getOrCreateCart(userId);
+
+    const item = await this.prisma.cartItem.findUnique({
+      where: {
+        cartId_productId: {
+          cartId: cart.id,
+          productId: dto.productId,
+        },
+      },
+    });
+
+    if (!item) {
       throw new NotFoundException('Item not found in cart');
     }
 
-    await this.prisma.cartItem.delete({
-      where: { id: existingItem.id },
-    });
+    if (dto.quantity <= 0) {
+      return this.removeItem(userId, dto.productId);
+    }
 
-    return this.getCart(userId);
+    return this.prisma.cartItem.update({
+      where: { id: item.id },
+      data: { quantity: dto.quantity },
+    });
+  }
+
+  async removeItem(userId: string, productId: string) {
+    const cart = await this.getOrCreateCart(userId);
+
+    return this.prisma.cartItem.deleteMany({
+      where: {
+        cartId: cart.id,
+        productId,
+      },
+    });
   }
 
   async clearCart(userId: string) {
-    const cart = await this.prisma.cart.findUnique({
-      where: { userId },
+    const cart = await this.getOrCreateCart(userId);
+    return this.prisma.cartItem.deleteMany({
+      where: { cartId: cart.id },
     });
-
-    if (cart) {
-      await this.prisma.cartItem.deleteMany({
-        where: { cartId: cart.id },
-      });
-    }
   }
-  async getSuggestions(
-    userId: string,
-    limit = 6,
-  ): Promise<ProductWithRelations[]> {
-    const cart = await this.prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            product: { select: { id: true, categoryId: true } },
-          },
-        },
-      },
-    });
 
-    if (!cart || cart.items.length === 0) {
+  async getSuggestions(userId: string, limit = 4) {
+    const cart = await this.getCart(userId);
+    const categoryIds = cart.items.map((item) => item.product.categoryId);
+
+    if (categoryIds.length === 0) {
       return this.prisma.product.findMany({
         where: { status: 'APPROVED', deletedAt: null },
-        include: { images: true, category: true },
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        include: { images: { where: { isMain: true } } },
       });
     }
 
-    const cartProductIds = cart.items.map((item) => item.productId);
-    const categoryIds = [
-      ...new Set(cart.items.map((item) => item.product.categoryId)),
-    ];
-
-    const suggestions = await this.prisma.$transaction(async (tx) => {
-      // Fetch buffer from all relevant categories sorted by newest
-      const pool = await tx.product.findMany({
-        where: {
-          categoryId: { in: categoryIds },
-          status: 'APPROVED',
-          deletedAt: null,
-          id: { notIn: cartProductIds },
-        },
-        include: { images: true, category: true },
-        take: Math.max(100, categoryIds.length * 10),
-        orderBy: { createdAt: 'desc' },
-      });
-
-      // Group by categoryId
-      const grouped = new Map<string, ProductWithRelations[]>();
-      for (const p of pool) {
-        if (!grouped.has(p.categoryId)) grouped.set(p.categoryId, []);
-        grouped.get(p.categoryId)!.push(p as ProductWithRelations);
-      }
-
-      const picks: ProductWithRelations[] = [];
-      const addedIds = new Set<string>();
-
-      // Round-robin distribution
-      let addedInRound = true;
-      while (picks.length < limit && addedInRound) {
-        addedInRound = false;
-        for (const catId of categoryIds) {
-          const group = grouped.get(catId);
-          if (group && group.length > 0) {
-            const product = group.shift();
-            if (product) {
-              picks.push(product);
-              addedIds.add(product.id);
-              addedInRound = true;
-            }
-          }
-          if (picks.length >= limit) break;
-        }
-      }
-
-      // If still space, fill from remaining results or generic
-      if (picks.length < limit) {
-        const remainingInPool = pool.filter((p) => !addedIds.has(p.id));
-        for (const p of remainingInPool) {
-          picks.push(p);
-          addedIds.add(p.id);
-          if (picks.length >= limit) break;
-        }
-      }
-
-      if (picks.length < limit) {
-        const more = await tx.product.findMany({
-          where: {
-            status: 'APPROVED',
-            deletedAt: null,
-            id: { notIn: [...cartProductIds, ...Array.from(addedIds)] },
-          },
-          include: { images: true, category: true },
-          take: limit - picks.length,
-          orderBy: { createdAt: 'desc' },
-        });
-        picks.push(...more);
-      }
-
-      return picks;
+    return this.prisma.product.findMany({
+      where: {
+        status: 'APPROVED',
+        deletedAt: null,
+        categoryId: { in: categoryIds },
+        id: { notIn: cart.items.map((i) => i.productId) },
+      },
+      take: limit,
+      include: { images: { where: { isMain: true } } },
     });
-
-    return suggestions.slice(0, limit);
   }
 
   async applyVoucher(userId: string, code: string) {
@@ -387,7 +311,6 @@ export class CartService {
       throw new BadRequestException('Voucher has expired');
     }
 
-    // Check if cart has items in that category
     const cartWithItems = await this.getCart(userId);
     const hasEligibleItems = cartWithItems.items.some(
       (item) => item.product.categoryId === voucher.categoryId,

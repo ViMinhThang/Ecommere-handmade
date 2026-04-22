@@ -160,6 +160,7 @@ model Product {
 enum ChatMessageType {
   TEXT
   IMAGE
+  CUSTOM_ORDER_OFFER
 }
 
 model ChatConversation {
