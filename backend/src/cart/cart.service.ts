@@ -231,14 +231,14 @@ export class CartService {
     });
   }
 
-  async updateItemQuantity(userId: string, dto: UpdateCartItemDto) {
+  async updateItemQuantity(userId: string, productId: string, dto: UpdateCartItemDto) {
     const cart = await this.getOrCreateCart(userId);
 
     const item = await this.prisma.cartItem.findUnique({
       where: {
         cartId_productId: {
           cartId: cart.id,
-          productId: dto.productId,
+          productId: productId,
         },
       },
     });
@@ -248,7 +248,7 @@ export class CartService {
     }
 
     if (dto.quantity <= 0) {
-      return this.removeItem(userId, dto.productId);
+      return this.removeItem(userId, productId);
     }
 
     return this.prisma.cartItem.update({

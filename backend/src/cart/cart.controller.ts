@@ -14,7 +14,7 @@ import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { ApplyVoucherDto } from './dto/apply-voucher.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import  type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
@@ -28,7 +28,7 @@ export class CartController {
 
   @Post('items')
   addItem(@Request() req: AuthenticatedRequest, @Body() dto: AddToCartDto) {
-    return this.cartService.addItem(req.user.id, dto);
+    return this.cartService.addToCart(req.user.id, dto);
   }
 
   @Patch('items/:productId')
@@ -37,11 +37,7 @@ export class CartController {
     @Param('productId') productId: string,
     @Body() dto: UpdateCartItemDto,
   ) {
-    // Ensure productId from path is in DTO
-    return this.cartService.updateItemQuantity(req.user.id, {
-      ...dto,
-      productId,
-    });
+    return this.cartService.updateItemQuantity(req.user.id, productId, dto);
   }
 
   @Delete('items/:productId')

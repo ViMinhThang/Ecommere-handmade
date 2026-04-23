@@ -18,7 +18,7 @@ import { CursorQueryDto } from './dto/cursor-query.dto';
 import { SendTextMessageDto } from './dto/send-text-message.dto';
 import { SendCustomOrderOfferDto } from './dto/send-custom-order-offer.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
-import { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/;
 
@@ -35,7 +35,7 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Query() query: CursorQueryDto,
   ) {
-    return this.chatService.getConversations(req.user.id, query);
+    return this.chatService.listConversations(req.user.id, query);
   }
 
   @Get('conversations/:conversationId')
@@ -43,10 +43,7 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
-    return this.chatService.getConversationDetails(
-      req.user.id,
-      conversationId,
-    );
+    return this.chatService.getConversationSummaryForUser(conversationId, req.user.id);
   }
 
   @Get('conversations/:conversationId/messages')
@@ -137,13 +134,13 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
-    await this.chatService.markAsRead(req.user.id, conversationId);
+    await this.chatService.markConversationRead(req.user.id, conversationId);
     this.chatGateway.emitConversationUpdated(conversationId);
     return { success: true };
   }
 
   @Get('unread-count')
   getUnreadCount(@Request() req: AuthenticatedRequest) {
-    return this.chatService.getTotalUnreadCount(req.user.id);
+    return this.chatService.getUnreadCount(req.user.id);
   }
 }
