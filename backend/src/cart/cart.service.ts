@@ -145,7 +145,7 @@ export class CartService {
       eligibleSubtotal,
     );
 
-    if (this.isVoucherValid(voucher, matchedRange)) {
+    if (matchedRange && this.isVoucherValid(voucher, matchedRange)) {
       const discountAmount = Math.round(
         (eligibleSubtotal * Number(matchedRange.discountPercent)) / 100,
       );
