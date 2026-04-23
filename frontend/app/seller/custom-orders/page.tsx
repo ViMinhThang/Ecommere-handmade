@@ -123,7 +123,7 @@ export default function SellerCustomOrdersPage() {
       <div className='flex items-center justify-between'>
         <div>
           <h1 className='artisan-title text-4xl'>Đơn hàng thiết kế</h1>
-          <p className='artisan-subtitle mt-2'>Quản lý các bản thiết kế riêng và tiến tác phẩm độc bản.</p>
+          <p className='artisan-subtitle mt-2'>Quản lý các bản thiết kế riêng và tiến độ sản phẩm độc bản.</p>
         </div>
         <Link href="/seller/custom-orders/new">
           <Button className="gap-2 bg-[#A35C3D] hover:bg-[#8a4d33]">
@@ -196,7 +196,7 @@ export default function SellerCustomOrdersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mã đơn</TableHead>
-                  <TableHead>Tên tác phẩm</TableHead>
+                  <TableHead>Tên sản phẩm</TableHead>
                   <TableHead>Khách hàng</TableHead>
                   <TableHead>Giá trị</TableHead>
                   <TableHead>Trạng thái</TableHead>
@@ -306,7 +306,7 @@ export default function SellerCustomOrdersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="artisanNote">Ghi chú từ nghệ nhân</Label>
+              <Label htmlFor="artisanNote">Ghi chú từ người bán</Label>
               <Textarea 
                 id="artisanNote" 
                 placeholder="Giải thích các thay đổi bạn đã thực hiện cho bản thiết kế này..."

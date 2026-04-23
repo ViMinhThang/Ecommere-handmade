@@ -20,7 +20,7 @@ import { UpdateStockDto } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -120,5 +120,10 @@ export class ProductsController {
   @Get(':id/inventory-log')
   getInventoryLog(@Param('id') id: string) {
     return this.productsService.getInventoryLog(id);
+  }
+
+  @Post(':id/view')
+  incrementViewCount(@Param('id') id: string) {
+    return this.productsService.incrementViewCount(id);
   }
 }

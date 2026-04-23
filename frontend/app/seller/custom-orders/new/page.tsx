@@ -22,8 +22,8 @@ export default function NewCustomOrderPage() {
   
   const [formData, setFormData] = useState({
     customerId: "",
-    title: "Bình Gốm Nghệ Thuật Chạm Khắc Tay",
-    artisanNote: "Một tác phẩm mang đậm hơi thở truyền thống, được tinh chỉnh riêng cho không gian hiện đại của bạn.",
+    title: "Bình Gốm Mỹ Nghệ Chạm Khắc Tay",
+    artisanNote: "Một sản phẩm mang đậm hơi thở truyền thống, được tinh chỉnh riêng cho không gian hiện đại của bạn.",
     price: 320,
     leadTime: "4 tuần hoàn thiện",
     sketchImageUrl: "",
@@ -61,8 +61,7 @@ export default function NewCustomOrderPage() {
 
     createOrder.mutate({
       ...formData,
-      // @ts-ignore
-      price: formData.price,
+      price: formData.price.toString(),
       specifications,
     });
   };
@@ -96,7 +95,7 @@ export default function NewCustomOrderPage() {
           </div>
 
           <div>
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Tên Tác phẩm</label>
+             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Tên Sản phẩm</label>
              <input 
                type="text" 
                required
@@ -107,7 +106,7 @@ export default function NewCustomOrderPage() {
           </div>
 
           <div>
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Ghi chú từ Nghệ nhân</label>
+             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Ghi chú từ Người bán</label>
              <textarea 
                required
                rows={4}

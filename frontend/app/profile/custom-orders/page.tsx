@@ -25,7 +25,7 @@ export default function ProfileCustomOrdersPage() {
       <div className="bg-white rounded-lg p-12 text-center border border-slate-200">
          <PenTool className="w-12 h-12 text-slate-300 mx-auto mb-4" />
          <h3 className="font-serif text-2xl font-bold text-slate-800 mb-2">Chưa Có Đơn Hàng Nào</h3>
-         <p className="text-slate-500">Bạn chưa có đơn đặt hàng thiết kế riêng nào. Hãy liên hệ với nghệ nhân yêu thích của bạn qua tính năng Chat để lên ý tưởng.</p>
+         <p className="text-slate-500">Bạn chưa có đơn đặt hàng thiết kế riêng nào. Hãy liên hệ với người bán yêu thích của bạn qua tính năng Chat để lên ý tưởng.</p>
       </div>
     );
   }
@@ -50,7 +50,7 @@ export default function ProfileCustomOrdersPage() {
     <div className="space-y-6">
       <h2 className="text-2xl font-serif font-bold text-slate-900 border-b pb-4">Đồ Thiết Kế Riêng Của Bạn</h2>
       <p className="text-slate-600 text-sm mb-6">
-        Theo dõi tiến độ các tác phẩm được chế tác độc quyền cho bạn bởi thợ thủ công.
+        Theo dõi tiến độ các sản phẩm được chế tác độc quyền cho bạn bởi người bán thủ công.
       </p>
 
       <div className="space-y-4">
@@ -73,7 +73,7 @@ export default function ProfileCustomOrdersPage() {
                     </span>
                  </div>
                  <div className="text-sm text-slate-500 mb-4 flex items-center gap-4">
-                    <span className="flex items-center gap-1"><PenTool className="w-4 h-4"/> Nghệ nhân: {order.seller?.shopName || order.seller?.name || 'Vô danh'}</span>
+                    <span className="flex items-center gap-1"><PenTool className="w-4 h-4"/> Người bán: {order.seller?.shopName || order.seller?.name || 'Vô danh'}</span>
                     <span className="flex items-center gap-1"><Clock className="w-4 h-4"/> Bền bỉ {order.leadTime || 'Chưa xác định'}</span>
                  </div>
                  <div className="flex justify-between items-center">

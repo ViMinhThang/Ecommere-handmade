@@ -14,6 +14,7 @@ import { ordersApi } from "./orders";
 import { analyticsApi } from "./analytics";
 import { reviewsApi } from "./reviews";
 import { chatApi, CursorParams, StartConversationDto } from "./chat";
+import { customOrdersApi, CustomOrder } from "./custom-orders";
 import {
   User,
   UserRole,
@@ -931,6 +932,17 @@ export function useUpdateSubOrderStatus() {
       ordersApi.updateSubOrderStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+    },
+  });
+}
+
+// Custom Order hooks
+export function useCreateCustomOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<CustomOrder>) => customOrdersApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customOrders"] });
     },
   });
 }

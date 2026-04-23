@@ -228,7 +228,7 @@ export default function ProfilePage() {
                   id="sellerTitle"
                   {...form.register("sellerTitle")}
                   className="input-minimal"
-                  placeholder="Ví dụ: Nghệ nhân Gốm thủ công"
+                  placeholder="Ví dụ: Chuyên gia Gốm thủ công"
                 />
               </div>
               <div className="md:col-span-2 space-y-2">

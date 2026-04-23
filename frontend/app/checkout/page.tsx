@@ -360,7 +360,7 @@ export default function CheckoutPage() {
             {/* Total */}
             <div className="pt-12 flex flex-col">
               <div className="flex justify-between items-baseline mb-2">
-                <span className="text-[10px] uppercase tracking-[0.2em] font-extrabold text-stone-400">Tổng đầu tư</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] font-extrabold text-stone-400">Tổng thanh toán</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-headline text-4xl italic text-[#8B4513]">{total.toLocaleString('vi-VN')} ₫</span>
@@ -392,7 +392,7 @@ export default function CheckoutPage() {
           <div>
             <h3 className="font-headline italic text-2xl text-[#8B4513] mb-6">The Artisanal Curator</h3>
             <p className="text-sm text-stone-500 leading-relaxed max-w-xs">
-              Kết nối những người sưu tầm tinh tế với những nghệ nhân tâm huyết nhất thế giới từ năm 2024.
+              Kết nối những người sưu tầm tinh tế với những người bán tâm huyết nhất thế giới từ năm 2024.
             </p>
             <p className="text-[10px] text-stone-400 mt-16 uppercase tracking-widest font-bold">
               &copy; 2024 The Artisanal Curator. Chế tác với tâm hồn.
@@ -404,7 +404,7 @@ export default function CheckoutPage() {
               <a href="#" className="block hover:text-[#8B4513] transition-colors">Tính Bền vững</a>
             </div>
             <div className="space-y-6">
-              <a href="#" className="block hover:text-[#8B4513] transition-colors">Câu chuyện Nghệ nhân</a>
+              <a href="#" className="block hover:text-[#8B4513] transition-colors">Câu chuyện Người bán</a>
               <a href="#" className="block hover:text-[#8B4513] transition-colors">Quyền riêng tư</a>
             </div>
           </div>

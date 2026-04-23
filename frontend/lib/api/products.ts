@@ -1,7 +1,12 @@
 import { apiClient } from './client';
-import type { Product, InventoryInfo, InventoryLog } from '@/types';
+import type { Product as BaseProduct, InventoryInfo, InventoryLog } from '@/types';
 
-export type { Product, InventoryInfo, InventoryLog };
+// Extended Product interface for local overrides if needed
+export type Product = BaseProduct & {
+  viewCount?: number;
+};
+
+export type { InventoryInfo, InventoryLog };
 
 export type InventoryChangeReason = 'ORDER' | 'MANUAL' | 'RESTOCK' | 'RETURN';
 
@@ -101,4 +106,6 @@ export const productsApi = {
     formData.append('file', file);
     return apiClient.post<{ url: string; fileName: string }>('/products/upload', formData);
   },
+
+  recordView: (id: string) => apiClient.post<void>(`/products/${id}/view`),
 };

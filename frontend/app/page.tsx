@@ -71,6 +71,13 @@ export default function Home() {
           params={{ limit: 4 }} 
         />
 
+        {/* Most Viewed */}
+        <ProductsSection 
+          title="Được quan tâm nhất" 
+          subtitle="Sản phẩm xem nhiều nhất" 
+          params={{ sortBy: 'viewCount', order: 'desc', limit: 4 }} 
+        />
+
 
       </main>
 

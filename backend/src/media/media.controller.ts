@@ -16,7 +16,7 @@ import { MediaService } from './media.service';
 import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/;
 const MAGIC_BYTES: Record<string, number[][]> = {

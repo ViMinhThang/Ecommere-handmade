@@ -1,6 +1,6 @@
 "use client";
 
-import { ChatPanel } from "@/components/chat/chat-panel";
+import { ChatPanel } from "@/features/chat/components/chat-panel";
 
 export default function DashboardChatPage() {
   return (

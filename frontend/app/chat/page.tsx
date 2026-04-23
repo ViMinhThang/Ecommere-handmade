@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
-import { ChatPanel } from "@/components/chat/chat-panel";
+import { ChatPanel } from "@/features/chat/components/chat-panel";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();

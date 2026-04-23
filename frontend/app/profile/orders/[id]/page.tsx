@@ -336,7 +336,7 @@ export default function OrderDetailPage() {
                                 className="flex items-center gap-2 px-5 py-2.5 bg-brand/5 hover:bg-brand/10 text-brand border border-brand/20 rounded-full transition-all group/rev"
                               >
                                 <Star className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                                <span className="text-[10px] uppercase font-bold tracking-widest">Đánh giá báu vật</span>
+                                <span className="text-[10px] uppercase font-bold tracking-widest">Đánh giá sản phẩm</span>
                               </button>
                             )}
                           </div>
@@ -390,7 +390,7 @@ export default function OrderDetailPage() {
                 <h4 className="font-serif font-bold text-xl text-primary leading-tight">
                   {subOrder.seller.shopName || subOrder.seller.name}
                 </h4>
-                <p className="text-xs text-muted-foreground italic mt-1">{subOrder.seller.sellerTitle || "Nghệ nhân Tự do"}</p>
+                <p className="text-xs text-muted-foreground italic mt-1">{subOrder.seller.sellerTitle || "Người bán Tự do"}</p>
               </div>
             </div>
             
@@ -404,7 +404,7 @@ export default function OrderDetailPage() {
               href={`/sellers/${subOrder.sellerId}`}
               className="w-full py-3 bg-secondary/10 hover:bg-secondary/20 text-secondary-foreground text-[10px] font-bold uppercase tracking-widest transition-colors rounded-lg flex items-center justify-center gap-2 group/btn"
             >
-              Ghé thăm xưởng chế tác
+              Ghé thăm cửa hàng
               <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -413,7 +413,7 @@ export default function OrderDetailPage() {
           <div className="bg-white rounded-2xl p-8 border border-border/40 shadow-sm">
             <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5" />
-              Địa chỉ Nhận vật phẩm
+              Địa chỉ Nhận sản phẩm
             </h3>
             
             <div className="space-y-2">

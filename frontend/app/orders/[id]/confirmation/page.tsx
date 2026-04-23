@@ -176,7 +176,7 @@ export default function OrderConfirmationPage() {
             <nav className="flex flex-wrap gap-x-8 gap-y-4 text-[10px] uppercase tracking-widest font-bold text-stone-600">
               <a href="#" className="hover:text-[#8B4513] transition-colors">Vận chuyển & Đổi trả</a>
               <a href="#" className="hover:text-[#8B4513] transition-colors">Tính Bền vững</a>
-              <a href="#" className="hover:text-[#8B4513] transition-colors">Câu chuyện Nghệ nhân</a>
+              <a href="#" className="hover:text-[#8B4513] transition-colors">Câu chuyện Người bán</a>
               <a href="#" className="hover:text-[#8B4513] transition-colors">Quyền riêng tư</a>
             </nav>
           </div>

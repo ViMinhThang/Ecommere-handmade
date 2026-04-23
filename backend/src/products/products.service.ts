@@ -373,4 +373,10 @@ export class ProductsService {
       ORDER BY p.stock ASC
     `;
   }
+  async incrementViewCount(id: string) {
+    return this.prisma.product.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    });
+  }
 }

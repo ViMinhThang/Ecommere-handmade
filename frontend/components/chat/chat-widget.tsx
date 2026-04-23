@@ -9,7 +9,7 @@ import { useChat } from "@/contexts/chat-context";
 import { chatKeys, useChatUnreadCount } from "@/lib/api/hooks";
 import { ensureChatSocketConnected } from "@/lib/chat/socket";
 import { cn } from "@/lib/utils";
-import { ChatPanel } from "./chat-panel";
+import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { Button } from "@/components/ui/button";
 
 const HIDDEN_PATH_PREFIXES = [

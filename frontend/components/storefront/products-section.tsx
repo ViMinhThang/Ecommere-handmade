@@ -3,24 +3,23 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useProducts } from "@/lib/api/hooks";
+import { productsApi } from "@/lib/api/products";
 import { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 
 interface ProductsSectionProps {
   title: string;
   subtitle: string;
-  params?: {
-    status?: string;
-    categoryId?: string;
-    limit?: number;
-  };
+  params?: Parameters<typeof productsApi.getAll>[0];
 }
 
 export function ProductsSection({ title, subtitle, params }: ProductsSectionProps) {
   const { data, isLoading } = useProducts({
     status: params?.status || "APPROVED",
     categoryId: params?.categoryId,
-    // Note: limit is handled by the API if we pass it, but useProducts hook needs to support it
+    sortBy: params?.sortBy,
+    order: params?.order,
+    limit: params?.limit,
   });
 
   if (isLoading) {
