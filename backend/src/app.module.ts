@@ -17,6 +17,7 @@ import { OrdersModule } from './orders/orders.module';
 import { CustomOrdersModule } from './custom-orders/custom-orders.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { EbayProductImportService } from './startup/ebay-product-import.service';
 
 @Module({
   imports: [
@@ -46,6 +47,6 @@ import { ReviewsModule } from './reviews/reviews.module';
     ReviewsModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [EbayProductImportService],
 })
 export class AppModule {}
