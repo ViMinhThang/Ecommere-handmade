@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { ShoppingBag, User } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useCartContext } from "@/contexts/cart-context";
@@ -8,11 +9,20 @@ import { useCategories } from "@/lib/api/hooks";
 import { usePathname } from "next/navigation";
 
 export function CustomerNavBar() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { itemCount } = useCartContext();
   const { data: categoriesData } = useCategories({ status: "ACTIVE" });
   const categories = categoriesData?.data || [];
   const pathname = usePathname();
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
+  const displayedCategories = mounted ? categories.slice(0, 4) : [];
+  const profileHref = mounted && isAuthenticated ? "/profile/settings" : "/login";
+  const displayedItemCount = mounted ? itemCount : 0;
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-xl shadow-[0_40px_40px_rgba(84,67,60,0.06)]">
@@ -32,7 +42,7 @@ export function CustomerNavBar() {
             >
               Discover
             </Link>
-            {categories.slice(0, 4).map((category) => {
+            {displayedCategories.map((category) => {
               const categoryPath = `/categories/${category.slug || category.id}`;
               const isActive = pathname === categoryPath;
               return (
@@ -57,14 +67,14 @@ export function CustomerNavBar() {
             className="relative text-muted-foreground hover:text-primary scale-95 duration-200 ease-out flex items-center justify-center"
           >
             <ShoppingBag className="w-5 h-5" />
-            {itemCount > 0 && (
+            {displayedItemCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-[18px] h-[18px] flex items-center justify-center leading-none">
-                {itemCount > 99 ? "99+" : itemCount}
+                {displayedItemCount > 99 ? "99+" : displayedItemCount}
               </span>
             )}
           </Link>
           <Link 
-            href={isAuthenticated ? "/profile/settings" : "/login"}
+            href={profileHref}
             className="text-muted-foreground hover:text-primary scale-95 duration-200 ease-out flex items-center justify-center"
           >
             <User className="w-5 h-5" />
