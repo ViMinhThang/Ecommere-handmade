@@ -26,6 +26,7 @@ const orders_module_1 = require("./orders/orders.module");
 const custom_orders_module_1 = require("./custom-orders/custom-orders.module");
 const analytics_module_1 = require("./analytics/analytics.module");
 const reviews_module_1 = require("./reviews/reviews.module");
+const ebay_product_import_service_1 = require("./startup/ebay-product-import.service");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -58,7 +59,7 @@ exports.AppModule = AppModule = __decorate([
             reviews_module_1.ReviewsModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [],
+        providers: [ebay_product_import_service_1.EbayProductImportService],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

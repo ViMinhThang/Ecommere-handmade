@@ -1,6 +1,6 @@
 import { MediaService } from './media.service';
 import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
-import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 export declare class MediaController {
     private readonly mediaService;
     constructor(mediaService: MediaService);

@@ -4,9 +4,11 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
+import { FlashSalesService } from '../flash-sales/flash-sales.service';
 export declare class ProductsService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private flashSalesService;
+    constructor(prisma: PrismaService, flashSalesService: FlashSalesService);
     uploadImage(file: Express.Multer.File): Promise<{
         url: string;
         fileName: string;
@@ -72,11 +74,23 @@ export declare class ProductsService {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
     findAll(status?: string, categoryId?: string, sellerId?: string, query?: ListProductsQueryDto): Promise<{
-        data: ({
+        data: {
+            pricing: {
+                originalPrice: number;
+                discountedPrice: number;
+                discountPercent: number;
+                flashSaleId: null;
+            } | {
+                originalPrice: number;
+                discountedPrice: number;
+                discountPercent: number;
+                flashSaleId: string;
+            };
             category: {
                 name: string;
                 id: string;
@@ -95,7 +109,6 @@ export declare class ProductsService {
                 isMain: boolean;
                 productId: string;
             }[];
-        } & {
             status: import(".prisma/client").$Enums.ProductStatus;
             name: string;
             id: string;
@@ -109,9 +122,10 @@ export declare class ProductsService {
             sku: string | null;
             tags: string[];
             descriptionImages: string[];
+            viewCount: number;
             sellerId: string;
             categoryId: string;
-        })[];
+        }[];
         meta: {
             total: number;
             page: number;
@@ -120,6 +134,17 @@ export declare class ProductsService {
         };
     }>;
     findOne(id: string): Promise<{
+        pricing: {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: null;
+        } | {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: string;
+        };
         category: {
             image: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
@@ -166,7 +191,6 @@ export declare class ProductsService {
             isMain: boolean;
             productId: string;
         }[];
-    } & {
         status: import(".prisma/client").$Enums.ProductStatus;
         name: string;
         id: string;
@@ -180,6 +204,7 @@ export declare class ProductsService {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
@@ -244,6 +269,7 @@ export declare class ProductsService {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }) | null>;
@@ -261,6 +287,7 @@ export declare class ProductsService {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
@@ -300,6 +327,7 @@ export declare class ProductsService {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     })[]>;
@@ -324,6 +352,7 @@ export declare class ProductsService {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
@@ -349,8 +378,27 @@ export declare class ProductsService {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
     getLowStockProducts(sellerId?: string): Promise<unknown>;
+    incrementViewCount(id: string): Promise<{
+        status: import(".prisma/client").$Enums.ProductStatus;
+        name: string;
+        id: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string;
+        price: Prisma.Decimal;
+        stock: number;
+        lowStockThreshold: number;
+        sku: string | null;
+        tags: string[];
+        descriptionImages: string[];
+        viewCount: number;
+        sellerId: string;
+        categoryId: string;
+    }>;
 }
