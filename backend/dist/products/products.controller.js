@@ -63,6 +63,9 @@ let ProductsController = class ProductsController {
     getInventoryLog(id) {
         return this.productsService.getInventoryLog(id);
     }
+    incrementViewCount(id) {
+        return this.productsService.incrementViewCount(id);
+    }
 };
 exports.ProductsController = ProductsController;
 __decorate([
@@ -171,6 +174,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getInventoryLog", null);
+__decorate([
+    (0, common_1.Post)(':id/view'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "incrementViewCount", null);
 exports.ProductsController = ProductsController = __decorate([
     (0, common_1.Controller)('products'),
     __metadata("design:paramtypes", [products_service_1.ProductsService])

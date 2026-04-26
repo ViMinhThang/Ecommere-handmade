@@ -49,10 +49,13 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const fs_1 = require("fs");
 const path = __importStar(require("path"));
 const update_stock_dto_1 = require("./dto/update-stock.dto");
+const flash_sales_service_1 = require("../flash-sales/flash-sales.service");
 let ProductsService = class ProductsService {
     prisma;
-    constructor(prisma) {
+    flashSalesService;
+    constructor(prisma, flashSalesService) {
         this.prisma = prisma;
+        this.flashSalesService = flashSalesService;
     }
     async uploadImage(file) {
         if (!file) {
@@ -144,8 +147,12 @@ let ProductsService = class ProductsService {
             }),
             this.prisma.product.count({ where }),
         ]);
+        const enrichedData = await Promise.all(data.map(async (product) => {
+            const pricing = await this.flashSalesService.calculateEffectivePrice(Number(product.price), product.categoryId);
+            return { ...product, pricing };
+        }));
         return {
-            data,
+            data: enrichedData,
             meta: {
                 total,
                 page,
@@ -166,7 +173,8 @@ let ProductsService = class ProductsService {
         if (!product) {
             throw new common_1.NotFoundException(`Product with ID ${id} not found`);
         }
-        return product;
+        const pricing = await this.flashSalesService.calculateEffectivePrice(Number(product.price), product.categoryId);
+        return { ...product, pricing };
     }
     async update(id, updateProductDto, userId, userRoles) {
         const { images, ...productData } = updateProductDto;
@@ -331,10 +339,17 @@ let ProductsService = class ProductsService {
       ORDER BY p.stock ASC
     `;
     }
+    async incrementViewCount(id) {
+        return this.prisma.product.update({
+            where: { id },
+            data: { viewCount: { increment: 1 } },
+        });
+    }
 };
 exports.ProductsService = ProductsService;
 exports.ProductsService = ProductsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        flash_sales_service_1.FlashSalesService])
 ], ProductsService);
 //# sourceMappingURL=products.service.js.map

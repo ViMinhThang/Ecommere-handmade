@@ -3,7 +3,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
-import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 export declare class ProductsController {
     private readonly productsService;
     constructor(productsService: ProductsService);
@@ -72,11 +72,23 @@ export declare class ProductsController {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
     findAll(query: ListProductsQueryDto): Promise<{
-        data: ({
+        data: {
+            pricing: {
+                originalPrice: number;
+                discountedPrice: number;
+                discountPercent: number;
+                flashSaleId: null;
+            } | {
+                originalPrice: number;
+                discountedPrice: number;
+                discountPercent: number;
+                flashSaleId: string;
+            };
             category: {
                 name: string;
                 id: string;
@@ -95,7 +107,6 @@ export declare class ProductsController {
                 isMain: boolean;
                 productId: string;
             }[];
-        } & {
             status: import(".prisma/client").$Enums.ProductStatus;
             name: string;
             id: string;
@@ -109,9 +120,10 @@ export declare class ProductsController {
             sku: string | null;
             tags: string[];
             descriptionImages: string[];
+            viewCount: number;
             sellerId: string;
             categoryId: string;
-        })[];
+        }[];
         meta: {
             total: number;
             page: number;
@@ -155,11 +167,23 @@ export declare class ProductsController {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     })[]>;
     getLowStock(sellerId?: string): Promise<unknown>;
     findOne(id: string): Promise<{
+        pricing: {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: null;
+        } | {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: string;
+        };
         category: {
             image: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
@@ -206,7 +230,6 @@ export declare class ProductsController {
             isMain: boolean;
             productId: string;
         }[];
-    } & {
         status: import(".prisma/client").$Enums.ProductStatus;
         name: string;
         id: string;
@@ -220,6 +243,7 @@ export declare class ProductsController {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
@@ -284,6 +308,7 @@ export declare class ProductsController {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }) | null>;
@@ -301,6 +326,7 @@ export declare class ProductsController {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
@@ -325,6 +351,7 @@ export declare class ProductsController {
         sku: string | null;
         tags: string[];
         descriptionImages: string[];
+        viewCount: number;
         sellerId: string;
         categoryId: string;
     }>;
@@ -336,4 +363,22 @@ export declare class ProductsController {
         productId: string;
         change: number;
     }[]>;
+    incrementViewCount(id: string): Promise<{
+        status: import(".prisma/client").$Enums.ProductStatus;
+        name: string;
+        id: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string;
+        price: import("@prisma/client/runtime/library").Decimal;
+        stock: number;
+        lowStockThreshold: number;
+        sku: string | null;
+        tags: string[];
+        descriptionImages: string[];
+        viewCount: number;
+        sellerId: string;
+        categoryId: string;
+    }>;
 }
