@@ -47,6 +47,7 @@ const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcrypt"));
 const crypto_1 = require("crypto");
+const google_auth_library_1 = require("google-auth-library");
 const users_service_1 = require("../users/users.service");
 const prisma_service_1 = require("../prisma/prisma.service");
 const mailer_service_1 = require("./mailer/mailer.service");
@@ -61,6 +62,7 @@ let AuthService = class AuthService {
     jwtService;
     mailerService;
     prisma;
+    googleClient = new google_auth_library_1.OAuth2Client();
     constructor(usersService, jwtService, mailerService, prisma) {
         this.usersService = usersService;
         this.jwtService = jwtService;
@@ -75,6 +77,82 @@ let AuthService = class AuthService {
     }
     getOtpExpiration() {
         return new Date(Date.now() + OTP_EXPIRATION_MS);
+    }
+    getGoogleClientIds() {
+        const configuredClientIds = process.env.GOOGLE_CLIENT_ID;
+        if (!configuredClientIds) {
+            throw new common_1.InternalServerErrorException('Google login is not configured');
+        }
+        const clientIds = configuredClientIds
+            .split(',')
+            .map((clientId) => clientId.trim())
+            .filter(Boolean);
+        if (clientIds.length === 0) {
+            throw new common_1.InternalServerErrorException('Google login is not configured');
+        }
+        return clientIds;
+    }
+    async verifyGoogleIdToken(idToken) {
+        try {
+            const ticket = await this.googleClient.verifyIdToken({
+                idToken,
+                audience: this.getGoogleClientIds(),
+            });
+            const payload = ticket.getPayload();
+            if (!payload?.email || payload.email_verified !== true) {
+                throw new common_1.UnauthorizedException('Google account email is not verified');
+            }
+            return {
+                email: payload.email,
+                name: payload.name || payload.email.split('@')[0],
+                avatar: payload.picture || null,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException ||
+                error instanceof common_1.InternalServerErrorException) {
+                throw error;
+            }
+            throw new common_1.UnauthorizedException('Invalid Google token');
+        }
+    }
+    async createTokenPair(user) {
+        const payload = {
+            sub: user.id,
+            email: user.email,
+            roles: user.roles,
+        };
+        const accessToken = this.jwtService.sign(payload, {
+            expiresIn: ACCESS_TOKEN_EXPIRY,
+        });
+        const refreshToken = this.jwtService.sign(payload, {
+            expiresIn: REFRESH_TOKEN_EXPIRY,
+        });
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        await this.prisma.refreshToken.create({
+            data: {
+                userId: user.id,
+                token: this.hashToken(refreshToken),
+                expiresAt,
+            },
+        });
+        return { accessToken, refreshToken };
+    }
+    formatAuthResponse(user, tokens) {
+        return {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                roles: user.roles,
+                avatar: user.avatar,
+                phone: user.phone,
+                shopName: user.shopName,
+            },
+        };
     }
     validateOtp(user, otpCode) {
         if (user.isEmailVerified) {
@@ -152,39 +230,44 @@ let AuthService = class AuthService {
         if (!isPasswordValid) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
-        const payload = {
-            sub: user.id,
-            email: user.email,
-            roles: user.roles,
-        };
-        const accessToken = this.jwtService.sign(payload, {
-            expiresIn: ACCESS_TOKEN_EXPIRY,
-        });
-        const refreshToken = this.jwtService.sign(payload, {
-            expiresIn: REFRESH_TOKEN_EXPIRY,
-        });
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-        await this.prisma.refreshToken.create({
-            data: {
-                userId: user.id,
-                token: this.hashToken(refreshToken),
-                expiresAt,
-            },
-        });
-        return {
-            accessToken,
-            refreshToken,
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                roles: user.roles,
-                avatar: user.avatar,
-                phone: user.phone,
-                shopName: user.shopName,
-            },
-        };
+        const tokens = await this.createTokenPair(user);
+        return this.formatAuthResponse(user, tokens);
+    }
+    async loginWithGoogle(idToken) {
+        const googleProfile = await this.verifyGoogleIdToken(idToken);
+        let user = await this.usersService.findByEmail(googleProfile.email);
+        if (!user) {
+            user = await this.prisma.user.create({
+                data: {
+                    email: googleProfile.email,
+                    name: googleProfile.name,
+                    avatar: googleProfile.avatar,
+                    password: await bcrypt.hash((0, crypto_1.randomBytes)(48).toString('hex'), BCRYPT_ROUNDS),
+                    roles: ['ROLE_USER'],
+                    isEmailVerified: true,
+                },
+            });
+        }
+        else {
+            const updateData = {};
+            if (!user.isEmailVerified) {
+                updateData.isEmailVerified = true;
+            }
+            if (googleProfile.name && googleProfile.name !== user.name) {
+                updateData.name = googleProfile.name;
+            }
+            if (googleProfile.avatar && googleProfile.avatar !== user.avatar) {
+                updateData.avatar = googleProfile.avatar;
+            }
+            if (Object.keys(updateData).length > 0) {
+                user = await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: updateData,
+                });
+            }
+        }
+        const tokens = await this.createTokenPair(user);
+        return this.formatAuthResponse(user, tokens);
     }
     async forgotPassword(email) {
         const user = await this.usersService.findByEmail(email);

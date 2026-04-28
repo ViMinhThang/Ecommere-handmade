@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { GoogleLoginDto } from './dto/google-login.dto';
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
@@ -22,7 +23,20 @@ export declare class AuthController {
             id: string;
             email: string;
             name: string;
-            roles: import(".prisma/client").$Enums.Role[];
+            roles: string[];
+            avatar: string | null;
+            phone: string | null;
+            shopName: string | null;
+        };
+    }>;
+    googleLogin(googleLoginDto: GoogleLoginDto): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: {
+            id: string;
+            email: string;
+            name: string;
+            roles: string[];
             avatar: string | null;
             phone: string | null;
             shopName: string | null;

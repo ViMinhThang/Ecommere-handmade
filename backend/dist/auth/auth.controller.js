@@ -21,6 +21,7 @@ const login_dto_1 = require("./dto/login.dto");
 const verify_otp_dto_1 = require("./dto/verify-otp.dto");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
+const google_login_dto_1 = require("./dto/google-login.dto");
 const REFRESH_TOKEN_COOKIE = 'auth_refresh_token';
 function extractCookieValue(req, key) {
     if (!req.headers.cookie) {
@@ -50,6 +51,9 @@ let AuthController = class AuthController {
     }
     async login(loginDto) {
         return this.authService.login(loginDto.email, loginDto.password);
+    }
+    async googleLogin(googleLoginDto) {
+        return this.authService.loginWithGoogle(googleLoginDto.idToken);
     }
     async forgotPassword(forgotPasswordDto) {
         return this.authService.forgotPassword(forgotPasswordDto.email);
@@ -93,6 +97,15 @@ __decorate([
     __metadata("design:paramtypes", [login_dto_1.LoginDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('google'),
+    (0, throttler_1.Throttle)({ default: { limit: 10, ttl: 60000 } }),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [google_login_dto_1.GoogleLoginDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "googleLogin", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
     (0, throttler_1.Throttle)({ default: { limit: 3, ttl: 60000 } }),

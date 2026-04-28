@@ -8,10 +8,15 @@ export declare class AuthService {
     private jwtService;
     private mailerService;
     private prisma;
+    private readonly googleClient;
     constructor(usersService: UsersService, jwtService: JwtService, mailerService: MailerService, prisma: PrismaService);
     private generateOtp;
     private hashToken;
     private getOtpExpiration;
+    private getGoogleClientIds;
+    private verifyGoogleIdToken;
+    private createTokenPair;
+    private formatAuthResponse;
     private validateOtp;
     register(registerDto: RegisterDto): Promise<{
         message: string;
@@ -27,7 +32,20 @@ export declare class AuthService {
             id: string;
             email: string;
             name: string;
-            roles: import(".prisma/client").$Enums.Role[];
+            roles: string[];
+            avatar: string | null;
+            phone: string | null;
+            shopName: string | null;
+        };
+    }>;
+    loginWithGoogle(idToken: string): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: {
+            id: string;
+            email: string;
+            name: string;
+            roles: string[];
             avatar: string | null;
             phone: string | null;
             shopName: string | null;
