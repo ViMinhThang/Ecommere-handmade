@@ -37,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex min-h-screen w-full bg-background lg:h-screen lg:overflow-hidden">
       {/* Theme Toggle */}
       <Button
         variant="ghost"
@@ -79,8 +79,8 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel: Form Area */}
-      <div className="w-full lg:w-[55%] flex flex-col items-center justify-center p-8 sm:p-16 relative bg-background">
-        <div className="w-full max-w-[420px] animate-in fade-in slide-in-from-right-4 duration-700">
+      <div className="w-full lg:w-[55%] flex flex-col items-center justify-start p-8 sm:p-16 relative bg-background overflow-y-auto">
+        <div className="w-full max-w-[420px] py-8 lg:py-10 animate-in fade-in slide-in-from-right-4 duration-700">
           
           {/* Form Header */}
           <div className="mb-12">
