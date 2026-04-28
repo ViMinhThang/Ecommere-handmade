@@ -2,13 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { authApi, AuthUser, LoginData, RegisterData } from "@/lib/api/auth";
+import { authApi, AuthResponse, AuthUser, LoginData, RegisterData } from "@/lib/api/auth";
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (data: LoginData) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -70,8 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, [scheduleTokenRefresh]);
 
-  const login = useCallback(async (data: LoginData) => {
-    const response = await authApi.login(data);
+  const applyAuthSession = useCallback(async (response: AuthResponse) => {
     await fetch("/api/auth/cookies", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,6 +82,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user);
     scheduleTokenRefresh();
   }, [scheduleTokenRefresh]);
+
+  const login = useCallback(async (data: LoginData) => {
+    const response = await authApi.login(data);
+    await applyAuthSession(response);
+  }, [applyAuthSession]);
+
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const response = await authApi.googleLogin({ idToken });
+    await applyAuthSession(response);
+  }, [applyAuthSession]);
 
   const register = useCallback(async (data: RegisterData) => {
     await authApi.register(data);
@@ -102,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        loginWithGoogle,
         register,
         logout,
       }}

@@ -12,6 +12,10 @@ export interface LoginData {
   password: string;
 }
 
+export interface GoogleLoginData {
+  idToken: string;
+}
+
 export interface VerifyOtpData {
   email: string;
   otpCode: string;
@@ -57,6 +61,9 @@ export const authApi = {
 
   login: (data: LoginData) =>
     apiClient.post<AuthResponse>('/auth/login', data),
+
+  googleLogin: (data: GoogleLoginData) =>
+    apiClient.post<AuthResponse>('/auth/google', data),
 
   forgotPassword: (data: ForgotPasswordData) =>
     apiClient.post<MessageResponse>('/auth/forgot-password', data),
