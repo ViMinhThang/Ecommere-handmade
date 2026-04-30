@@ -18,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 
+let isGoogleIdentityInitialized = false;
+let initializedGoogleClientId: string | null = null;
+
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,6 +37,7 @@ function LoginPageContent() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGoogleReady, setIsGoogleReady] = useState(false);
   const [googleUnavailable, setGoogleUnavailable] = useState(false);
+  const [isGoogleScriptLoaded, setIsGoogleScriptLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const initializeGoogleSignIn = useCallback(() => {
@@ -52,30 +56,37 @@ function LoginPageContent() {
 
     setGoogleUnavailable(false);
     googleButtonRef.current.innerHTML = "";
-    googleApi.initialize({
-      client_id: clientId,
-      callback: async (response) => {
-        try {
-          const credential = response.credential;
-          if (!credential) {
-            throw new Error("Không nhận được token từ Google");
-          }
+    if (
+      !isGoogleIdentityInitialized ||
+      initializedGoogleClientId !== clientId
+    ) {
+      googleApi.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            const credential = response.credential;
+            if (!credential) {
+              throw new Error("Không nhận được token từ Google");
+            }
 
-          setIsGoogleLoading(true);
-          setError("");
-          await loginWithGoogle(credential);
-          router.push(redirectTo);
-        } catch (err) {
-          setError(
-            err instanceof Error ? err.message : "Đăng nhập Google thất bại",
-          );
-        } finally {
-          setIsGoogleLoading(false);
-        }
-      },
-      auto_select: false,
-      cancel_on_tap_outside: true,
-    });
+            setIsGoogleLoading(true);
+            setError("");
+            await loginWithGoogle(credential);
+            router.push(redirectTo);
+          } catch (err) {
+            setError(
+              err instanceof Error ? err.message : "Đăng nhập Google thất bại",
+            );
+          } finally {
+            setIsGoogleLoading(false);
+          }
+        },
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+      isGoogleIdentityInitialized = true;
+      initializedGoogleClientId = clientId;
+    }
 
     const buttonWidth = Math.max(
       220,
@@ -96,13 +107,21 @@ function LoginPageContent() {
 
   useEffect(() => {
     if (window.google?.accounts?.id) {
-      initializeGoogleSignIn();
+      setIsGoogleScriptLoaded(true);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!isGoogleScriptLoaded) {
+      return;
+    }
+
+    initializeGoogleSignIn();
 
     return () => {
       window.google?.accounts?.id.cancel();
     };
-  }, [initializeGoogleSignIn]);
+  }, [initializeGoogleSignIn, isGoogleScriptLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,7 +359,7 @@ function LoginPageContent() {
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
-        onLoad={initializeGoogleSignIn}
+        onLoad={() => setIsGoogleScriptLoaded(true)}
       />
     </div>
   );
