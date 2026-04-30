@@ -17,6 +17,7 @@ import { OrdersModule } from './orders/orders.module';
 import { CustomOrdersModule } from './custom-orders/custom-orders.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { ProductQuestionsModule } from './product-questions/product-questions.module';
 import { EbayProductImportService } from './startup/ebay-product-import.service';
 
 @Module({
@@ -45,6 +46,7 @@ import { EbayProductImportService } from './startup/ebay-product-import.service'
     CustomOrdersModule,
     AnalyticsModule,
     ReviewsModule,
+    ProductQuestionsModule,
   ],
   controllers: [AppController],
   providers: [EbayProductImportService],
