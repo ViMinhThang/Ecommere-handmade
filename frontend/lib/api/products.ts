@@ -1,5 +1,13 @@
 import { apiClient } from './client';
-import type { Product as BaseProduct, InventoryInfo, InventoryLog } from '@/types';
+import type {
+  Product as BaseProduct,
+  InventoryInfo,
+  InventoryLog,
+  ProductQuestion,
+  ProductQuestionsResponse,
+  CreateProductQuestionInput,
+  AnswerProductQuestionInput,
+} from '@/types';
 
 // Extended Product interface for local overrides if needed
 export type Product = BaseProduct & {
@@ -94,6 +102,29 @@ export const productsApi = {
     apiClient.get<Product[]>(`/products/most-viewed?limit=${limit}`),
 
   getOne: (id: string) => apiClient.get<Product>(`/products/${id}`),
+
+  getQuestions: (
+    productId: string,
+    params?: { page?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    const queryString = query.toString();
+
+    return apiClient.get<ProductQuestionsResponse>(
+      `/products/${productId}/questions${queryString ? `?${queryString}` : ''}`,
+    );
+  },
+
+  createQuestion: (productId: string, data: CreateProductQuestionInput) =>
+    apiClient.post<ProductQuestion>(`/products/${productId}/questions`, data),
+
+  answerQuestion: (questionId: string, data: AnswerProductQuestionInput) =>
+    apiClient.patch<ProductQuestion>(
+      `/products/questions/${questionId}/answer`,
+      data,
+    ),
 
   create: (data: CreateProductDto) => apiClient.post<Product>('/products', data),
 

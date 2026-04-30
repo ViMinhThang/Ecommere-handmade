@@ -13,7 +13,10 @@ interface ProductGalleryProps {
   productName: string;
 }
 
-export function ProductGallery({ images, productName }: ProductGalleryProps) {
+export function ProductGallery({
+  images,
+  productName,
+}: ProductGalleryProps) {
   if (!images || images.length === 0) {
     return (
       <div className="lg:col-span-7 grid grid-cols-2 gap-4">
@@ -24,9 +27,11 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
     );
   }
 
-  const sortedImages = [...images].sort((a, b) => (a.isMain === b.isMain ? 0 : a.isMain ? -1 : 1));
+  const sortedImages = [...images].sort((a, b) =>
+    a.isMain === b.isMain ? 0 : a.isMain ? -1 : 1,
+  );
   const mainImage = sortedImages[0];
-  const secondaryImages = sortedImages.slice(1, 3); 
+  const secondaryImages = sortedImages.slice(1, 3);
   const resolveImageUrl = (url: string) => mediaApi.getImageUrl(url);
 
   return (
@@ -43,9 +48,11 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
         </div>
       </div>
 
-      {/* Secondary Images */}
       {secondaryImages.map((img, idx) => (
-        <div key={idx} className="rounded-xl overflow-hidden h-64 relative group bg-surface-container-low">
+        <div
+          key={idx}
+          className="rounded-xl overflow-hidden h-64 relative group bg-surface-container-low"
+        >
           <Image
             src={resolveImageUrl(img.url)}
             alt={`${productName} - Detail ${idx + 1}`}

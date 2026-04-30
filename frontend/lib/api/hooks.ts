@@ -29,6 +29,8 @@ import {
   ChatConversationSummary,
   ChatMessage,
   SellerSearchParams,
+  CreateProductQuestionInput,
+  AnswerProductQuestionInput,
 } from "@/types";
 
 export const userKeys = {
@@ -75,6 +77,8 @@ export const productKeys = {
   stats: () => [...productKeys.all, "stats"] as const,
   bySeller: (sellerId: string) =>
     [...productKeys.all, "seller", sellerId] as const,
+  questions: (productId: string, params?: { page?: number; limit?: number }) =>
+    [...productKeys.detail(productId), "questions", { ...params }] as const,
 };
 
 export function useUsers(params?: {
@@ -338,6 +342,18 @@ export function useProduct(id: string) {
   });
 }
 
+export function useProductQuestions(
+  productId: string,
+  params?: { page?: number; limit?: number },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productKeys.questions(productId, params),
+    queryFn: () => productsApi.getQuestions(productId, params),
+    enabled: !!productId && enabled,
+  });
+}
+
 export function useProductStats() {
   return useQuery({
     queryKey: productKeys.stats(),
@@ -386,6 +402,39 @@ export function useDeleteProduct() {
     mutationFn: (id: string) => productsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useCreateProductQuestion(productId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateProductQuestionInput) =>
+      productsApi.createQuestion(productId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...productKeys.detail(productId), "questions"],
+      });
+    },
+  });
+}
+
+export function useAnswerProductQuestion(productId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      questionId,
+      data,
+    }: {
+      questionId: string;
+      data: AnswerProductQuestionInput;
+    }) => productsApi.answerQuestion(questionId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...productKeys.detail(productId), "questions"],
+      });
     },
   });
 }
