@@ -4,7 +4,13 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+  ProductStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -20,6 +26,14 @@ export class ProductsService {
     private prisma: PrismaService,
     private flashSalesService: FlashSalesService,
   ) {}
+
+  private normalizeFeaturedLimit(limit?: number) {
+    if (!limit || !Number.isFinite(limit)) {
+      return 10;
+    }
+
+    return Math.min(Math.max(Math.floor(limit), 1), 50);
+  }
 
   private isAdmin(userRoles: string[]) {
     return userRoles.includes('ROLE_ADMIN');
@@ -434,6 +448,130 @@ export class ProductsService {
       ORDER BY p.stock ASC
     `;
   }
+
+  async getBestSellingProducts(limit?: number) {
+    const take = this.normalizeFeaturedLimit(limit);
+
+    const sales = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        product: {
+          deletedAt: null,
+          status: ProductStatus.APPROVED,
+        },
+        subOrder: {
+          status: { not: OrderStatus.CANCELLED },
+          order: {
+            OR: [
+              {
+                paymentMethod: PaymentMethod.COD,
+                status: {
+                  in: [
+                    OrderStatus.PENDING,
+                    OrderStatus.PROCESSING,
+                    OrderStatus.SHIPPED,
+                    OrderStatus.DELIVERED,
+                  ],
+                },
+              },
+              {
+                paymentMethod: PaymentMethod.STRIPE,
+                paymentStatus: PaymentStatus.PAID,
+                status: {
+                  in: [
+                    OrderStatus.PAID,
+                    OrderStatus.PROCESSING,
+                    OrderStatus.SHIPPED,
+                    OrderStatus.DELIVERED,
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'desc',
+        },
+      },
+      take,
+    });
+
+    if (sales.length === 0) {
+      return [];
+    }
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: sales.map((item) => item.productId) },
+        deletedAt: null,
+        status: ProductStatus.APPROVED,
+      },
+      include: {
+        images: true,
+        category: true,
+        seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+      },
+    });
+
+    const productMap = new Map(products.map((product) => [product.id, product]));
+
+    return Promise.all(
+      sales
+        .map((item) => {
+          const product = productMap.get(item.productId);
+          if (!product) {
+            return null;
+          }
+
+          return {
+            ...product,
+            soldQuantity: item._sum.quantity ?? 0,
+          };
+        })
+        .filter((product): product is NonNullable<typeof product> => Boolean(product))
+        .map(async (product) => ({
+          ...product,
+          pricing: await this.flashSalesService.calculateEffectivePrice(
+            Number(product.price),
+            product.categoryId,
+          ),
+        })),
+    );
+  }
+
+  async getMostViewedProducts(limit?: number) {
+    const take = this.normalizeFeaturedLimit(limit);
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        deletedAt: null,
+        status: ProductStatus.APPROVED,
+      },
+      include: {
+        images: true,
+        category: true,
+        seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+      },
+      orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+      take,
+    });
+
+    return Promise.all(
+      products.map(async (product) => ({
+        ...product,
+        pricing: await this.flashSalesService.calculateEffectivePrice(
+          Number(product.price),
+          product.categoryId,
+        ),
+      })),
+    );
+  }
+
   async incrementViewCount(id: string) {
     return this.prisma.product.update({
       where: { id },

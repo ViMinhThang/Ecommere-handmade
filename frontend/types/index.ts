@@ -97,6 +97,8 @@ export interface Product {
   stock: number;
   lowStockThreshold: number;
   sku?: string;
+  viewCount?: number;
+  soldQuantity?: number;
   createdAt: Date;
   updatedAt: Date;
 }

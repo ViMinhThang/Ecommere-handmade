@@ -57,6 +57,10 @@ export const productKeys = {
   lists: () => [...productKeys.all, "list"] as const,
   list: (params?: Record<string, unknown>) =>
     [...productKeys.all, "list", { ...params }] as const,
+  bestSelling: (limit?: number) =>
+    [...productKeys.all, "best-selling", limit ?? 10] as const,
+  mostViewed: (limit?: number) =>
+    [...productKeys.all, "most-viewed", limit ?? 10] as const,
   details: () => [...productKeys.all, "detail"] as const,
   detail: (id: string) => [...productKeys.details(), id] as const,
   stats: () => [...productKeys.all, "stats"] as const,
@@ -276,10 +280,30 @@ export function useDeleteAddress() {
 }
 
 // Product hooks
-export function useProducts(params?: Parameters<typeof productsApi.getAll>[0]) {
+export function useProducts(
+  params?: Parameters<typeof productsApi.getAll>[0],
+  enabled = true,
+) {
   return useQuery({
     queryKey: productKeys.list(params),
     queryFn: () => productsApi.getAll(params),
+    enabled,
+  });
+}
+
+export function useBestSellingProducts(limit = 10, enabled = true) {
+  return useQuery({
+    queryKey: productKeys.bestSelling(limit),
+    queryFn: () => productsApi.getBestSellingProducts(limit),
+    enabled,
+  });
+}
+
+export function useMostViewedProducts(limit = 10, enabled = true) {
+  return useQuery({
+    queryKey: productKeys.mostViewed(limit),
+    queryFn: () => productsApi.getMostViewedProducts(limit),
+    enabled,
   });
 }
 

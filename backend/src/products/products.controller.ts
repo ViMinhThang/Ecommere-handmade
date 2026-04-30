@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -24,6 +25,19 @@ import type { AuthenticatedRequest } from '../common/interfaces/request.interfac
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
+
+  private parseLimit(limit?: string) {
+    if (!limit) {
+      return undefined;
+    }
+
+    const parsedLimit = Number(limit);
+    if (!Number.isFinite(parsedLimit) || parsedLimit < 1) {
+      throw new BadRequestException('Invalid limit');
+    }
+
+    return parsedLimit;
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('upload')
@@ -86,6 +100,16 @@ export class ProductsController {
       req.user.roles,
       sellerId,
     );
+  }
+
+  @Get('best-selling')
+  getBestSelling(@Query('limit') limit?: string) {
+    return this.productsService.getBestSellingProducts(this.parseLimit(limit));
+  }
+
+  @Get('most-viewed')
+  getMostViewed(@Query('limit') limit?: string) {
+    return this.productsService.getMostViewedProducts(this.parseLimit(limit));
   }
 
   @Get(':id')
