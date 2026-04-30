@@ -4,6 +4,7 @@ import type { Product as BaseProduct, InventoryInfo, InventoryLog } from '@/type
 // Extended Product interface for local overrides if needed
 export type Product = BaseProduct & {
   viewCount?: number;
+  soldQuantity?: number;
 };
 
 export type { InventoryInfo, InventoryLog };
@@ -85,6 +86,12 @@ export const productsApi = {
     const query = params.toString();
     return apiClient.get<{ data: Product[]; meta?: { page: number; limit: number; total: number; totalPages: number } }>(`/products/low-stock${query ? `?${query}` : ''}`);
   },
+
+  getBestSellingProducts: (limit = 10) =>
+    apiClient.get<Product[]>(`/products/best-selling?limit=${limit}`),
+
+  getMostViewedProducts: (limit = 10) =>
+    apiClient.get<Product[]>(`/products/most-viewed?limit=${limit}`),
 
   getOne: (id: string) => apiClient.get<Product>(`/products/${id}`),
 

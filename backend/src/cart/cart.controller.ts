@@ -14,7 +14,7 @@ import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { ApplyVoucherDto } from './dto/apply-voucher.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import  type { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)

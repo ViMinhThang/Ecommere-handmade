@@ -14,6 +14,19 @@ import { Voucher, Category } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Search, Plus, Pencil, Trash2, Tag } from 'lucide-react'
 
+type VouchersResponse = {
+  data?: Voucher[]
+  meta?: {
+    total?: number
+    page?: number
+    limit?: number
+  }
+}
+
+type CategoriesResponse = {
+  data?: Category[]
+}
+
 export default function VouchersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -29,9 +42,15 @@ export default function VouchersPage() {
   const updateVoucher = useUpdateVoucher()
   const deleteVoucher = useDeleteVoucher()
 
-  const vouchers = Array.isArray(vouchersData) ? vouchersData : (vouchersData as any)?.data || []
-  const meta = Array.isArray(vouchersData) ? { total: vouchersData.length } : (vouchersData as any)?.meta
-  const categories = Array.isArray(categoriesData) ? categoriesData : (categoriesData as any)?.data || []
+  const vouchers: Voucher[] = Array.isArray(vouchersData)
+    ? vouchersData
+    : ((vouchersData as VouchersResponse | undefined)?.data ?? [])
+  const meta = Array.isArray(vouchersData)
+    ? { total: vouchersData.length }
+    : (vouchersData as VouchersResponse | undefined)?.meta
+  const categories: Category[] = Array.isArray(categoriesData)
+    ? categoriesData
+    : ((categoriesData as CategoriesResponse | undefined)?.data ?? [])
 
   const filteredVouchers = vouchers.filter((voucher: Voucher) => {
     const matchesSearch =

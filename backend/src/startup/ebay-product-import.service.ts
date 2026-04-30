@@ -23,9 +23,7 @@ export class EbayProductImportService implements OnApplicationBootstrap {
     );
 
     if (!existsSync(scriptPath)) {
-      this.logger.warn(
-        `Skip eBay import: script not found at ${scriptPath}`,
-      );
+      this.logger.warn(`Skip eBay import: script not found at ${scriptPath}`);
       return;
     }
     this.logger.log(`Run eBay crawler script: ${scriptPath}`);

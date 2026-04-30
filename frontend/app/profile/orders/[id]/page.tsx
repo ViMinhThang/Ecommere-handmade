@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useSubOrder, useCreateReview } from "@/lib/api/hooks"
+import { useSubOrder, useCreateReview, useCancelOrder } from "@/lib/api/hooks"
 import { formatCurrency } from "@/lib/utils"
 import { 
   Package, 
@@ -23,7 +23,7 @@ import {
 import { useState, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Product, ProductImage } from "@/types"
+import { OrderShippingAddress, Product, ProductImage } from "@/types"
 import {
   Dialog,
   DialogContent,
@@ -55,6 +55,7 @@ export default function OrderDetailPage() {
   
   const { data: subOrder, isLoading, error } = useSubOrder(subOrderId)
   const createReviewMutation = useCreateReview()
+  const cancelOrderMutation = useCancelOrder()
 
   // Review Modal State
   const [selectedItem, setSelectedItem] = useState<any>(null)
@@ -100,6 +101,30 @@ export default function OrderDetailPage() {
     }
   }
 
+  const handleCancelOrder = async () => {
+    if (!subOrder) return
+
+    const confirmed = window.confirm("Ban muon huy toan bo don hang nay?")
+    if (!confirmed) return
+
+    try {
+      const cancelledOrder = await cancelOrderMutation.mutateAsync(subOrder.orderId)
+      const needsManualRefund =
+        cancelledOrder.paymentMethod === "STRIPE" &&
+        cancelledOrder.paymentStatus === "PAID"
+
+      toast.success(
+        needsManualRefund
+          ? "Don hang da huy. Hoan tien online chua duoc xu ly tu dong."
+          : "Don hang da huy thanh cong.",
+      )
+      router.push("/profile/orders")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Khong the huy don hang nay")
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DELIVERED":
@@ -137,12 +162,20 @@ export default function OrderDetailPage() {
     }
   }
 
-  const timelineSteps = [
-    { key: "PAID", label: "Đã thanh toán", icon: CreditCard },
-    { key: "PROCESSING", label: "Đang chuẩn bị", icon: Package },
-    { key: "SHIPPED", label: "Đang vận chuyển", icon: Truck },
-    { key: "DELIVERED", label: "Đã giao hàng", icon: CheckCircle2 },
-  ]
+  const timelineSteps =
+    subOrder?.order?.paymentMethod === "COD"
+      ? [
+          { key: "PENDING", label: "Cho xac nhan", icon: Clock },
+          { key: "PROCESSING", label: "Dang chuan bi", icon: Package },
+          { key: "SHIPPED", label: "Dang van chuyen", icon: Truck },
+          { key: "DELIVERED", label: "Da giao hang", icon: CheckCircle2 },
+        ]
+      : [
+          { key: "PAID", label: "Da thanh toan", icon: CreditCard },
+          { key: "PROCESSING", label: "Dang chuan bi", icon: Package },
+          { key: "SHIPPED", label: "Dang van chuyen", icon: Truck },
+          { key: "DELIVERED", label: "Da giao hang", icon: CheckCircle2 },
+        ]
 
   const getCurrentStepIndex = (status: string) => {
     if (status === "CANCELLED") return -1
@@ -173,9 +206,22 @@ export default function OrderDetailPage() {
   }
 
   const currentStepIndex = getCurrentStepIndex(subOrder.status)
-  const shippingAddress = typeof subOrder.order.shippingAddress === 'string' 
-    ? JSON.parse(subOrder.order.shippingAddress) 
-    : subOrder.order.shippingAddress
+
+  let shippingAddress: OrderShippingAddress | null = null
+  const rawShippingAddress = subOrder.order.shippingAddress
+
+  if (typeof rawShippingAddress === "string") {
+    try {
+      shippingAddress = JSON.parse(rawShippingAddress) as OrderShippingAddress
+    } catch {
+      shippingAddress = null
+    }
+  } else if (rawShippingAddress) {
+    shippingAddress = rawShippingAddress as OrderShippingAddress
+  }
+
+  const canCancelOrder =
+    subOrder.order?.status === "PENDING" || subOrder.order?.status === "PAID"
 
   return (
     <div className="max-w-5xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -223,8 +269,18 @@ export default function OrderDetailPage() {
           <div className="text-right">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Tổng cộng giá trị đơn hàng</p>
             <p className="text-5xl font-serif font-bold text-primary tracking-tighter">
-              {formatCurrency(subOrder.subTotal)}
+              {formatCurrency(Number(subOrder.subTotal) - Number(subOrder.discountAmount || 0))}
             </p>
+            {canCancelOrder && (
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={handleCancelOrder}
+                disabled={cancelOrderMutation.isPending}
+              >
+                {cancelOrderMutation.isPending ? "Dang huy..." : "Huy don hang"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -321,12 +377,12 @@ export default function OrderDetailPage() {
                         {/* REVIEW BUTTON */}
                         {subOrder.status === "DELIVERED" && (
                           <div className="pt-2">
-                            {item.Review ? (
+                            {item.review ? (
                               <div className="flex items-center gap-2 px-4 py-2 bg-stone-50 rounded-full border border-stone-100">
                                 <span className="text-[10px] uppercase font-bold tracking-widest text-primary/60">Quý khách đã đánh giá:</span>
                                 <div className="flex gap-0.5">
                                   {Array.from({ length: 5 }).map((_, i) => (
-                                    <Star key={i} className={`w-3 h-3 ${i < item.Review.rating ? "fill-brand text-brand" : "text-stone-200"}`} />
+                                    <Star key={i} className={`w-3 h-3 ${i < item.review.rating ? "fill-brand text-brand" : "text-stone-200"}`} />
                                   ))}
                                 </div>
                               </div>
@@ -351,7 +407,9 @@ export default function OrderDetailPage() {
             <div className="p-10 bg-muted/5 flex flex-col items-end space-y-3">
               <div className="flex justify-between w-64 text-sm">
                 <span className="text-muted-foreground italic">Tạm tính:</span>
-                <span className="font-medium">{formatCurrency(subOrder.subTotal)}</span>
+                <span className="font-medium">
+                  {formatCurrency(Number(subOrder.subTotal) - Number(subOrder.discountAmount || 0))}
+                </span>
               </div>
               <div className="flex justify-between w-64 text-sm">
                 <span className="text-muted-foreground italic">Phí giao nhận:</span>
@@ -361,7 +419,7 @@ export default function OrderDetailPage() {
               <div className="flex justify-between w-64 items-baseline">
                 <span className="font-serif italic text-xl text-primary">Thành tiền:</span>
                 <span className="font-serif font-bold text-3xl text-primary tracking-tight">
-                  {formatCurrency(subOrder.subTotal)}
+                  {formatCurrency(Number(subOrder.subTotal) - Number(subOrder.discountAmount || 0))}
                 </span>
               </div>
             </div>
@@ -421,8 +479,8 @@ export default function OrderDetailPage() {
                 {shippingAddress?.fullName || subOrder.order.customer.name}
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {shippingAddress?.address}<br />
-                {shippingAddress?.ward}, {shippingAddress?.district}<br />
+                {shippingAddress?.street || shippingAddress?.address}<br />
+                {[shippingAddress?.ward, shippingAddress?.district].filter(Boolean).join(", ")}<br />
                 {shippingAddress?.city}
               </p>
               <p className="text-xs text-muted-foreground pt-2">

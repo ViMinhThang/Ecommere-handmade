@@ -371,19 +371,28 @@ export const mockCategories: Category[] = [
   }
 ];
 
+const createProductImage = (productId: string, seed: string, createdAt: Date) => ({
+  id: `${productId}-image-1`,
+  url: `https://picsum.photos/seed/${seed}/200/200`,
+  isMain: true,
+  productId,
+  createdAt,
+});
+
 export const mockProducts: Product[] = [
   {
     id: "1",
     name: "Handcrafted Ceramic Vase",
     description: "Beautiful handmade ceramic vase",
-    images: ["https://picsum.photos/seed/vase1/200/200"],
+    images: [createProductImage("1", "vase1", new Date("2024-05-10"))],
     price: 89,
     categoryId: "1",
     category: mockCategories[0],
-    sellerId: "1",
-    seller: mockSellers[0],
+    sellerId: mockUsers[1].id,
+    seller: mockUsers[1],
     status: "APPROVED",
     stock: 10,
+    lowStockThreshold: 3,
     createdAt: new Date("2024-05-10"),
     updatedAt: new Date("2024-05-10")
   },
@@ -391,14 +400,15 @@ export const mockProducts: Product[] = [
     id: "2",
     name: "Oak Wood Cutting Board",
     description: "Premium oak wood cutting board",
-    images: ["https://picsum.photos/seed/wood1/200/200"],
+    images: [createProductImage("2", "wood1", new Date("2024-05-12"))],
     price: 65,
     categoryId: "3",
     category: mockCategories[2],
-    sellerId: "2",
-    seller: mockSellers[1],
+    sellerId: mockUsers[2].id,
+    seller: mockUsers[2],
     status: "APPROVED",
     stock: 5,
+    lowStockThreshold: 2,
     createdAt: new Date("2024-05-12"),
     updatedAt: new Date("2024-05-12")
   },
@@ -406,14 +416,15 @@ export const mockProducts: Product[] = [
     id: "3",
     name: "Woven Wool Blanket",
     description: "Soft woven wool blanket",
-    images: ["https://picsum.photos/seed/blanket1/200/200"],
+    images: [createProductImage("3", "blanket1", new Date("2024-05-15"))],
     price: 180,
     categoryId: "2",
     category: mockCategories[1],
-    sellerId: "3",
-    seller: mockSellers[2],
+    sellerId: mockUsers[3].id,
+    seller: mockUsers[3],
     status: "APPROVED",
     stock: 15,
+    lowStockThreshold: 4,
     createdAt: new Date("2024-05-15"),
     updatedAt: new Date("2024-05-15")
   },
@@ -421,14 +432,15 @@ export const mockProducts: Product[] = [
     id: "4",
     name: "Ceramic Coffee Mug Set",
     description: "Set of 4 ceramic coffee mugs",
-    images: ["https://picsum.photos/seed/mug1/200/200"],
+    images: [createProductImage("4", "mug1", new Date("2024-06-01"))],
     price: 120,
     categoryId: "1",
     category: mockCategories[0],
-    sellerId: "1",
-    seller: mockSellers[0],
+    sellerId: mockUsers[1].id,
+    seller: mockUsers[1],
     status: "PENDING",
     stock: 0,
+    lowStockThreshold: 2,
     createdAt: new Date("2024-06-01"),
     updatedAt: new Date("2024-06-01")
   },
@@ -436,14 +448,15 @@ export const mockProducts: Product[] = [
     id: "5",
     name: "Handmade Silver Ring",
     description: "Sterling silver handcrafted ring",
-    images: ["https://picsum.photos/seed/ring1/200/200"],
+    images: [createProductImage("5", "ring1", new Date("2024-05-20"))],
     price: 245,
     categoryId: "4",
     category: mockCategories[3],
-    sellerId: "5",
-    seller: mockSellers[4],
+    sellerId: mockUsers[5].id,
+    seller: mockUsers[5],
     status: "REJECTED",
     stock: 2,
+    lowStockThreshold: 1,
     createdAt: new Date("2024-05-20"),
     updatedAt: new Date("2024-05-20")
   }
@@ -455,7 +468,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[0],
     seller: mockSellers[0],
     products: [mockProducts[0]],
-    total: 89,
+    totalAmount: 89,
     status: "DELIVERED",
     createdAt: new Date("2024-05-15")
   },
@@ -464,7 +477,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[1],
     seller: mockSellers[1],
     products: [mockProducts[1]],
-    total: 65,
+    totalAmount: 65,
     status: "SHIPPED",
     createdAt: new Date("2024-05-20")
   },
@@ -473,7 +486,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[2],
     seller: mockSellers[2],
     products: [mockProducts[2]],
-    total: 180,
+    totalAmount: 180,
     status: "PROCESSING",
     createdAt: new Date("2024-05-25")
   },
@@ -482,7 +495,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[3],
     seller: mockSellers[0],
     products: [mockProducts[0], mockProducts[3]],
-    total: 209,
+    totalAmount: 209,
     status: "PENDING",
     createdAt: new Date("2024-06-01")
   },
@@ -491,7 +504,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[4],
     seller: mockSellers[2],
     products: [mockProducts[2]],
-    total: 180,
+    totalAmount: 180,
     status: "CANCELLED",
     createdAt: new Date("2024-05-18")
   }

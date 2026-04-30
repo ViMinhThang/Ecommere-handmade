@@ -1,22 +1,26 @@
-/* eslint-disable @next/next/no-img-element */
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { 
-  Search, 
-  Eye, 
-  Package, 
-  Edit, 
-  Loader2, 
-  AlertCircle 
-} from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
-import { useSellerOrders, useUpdateSubOrderStatus } from '@/lib/api/hooks'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -24,16 +28,40 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
+import { useAuth } from '@/contexts/auth-context'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { toast } from "sonner"
-import Link from 'next/link'
+  useAdminOrders,
+  useSellerOrders,
+  useUpdateSubOrderStatus,
+} from '@/lib/api/hooks'
+import type {
+  AdminOrderFilters,
+  OrderStatus as ApiOrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+} from '@/lib/api/orders'
+import type { Order, SubOrder } from '@/types'
+import { formatCurrency } from '@/lib/utils'
+import { AlertCircle, Eye, Loader2, Package, Search } from 'lucide-react'
+import { toast } from 'sonner'
+
+const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
+  'PENDING',
+  'PAID',
+  'PROCESSING',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+]
+
+const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['COD', 'STRIPE']
+const PAYMENT_STATUS_OPTIONS: PaymentStatus[] = [
+  'COD_PENDING',
+  'UNPAID',
+  'PAID',
+  'FAILED',
+]
 
 const statusClasses: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -42,232 +70,501 @@ const statusClasses: Record<string, string> = {
   SHIPPED: 'bg-indigo-100 text-indigo-800',
   DELIVERED: 'bg-green-100 text-green-800',
   CANCELLED: 'bg-red-100 text-red-800',
-  PENDING_REVIEW: 'bg-yellow-100 text-yellow-800',
-  REVISION_REQUESTED: 'bg-purple-100 text-purple-800',
-  AWAITING_PAYMENT: 'bg-amber-100 text-amber-800',
-  CRAFTING: 'bg-blue-100 text-blue-800',
-  FINISHING: 'bg-indigo-100 text-indigo-800',
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: 'Chờ xác nhận',
-  PAID: 'Đã thanh toán',
-  PROCESSING: 'Đang chuẩn bị',
-  SHIPPED: 'Đang giao',
-  DELIVERED: 'Đã giao hàng',
-  CANCELLED: 'Đã hủy',
-  PENDING_REVIEW: 'Chờ duyệt',
-  REVISION_REQUESTED: 'Yêu cầu sửa',
-  AWAITING_PAYMENT: 'Chờ khách trả tiền',
-  CRAFTING: 'Đang chế tác',
-  FINISHING: 'Hoàn thiện',
+  PENDING: 'Cho xac nhan',
+  PAID: 'Da thanh toan',
+  PROCESSING: 'Dang xu ly',
+  SHIPPED: 'Dang giao',
+  DELIVERED: 'Da giao',
+  CANCELLED: 'Da huy',
 }
 
-type OrderStatus = keyof typeof statusLabels;
+const paymentMethodLabels: Record<PaymentMethod, string> = {
+  COD: 'COD',
+  STRIPE: 'Stripe',
+}
+
+const paymentStatusLabels: Record<PaymentStatus, string> = {
+  COD_PENDING: 'COD pending',
+  UNPAID: 'Unpaid',
+  PAID: 'Paid',
+  FAILED: 'Failed',
+}
+
+function getCustomerName(order: Order) {
+  return order.customer?.name || 'Unknown customer'
+}
+
+function getCustomerEmail(order: Order) {
+  return order.customer?.email || '-'
+}
+
+function getOrderSellerSummary(order: Order) {
+  const names = Array.from(
+    new Set(
+      (order.subOrders || [])
+        .map((subOrder) => subOrder.seller?.shopName || subOrder.seller?.name)
+        .filter(Boolean),
+    ),
+  )
+
+  return names.join(', ') || '-'
+}
+
+function getOrderItemCount(order: Order) {
+  return (order.subOrders || []).reduce(
+    (count, subOrder) => count + subOrder.items.length,
+    0,
+  )
+}
 
 export default function OrdersPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.roles?.includes('ROLE_ADMIN')
+  const isSeller = user?.roles?.includes('ROLE_SELLER')
+
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedOrder, setSelectedOrder] = useState<any>(null)
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
-  const [newStatus, setNewStatus] = useState<string>('')
+  const [customerFilter, setCustomerFilter] = useState('')
+  const [sellerFilter, setSellerFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'ALL' | ApiOrderStatus>('ALL')
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<
+    'ALL' | PaymentMethod
+  >('ALL')
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<
+    'ALL' | PaymentStatus
+  >('ALL')
+  const [selectedSubOrder, setSelectedSubOrder] = useState<SubOrder | null>(null)
+  const [nextStatus, setNextStatus] = useState<ApiOrderStatus>('PENDING')
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
 
-  const { data: subOrders, isLoading, error } = useSellerOrders()
-  const updateStatusMutation = useUpdateSubOrderStatus()
-
-  const handleUpdateClick = (subOrder: any) => {
-    setSelectedOrder(subOrder)
-    setNewStatus(subOrder.status)
-    setIsUpdateModalOpen(true)
+  const adminFilters: AdminOrderFilters = {
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
+    paymentMethod:
+      paymentMethodFilter === 'ALL' ? undefined : paymentMethodFilter,
+    paymentStatus:
+      paymentStatusFilter === 'ALL' ? undefined : paymentStatusFilter,
+    customer: customerFilter || undefined,
+    seller: sellerFilter || undefined,
   }
 
-  const handleStatusUpdate = async () => {
-    if (!selectedOrder || !newStatus) return
+  const adminOrdersQuery = useAdminOrders(adminFilters, Boolean(isAdmin))
+  const sellerOrdersQuery = useSellerOrders(Boolean(isSeller && !isAdmin))
+  const updateSubOrderStatus = useUpdateSubOrderStatus()
+
+  const adminOrders = useMemo(() => {
+    const source = adminOrdersQuery.data || []
+    return source.filter((order) =>
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+  }, [adminOrdersQuery.data, searchQuery])
+
+  const sellerOrders = useMemo(() => {
+    const source = (sellerOrdersQuery.data || []) as Array<
+      SubOrder & { type?: string }
+    >
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+
+    if (!normalizedSearch) {
+      return source
+    }
+
+    return source.filter((subOrder) => {
+      const customerName = subOrder.order?.customer?.name?.toLowerCase() || ''
+      const sellerName = subOrder.seller?.shopName?.toLowerCase() || ''
+
+      return (
+        subOrder.id.toLowerCase().includes(normalizedSearch) ||
+        customerName.includes(normalizedSearch) ||
+        sellerName.includes(normalizedSearch)
+      )
+    })
+  }, [searchQuery, sellerOrdersQuery.data])
+
+  const stats = useMemo(() => {
+    if (isAdmin) {
+      const total = adminOrders.length
+      return {
+        total,
+        pending: adminOrders.filter((order) => order.status === 'PENDING').length,
+        processing: adminOrders.filter((order) => order.status === 'PROCESSING')
+          .length,
+        delivered: adminOrders.filter((order) => order.status === 'DELIVERED')
+          .length,
+      }
+    }
+
+    const total = sellerOrders.length
+    return {
+      total,
+      pending: sellerOrders.filter((order) => order.status === 'PENDING').length,
+      processing: sellerOrders.filter((order) => order.status === 'PROCESSING')
+        .length,
+      delivered: sellerOrders.filter((order) => order.status === 'DELIVERED')
+        .length,
+    }
+  }, [adminOrders, isAdmin, sellerOrders])
+
+  const isLoading = isAdmin ? adminOrdersQuery.isLoading : sellerOrdersQuery.isLoading
+  const error = isAdmin ? adminOrdersQuery.error : sellerOrdersQuery.error
+
+  const openSellerStatusDialog = (subOrder: SubOrder & { type?: string }) => {
+    if (subOrder.type === 'CUSTOM') {
+      return
+    }
+
+    setSelectedSubOrder(subOrder)
+    setNextStatus(subOrder.status)
+    setIsStatusDialogOpen(true)
+  }
+
+  const handleSellerStatusUpdate = async () => {
+    if (!selectedSubOrder) {
+      return
+    }
 
     try {
-      await updateStatusMutation.mutateAsync({
-        id: selectedOrder.id,
-        status: newStatus,
+      await updateSubOrderStatus.mutateAsync({
+        id: selectedSubOrder.id,
+        status: nextStatus,
       })
-      toast.success("Cập nhật trạng thái thành công")
-      setIsUpdateModalOpen(false)
-    } catch (err) {
-      toast.error("Không thể cập nhật trạng thái")
+      toast.success('Cap nhat trang thai thanh cong')
+      setIsStatusDialogOpen(false)
+    } catch (mutationError: unknown) {
+      const message =
+        mutationError instanceof Error
+          ? mutationError.message
+          : 'Khong the cap nhat trang thai'
+      toast.error(message)
     }
   }
 
-  const filteredOrders = subOrders?.filter(subOrder => {
-    const matchesSearch = 
-      subOrder.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      subOrder.order.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesSearch
-  }) || []
-
-  const stats = {
-    total: subOrders?.length || 0,
-    paid: subOrders?.filter(o => o.status === 'PAID').length || 0,
-    processing: subOrders?.filter(o => o.status === 'PROCESSING').length || 0,
-    delivered: subOrders?.filter(o => o.status === 'DELIVERED').length || 0,
+  if (!isAdmin && !isSeller) {
+    return (
+      <div className="flex min-h-[320px] items-center justify-center">
+        <p className="text-sm text-muted-foreground">
+          Ban khong co quyen truy cap trang quan ly don hang.
+        </p>
+      </div>
+    )
   }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Loader2 className="w-10 h-10 animate-spin text-primary/50" />
-        <p className="artisan-subtitle italic">Đang tải danh sách đơn hàng...</p>
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
+        <p className="text-sm text-muted-foreground">Dang tai du lieu don hang...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 text-center">
-        <AlertCircle className="w-12 h-12 text-red-500/50" />
-        <h3 className="text-xl font-bold">Đã xảy ra lỗi</h3>
-        <p className="text-muted-foreground">Không thể tải danh sách đơn hàng từ máy chủ.</p>
-        <Button onClick={() => window.location.reload()}>Thử lại</Button>
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+        <AlertCircle className="h-12 w-12 text-red-500/60" />
+        <h3 className="text-xl font-semibold">Khong the tai don hang</h3>
+        <p className="text-sm text-muted-foreground">
+          Vui long thu lai sau khi kiem tra quyen truy cap va ket noi API.
+        </p>
+        <Button onClick={() => window.location.reload()}>Thu lai</Button>
       </div>
     )
   }
 
   return (
-    <div className='space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-500'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h1 className='artisan-title text-4xl'>Quản lý Đơn hàng</h1>
-          <p className='artisan-subtitle mt-2 text-stone-500'>Theo dõi và cập nhật trạng thái vận chuyển các tác phẩm của bạn.</p>
-        </div>
+    <div className="space-y-7">
+      <div className="space-y-2">
+        <h1 className="text-4xl font-semibold text-primary">
+          {isAdmin ? 'Admin orders' : 'Seller orders'}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {isAdmin
+            ? 'Xem, loc va kiem tra toan bo don hang he thong.'
+            : 'Theo doi cac sub-order thuoc shop cua ban.'}
+        </p>
       </div>
 
-      <div className='grid gap-4 md:grid-cols-4'>
-        <Card className="border-border/50 shadow-sm">
-          <CardContent className='p-5'>
-            <p className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1'>Tổng đơn hàng</p>
-            <p className='text-3xl font-serif text-primary font-bold'>{stats.total}</p>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              Tong don
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">{stats.total}</p>
           </CardContent>
         </Card>
-        <Card className="border-border/50 shadow-sm">
-          <CardContent className='p-5'>
-            <p className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1'>Chờ chuẩn bị</p>
-            <div className="flex items-baseline gap-2">
-              <p className='text-3xl font-serif text-amber-600 font-bold'>{stats.paid}</p>
-              <span className="text-xs italic text-muted-foreground">(Đã thanh toán)</span>
-            </div>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              Pending
+            </p>
+            <p className="mt-2 text-3xl font-bold text-amber-600">
+              {stats.pending}
+            </p>
           </CardContent>
         </Card>
-        <Card className="border-border/50 shadow-sm">
-          <CardContent className='p-5'>
-            <p className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1'>Đang thực hiện</p>
-            <p className='text-3xl font-serif text-blue-600 font-bold'>{stats.processing}</p>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              Processing
+            </p>
+            <p className="mt-2 text-3xl font-bold text-blue-600">
+              {stats.processing}
+            </p>
           </CardContent>
         </Card>
-        <Card className="border-border/50 shadow-sm">
-          <CardContent className='p-5'>
-            <p className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1'>Hoàn tất</p>
-            <p className='text-3xl font-serif text-green-600 font-bold'>{stats.delivered}</p>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              Delivered
+            </p>
+            <p className="mt-2 text-3xl font-bold text-green-600">
+              {stats.delivered}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-border/50 shadow-md">
-        <CardHeader className="pb-4">
-          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-            <CardTitle className="font-serif italic text-2xl text-primary">Danh sách Kiện hàng</CardTitle>
-            <div className='relative w-full md:w-80'>
-              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-              <Input 
-                placeholder='Tìm mã kiện hoặc khách hàng...' 
-                className='pl-9 bg-muted/30' 
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <CardTitle>{isAdmin ? 'Order list' : 'Sub-order list'}</CardTitle>
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={isAdmin ? 'Search order id...' : 'Search sub-order or customer...'}
+                className="pl-9"
               />
             </div>
           </div>
+
+          {isAdmin && (
+            <div className="grid gap-3 md:grid-cols-5">
+              <Input
+                value={customerFilter}
+                onChange={(event) => setCustomerFilter(event.target.value)}
+                placeholder="Filter customer"
+              />
+              <Input
+                value={sellerFilter}
+                onChange={(event) => setSellerFilter(event.target.value)}
+                placeholder="Filter seller"
+              />
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(value as 'ALL' | ApiOrderStatus)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All status</SelectItem>
+                  {ORDER_STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {statusLabels[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={paymentMethodFilter}
+                onValueChange={(value) =>
+                  setPaymentMethodFilter(value as 'ALL' | PaymentMethod)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All methods</SelectItem>
+                  {PAYMENT_METHOD_OPTIONS.map((paymentMethod) => (
+                    <SelectItem key={paymentMethod} value={paymentMethod}>
+                      {paymentMethodLabels[paymentMethod]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={paymentStatusFilter}
+                onValueChange={(value) =>
+                  setPaymentStatusFilter(value as 'ALL' | PaymentStatus)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Payment status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All payment status</SelectItem>
+                  {PAYMENT_STATUS_OPTIONS.map((paymentStatus) => (
+                    <SelectItem key={paymentStatus} value={paymentStatus}>
+                      {paymentStatusLabels[paymentStatus]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
-          {filteredOrders.length === 0 ? (
-            <div className='text-center py-20 text-muted-foreground'>
-              <Package className='h-16 w-16 mx-auto mb-4 opacity-10' />
-              <h3 className="font-serif text-xl mb-1">Không có đơn hàng nào</h3>
-              <p className="text-sm">Khi có khách hàng mua tác phẩm của bạn, chúng sẽ xuất hiện ở đây.</p>
+          {isAdmin ? (
+            adminOrders.length === 0 ? (
+              <div className="py-16 text-center text-muted-foreground">
+                <Package className="mx-auto mb-4 h-14 w-14 opacity-20" />
+                <p>No orders match the current filters.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Sellers</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adminOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-mono text-xs">
+                          #{order.id.slice(0, 8)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {getCustomerName(order)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {getCustomerEmail(order)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {getOrderSellerSummary(order)}
+                        </TableCell>
+                        <TableCell>{getOrderItemCount(order)}</TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(Number(order.totalAmount || 0))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1 text-xs">
+                            <span>{order.paymentMethod || '-'}</span>
+                            <span className="text-muted-foreground">
+                              {order.paymentStatus || '-'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`${statusClasses[order.status] || ''} border-0`}
+                          >
+                            {statusLabels[order.status] || order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/dashboard/orders/${order.id}`}>
+                            <Button variant="ghost" size="icon">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )
+          ) : sellerOrders.length === 0 ? (
+            <div className="py-16 text-center text-muted-foreground">
+              <Package className="mx-auto mb-4 h-14 w-14 opacity-20" />
+              <p>Chua co sub-order nao cho shop cua ban.</p>
             </div>
           ) : (
-            <div className="rounded-md border border-border/40 overflow-hidden">
+            <div className="overflow-hidden rounded-md border">
               <Table>
-                <TableHeader className="bg-muted/50">
+                <TableHeader>
                   <TableRow>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">Mã kiện</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">Khách hàng</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">Vật phẩm</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">Giá trị</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">Trạng thái</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">Ngày đặt</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-right">Thao tác</TableHead>
+                    <TableHead>Sub-order</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((subOrder: any) => (
-                    <TableRow key={subOrder.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className='font-mono text-xs'>
-                        <div className="flex flex-col gap-1">
-                          <span>#{subOrder.id.slice(0, 8)}</span>
-                          {subOrder.type === 'CUSTOM' && (
-                            <span className="text-[9px] font-bold text-primary uppercase">Custom</span>
-                          )}
-                        </div>
+                  {sellerOrders.map((subOrder) => (
+                    <TableRow key={subOrder.id}>
+                      <TableCell className="font-mono text-xs">
+                        #{subOrder.id.slice(0, 8)}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{(subOrder.order as any).customer.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{(subOrder.order as any).customer.email}</span>
+                          <span className="font-medium">
+                            {subOrder.order?.customer?.name || 'Unknown'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {subOrder.order?.customer?.email || '-'}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className='flex items-center gap-3'>
-                          <div className="w-10 h-10 rounded border border-border/30 overflow-hidden bg-muted shrink-0">
-                            {subOrder.items?.[0]?.product?.images?.find((img: any) => img.isMain)?.url || subOrder.items?.[0]?.product?.images?.[0]?.url ? (
-                              <img 
-                                src={subOrder.items[0].product.images?.[0]?.url} 
-                                alt="" 
-                                className='w-full h-full object-cover' 
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Package className="w-5 h-5 opacity-20" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className='text-sm font-medium line-clamp-1 max-w-[180px]'>
-                              {subOrder.items?.[0]?.product?.name || 'Vật phẩm'}
-                            </span>
-                            {subOrder.items.length > 1 && (
-                              <span className="text-[10px] text-muted-foreground italic">+ {subOrder.items.length - 1} món khác</span>
-                            )}
-                          </div>
+                        <div className="flex flex-col gap-1 text-xs">
+                          <span>{subOrder.order?.paymentMethod || '-'}</span>
+                          <span className="text-muted-foreground">
+                            {subOrder.order?.paymentStatus || '-'}
+                          </span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-serif italic">{formatCurrency(subOrder.subTotal)}</TableCell>
                       <TableCell>
-                        <Badge className={`${statusClasses[subOrder.status] || ''} border-0 font-bold text-[10px] tracking-widest`}>
+                        <Badge
+                          className={`${statusClasses[subOrder.status] || ''} border-0`}
+                        >
                           {statusLabels[subOrder.status] || subOrder.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(
+                          Number(subOrder.subTotal || 0) -
+                            Number(subOrder.discountAmount || 0),
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(subOrder.createdAt).toLocaleDateString('vi-VN')}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button 
-                            variant='ghost' 
-                            size='icon' 
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => handleUpdateClick(subOrder)}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openSellerStatusDialog(subOrder)}
+                            disabled={subOrder.type === 'CUSTOM'}
                           >
-                            <Edit className='h-4 w-4' />
+                            Update
                           </Button>
-                          <Link href={subOrder.type === 'CUSTOM' ? `/custom-orders/${subOrder.id}/review` : `/dashboard/orders/${subOrder.id}`}>
-                            <Button variant='ghost' size='icon' className="h-8 w-8 text-muted-foreground hover:text-primary">
-                              <Eye className='h-4 w-4' />
+                          <Link
+                            href={
+                              subOrder.type === 'CUSTOM'
+                                ? `/custom-orders/${subOrder.id}/review`
+                                : `/dashboard/orders/${subOrder.id}`
+                            }
+                          >
+                            <Button variant="ghost" size="icon">
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
                         </div>
@@ -281,54 +578,49 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      {/* Status Update Confirmation Modal */}
-      <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-serif text-2xl">Cập nhật Trạng thái</DialogTitle>
-            <DialogDescription className="italic">
-              Thay đổi trạng thái cho kiện hàng #{selectedOrder?.id?.slice(0, 8)}.
+            <DialogTitle>Update sub-order status</DialogTitle>
+            <DialogDescription>
+              Seller chi duoc cap nhat sub-order thuoc shop cua minh.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="py-6">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 block">
-              Trạng thái mới
-            </label>
-            <Select value={newStatus} onValueChange={(val) => val && setNewStatus(val)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Chọn trạng thái" />
+          <div className="py-4">
+            <Select
+              value={nextStatus}
+              onValueChange={(value) => setNextStatus(value as ApiOrderStatus)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(statusLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
+                {ORDER_STATUS_OPTIONS.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {statusLabels[status]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsUpdateModalOpen(false)}
-              className="text-xs uppercase tracking-widest font-bold"
+            <Button
+              variant="outline"
+              onClick={() => setIsStatusDialogOpen(false)}
             >
-              Hủy bỏ
+              Cancel
             </Button>
-            <Button 
-              onClick={handleStatusUpdate}
-              disabled={updateStatusMutation.isPending}
-              className="btn-artisanal py-2 px-6 text-xs uppercase tracking-widest font-bold"
+            <Button
+              onClick={handleSellerStatusUpdate}
+              disabled={updateSubOrderStatus.isPending}
             >
-              {updateStatusMutation.isPending ? (
+              {updateSubOrderStatus.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang lưu...
+                  Saving
                 </>
               ) : (
-                "Xác nhận Cập nhật"
+                'Save'
               )}
             </Button>
           </DialogFooter>

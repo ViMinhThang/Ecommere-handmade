@@ -57,6 +57,31 @@ let ProductsService = class ProductsService {
         this.prisma = prisma;
         this.flashSalesService = flashSalesService;
     }
+    normalizeFeaturedLimit(limit) {
+        if (!limit || !Number.isFinite(limit)) {
+            return 10;
+        }
+        return Math.min(Math.max(Math.floor(limit), 1), 50);
+    }
+    isAdmin(userRoles) {
+        return userRoles.includes('ROLE_ADMIN');
+    }
+    async assertProductOwnership(productId, userId, userRoles) {
+        const product = await this.prisma.product.findUnique({
+            where: { id: productId },
+            select: {
+                id: true,
+                sellerId: true,
+            },
+        });
+        if (!product) {
+            throw new common_1.NotFoundException(`Product with ID ${productId} not found`);
+        }
+        if (!this.isAdmin(userRoles) && product.sellerId !== userId) {
+            throw new common_1.ForbiddenException('You can only access products that belong to your shop');
+        }
+        return product;
+    }
     async uploadImage(file) {
         if (!file) {
             throw new common_1.BadRequestException('Vui lòng cung cấp file ảnh');
@@ -232,11 +257,14 @@ let ProductsService = class ProductsService {
             return tx.product.delete({ where: { id } });
         });
     }
-    async getStats() {
+    async getStats(userId, userRoles) {
         const stats = await this.prisma.product.groupBy({
             by: ['status'],
             _count: true,
-            where: { deletedAt: null },
+            where: {
+                deletedAt: null,
+                ...(this.isAdmin(userRoles) ? {} : { sellerId: userId }),
+            },
         });
         const result = {
             total: 0,
@@ -251,7 +279,10 @@ let ProductsService = class ProductsService {
         }
         return result;
     }
-    async getBySeller(sellerId) {
+    async getBySeller(userId, userRoles, sellerId) {
+        if (!this.isAdmin(userRoles) && sellerId !== userId) {
+            throw new common_1.ForbiddenException('You can only view products from your own shop');
+        }
         return this.prisma.product.findMany({
             where: { sellerId },
             include: {
@@ -260,7 +291,8 @@ let ProductsService = class ProductsService {
             },
         });
     }
-    async getInventory(productId) {
+    async getInventory(productId, userId, userRoles) {
+        await this.assertProductOwnership(productId, userId, userRoles);
         const product = await this.prisma.product.findUnique({
             where: { id: productId },
             select: {
@@ -276,7 +308,10 @@ let ProductsService = class ProductsService {
         }
         return product;
     }
-    async updateStock(productId, updateStockDto) {
+    async updateStock(productId, updateStockDto, userId, userRoles = []) {
+        if (userId) {
+            await this.assertProductOwnership(productId, userId, userRoles);
+        }
         const product = await this.prisma.product.findUnique({
             where: { id: productId },
         });
@@ -307,13 +342,8 @@ let ProductsService = class ProductsService {
         });
         return updatedProduct;
     }
-    async getInventoryLog(productId) {
-        const product = await this.prisma.product.findUnique({
-            where: { id: productId },
-        });
-        if (!product) {
-            throw new common_1.NotFoundException(`Product with ID ${productId} not found`);
-        }
+    async getInventoryLog(productId, userId, userRoles) {
+        await this.assertProductOwnership(productId, userId, userRoles);
         return this.prisma.inventoryLog.findMany({
             where: { productId },
             orderBy: { createdAt: 'desc' },
@@ -325,9 +355,13 @@ let ProductsService = class ProductsService {
             reason: update_stock_dto_1.InventoryChangeReason.ORDER,
         });
     }
-    async getLowStockProducts(sellerId) {
-        const sellerFilter = sellerId
-            ? client_1.Prisma.sql `AND p."sellerId" = ${sellerId}`
+    async getLowStockProducts(userId, userRoles, sellerId) {
+        if (!this.isAdmin(userRoles) && sellerId && sellerId !== userId) {
+            throw new common_1.ForbiddenException('You can only view low stock products from your own shop');
+        }
+        const effectiveSellerId = this.isAdmin(userRoles) ? sellerId : userId;
+        const sellerFilter = effectiveSellerId
+            ? client_1.Prisma.sql `AND p."sellerId" = ${effectiveSellerId}`
             : client_1.Prisma.empty;
         return this.prisma.$queryRaw `
       SELECT p.*, c.name as "categoryName"
@@ -338,6 +372,109 @@ let ProductsService = class ProductsService {
       ${sellerFilter}
       ORDER BY p.stock ASC
     `;
+    }
+    async getBestSellingProducts(limit) {
+        const take = this.normalizeFeaturedLimit(limit);
+        const sales = await this.prisma.orderItem.groupBy({
+            by: ['productId'],
+            where: {
+                product: {
+                    deletedAt: null,
+                    status: client_1.ProductStatus.APPROVED,
+                },
+                subOrder: {
+                    status: { not: client_1.OrderStatus.CANCELLED },
+                    order: {
+                        OR: [
+                            {
+                                paymentMethod: client_1.PaymentMethod.COD,
+                                status: {
+                                    in: [
+                                        client_1.OrderStatus.PENDING,
+                                        client_1.OrderStatus.PROCESSING,
+                                        client_1.OrderStatus.SHIPPED,
+                                        client_1.OrderStatus.DELIVERED,
+                                    ],
+                                },
+                            },
+                            {
+                                paymentMethod: client_1.PaymentMethod.STRIPE,
+                                paymentStatus: client_1.PaymentStatus.PAID,
+                                status: {
+                                    in: [
+                                        client_1.OrderStatus.PAID,
+                                        client_1.OrderStatus.PROCESSING,
+                                        client_1.OrderStatus.SHIPPED,
+                                        client_1.OrderStatus.DELIVERED,
+                                    ],
+                                },
+                            },
+                        ],
+                    },
+                },
+            },
+            _sum: {
+                quantity: true,
+            },
+            orderBy: {
+                _sum: {
+                    quantity: 'desc',
+                },
+            },
+            take,
+        });
+        if (sales.length === 0) {
+            return [];
+        }
+        const products = await this.prisma.product.findMany({
+            where: {
+                id: { in: sales.map((item) => item.productId) },
+                deletedAt: null,
+                status: client_1.ProductStatus.APPROVED,
+            },
+            include: {
+                images: true,
+                category: true,
+                seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+            },
+        });
+        const productMap = new Map(products.map((product) => [product.id, product]));
+        return Promise.all(sales
+            .map((item) => {
+            const product = productMap.get(item.productId);
+            if (!product) {
+                return null;
+            }
+            return {
+                ...product,
+                soldQuantity: item._sum.quantity ?? 0,
+            };
+        })
+            .filter((product) => Boolean(product))
+            .map(async (product) => ({
+            ...product,
+            pricing: await this.flashSalesService.calculateEffectivePrice(Number(product.price), product.categoryId),
+        })));
+    }
+    async getMostViewedProducts(limit) {
+        const take = this.normalizeFeaturedLimit(limit);
+        const products = await this.prisma.product.findMany({
+            where: {
+                deletedAt: null,
+                status: client_1.ProductStatus.APPROVED,
+            },
+            include: {
+                images: true,
+                category: true,
+                seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+            },
+            orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+            take,
+        });
+        return Promise.all(products.map(async (product) => ({
+            ...product,
+            pricing: await this.flashSalesService.calculateEffectivePrice(Number(product.price), product.categoryId),
+        })));
     }
     async incrementViewCount(id) {
         return this.prisma.product.update({

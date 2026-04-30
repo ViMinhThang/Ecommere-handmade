@@ -15,6 +15,22 @@ import { User, UserRole } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Search, Plus, Pencil, Trash2, Eye } from 'lucide-react'
 
+type UsersResponse = {
+  data?: User[]
+  meta?: {
+    total?: number
+    page?: number
+    limit?: number
+  }
+}
+
+type UserStats = {
+  total?: number
+  admins?: number
+  sellers?: number
+  customers?: number
+}
+
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
@@ -29,14 +45,22 @@ export default function UsersPage() {
     page,
     limit,
   })
-  const { data: statsData } = useUserStats() as { data: { total?: number; admins?: number; sellers?: number; customers?: number } }
+  const { data: statsData } = useUserStats() as { data?: UserStats | { data?: UserStats } }
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
   const deleteUser = useDeleteUser()
 
-const users = Array.isArray(usersData) ? usersData : (usersData as any)?.data || []
-const meta = Array.isArray(usersData) ? { total: usersData.length, page: 1, limit: usersData.length } : (usersData as any)?.meta
-const stats = (statsData as any)?.data || statsData || { total: 0, admins: 0, sellers: 0, customers: 0 }
+  const users: User[] = Array.isArray(usersData)
+    ? usersData
+    : ((usersData as UsersResponse | undefined)?.data ?? [])
+  const meta = Array.isArray(usersData)
+    ? { total: usersData.length, page: 1, limit: usersData.length }
+    : (usersData as UsersResponse | undefined)?.meta
+  const statsResponse = statsData as UserStats | { data?: UserStats } | undefined
+  const normalizedStats: UserStats | undefined = statsResponse && typeof statsResponse === 'object' && 'data' in statsResponse
+    ? statsResponse.data
+    : (statsResponse as UserStats | undefined)
+  const stats: UserStats = normalizedStats || { total: 0, admins: 0, sellers: 0, customers: 0 }
   const filteredUsers = users.filter((user) => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())

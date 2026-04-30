@@ -5,16 +5,29 @@ import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { apiClient } from "@/lib/api/client";
 import { PaymentForm } from "@/components/checkout/payment-form";
-import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMe, useAddresses, useCart } from "@/lib/api/hooks";
 import Image from "next/image";
 import { mediaApi } from "@/lib/api/media";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_TYooMQauvdEDq54NiTphI7jx"
-);
+const stripePublishableKey =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
+const isStripeConfigured =
+  stripePublishableKey.startsWith("pk_test_") &&
+  !stripePublishableKey.includes("REPLACE_WITH_REAL");
+const stripePromise = isStripeConfigured
+  ? loadStripe(stripePublishableKey)
+  : Promise.resolve(null);
+
+type CheckoutPaymentMethod = "STRIPE" | "COD";
+
+interface CheckoutResponse {
+  clientSecret?: string;
+  orderId: string;
+  paymentMethod: CheckoutPaymentMethod;
+  requiresPayment: boolean;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -23,6 +36,9 @@ export default function CheckoutPage() {
   const { data: cart } = useCart();
   
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [checkoutOrderId, setCheckoutOrderId] = useState("");
+  const [paymentMethod, setPaymentMethod] =
+    useState<CheckoutPaymentMethod>("COD");
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -57,22 +73,45 @@ export default function CheckoutPage() {
 
   const handleInitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (paymentMethod === "STRIPE" && !isStripeConfigured) {
+      toast.error(
+        "Online card payment is not configured. Choose COD or set Stripe test keys.",
+      );
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const data = await apiClient.post<any>("/orders/checkout", {
+      const data = await apiClient.post<CheckoutResponse>("/orders/checkout", {
         shippingAddress: {
           fullName: formData.fullName,
           phone: formData.phone,
           city: formData.city,
           district: formData.district,
           street: formData.street,
-        }
+        },
+        paymentMethod,
       });
 
-      if (data?.clientSecret) {
-        setClientSecret(data.clientSecret);
+      if (!data?.orderId) {
+        throw new Error("Checkout response is missing order id.");
       }
+
+      if (data.paymentMethod === "COD" || data.requiresPayment === false) {
+        toast.success("Cash on delivery order placed successfully.");
+        router.push(`/orders/${data.orderId}/confirmation`);
+        return;
+      }
+
+      if (!data.clientSecret) {
+        throw new Error("Checkout response is missing payment data.");
+      }
+
+      setClientSecret(data.clientSecret);
+      setCheckoutOrderId(data.orderId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err.message || "Không thể khởi tạo thanh toán.");
     } finally {
@@ -266,6 +305,53 @@ export default function CheckoutPage() {
                 </div>
               </section>
 
+              <section>
+                <h2 className="font-headline text-3xl italic mb-8">Payment Method</h2>
+                <div className="space-y-4">
+                  <label className="flex items-start gap-4 border border-stone-200 rounded-sm p-4 cursor-pointer bg-white/70">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="COD"
+                      checked={paymentMethod === "COD"}
+                      onChange={() => setPaymentMethod("COD")}
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">
+                        Cash on delivery (COD)
+                      </p>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Place the order now and pay when the package arrives.
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-4 border border-stone-200 rounded-sm p-4 cursor-pointer bg-white/70">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="STRIPE"
+                      checked={paymentMethod === "STRIPE"}
+                      onChange={() => setPaymentMethod("STRIPE")}
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">
+                        Card payment (Stripe)
+                      </p>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Pay online with Stripe Elements.
+                      </p>
+                    </div>
+                  </label>
+                  {paymentMethod === "STRIPE" && !isStripeConfigured && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-sm p-3">
+                      Online card payment is not configured. Choose COD or set Stripe test keys.
+                    </p>
+                  )}
+                </div>
+              </section>
+
               <div className="pt-8">
                 <button 
                   type="submit" 
@@ -285,7 +371,10 @@ export default function CheckoutPage() {
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="font-headline text-3xl italic">Thông tin Thanh toán</h2>
                   <button 
-                    onClick={() => setClientSecret(null)}
+                    onClick={() => {
+                      setClientSecret(null);
+                      setCheckoutOrderId("");
+                    }}
                     className="text-xs uppercase tracking-widest font-bold text-stone-400 hover:text-primary transition-colors"
                   >
                     Chỉnh sửa địa chỉ
@@ -294,6 +383,7 @@ export default function CheckoutPage() {
                 <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200">
                   <Elements stripe={stripePromise} options={options}>
                     <PaymentForm 
+                      orderId={checkoutOrderId}
                       paymentIntentId={paymentIntentId} 
                       onSuccess={(orderId) => {
                         router.push(`/orders/${orderId}/confirmation`);

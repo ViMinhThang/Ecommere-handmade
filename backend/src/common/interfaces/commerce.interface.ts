@@ -1,4 +1,10 @@
-import { Prisma, CustomOrderStatus, OrderStatus } from '@prisma/client';
+import {
+  Prisma,
+  CustomOrderStatus,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+} from '@prisma/client';
 
 export type ProductWithImages = Prisma.ProductGetPayload<{
   include: {
@@ -68,6 +74,8 @@ export interface UnifiedOrder {
   order: {
     createdAt: Date;
     shippingAddress: any;
+    paymentMethod?: PaymentMethod | null;
+    paymentStatus?: PaymentStatus | null;
     customer?: {
       id: string;
       name: string;

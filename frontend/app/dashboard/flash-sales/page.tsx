@@ -25,20 +25,20 @@ export default function FlashSalesPage() {
   const [limit, setLimit] = useState(10)
   const { user } = useAuth()
 
-  const { data: flashSalesData, isLoading: flashSalesLoading } = useFlashSales({ page, limit })
+  const { data: flashSalesData, isLoading: flashSalesLoading } = useFlashSales()
   const { data: categoriesData } = useCategories()
   const createFlashSale = useCreateFlashSale()
   const updateFlashSale = useUpdateFlashSale()
   const deleteFlashSale = useDeleteFlashSale()
 
-  const flashSales = Array.isArray(flashSalesData) ? flashSalesData : (flashSalesData as any)?.data || []
+  const flashSales = Array.isArray(flashSalesData) ? flashSalesData : []
   const meta = Array.isArray(flashSalesData) ? { total: flashSalesData.length } : (flashSalesData as any)?.meta
   const categories = Array.isArray(categoriesData) ? categoriesData : (categoriesData as any)?.data || []
 
   const filteredFlashSales = flashSales.filter((fs: FlashSale) => {
     const matchesSearch =
       fs.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      fs.categories.some((c) => c.category?.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      fs.categories.some((c: FlashSale["categories"][number]) => c.category?.name.toLowerCase().includes(searchQuery.toLowerCase()))
     return matchesSearch
   })
 
@@ -50,8 +50,8 @@ export default function FlashSalesPage() {
     setLimit(newLimit)
     setPage(1)
   }
-  const activeFlashSales = flashSales.filter((fs) => fs.isActive && new Date(fs.startAt) <= now && new Date(fs.endAt) >= now).length
-  const upcomingFlashSales = flashSales.filter((fs) => new Date(fs.startAt) > now).length
+  const activeFlashSales = flashSales.filter((fs: FlashSale) => fs.isActive && new Date(fs.startAt) <= now && new Date(fs.endAt) >= now).length
+  const upcomingFlashSales = flashSales.filter((fs: FlashSale) => new Date(fs.startAt) > now).length
 
   const handleAddFlashSale = (data: {
     name: string

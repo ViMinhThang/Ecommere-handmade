@@ -7,6 +7,7 @@ import type { AuthenticatedRequest } from '../common/interfaces/request.interfac
 export declare class ProductsController {
     private readonly productsService;
     constructor(productsService: ProductsService);
+    private parseLimit;
     uploadImage(file: Express.Multer.File): Promise<{
         url: string;
         fileName: string;
@@ -131,8 +132,8 @@ export declare class ProductsController {
             totalPages: number;
         };
     }>;
-    getStats(): Promise<Record<string, number>>;
-    getBySeller(sellerId: string): Promise<({
+    getStats(req: AuthenticatedRequest): Promise<Record<string, number>>;
+    getBySeller(req: AuthenticatedRequest, sellerId: string): Promise<({
         category: {
             image: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
@@ -171,7 +172,118 @@ export declare class ProductsController {
         sellerId: string;
         categoryId: string;
     })[]>;
-    getLowStock(sellerId?: string): Promise<unknown>;
+    getLowStock(req: AuthenticatedRequest, sellerId?: string): Promise<unknown>;
+    getBestSelling(limit?: string): Promise<{
+        pricing: {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: null;
+        } | {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: string;
+        };
+        soldQuantity: number;
+        category: {
+            image: string | null;
+            status: import(".prisma/client").$Enums.CategoryStatus;
+            name: string;
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+            slug: string | null;
+            productsCount: number;
+        };
+        seller: {
+            name: string;
+            avatar: string | null;
+            shopName: string | null;
+            id: string;
+        };
+        images: {
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            url: string;
+            isMain: boolean;
+            productId: string;
+        }[];
+        status: import(".prisma/client").$Enums.ProductStatus;
+        name: string;
+        id: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string;
+        price: import("@prisma/client/runtime/library").Decimal;
+        stock: number;
+        lowStockThreshold: number;
+        sku: string | null;
+        tags: string[];
+        descriptionImages: string[];
+        viewCount: number;
+        sellerId: string;
+        categoryId: string;
+    }[]>;
+    getMostViewed(limit?: string): Promise<{
+        pricing: {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: null;
+        } | {
+            originalPrice: number;
+            discountedPrice: number;
+            discountPercent: number;
+            flashSaleId: string;
+        };
+        category: {
+            image: string | null;
+            status: import(".prisma/client").$Enums.CategoryStatus;
+            name: string;
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+            slug: string | null;
+            productsCount: number;
+        };
+        seller: {
+            name: string;
+            avatar: string | null;
+            shopName: string | null;
+            id: string;
+        };
+        images: {
+            id: string;
+            deletedAt: Date | null;
+            createdAt: Date;
+            url: string;
+            isMain: boolean;
+            productId: string;
+        }[];
+        status: import(".prisma/client").$Enums.ProductStatus;
+        name: string;
+        id: string;
+        deletedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string;
+        price: import("@prisma/client/runtime/library").Decimal;
+        stock: number;
+        lowStockThreshold: number;
+        sku: string | null;
+        tags: string[];
+        descriptionImages: string[];
+        viewCount: number;
+        sellerId: string;
+        categoryId: string;
+    }[]>;
     findOne(id: string): Promise<{
         pricing: {
             originalPrice: number;
@@ -330,14 +442,14 @@ export declare class ProductsController {
         sellerId: string;
         categoryId: string;
     }>;
-    getInventory(id: string): Promise<{
+    getInventory(req: AuthenticatedRequest, id: string): Promise<{
         name: string;
         id: string;
         stock: number;
         lowStockThreshold: number;
         sku: string | null;
     }>;
-    updateStock(id: string, updateStockDto: UpdateStockDto): Promise<{
+    updateStock(req: AuthenticatedRequest, id: string, updateStockDto: UpdateStockDto): Promise<{
         status: import(".prisma/client").$Enums.ProductStatus;
         name: string;
         id: string;
@@ -355,7 +467,7 @@ export declare class ProductsController {
         sellerId: string;
         categoryId: string;
     }>;
-    getInventoryLog(id: string): Promise<{
+    getInventoryLog(req: AuthenticatedRequest, id: string): Promise<{
         id: string;
         deletedAt: Date | null;
         createdAt: Date;

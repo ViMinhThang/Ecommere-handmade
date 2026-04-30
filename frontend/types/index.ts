@@ -15,6 +15,17 @@ export interface Address {
   updatedAt: Date;
 }
 
+export interface OrderShippingAddress {
+  fullName: string;
+  phone: string;
+  street?: string;
+  address?: string;
+  ward?: string;
+  district?: string;
+  city?: string;
+  zipCode?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -86,6 +97,8 @@ export interface Product {
   stock: number;
   lowStockThreshold: number;
   sku?: string;
+  viewCount?: number;
+  soldQuantity?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -96,9 +109,13 @@ export interface Order {
   seller?: Seller;
   products?: Product[];
   totalAmount: number;
+  discountAmount?: number;
+  voucherCode?: string | null;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  paymentMethod?: "STRIPE" | "COD";
+  paymentStatus?: "UNPAID" | "PAID" | "COD_PENDING" | "FAILED";
   paymentIntentId?: string;
-  shippingAddress?: string;
+  shippingAddress?: string | OrderShippingAddress | null;
   createdAt: Date;
   subOrders?: SubOrder[];
 }
@@ -110,6 +127,7 @@ export interface SubOrder {
   sellerId: string;
   seller: User;
   subTotal: number;
+  discountAmount?: number;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   createdAt: Date;
   updatedAt: Date;

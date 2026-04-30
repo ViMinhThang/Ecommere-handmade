@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-export default function SellerProfilePage() {
+function SellerProfilePageContent() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -555,6 +555,20 @@ export default function SellerProfilePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SellerProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SellerProfilePageContent />
+    </Suspense>
   );
 }
 

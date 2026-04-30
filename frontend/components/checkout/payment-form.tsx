@@ -5,12 +5,20 @@ import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 
+interface ConfirmPaymentResponse {
+  success: boolean;
+  orderId: string;
+  paymentStatus: string;
+  orderStatus: string;
+}
+
 interface PaymentFormProps {
+  orderId: string;
   paymentIntentId: string;
   onSuccess: (orderId: string) => void;
 }
 
-export function PaymentForm({ paymentIntentId, onSuccess }: PaymentFormProps) {
+export function PaymentForm({ orderId, paymentIntentId, onSuccess }: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -44,13 +52,17 @@ export function PaymentForm({ paymentIntentId, onSuccess }: PaymentFormProps) {
     if (paymentIntent && paymentIntent.status === "succeeded") {
       // Synchronous Verification Backend Call
       try {
-        const response = await apiClient.post<{ success: boolean; orderId: string }>("/orders/confirm-payment", { paymentIntentId });
+        const response = await apiClient.post<ConfirmPaymentResponse>("/orders/confirm-payment", { paymentIntentId });
         toast.success("Thanh toán thành công! Đơn hàng đã được đặt.");
-        if (response?.orderId) {
-          onSuccess(response.orderId);
-        } else {
-          onSuccess("");
+        const confirmedOrderId = response?.orderId || orderId;
+        if (!confirmedOrderId) {
+          toast.error("Payment verified but order id is missing.");
+          setIsProcessing(false);
+          return;
         }
+
+        onSuccess(confirmedOrderId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message || "Failed to verify payment with server.");
       }

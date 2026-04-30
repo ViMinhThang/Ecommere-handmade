@@ -35,6 +35,18 @@ export default function OrdersPage() {
   const { data: user } = useMe()
   const { data: subOrders, isLoading, error } = useMySubOrders()
 
+  const getDisplayedOrderAmount = (subOrder: {
+    subTotal: number
+    discountAmount?: number
+    type?: string
+  }) => {
+    if (subOrder.type === "CUSTOM") {
+      return subOrder.subTotal
+    }
+
+    return subOrder.subTotal - (subOrder.discountAmount || 0)
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DELIVERED":
@@ -150,6 +162,11 @@ export default function OrdersPage() {
                           Custom
                         </span>
                       )}
+                      {subOrder.type !== "CUSTOM" && subOrder.order?.paymentMethod && (
+                        <span className="px-2 py-0.5 bg-stone-100 text-stone-700 text-[9px] font-bold uppercase tracking-wider rounded border border-stone-200">
+                          {subOrder.order.paymentMethod}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm font-medium">{new Date(subOrder.createdAt).toLocaleDateString('vi-VN', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                   </div>
@@ -158,7 +175,9 @@ export default function OrdersPage() {
                       {getStatusIcon(subOrder.status)}
                       {getStatusLabel(subOrder.status)}
                     </span>
-                    <p className="font-serif italic text-2xl text-primary">{formatCurrency(subOrder.subTotal)}</p>
+                    <p className="font-serif italic text-2xl text-primary">
+                      {formatCurrency(getDisplayedOrderAmount(subOrder))}
+                    </p>
                   </div>
                 </div>
 

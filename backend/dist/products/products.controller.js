@@ -27,6 +27,16 @@ let ProductsController = class ProductsController {
     constructor(productsService) {
         this.productsService = productsService;
     }
+    parseLimit(limit) {
+        if (!limit) {
+            return undefined;
+        }
+        const parsedLimit = Number(limit);
+        if (!Number.isFinite(parsedLimit) || parsedLimit < 1) {
+            throw new common_1.BadRequestException('Invalid limit');
+        }
+        return parsedLimit;
+    }
     uploadImage(file) {
         return this.productsService.uploadImage(file);
     }
@@ -36,14 +46,20 @@ let ProductsController = class ProductsController {
     findAll(query) {
         return this.productsService.findAll(query.status, query.categoryId, query.sellerId, query);
     }
-    getStats() {
-        return this.productsService.getStats();
+    getStats(req) {
+        return this.productsService.getStats(req.user.id, req.user.roles);
     }
-    getBySeller(sellerId) {
-        return this.productsService.getBySeller(sellerId);
+    getBySeller(req, sellerId) {
+        return this.productsService.getBySeller(req.user.id, req.user.roles, sellerId);
     }
-    getLowStock(sellerId) {
-        return this.productsService.getLowStockProducts(sellerId);
+    getLowStock(req, sellerId) {
+        return this.productsService.getLowStockProducts(req.user.id, req.user.roles, sellerId);
+    }
+    getBestSelling(limit) {
+        return this.productsService.getBestSellingProducts(this.parseLimit(limit));
+    }
+    getMostViewed(limit) {
+        return this.productsService.getMostViewedProducts(this.parseLimit(limit));
     }
     findOne(id) {
         return this.productsService.findOne(id);
@@ -54,14 +70,14 @@ let ProductsController = class ProductsController {
     remove(req, id) {
         return this.productsService.remove(id, req.user.id, req.user.roles);
     }
-    getInventory(id) {
-        return this.productsService.getInventory(id);
+    getInventory(req, id) {
+        return this.productsService.getInventory(id, req.user.id, req.user.roles);
     }
-    updateStock(id, updateStockDto) {
-        return this.productsService.updateStock(id, updateStockDto);
+    updateStock(req, id, updateStockDto) {
+        return this.productsService.updateStock(id, updateStockDto, req.user.id, req.user.roles);
     }
-    getInventoryLog(id) {
-        return this.productsService.getInventoryLog(id);
+    getInventoryLog(req, id) {
+        return this.productsService.getInventoryLog(id, req.user.id, req.user.roles);
     }
     incrementViewCount(id) {
         return this.productsService.incrementViewCount(id);
@@ -100,26 +116,46 @@ __decorate([
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)('stats'),
+    (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getStats", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)('seller/:sellerId'),
-    __param(0, (0, common_1.Param)('sellerId')),
+    (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('sellerId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getBySeller", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)('low-stock'),
-    __param(0, (0, common_1.Query)('sellerId')),
+    (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('sellerId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "getLowStock", null);
+__decorate([
+    (0, common_1.Get)('best-selling'),
+    __param(0, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
-], ProductsController.prototype, "getLowStock", null);
+], ProductsController.prototype, "getBestSelling", null);
+__decorate([
+    (0, common_1.Get)('most-viewed'),
+    __param(0, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "getMostViewed", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
@@ -151,27 +187,32 @@ __decorate([
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)(':id/inventory'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getInventory", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Patch)(':id/stock'),
     (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_stock_dto_1.UpdateStockDto]),
+    __metadata("design:paramtypes", [Object, String, update_stock_dto_1.UpdateStockDto]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "updateStock", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Get)(':id/inventory-log'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, roles_guard_1.Roles)('ROLE_SELLER', 'ROLE_ADMIN'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getInventoryLog", null);
 __decorate([

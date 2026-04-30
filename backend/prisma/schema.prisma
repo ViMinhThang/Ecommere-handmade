@@ -40,6 +40,18 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  STRIPE
+  COD
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  COD_PENDING
+  FAILED
+}
+
 enum CustomOrderStatus {
   DRAFT
   PENDING_REVIEW
@@ -394,6 +406,8 @@ model Order {
   discountAmount  Decimal     @default(0)
   voucherCode     String?
   status          OrderStatus @default(PENDING)
+  paymentMethod   PaymentMethod @default(STRIPE)
+  paymentStatus   PaymentStatus @default(UNPAID)
   paymentIntentId String?     @unique
   shippingAddress Json?
   createdAt       DateTime    @default(now())

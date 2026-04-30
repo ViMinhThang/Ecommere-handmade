@@ -7,7 +7,7 @@ import { ProductsSection } from "@/components/storefront/products-section";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background text-foreground font-body selection:bg-primary/20 selection:text-primary">
+    <div className="min-h-screen bg-background font-body text-foreground selection:bg-primary/20 selection:text-primary">
       <CustomerNavBar />
 
       <main className="pt-24">
@@ -15,11 +15,13 @@ export default function Home() {
           <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-16 lg:flex-row">
             <div className="z-10 w-full lg:w-1/2">
               <h1 className="mb-8 text-5xl font-headline italic leading-tight tracking-tight text-primary lg:text-7xl">
-                Tâm hồn của <br />Tác phẩm thủ công.
+                Tâm hồn của <br />
+                Tác phẩm thủ công.
               </h1>
-              <p className="mb-10 max-w-md text-lg leading-relaxed text-muted-foreground lg:text-xl font-body">
+              <p className="mb-10 max-w-md text-lg leading-relaxed text-muted-foreground lg:text-xl">
                 Một bộ sưu tập được chọn lọc cho những ai tìm kiếm giá trị thật.
-                Mỗi tác phẩm kể một câu chuyện về sự kiên nhẫn, vật liệu và kỹ năng.
+                Mỗi tác phẩm kể một câu chuyện về sự kiên nhẫn, vật liệu và kỹ
+                năng.
               </p>
               <div className="flex gap-4">
                 <Link
@@ -64,19 +66,22 @@ export default function Home() {
         <ProductsSection
           title="Sản phẩm mới"
           subtitle="Vừa ra mắt"
+          mode="latest"
           params={{ limit: 4 }}
         />
 
         <ProductsSection
-          title="Bán chạy nhất"
+          title="Sản phẩm bán chạy"
           subtitle="Được yêu thích nhất"
-          params={{ limit: 4 }}
+          mode="best-selling"
+          limit={4}
         />
 
         <ProductsSection
-          title="Được quan tâm nhất"
-          subtitle="Sản phẩm xem nhiều nhất"
-          params={{ sortBy: "viewCount", order: "desc", limit: 4 }}
+          title="Sản phẩm được xem nhiều nhất"
+          subtitle="Được quan tâm nhất"
+          mode="most-viewed"
+          limit={4}
         />
       </main>
 
