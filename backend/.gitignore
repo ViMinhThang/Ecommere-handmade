@@ -8,3 +8,5 @@ node_modules
 /generated/prisma
 /dist/
 *.tsbuildinfo
+*.log
+.phase-*.log
