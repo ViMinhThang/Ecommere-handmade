@@ -28,6 +28,7 @@ import {
   OrderItem,
   ChatConversationSummary,
   ChatMessage,
+  SellerSearchParams,
 } from "@/types";
 
 export const userKeys = {
@@ -40,6 +41,14 @@ export const userKeys = {
   stats: () => [...userKeys.all, "stats"] as const,
   addresses: (userId: string) =>
     [...userKeys.all, "addresses", userId] as const,
+};
+
+export const sellerKeys = {
+  all: ["sellers"] as const,
+  details: () => [...sellerKeys.all, "detail"] as const,
+  detail: (id: string) => [...sellerKeys.details(), id] as const,
+  search: (params?: SellerSearchParams) =>
+    [...sellerKeys.all, "search", { ...params }] as const,
 };
 
 export const categoryKeys = {
@@ -102,9 +111,20 @@ export function useMe() {
 
 export function useSeller(id: string) {
   return useQuery({
-    queryKey: ["sellers", id],
+    queryKey: sellerKeys.detail(id),
     queryFn: () => usersApi.getSellerById(id),
     enabled: !!id,
+  });
+}
+
+export function useSearchSellers(
+  params?: SellerSearchParams,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: sellerKeys.search(params),
+    queryFn: () => usersApi.searchSellers(params),
+    enabled,
   });
 }
 
@@ -146,7 +166,10 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({
         queryKey: userKeys.detail(updatedUser.id),
       });
-      queryClient.invalidateQueries({ queryKey: ["sellers", updatedUser.id] });
+      queryClient.invalidateQueries({
+        queryKey: sellerKeys.detail(updatedUser.id),
+      });
+      queryClient.invalidateQueries({ queryKey: sellerKeys.all });
     },
   });
 }

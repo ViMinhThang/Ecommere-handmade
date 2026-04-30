@@ -1,5 +1,12 @@
 import { apiClient } from './client';
-import { User, UserRole, UserStatus, Address } from '@/types';
+import {
+  User,
+  UserRole,
+  UserStatus,
+  Address,
+  SellerSearchParams,
+  SellerSearchResponse,
+} from '@/types';
 
 interface UsersResponse {
   total: number;
@@ -33,6 +40,20 @@ export const usersApi = {
   getMe: () => apiClient.get<User>('/users/me'),
 
   getSellerById: (id: string) => apiClient.get<User>(`/sellers/${id}`),
+
+  searchSellers: (params?: SellerSearchParams) => {
+    const query = new URLSearchParams();
+    if (params?.q?.trim()) query.set('q', params.q.trim());
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.sortBy) query.set('sortBy', params.sortBy);
+    if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+
+    const queryString = query.toString();
+    return apiClient.get<SellerSearchResponse>(
+      `/sellers/search${queryString ? `?${queryString}` : ''}`,
+    );
+  },
 
   create: (data: Partial<User>) => apiClient.post<User>('/users', data),
 

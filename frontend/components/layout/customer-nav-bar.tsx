@@ -42,6 +42,16 @@ export function CustomerNavBar() {
             >
               Discover
             </Link>
+            <Link
+              href="/sellers"
+              className={`font-medium transition-colors duration-300 font-headline italic tracking-tight ${
+                pathname === "/sellers"
+                  ? "text-primary border-b-2 border-primary pb-1"
+                  : "text-muted-foreground hover:text-primary"
+              }`}
+            >
+              Gian hàng
+            </Link>
             {displayedCategories.map((category) => {
               const categoryPath = `/categories/${category.slug || category.id}`;
               const isActive = pathname === categoryPath;

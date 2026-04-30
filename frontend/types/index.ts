@@ -1,5 +1,11 @@
 export type UserRole = 'ROLE_USER' | 'ROLE_SELLER' | 'ROLE_ADMIN';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
+export type SellerSearchSortBy =
+  | "relevance"
+  | "newest"
+  | "productCount"
+  | "rating";
+export type SellerSearchSortOrder = "asc" | "desc";
 
 export interface Address {
   id: string;
@@ -66,6 +72,38 @@ export interface Seller {
   sales: number;
   rating: number;
   createdAt: Date;
+}
+
+export interface SellerSearchParams {
+  q?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: SellerSearchSortBy;
+  sortOrder?: SellerSearchSortOrder;
+}
+
+export interface SellerSearchResult {
+  id: string;
+  name: string;
+  shopName?: string | null;
+  avatar?: string | null;
+  sellerTitle?: string | null;
+  sellerBio?: string | null;
+  productCount: number;
+  averageRating: number | null;
+  totalReviews: number;
+  createdAt: Date | string;
+  linkTarget: string;
+}
+
+export interface SellerSearchResponse {
+  data: SellerSearchResult[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ProductImage {
