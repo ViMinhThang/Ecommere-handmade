@@ -894,8 +894,12 @@ export const orderKeys = {
   seller: () => [...orderKeys.all, "seller"] as const,
   admin: (filters?: AdminOrderFilters) =>
     [...orderKeys.all, "admin", { ...filters }] as const,
-  details: () => [...orderKeys.all, "detail"] as const,
-  detail: (id: string) => [...orderKeys.details(), id] as const,
+  orderDetails: () => [...orderKeys.all, "order-detail"] as const,
+  orderDetail: (id: string) => [...orderKeys.orderDetails(), id] as const,
+  subOrderDetails: () => [...orderKeys.all, "sub-order-detail"] as const,
+  subOrderDetail: (id: string) => [...orderKeys.subOrderDetails(), id] as const,
+  adminDetails: () => [...orderKeys.all, "admin-detail"] as const,
+  adminDetail: (id: string) => [...orderKeys.adminDetails(), id] as const,
 };
 
 export function useMySubOrders() {
@@ -907,7 +911,7 @@ export function useMySubOrders() {
 
 export function useOrder(id: string, enabled = true) {
   return useQuery({
-    queryKey: orderKeys.detail(id),
+    queryKey: orderKeys.orderDetail(id),
     queryFn: () => ordersApi.getOrder(id) as Promise<Order>,
     enabled: !!id && enabled,
   });
@@ -915,7 +919,7 @@ export function useOrder(id: string, enabled = true) {
 
 export function useSubOrder(id: string, enabled = true) {
   return useQuery({
-    queryKey: orderKeys.detail(id),
+    queryKey: orderKeys.subOrderDetail(id),
     queryFn: () => ordersApi.getSubOrder(id),
     enabled: !!id && enabled,
   });
@@ -939,7 +943,7 @@ export function useAdminOrders(filters?: AdminOrderFilters, enabled = true) {
 
 export function useAdminOrder(id: string, enabled = true) {
   return useQuery({
-    queryKey: orderKeys.detail(id),
+    queryKey: orderKeys.adminDetail(id),
     queryFn: () => ordersApi.getAdminOrder(id),
     enabled: !!id && enabled,
   });
@@ -952,7 +956,7 @@ export function useUpdateSubOrderStatus() {
       ordersApi.updateSubOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
-      queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
     },
   });
 }
@@ -964,7 +968,8 @@ export function useUpdateAdminOrderStatus() {
       ordersApi.updateAdminOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
-      queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
     },
   });
 }
@@ -975,7 +980,8 @@ export function useCancelOrder() {
     mutationFn: (id: string) => ordersApi.cancelOrder(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
-      queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
     },
   });
 }
