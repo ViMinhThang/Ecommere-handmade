@@ -37,7 +37,10 @@ export function ProfileSidebar() {
     navItems.push({ href: "/dashboard", label: "Bảng điều khiển", icon: ExternalLink })
   }
 
-  const registrationYear = user?.createdAt ? new Date(user.createdAt).getFullYear() : 2023
+  const registrationYear =
+    user && "createdAt" in user && user.createdAt
+      ? new Date(user.createdAt as string | number | Date).getFullYear()
+      : 2023
 
   return (
     <aside className="w-full md:w-72 flex-shrink-0 bg-muted/30 min-h-[600px] rounded-lg overflow-hidden border border-border/40">

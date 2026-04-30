@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { useAuth } from '@/contexts/auth-context'
 import { ImageSelector } from './image-selector'
 
 interface SelectedImage {
@@ -35,6 +36,7 @@ interface UserFormData {
 }
 
 export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps) {
+  const { user: currentUser } = useAuth()
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
     email: '',
@@ -132,9 +134,10 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
             <div className="grid gap-2 mb-4">
               <Label>Ảnh đại diện</Label>
               <ImageSelector
-                maxImages={1}
+                userId={currentUser?.id || ''}
+                selectedImages={selectedImage ? [selectedImage] : []}
                 onSelectionChange={handleSelectionChange}
-                initialImages={selectedImage ? [selectedImage] : []}
+                mode="single"
               />
             </div>
             

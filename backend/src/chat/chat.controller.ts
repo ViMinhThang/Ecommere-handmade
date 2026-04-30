@@ -43,7 +43,10 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
-    return this.chatService.getConversationSummaryForUser(conversationId, req.user.id);
+    return this.chatService.getConversationSummaryForUser(
+      conversationId,
+      req.user.id,
+    );
   }
 
   @Get('conversations/:conversationId/messages')

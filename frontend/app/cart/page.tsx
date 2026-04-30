@@ -8,7 +8,7 @@ import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CartItemCard } from "@/components/storefront/cart-item-card";
 import { useCartContext } from "@/contexts/cart-context";
 import { useAuth } from "@/contexts/auth-context";
-import { useCartSuggestions, useAddToCart, useApplyVoucher, useVouchers } from "@/lib/api/hooks";
+import { useCartSuggestions, useAddToCart, useApplyVoucher, useRemoveVoucher, useVouchers } from "@/lib/api/hooks";
 import type { Product, ProductImage, Voucher } from "@/types";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -126,7 +126,7 @@ function LoginPrompt() {
 export default function CartPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { items, subtotal, discountAmount, total, isLoading, appliedVoucher, updateQuantity, removeItem } = useCartContext();
+  const { items, subtotal, total, isLoading, appliedVoucher, updateQuantity, removeItem } = useCartContext();
   const { data: suggestions } = useCartSuggestions(isAuthenticated && items.length > 0);
   const { data: allVouchersData } = useVouchers({ limit: 100 });
   const [voucherCode, setVoucherCode] = useState("");
@@ -168,9 +168,9 @@ export default function CartPage() {
     // Extract unique category IDs from cart items
     const cartCategoryIds = new Set(items.map(item => item.product.categoryId));
     
-    const vouchers = Array.isArray(allVouchersData) 
-      ? allVouchersData 
-      : (allVouchersData as any)?.data || [];
+    const vouchers = Array.isArray(allVouchersData)
+      ? allVouchersData
+      : ((allVouchersData as { data?: Voucher[] } | undefined)?.data ?? []);
 
     // Filter vouchers where categoryId matches any in cart
     return vouchers.filter((v: Voucher) => 

@@ -5,7 +5,6 @@ import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { apiClient } from "@/lib/api/client";
 import { PaymentForm } from "@/components/checkout/payment-form";
-import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMe, useAddresses, useCart } from "@/lib/api/hooks";
@@ -16,6 +15,11 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_TYooMQauvdEDq54NiTphI7jx"
 );
 
+interface CheckoutResponse {
+  clientSecret: string;
+  orderId: string;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { data: user } = useMe();
@@ -23,6 +27,7 @@ export default function CheckoutPage() {
   const { data: cart } = useCart();
   
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [checkoutOrderId, setCheckoutOrderId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -60,7 +65,7 @@ export default function CheckoutPage() {
     setIsLoading(true);
 
     try {
-      const data = await apiClient.post<any>("/orders/checkout", {
+      const data = await apiClient.post<CheckoutResponse>("/orders/checkout", {
         shippingAddress: {
           fullName: formData.fullName,
           phone: formData.phone,
@@ -70,9 +75,13 @@ export default function CheckoutPage() {
         }
       });
 
-      if (data?.clientSecret) {
-        setClientSecret(data.clientSecret);
+      if (!data?.clientSecret || !data?.orderId) {
+        throw new Error("Checkout response is missing payment data.");
       }
+
+      setClientSecret(data.clientSecret);
+      setCheckoutOrderId(data.orderId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err.message || "Không thể khởi tạo thanh toán.");
     } finally {
@@ -285,7 +294,10 @@ export default function CheckoutPage() {
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="font-headline text-3xl italic">Thông tin Thanh toán</h2>
                   <button 
-                    onClick={() => setClientSecret(null)}
+                    onClick={() => {
+                      setClientSecret(null);
+                      setCheckoutOrderId("");
+                    }}
                     className="text-xs uppercase tracking-widest font-bold text-stone-400 hover:text-primary transition-colors"
                   >
                     Chỉnh sửa địa chỉ
@@ -294,6 +306,7 @@ export default function CheckoutPage() {
                 <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200">
                   <Elements stripe={stripePromise} options={options}>
                     <PaymentForm 
+                      orderId={checkoutOrderId}
                       paymentIntentId={paymentIntentId} 
                       onSuccess={(orderId) => {
                         router.push(`/orders/${orderId}/confirmation`);

@@ -231,7 +231,11 @@ export class CartService {
     });
   }
 
-  async updateItemQuantity(userId: string, productId: string, dto: UpdateCartItemDto) {
+  async updateItemQuantity(
+    userId: string,
+    productId: string,
+    dto: UpdateCartItemDto,
+  ) {
     const cart = await this.getOrCreateCart(userId);
 
     const item = await this.prisma.cartItem.findUnique({

@@ -15,6 +15,17 @@ export interface Address {
   updatedAt: Date;
 }
 
+export interface OrderShippingAddress {
+  fullName: string;
+  phone: string;
+  street?: string;
+  address?: string;
+  ward?: string;
+  district?: string;
+  city?: string;
+  zipCode?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -96,9 +107,11 @@ export interface Order {
   seller?: Seller;
   products?: Product[];
   totalAmount: number;
+  discountAmount?: number;
+  voucherCode?: string | null;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   paymentIntentId?: string;
-  shippingAddress?: string;
+  shippingAddress?: string | OrderShippingAddress | null;
   createdAt: Date;
   subOrders?: SubOrder[];
 }

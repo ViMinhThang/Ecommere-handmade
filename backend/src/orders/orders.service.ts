@@ -7,8 +7,18 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CartService } from '../cart/cart.service';
-import { EnrichedCart, EnrichedCartItem, UnifiedOrder } from '../common/interfaces/commerce.interface';
-import { Order, OrderStatus, Prisma, SubOrder, CustomOrder } from '@prisma/client';
+import {
+  EnrichedCart,
+  EnrichedCartItem,
+  UnifiedOrder,
+} from '../common/interfaces/commerce.interface';
+import {
+  Order,
+  OrderStatus,
+  Prisma,
+  SubOrder,
+  CustomOrder,
+} from '@prisma/client';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -18,8 +28,18 @@ interface SubOrderGroup {
 type SubOrderWithRelations = Prisma.SubOrderGetPayload<{
   include: {
     seller: { select: { id: true; name: true; shopName: true; avatar: true } };
-    items: { include: { product: { include: { images: true } }; review: true } };
-    order: { select: { createdAt: true; shippingAddress: true; customer: { select: { id: true; name: true; email: true; avatar: true } } } };
+    items: {
+      include: { product: { include: { images: true } }; review: true };
+    };
+    order: {
+      select: {
+        createdAt: true;
+        shippingAddress: true;
+        customer: {
+          select: { id: true; name: true; email: true; avatar: true };
+        };
+      };
+    };
   };
 }>;
 
@@ -80,7 +100,9 @@ export class OrdersService {
     }
   }
 
-  private groupItemsBySeller(items: EnrichedCartItem[]): Map<string, SubOrderGroup> {
+  private groupItemsBySeller(
+    items: EnrichedCartItem[],
+  ): Map<string, SubOrderGroup> {
     const groups = new Map<string, SubOrderGroup>();
     for (const item of items) {
       const sellerId = item.product.sellerId;
@@ -111,14 +133,16 @@ export class OrdersService {
           discountAmount: cart.discountAmount,
           voucherCode: cart.appliedVoucher?.code,
           paymentIntentId,
-          shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : undefined,
+          shippingAddress: shippingAddress
+            ? JSON.stringify(shippingAddress)
+            : undefined,
           status: 'PENDING',
         },
       });
 
       await this.createSubOrders(tx, order.id, cart, sellerGroups);
       await this.cartService.clearCart(userId);
-      
+
       await tx.cart.update({
         where: { userId },
         data: { appliedVoucherId: null },
@@ -128,7 +152,10 @@ export class OrdersService {
     });
   }
 
-  private async updateStock(tx: Prisma.TransactionClient, items: EnrichedCartItem[]) {
+  private async updateStock(
+    tx: Prisma.TransactionClient,
+    items: EnrichedCartItem[],
+  ) {
     for (const item of items) {
       await tx.product.update({
         where: { id: item.productId },
@@ -149,11 +176,13 @@ export class OrdersService {
     for (let i = 0; i < groups.length; i++) {
       const [sellerId, data] = groups[i];
       const isLast = i === groups.length - 1;
-      
-      const subOrderDiscount = isLast 
-        ? remainingDiscount 
-        : Math.round(cart.discountAmount * (data.subTotal / (cart.subtotal || 1)));
-      
+
+      const subOrderDiscount = isLast
+        ? remainingDiscount
+        : Math.round(
+            cart.discountAmount * (data.subTotal / (cart.subtotal || 1)),
+          );
+
       remainingDiscount -= subOrderDiscount;
 
       const subOrder = await tx.subOrder.create({
@@ -232,16 +261,20 @@ export class OrdersService {
       createdAt: co.createdAt,
       updatedAt: co.updatedAt,
       type: 'CUSTOM',
-      items: [{
-        id: co.id,
-        productId: 'custom',
-        quantity: 1,
-        price: co.price,
-        product: {
-          name: co.title,
-          images: co.sketchImageUrl ? [{ url: co.sketchImageUrl, isMain: true }] : [],
+      items: [
+        {
+          id: co.id,
+          productId: 'custom',
+          quantity: 1,
+          price: co.price,
+          product: {
+            name: co.title,
+            images: co.sketchImageUrl
+              ? [{ url: co.sketchImageUrl, isMain: true }]
+              : [],
+          },
         },
-      }],
+      ],
       order: {
         createdAt: co.createdAt,
         shippingAddress: null,
@@ -250,18 +283,39 @@ export class OrdersService {
     })) as UnifiedOrder[];
   }
 
-  private mergeAndSortOrders(standard: UnifiedOrder[], custom: UnifiedOrder[]): UnifiedOrder[] {
+  private mergeAndSortOrders(
+    standard: UnifiedOrder[],
+    custom: UnifiedOrder[],
+  ): UnifiedOrder[] {
     return [...standard, ...custom].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
 
-  private readonly sellerSelect = { id: true, name: true, shopName: true, avatar: true };
-  private readonly customerSelect = { id: true, name: true, email: true, avatar: true };
+  private readonly sellerSelect = {
+    id: true,
+    name: true,
+    shopName: true,
+    avatar: true,
+  };
+  private readonly customerSelect = {
+    id: true,
+    name: true,
+    email: true,
+    avatar: true,
+  };
 
   private readonly userOrderInclude = {
     seller: { select: this.sellerSelect },
-    items: { include: { product: { include: { images: { where: { isMain: true as const }, take: 1 } } }, review: true } },
+    items: {
+      include: {
+        product: {
+          include: { images: { where: { isMain: true as const }, take: 1 } },
+        },
+        review: true,
+      },
+    },
     order: { select: { createdAt: true, shippingAddress: true } },
   };
 
@@ -284,7 +338,8 @@ export class OrdersService {
     });
 
     if (!order) throw new NotFoundException('Order not found');
-    if (order.customerId !== userId) throw new ForbiddenException('Not your order');
+    if (order.customerId !== userId)
+      throw new ForbiddenException('Not your order');
 
     return order;
   }
@@ -299,26 +354,33 @@ export class OrdersService {
           },
         },
         seller: { select: this.sellerSelect },
-        items: { include: { product: { include: { images: true } }, review: true } },
+        items: {
+          include: { product: { include: { images: true } }, review: true },
+        },
       },
     });
 
     if (!subOrder) throw new NotFoundException('Order not found');
-    
+
     if (subOrder.order.customerId !== userId && subOrder.sellerId !== userId) {
-        throw new ForbiddenException('Not your order');
+      throw new ForbiddenException('Not your order');
     }
 
     return subOrder;
   }
 
-  async updateSubOrderStatus(sellerId: string, subOrderId: string, status: OrderStatus) {
+  async updateSubOrderStatus(
+    sellerId: string,
+    subOrderId: string,
+    status: OrderStatus,
+  ) {
     const subOrder = await this.prisma.subOrder.findUnique({
       where: { id: subOrderId },
     });
 
     if (!subOrder) throw new NotFoundException('SubOrder not found');
-    if (subOrder.sellerId !== sellerId) throw new ForbiddenException('Not your order');
+    if (subOrder.sellerId !== sellerId)
+      throw new ForbiddenException('Not your order');
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.subOrder.update({
@@ -332,30 +394,37 @@ export class OrdersService {
   }
 
   async confirmPayment(userId: string, paymentIntentId: string) {
-    const isSucceeded = await this.stripeService.verifyPaymentIntent(paymentIntentId);
+    const isSucceeded =
+      await this.stripeService.verifyPaymentIntent(paymentIntentId);
     if (!isSucceeded) {
       throw new BadRequestException('Payment has not succeeded yet');
     }
 
     const order = await this.prisma.order.findUnique({
-        where: { paymentIntentId }
+      where: { paymentIntentId },
     });
 
     if (!order) throw new NotFoundException('Order not found');
-    if (order.customerId !== userId) throw new ForbiddenException('Not your order');
+    if (order.customerId !== userId)
+      throw new ForbiddenException('Not your order');
 
     return this.prisma.$transaction(async (tx) => {
-        await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'PAID' }
-        });
-        
-        await tx.subOrder.updateMany({
-            where: { orderId: order.id },
-            data: { status: 'PAID' }
-        });
+      const updatedOrder = await tx.order.update({
+        where: { id: order.id },
+        data: { status: 'PAID' },
+      });
 
-        return { success: true };
+      await tx.subOrder.updateMany({
+        where: { orderId: order.id },
+        data: { status: 'PAID' },
+      });
+
+      return {
+        success: true,
+        orderId: updatedOrder.id,
+        paymentStatus: updatedOrder.status,
+        orderStatus: updatedOrder.status,
+      };
     });
   }
 

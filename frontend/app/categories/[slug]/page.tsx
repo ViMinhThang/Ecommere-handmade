@@ -4,14 +4,14 @@ import { useCategory, useProducts } from "@/lib/api/hooks";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback } from "react";
+import { Suspense, useCallback } from "react";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
 import { X, ChevronDown } from "lucide-react";
 
-export default function CategoryPage() {
+function CategoryPageContent() {
   const { slug } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -272,5 +272,23 @@ export default function CategoryPage() {
 
       <CustomerFooter />
     </div>
+  );
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background">
+          <CustomerNavBar />
+          <main className="flex min-h-[60vh] items-center justify-center pt-32">
+            <p className="text-sm text-muted-foreground">Loading category...</p>
+          </main>
+          <CustomerFooter />
+        </div>
+      }
+    >
+      <CategoryPageContent />
+    </Suspense>
   );
 }

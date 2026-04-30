@@ -3,11 +3,31 @@
 import { useParams, useRouter } from "next/navigation";
 import { useOrder } from "@/lib/api/hooks";
 import { mediaApi } from "@/lib/api/media";
-import { SubOrder, OrderItem } from "@/types";
+import { OrderItem, OrderShippingAddress, SubOrder } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
+
+function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as OrderShippingAddress;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as OrderShippingAddress;
+  }
+
+  return null;
+}
 
 export default function OrderConfirmationPage() {
   const params = useParams();
@@ -33,7 +53,7 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  const shippingAddress = order.shippingAddress ? JSON.parse(order.shippingAddress) : null;
+  const shippingAddress = normalizeShippingAddress(order.shippingAddress);
   const arrivalStart = addDays(new Date(order.createdAt), 3);
   const arrivalEnd = addDays(new Date(order.createdAt), 7);
 
@@ -45,10 +65,15 @@ export default function OrderConfirmationPage() {
     }))
   ) || [];
 
-  const subtotal = Number(order.totalAmount);
-  const shipping = 25000; // Flat for now
-  const tax = subtotal * 0.08; // 8% VAT
-  const total = subtotal + shipping + tax;
+  const itemSubtotal = allItems.reduce(
+    (sum, item) => sum + Number(item.price) * item.quantity,
+    0,
+  );
+  const discountAmount = Number(order.discountAmount || 0);
+  const shipping = Math.max(Number(order.totalAmount) - (itemSubtotal - discountAmount), 0);
+  const total = Number(order.totalAmount);
+  const subtotal = itemSubtotal - discountAmount;
+  const tax = 0;
 
   return (
     <div className="text-stone-800 min-h-screen flex flex-col bg-[#F8F6F1] font-body">
@@ -149,7 +174,7 @@ export default function OrderConfirmationPage() {
                 {shippingAddress ? (
                   <>
                     <p className="text-stone-900 font-bold text-base mb-2">{shippingAddress.fullName}</p>
-                    <p>{shippingAddress.street}</p>
+                    <p>{shippingAddress.street || shippingAddress.address}</p>
                     <p>{shippingAddress.district}, {shippingAddress.city}</p>
                     <p className="mt-4 text-stone-400 font-bold uppercase tracking-widest text-[10px]">Điện thoại: {shippingAddress.phone}</p>
                   </>
