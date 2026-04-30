@@ -141,6 +141,44 @@ export interface Product {
   updatedAt: Date;
 }
 
+export type ProductQuestionStatus = "PUBLISHED" | "HIDDEN" | "DELETED";
+
+export interface ProductQuestionUser {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  role?: UserRole;
+}
+
+export interface ProductQuestion {
+  id: string;
+  productId: string;
+  question: string;
+  answer?: string | null;
+  answeredAt?: Date | string | null;
+  createdAt: Date | string;
+  user: ProductQuestionUser;
+  answeredBy: ProductQuestionUser | null;
+}
+
+export interface ProductQuestionsResponse {
+  data: ProductQuestion[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface CreateProductQuestionInput {
+  question: string;
+}
+
+export interface AnswerProductQuestionInput {
+  answer: string;
+}
+
 export interface Order {
   id: string;
   customer: Customer;
