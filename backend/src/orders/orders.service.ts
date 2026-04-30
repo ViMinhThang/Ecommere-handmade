@@ -15,6 +15,8 @@ import {
 import {
   Order,
   OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
   Prisma,
   SubOrder,
   CustomOrder,
@@ -23,6 +25,16 @@ import {
 interface SubOrderGroup {
   subTotal: number;
   items: EnrichedCartItem[];
+}
+
+interface ExecuteCheckoutTransactionParams {
+  userId: string;
+  cart: EnrichedCart;
+  sellerGroups: Map<string, SubOrderGroup>;
+  shippingAddress: Record<string, unknown>;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  paymentIntentId?: string | null;
 }
 
 type SubOrderWithRelations = Prisma.SubOrderGetPayload<{
@@ -58,11 +70,34 @@ export class OrdersService {
     private readonly cartService: CartService,
   ) {}
 
-  async checkout(userId: string, shippingAddress: Record<string, any>) {
+  async checkout(
+    userId: string,
+    shippingAddress: Record<string, unknown>,
+    paymentMethod: PaymentMethod = PaymentMethod.STRIPE,
+  ) {
     const cart = await this.cartService.getCart(userId);
     this.validateCart(cart);
 
     const sellerGroups = this.groupItemsBySeller(cart.items);
+    const normalizedPaymentMethod = this.normalizePaymentMethod(paymentMethod);
+
+    if (normalizedPaymentMethod === PaymentMethod.COD) {
+      const order = await this.executeCheckoutTransaction({
+        userId,
+        cart,
+        sellerGroups,
+        shippingAddress,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.COD_PENDING,
+      });
+
+      return {
+        orderId: order.id,
+        paymentMethod: PaymentMethod.COD,
+        requiresPayment: false,
+      };
+    }
+
     const shippingFee = 25000;
     const finalTotal = cart.total + shippingFee;
 
@@ -72,18 +107,33 @@ export class OrdersService {
       { userId, voucherCode: cart.appliedVoucher?.code || '' },
     );
 
-    const order = await this.executeCheckoutTransaction(
+    const order = await this.executeCheckoutTransaction({
       userId,
       cart,
       sellerGroups,
-      paymentIntent.id,
       shippingAddress,
-    );
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      paymentIntentId: paymentIntent.id,
+    });
 
     return {
       clientSecret: paymentIntent.client_secret as string,
       orderId: order.id,
+      paymentMethod: PaymentMethod.STRIPE,
+      requiresPayment: true,
     };
+  }
+
+  private normalizePaymentMethod(paymentMethod: PaymentMethod): PaymentMethod {
+    if (
+      paymentMethod !== PaymentMethod.STRIPE &&
+      paymentMethod !== PaymentMethod.COD
+    ) {
+      throw new BadRequestException('Invalid payment method');
+    }
+
+    return paymentMethod;
   }
 
   private validateCart(cart: EnrichedCart) {
@@ -117,12 +167,18 @@ export class OrdersService {
   }
 
   private async executeCheckoutTransaction(
-    userId: string,
-    cart: EnrichedCart,
-    sellerGroups: Map<string, SubOrderGroup>,
-    paymentIntentId: string,
-    shippingAddress: Record<string, any>,
+    params: ExecuteCheckoutTransactionParams,
   ): Promise<Order> {
+    const {
+      userId,
+      cart,
+      sellerGroups,
+      shippingAddress,
+      paymentMethod,
+      paymentStatus,
+      paymentIntentId,
+    } = params;
+
     return this.prisma.$transaction(async (tx) => {
       await this.updateStock(tx, cart.items);
 
@@ -132,19 +188,23 @@ export class OrdersService {
           totalAmount: cart.total + 25000,
           discountAmount: cart.discountAmount,
           voucherCode: cart.appliedVoucher?.code,
-          paymentIntentId,
+          paymentMethod,
+          paymentStatus,
+          paymentIntentId: paymentIntentId ?? null,
           shippingAddress: shippingAddress
-            ? JSON.stringify(shippingAddress)
+            ? (shippingAddress as Prisma.InputJsonValue)
             : undefined,
-          status: 'PENDING',
+          status: OrderStatus.PENDING,
         },
       });
 
       await this.createSubOrders(tx, order.id, cart, sellerGroups);
-      await this.cartService.clearCart(userId);
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id },
+      });
 
       await tx.cart.update({
-        where: { userId },
+        where: { id: cart.id },
         data: { appliedVoucherId: null },
       });
 
@@ -278,6 +338,8 @@ export class OrdersService {
       order: {
         createdAt: co.createdAt,
         shippingAddress: null,
+        paymentMethod: null,
+        paymentStatus: null,
         customer: co.customer,
       },
     })) as UnifiedOrder[];
@@ -316,11 +378,26 @@ export class OrdersService {
         review: true,
       },
     },
-    order: { select: { createdAt: true, shippingAddress: true } },
+    order: {
+      select: {
+        createdAt: true,
+        shippingAddress: true,
+        paymentMethod: true,
+        paymentStatus: true,
+      },
+    },
   };
 
   private readonly sellerOrderInclude = {
-    order: { include: { customer: { select: this.customerSelect } } },
+    order: {
+      select: {
+        createdAt: true,
+        shippingAddress: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        customer: { select: this.customerSelect },
+      },
+    },
     items: { include: { product: { include: { images: true } } } },
   };
 
@@ -405,24 +482,32 @@ export class OrdersService {
     });
 
     if (!order) throw new NotFoundException('Order not found');
+    if (order.paymentMethod !== PaymentMethod.STRIPE) {
+      throw new BadRequestException(
+        'Only Stripe orders can be confirmed with payment intent',
+      );
+    }
     if (order.customerId !== userId)
       throw new ForbiddenException('Not your order');
 
     return this.prisma.$transaction(async (tx) => {
       const updatedOrder = await tx.order.update({
         where: { id: order.id },
-        data: { status: 'PAID' },
+        data: {
+          status: OrderStatus.PAID,
+          paymentStatus: PaymentStatus.PAID,
+        },
       });
 
       await tx.subOrder.updateMany({
         where: { orderId: order.id },
-        data: { status: 'PAID' },
+        data: { status: OrderStatus.PAID },
       });
 
       return {
         success: true,
         orderId: updatedOrder.id,
-        paymentStatus: updatedOrder.status,
+        paymentStatus: updatedOrder.paymentStatus,
         orderStatus: updatedOrder.status,
       };
     });

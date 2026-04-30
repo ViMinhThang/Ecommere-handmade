@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   Body,
@@ -11,7 +12,7 @@ import {
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentMethod } from '@prisma/client';
 
 @Controller('orders')
 export class OrdersController {
@@ -21,9 +22,23 @@ export class OrdersController {
   @Post('checkout')
   async checkout(
     @Request() req: AuthenticatedRequest,
-    @Body() body: { shippingAddress: any },
+    @Body()
+    body: { shippingAddress: Record<string, unknown>; paymentMethod?: string },
   ) {
-    return this.ordersService.checkout(req.user.id, body.shippingAddress);
+    const paymentMethod = body.paymentMethod ?? PaymentMethod.STRIPE;
+
+    if (
+      paymentMethod !== PaymentMethod.STRIPE &&
+      paymentMethod !== PaymentMethod.COD
+    ) {
+      throw new BadRequestException('Invalid payment method');
+    }
+
+    return this.ordersService.checkout(
+      req.user.id,
+      body.shippingAddress,
+      paymentMethod as PaymentMethod,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

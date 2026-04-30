@@ -110,6 +110,8 @@ export interface Order {
   discountAmount?: number;
   voucherCode?: string | null;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  paymentMethod?: "STRIPE" | "COD";
+  paymentStatus?: "UNPAID" | "PAID" | "COD_PENDING" | "FAILED";
   paymentIntentId?: string;
   shippingAddress?: string | OrderShippingAddress | null;
   createdAt: Date;
@@ -123,6 +125,7 @@ export interface SubOrder {
   sellerId: string;
   seller: User;
   subTotal: number;
+  discountAmount?: number;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   createdAt: Date;
   updatedAt: Date;
