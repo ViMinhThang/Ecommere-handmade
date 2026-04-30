@@ -11,6 +11,7 @@ import {
 } from "./flash-sales";
 import { cartApi } from "./cart";
 import { ordersApi } from "./orders";
+import type { AdminOrderFilters, OrderStatus as ApiOrderStatus } from "./orders";
 import { analyticsApi } from "./analytics";
 import { reviewsApi } from "./reviews";
 import { chatApi, CursorParams, StartConversationDto } from "./chat";
@@ -891,6 +892,8 @@ export const orderKeys = {
   all: ["orders"] as const,
   mine: () => [...orderKeys.all, "mine"] as const,
   seller: () => [...orderKeys.all, "seller"] as const,
+  admin: (filters?: AdminOrderFilters) =>
+    [...orderKeys.all, "admin", { ...filters }] as const,
   details: () => [...orderKeys.all, "detail"] as const,
   detail: (id: string) => [...orderKeys.details(), id] as const,
 };
@@ -902,36 +905,77 @@ export function useMySubOrders() {
   });
 }
 
-export function useOrder(id: string) {
+export function useOrder(id: string, enabled = true) {
   return useQuery({
     queryKey: orderKeys.detail(id),
     queryFn: () => ordersApi.getOrder(id) as Promise<Order>,
-    enabled: !!id,
+    enabled: !!id && enabled,
   });
 }
 
-export function useSubOrder(id: string) {
+export function useSubOrder(id: string, enabled = true) {
   return useQuery({
     queryKey: orderKeys.detail(id),
     queryFn: () => ordersApi.getSubOrder(id),
-    enabled: !!id,
+    enabled: !!id && enabled,
   });
 }
 
-export function useSellerOrders() {
+export function useSellerOrders(enabled = true) {
   return useQuery({
     queryKey: orderKeys.seller(),
     queryFn: () => ordersApi.getSellerOrders(),
+    enabled,
+  });
+}
+
+export function useAdminOrders(filters?: AdminOrderFilters, enabled = true) {
+  return useQuery({
+    queryKey: orderKeys.admin(filters),
+    queryFn: () => ordersApi.getAdminOrders(filters),
+    enabled,
+  });
+}
+
+export function useAdminOrder(id: string, enabled = true) {
+  return useQuery({
+    queryKey: orderKeys.detail(id),
+    queryFn: () => ordersApi.getAdminOrder(id),
+    enabled: !!id && enabled,
   });
 }
 
 export function useUpdateSubOrderStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => 
+    mutationFn: ({ id, status }: { id: string; status: ApiOrderStatus }) =>
       ordersApi.updateSubOrderStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
+    },
+  });
+}
+
+export function useUpdateAdminOrderStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: ApiOrderStatus }) =>
+      ordersApi.updateAdminOrderStatus(id, status),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
+    },
+  });
+}
+
+export function useCancelOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.cancelOrder(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
     },
   });
 }

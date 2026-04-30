@@ -21,6 +21,36 @@ export class ProductsService {
     private flashSalesService: FlashSalesService,
   ) {}
 
+  private isAdmin(userRoles: string[]) {
+    return userRoles.includes('ROLE_ADMIN');
+  }
+
+  private async assertProductOwnership(
+    productId: string,
+    userId: string,
+    userRoles: string[],
+  ) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        sellerId: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    if (!this.isAdmin(userRoles) && product.sellerId !== userId) {
+      throw new ForbiddenException(
+        'You can only access products that belong to your shop',
+      );
+    }
+
+    return product;
+  }
+
   async uploadImage(file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('Vui lòng cung cấp file ảnh');
@@ -249,11 +279,14 @@ export class ProductsService {
     });
   }
 
-  async getStats() {
+  async getStats(userId: string, userRoles: string[]) {
     const stats = await this.prisma.product.groupBy({
       by: ['status'],
       _count: true,
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        ...(this.isAdmin(userRoles) ? {} : { sellerId: userId }),
+      },
     });
 
     const result: Record<string, number> = {
@@ -270,7 +303,13 @@ export class ProductsService {
     return result;
   }
 
-  async getBySeller(sellerId: string) {
+  async getBySeller(userId: string, userRoles: string[], sellerId: string) {
+    if (!this.isAdmin(userRoles) && sellerId !== userId) {
+      throw new ForbiddenException(
+        'You can only view products from your own shop',
+      );
+    }
+
     return this.prisma.product.findMany({
       where: { sellerId },
       include: {
@@ -280,7 +319,9 @@ export class ProductsService {
     });
   }
 
-  async getInventory(productId: string) {
+  async getInventory(productId: string, userId: string, userRoles: string[]) {
+    await this.assertProductOwnership(productId, userId, userRoles);
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       select: {
@@ -297,7 +338,16 @@ export class ProductsService {
     return product;
   }
 
-  async updateStock(productId: string, updateStockDto: UpdateStockDto) {
+  async updateStock(
+    productId: string,
+    updateStockDto: UpdateStockDto,
+    userId?: string,
+    userRoles: string[] = [],
+  ) {
+    if (userId) {
+      await this.assertProductOwnership(productId, userId, userRoles);
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -335,13 +385,12 @@ export class ProductsService {
     return updatedProduct;
   }
 
-  async getInventoryLog(productId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    });
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${productId} not found`);
-    }
+  async getInventoryLog(
+    productId: string,
+    userId: string,
+    userRoles: string[],
+  ) {
+    await this.assertProductOwnership(productId, userId, userRoles);
 
     return this.prisma.inventoryLog.findMany({
       where: { productId },
@@ -356,11 +405,23 @@ export class ProductsService {
     });
   }
 
-  async getLowStockProducts(sellerId?: string) {
+  async getLowStockProducts(
+    userId: string,
+    userRoles: string[],
+    sellerId?: string,
+  ) {
+    if (!this.isAdmin(userRoles) && sellerId && sellerId !== userId) {
+      throw new ForbiddenException(
+        'You can only view low stock products from your own shop',
+      );
+    }
+
+    const effectiveSellerId = this.isAdmin(userRoles) ? sellerId : userId;
+
     // Note: Prisma doesn't easily support field-to-field comparison in where clause (stock <= lowStockThreshold)
     // We use queryRaw for efficiency to avoid fetching all products
-    const sellerFilter = sellerId
-      ? Prisma.sql`AND p."sellerId" = ${sellerId}`
+    const sellerFilter = effectiveSellerId
+      ? Prisma.sql`AND p."sellerId" = ${effectiveSellerId}`
       : Prisma.empty;
 
     return this.prisma.$queryRaw`

@@ -34,7 +34,7 @@ export function Sidebar() {
     { href: "/dashboard/new-listing", label: "Đăng sản phẩm", icon: FilePlus2, show: isAdmin || isSeller },
     { href: "/dashboard/products", label: "Sản phẩm", icon: Package, show: isAdmin || isSeller },
     { href: "/dashboard/chat", label: "Tin nhan", icon: MessageCircle, show: isAdmin || isSeller },
-    { href: "/dashboard/orders", label: "Đơn hàng", icon: ShoppingCart, show: isAdmin },
+    { href: "/dashboard/orders", label: "Đơn hàng", icon: ShoppingCart, show: isAdmin || isSeller },
     { href: "/dashboard/users", label: "Người dùng", icon: Users, show: isAdmin },
     { href: "/dashboard/categories", label: "Danh mục", icon: Folder, show: isAdmin },
     { href: "/dashboard/vouchers", label: "Mã giảm giá", icon: Ticket, show: isAdmin },

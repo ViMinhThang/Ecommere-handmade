@@ -59,20 +59,33 @@ export class ProductsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('stats')
-  getStats() {
-    return this.productsService.getStats();
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  getStats(@Request() req: AuthenticatedRequest) {
+    return this.productsService.getStats(req.user.id, req.user.roles);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('seller/:sellerId')
-  getBySeller(@Param('sellerId') sellerId: string) {
-    return this.productsService.getBySeller(sellerId);
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  getBySeller(
+    @Request() req: AuthenticatedRequest,
+    @Param('sellerId') sellerId: string,
+  ) {
+    return this.productsService.getBySeller(req.user.id, req.user.roles, sellerId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('low-stock')
-  getLowStock(@Query('sellerId') sellerId?: string) {
-    return this.productsService.getLowStockProducts(sellerId);
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  getLowStock(
+    @Request() req: AuthenticatedRequest,
+    @Query('sellerId') sellerId?: string,
+  ) {
+    return this.productsService.getLowStockProducts(
+      req.user.id,
+      req.user.roles,
+      sellerId,
+    );
   }
 
   @Get(':id')
@@ -105,21 +118,38 @@ export class ProductsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id/inventory')
-  getInventory(@Param('id') id: string) {
-    return this.productsService.getInventory(id);
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  getInventory(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.productsService.getInventory(id, req.user.id, req.user.roles);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/stock')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
-  updateStock(@Param('id') id: string, @Body() updateStockDto: UpdateStockDto) {
-    return this.productsService.updateStock(id, updateStockDto);
+  updateStock(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateStockDto: UpdateStockDto,
+  ) {
+    return this.productsService.updateStock(
+      id,
+      updateStockDto,
+      req.user.id,
+      req.user.roles,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id/inventory-log')
-  getInventoryLog(@Param('id') id: string) {
-    return this.productsService.getInventoryLog(id);
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  getInventoryLog(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.productsService.getInventoryLog(id, req.user.id, req.user.roles);
   }
 
   @Post(':id/view')
