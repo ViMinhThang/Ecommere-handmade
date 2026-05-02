@@ -8,7 +8,6 @@ import { Reflector } from '@nestjs/core';
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let usersService: UsersService;
 
   const mockUsersService = {
     create: jest.fn(),
@@ -41,7 +40,6 @@ describe('UsersController', () => {
       .compile();
 
     controller = module.get<UsersController>(UsersController);
-    usersService = module.get<UsersService>(UsersService);
   });
 
   it('should be defined', () => {
@@ -59,7 +57,10 @@ describe('UsersController', () => {
 
       const result = await controller.create(dto);
 
-      expect(mockUsersService.create).toHaveBeenCalledWith(dto);
+      expect(mockUsersService.create).toHaveBeenCalledWith({
+        ...dto,
+        isEmailVerified: true,
+      });
       expect(result.id).toBe('1');
     });
   });
@@ -72,9 +73,15 @@ describe('UsersController', () => {
       };
       mockUsersService.findAll.mockResolvedValue(result);
 
-      const response = await controller.findAll();
+      const query = {};
 
-      expect(mockUsersService.findAll).toHaveBeenCalled();
+      const response = await controller.findAll(query);
+
+      expect(mockUsersService.findAll).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        query,
+      );
       expect(response).toEqual(result);
     });
   });

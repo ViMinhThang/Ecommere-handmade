@@ -76,7 +76,7 @@ export class CategoriesService {
     if (!category) {
       try {
         return await this.findOne(slug);
-      } catch (_e) {
+      } catch {
         throw new NotFoundException(
           `Category with slug or ID ${slug} not found`,
         );
