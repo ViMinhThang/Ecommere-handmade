@@ -4,7 +4,10 @@ import {
   IsOptional,
   IsEnum,
   IsArray,
+  IsInt,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateProductDto {
   @IsOptional()
@@ -25,7 +28,9 @@ export class UpdateProductDto {
   images?: { url: string; isMain: boolean }[];
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
+  @Min(0)
   price?: number;
 
   @IsOptional()
@@ -37,11 +42,15 @@ export class UpdateProductDto {
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   stock?: number;
 
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   lowStockThreshold?: number;
 
   @IsOptional()

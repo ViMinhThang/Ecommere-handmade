@@ -8,20 +8,42 @@ import { useCartContext } from "@/contexts/cart-context";
 import { useCategories } from "@/lib/api/hooks";
 import { usePathname } from "next/navigation";
 
+const HIDDEN_HEADER_CATEGORY_NAMES = new Set([
+  "Tốt nghiệp",
+  "Chia buồn",
+  "Cảm ơn",
+]);
+const HIDDEN_HEADER_CATEGORY_SLUGS = new Set([
+  "graduation",
+  "sympathy",
+  "thank-you",
+]);
+
 export function CustomerNavBar() {
   const { isAuthenticated } = useAuth();
   const { itemCount } = useCartContext();
   const { data: categoriesData } = useCategories({ status: "ACTIVE" });
   const categories = categoriesData?.data || [];
   const pathname = usePathname();
+  const isHomePage = pathname === "/";
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false,
   );
 
-  const displayedCategories = mounted ? categories.slice(0, 4) : [];
-  const profileHref = mounted && isAuthenticated ? "/profile/settings" : "/login";
+  const displayedCategories =
+    mounted && !isHomePage
+      ? categories
+          .filter(
+            (category) =>
+              !HIDDEN_HEADER_CATEGORY_NAMES.has(category.name) &&
+              !HIDDEN_HEADER_CATEGORY_SLUGS.has(category.slug || ""),
+          )
+          .slice(0, 4)
+      : [];
+  const profileHref =
+    mounted && isAuthenticated ? "/profile/settings" : "/login";
   const displayedItemCount = mounted ? itemCount : 0;
 
   return (
@@ -72,8 +94,8 @@ export function CustomerNavBar() {
           </div>
         </div>
         <div className="flex items-center gap-6">
-          <Link 
-            href="/cart" 
+          <Link
+            href="/cart"
             className="relative text-muted-foreground hover:text-primary scale-95 duration-200 ease-out flex items-center justify-center"
           >
             <ShoppingBag className="w-5 h-5" />
@@ -83,7 +105,7 @@ export function CustomerNavBar() {
               </span>
             )}
           </Link>
-          <Link 
+          <Link
             href={profileHref}
             className="text-muted-foreground hover:text-primary scale-95 duration-200 ease-out flex items-center justify-center"
           >
@@ -94,4 +116,3 @@ export function CustomerNavBar() {
     </nav>
   );
 }
-

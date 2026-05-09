@@ -4,10 +4,11 @@ import { OrdersController } from './orders.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { StripeModule } from '../stripe/stripe.module';
 import { CartModule } from '../cart/cart.module';
+import { StripeWebhookController } from './stripe-webhook.controller';
 
 @Module({
   imports: [PrismaModule, StripeModule, CartModule],
-  controllers: [OrdersController],
+  controllers: [OrdersController, StripeWebhookController],
   providers: [OrdersService],
   exports: [OrdersService],
 })

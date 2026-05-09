@@ -26,10 +26,10 @@ export class EbayProductImportService implements OnApplicationBootstrap {
       this.logger.warn(`Skip eBay import: script not found at ${scriptPath}`);
       return;
     }
-    this.logger.log(`Run eBay crawler script: ${scriptPath}`);
+    this.logger.log(`Run product import script: ${scriptPath}`);
     const exitCode = await this.runScript(scriptPath);
     if (exitCode !== 0) {
-      this.logger.warn(`eBay crawler exited with code ${exitCode}`);
+      this.logger.warn(`Product import exited with code ${exitCode}`);
     }
   }
 

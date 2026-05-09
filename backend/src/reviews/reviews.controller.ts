@@ -10,6 +10,10 @@ import {
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles, RolesGuard } from '../auth/guards/roles.guard';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import { CreateReviewDto } from './dto/create-review.dto';
+import { SellerReplyDto } from './dto/seller-reply.dto';
 
 @Controller('reviews')
 export class ReviewsController {
@@ -17,7 +21,10 @@ export class ReviewsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async createReview(@Req() req: any, @Body() data: any) {
+  async createReview(
+    @Req() req: AuthenticatedRequest,
+    @Body() data: CreateReviewDto,
+  ) {
     return this.reviewsService.createReview(req.user.id, data);
   }
 
@@ -26,19 +33,26 @@ export class ReviewsController {
     return this.reviewsService.getReviewsByProduct(productId);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER')
   @Patch(':id/reply')
   async sellerReply(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') reviewId: string,
-    @Body('reply') reply: string,
+    @Body() body: SellerReplyDto,
   ) {
-    return this.reviewsService.sellerReply(req.user.id, reviewId, reply);
+    return this.reviewsService.sellerReply(
+      req.user.id,
+      req.user.roles,
+      reviewId,
+      body.reply,
+    );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER')
   @Get('seller/latest')
-  async getSellerLatest(@Req() req: any) {
+  async getSellerLatest(@Req() req: AuthenticatedRequest) {
     return this.reviewsService.getLatestReviewsForSeller(req.user.id);
   }
 }

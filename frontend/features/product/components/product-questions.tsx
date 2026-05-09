@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { mediaApi } from "@/lib/api/media";
@@ -99,7 +98,9 @@ export function ProductQuestionsSection({
       toast.success("Đã gửi câu hỏi thành công.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Không thể gửi câu hỏi lúc này.";
+        error instanceof Error
+          ? error.message
+          : "Không thể gửi câu hỏi lúc này.";
       toast.error(message);
     }
   };
@@ -137,37 +138,45 @@ export function ProductQuestionsSection({
   };
 
   return (
-    <section className="max-w-[1600px] mx-auto px-6 md:px-12 py-24 border-b border-border/10">
-      <div className="flex flex-col gap-10">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-2">
-            <span className="text-primary font-bold uppercase tracking-[0.2em] text-xs">
+    <section className="border-b border-border/10 py-24">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-10 px-6 md:px-12 lg:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.7fr)] lg:gap-16">
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
               Hỏi đáp công khai
             </span>
-            <h2 className="text-4xl font-headline italic text-foreground">
+            <h2 className="font-headline text-4xl italic text-foreground">
               Câu hỏi về sản phẩm
             </h2>
-            <p className="max-w-3xl text-sm text-muted-foreground leading-relaxed">
-              Khách mua có thể hỏi trước khi đặt hàng. Người bán của sản phẩm hoặc quản trị viên sẽ phản hồi trực tiếp tại đây.
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+              Hỏi trước khi đặt hàng để người bán hoặc quản trị viên phản hồi
+              trực tiếp về chất liệu, kích thước và cách sử dụng.
             </p>
           </div>
-        </div>
 
-        <Card className="border-border/30 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl font-headline italic text-foreground">
-              Đặt câu hỏi mới
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <div className="rounded-2xl border border-border/30 bg-card p-6 shadow-[0_10px_30px_rgba(84,67,60,0.05)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <MessageCircleQuestion className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-headline text-xl italic text-foreground">
+                  Đặt câu hỏi mới
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Tối đa 500 ký tự
+                </p>
+              </div>
+            </div>
+
             {isAuthenticated ? (
-              <>
+              <div className="space-y-4">
                 <Textarea
                   value={questionDraft}
                   onChange={(event) => setQuestionDraft(event.target.value)}
                   placeholder="Nhập câu hỏi của bạn về sản phẩm..."
                   maxLength={500}
-                  className="min-h-[120px] resize-none"
+                  className="min-h-[120px] resize-none rounded-xl border-border/40 bg-background/80"
                 />
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs text-muted-foreground">
@@ -191,9 +200,9 @@ export function ProductQuestionsSection({
                     )}
                   </Button>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border/40 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
+              <div className="rounded-xl border border-dashed border-border/40 bg-muted/10 px-4 py-5 text-sm leading-relaxed text-muted-foreground">
                 Vui lòng{" "}
                 <Link
                   href={`/login?redirect=/products/${productId}`}
@@ -204,201 +213,220 @@ export function ProductQuestionsSection({
                 để đặt câu hỏi.
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <div className="space-y-5">
           {isLoading ? (
             Array.from({ length: 2 }).map((_, index) => (
-              <Card key={index} className="border-border/20 animate-pulse">
-                <CardContent className="space-y-4 p-6">
-                  <div className="h-4 w-40 rounded bg-muted" />
-                  <div className="h-16 w-full rounded bg-muted" />
-                  <div className="h-12 w-3/4 rounded bg-muted" />
-                </CardContent>
-              </Card>
+              <div
+                key={index}
+                className="animate-pulse rounded-2xl border border-border/20 bg-card p-6"
+              >
+                <div className="mb-5 flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-muted" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-32 rounded bg-muted" />
+                    <div className="h-3 w-24 rounded bg-muted" />
+                  </div>
+                </div>
+                <div className="space-y-3 sm:pl-16">
+                  <div className="h-4 w-full rounded bg-muted" />
+                  <div className="h-4 w-3/4 rounded bg-muted" />
+                </div>
+              </div>
             ))
           ) : isError ? (
-            <Card className="border-destructive/20 bg-destructive/5">
-              <CardContent className="p-6 text-sm text-destructive">
-                Không thể tải câu hỏi sản phẩm lúc này. Vui lòng thử lại sau.
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-6 text-sm text-destructive">
+              Không thể tải câu hỏi sản phẩm lúc này. Vui lòng thử lại sau.
+            </div>
           ) : questions.length === 0 ? (
-            <Card className="border-dashed border-border/40 bg-muted/10">
-              <CardContent className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-                <MessageCircleQuestion className="h-10 w-10 text-muted-foreground/40" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-foreground">
-                    Chưa có câu hỏi nào cho sản phẩm này.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Hãy là người đầu tiên đặt câu hỏi để nhận tư vấn từ người bán.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/40 bg-muted/10 px-6 py-12 text-center">
+              <MessageCircleQuestion className="mb-3 h-10 w-10 text-muted-foreground/35" />
+              <p className="font-semibold text-foreground">
+                Chưa có câu hỏi nào cho sản phẩm này.
+              </p>
+              <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
+                Hãy là người đầu tiên đặt câu hỏi để nhận tư vấn từ người bán.
+              </p>
+            </div>
           ) : (
             questions.map((question) => {
               const questionAvatar = resolveAvatar(question.user.avatar);
               const answerAvatar = resolveAvatar(question.answeredBy?.avatar);
 
               return (
-                <Card key={question.id} className="border-border/30 shadow-sm">
-                  <CardContent className="space-y-5 p-6">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/30 bg-muted text-lg font-semibold text-primary">
-                          {questionAvatar ? (
-                            <img
-                              src={questionAvatar}
-                              alt={question.user.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            question.user.name.charAt(0).toUpperCase()
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-foreground">
-                              {question.user.name}
-                            </span>
-                            <Badge variant="secondary">Khách hỏi</Badge>
-                          </div>
-                          <p className="text-sm leading-relaxed text-foreground/90">
-                            {question.question}
-                          </p>
-                        </div>
+                <article
+                  key={question.id}
+                  className="rounded-2xl border border-border/30 bg-card p-6 shadow-sm transition-colors duration-300 hover:border-primary/20"
+                >
+                  <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/30 bg-muted text-lg font-semibold text-primary">
+                        {questionAvatar ? (
+                          <img
+                            src={questionAvatar}
+                            alt={question.user.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          question.user.name.charAt(0).toUpperCase()
+                        )}
                       </div>
-                      <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        {format(new Date(question.createdAt), "dd/MM/yyyy HH:mm", {
-                          locale: vi,
-                        })}
-                      </span>
-                    </div>
-
-                    {question.answer ? (
-                      <div className="rounded-2xl border border-primary/10 bg-primary/5 p-5">
-                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-primary/10 bg-white text-sm font-semibold text-primary">
-                              {answerAvatar ? (
-                                <img
-                                  src={answerAvatar}
-                                  alt={question.answeredBy?.name ?? "Người trả lời"}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                question.answeredBy?.name?.charAt(0).toUpperCase() ?? "A"
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-foreground">
-                                {question.answeredBy?.name ?? "Người trả lời"}
-                              </p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {question.answeredBy?.role === "ROLE_ADMIN" ? (
-                                  <ShieldCheck className="h-3.5 w-3.5" />
-                                ) : (
-                                  <Store className="h-3.5 w-3.5" />
-                                )}
-                                <span>{getRoleLabel(question.answeredBy?.role)}</span>
-                              </div>
-                            </div>
-                          </div>
-                          {question.answeredAt ? (
-                            <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                              {format(
-                                new Date(question.answeredAt),
-                                "dd/MM/yyyy HH:mm",
-                                { locale: vi },
-                              )}
-                            </span>
-                          ) : null}
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground">
+                            {question.user.name}
+                          </span>
+                          <Badge variant="secondary">Khách hỏi</Badge>
                         </div>
                         <p className="text-sm leading-relaxed text-foreground/90">
-                          {question.answer}
+                          {question.question}
                         </p>
                       </div>
-                    ) : canAnswerQuestions ? (
-                      <div className="space-y-3 rounded-2xl border border-dashed border-border/40 bg-muted/10 p-5">
-                        <p className="text-sm font-medium text-foreground">
-                          Trả lời câu hỏi này
-                        </p>
-                        <Textarea
-                          value={answerDrafts[question.id] ?? ""}
-                          onChange={(event) =>
-                            setAnswerDrafts((currentDrafts) => ({
-                              ...currentDrafts,
-                              [question.id]: event.target.value,
-                            }))
-                          }
-                          placeholder="Nhập câu trả lời cho khách hàng..."
-                          maxLength={1000}
-                          className="min-h-[110px] resize-none"
-                        />
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-xs text-muted-foreground">
-                            {(answerDrafts[question.id]?.trim().length ?? 0)}/1000 ký tự
-                          </p>
-                          <Button
-                            onClick={() => submitAnswer(question)}
-                            disabled={answerQuestionMutation.isPending}
-                          >
-                            {answerQuestionMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Đang gửi
-                              </>
+                    </div>
+                    <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      {format(
+                        new Date(question.createdAt),
+                        "dd/MM/yyyy HH:mm",
+                        {
+                          locale: vi,
+                        },
+                      )}
+                    </span>
+                  </div>
+
+                  {question.answer ? (
+                    <div className="rounded-xl border border-primary/10 bg-primary/5 p-5">
+                      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-primary/10 bg-white text-sm font-semibold text-primary">
+                            {answerAvatar ? (
+                              <img
+                                src={answerAvatar}
+                                alt={
+                                  question.answeredBy?.name ?? "Người trả lời"
+                                }
+                                className="h-full w-full object-cover"
+                              />
                             ) : (
-                              <>
-                                <Send className="mr-2 h-4 w-4" />
-                                Gửi trả lời
-                              </>
+                              (question.answeredBy?.name
+                                ?.charAt(0)
+                                .toUpperCase() ?? "A")
                             )}
-                          </Button>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground">
+                              {question.answeredBy?.name ?? "Người trả lời"}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {question.answeredBy?.role === "ROLE_ADMIN" ? (
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                              ) : (
+                                <Store className="h-3.5 w-3.5" />
+                              )}
+                              <span>
+                                {getRoleLabel(question.answeredBy?.role)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
+                        {question.answeredAt ? (
+                          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                            {format(
+                              new Date(question.answeredAt),
+                              "dd/MM/yyyy HH:mm",
+                              { locale: vi },
+                            )}
+                          </span>
+                        ) : null}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Người bán sẽ phản hồi câu hỏi này sớm nhất có thể.
+                      <p className="text-sm leading-relaxed text-foreground/90">
+                        {question.answer}
                       </p>
-                    )}
-                  </CardContent>
-                </Card>
+                    </div>
+                  ) : canAnswerQuestions ? (
+                    <div className="space-y-3 rounded-xl border border-dashed border-border/40 bg-muted/10 p-5">
+                      <p className="text-sm font-medium text-foreground">
+                        Trả lời câu hỏi này
+                      </p>
+                      <Textarea
+                        value={answerDrafts[question.id] ?? ""}
+                        onChange={(event) =>
+                          setAnswerDrafts((currentDrafts) => ({
+                            ...currentDrafts,
+                            [question.id]: event.target.value,
+                          }))
+                        }
+                        placeholder="Nhập câu trả lời cho khách hàng..."
+                        maxLength={1000}
+                        className="min-h-[110px] resize-none rounded-xl border-border/40 bg-background/80"
+                      />
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          {answerDrafts[question.id]?.trim().length ?? 0}/1000
+                          ký tự
+                        </p>
+                        <Button
+                          onClick={() => submitAnswer(question)}
+                          disabled={answerQuestionMutation.isPending}
+                        >
+                          {answerQuestionMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Đang gửi
+                            </>
+                          ) : (
+                            <>
+                              <Send className="mr-2 h-4 w-4" />
+                              Gửi trả lời
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-border/40 bg-muted/10 p-5 text-sm text-muted-foreground">
+                      Người bán sẽ phản hồi câu hỏi này sớm nhất có thể.
+                    </p>
+                  )}
+                </article>
               );
             })
           )}
-        </div>
 
-        {totalPages > 1 ? (
-          <div className="flex items-center justify-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 1))}
-              disabled={page <= 1}
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Trang trước
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Trang {page}/{totalPages}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                setPage((currentPage) => Math.min(currentPage + 1, totalPages))
-              }
-              disabled={page >= totalPages}
-            >
-              Trang sau
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        ) : null}
+          {totalPages > 1 ? (
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setPage((currentPage) => Math.max(currentPage - 1, 1))
+                }
+                disabled={page <= 1}
+              >
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Trang trước
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Trang {page}/{totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setPage((currentPage) =>
+                    Math.min(currentPage + 1, totalPages),
+                  )
+                }
+                disabled={page >= totalPages}
+              >
+                Trang sau
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </section>
   );

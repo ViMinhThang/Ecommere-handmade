@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CategoryStatus,
   ProductQuestionStatus,
   ProductStatus,
   Role,
@@ -73,6 +74,10 @@ export class ProductQuestionsService {
         id: productId,
         deletedAt: null,
         status: ProductStatus.APPROVED,
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
       },
       select: {
         id: true,
@@ -107,10 +112,7 @@ export class ProductQuestionsService {
     };
   }
 
-  async listByProduct(
-    productId: string,
-    query: ListProductQuestionsQueryDto,
-  ) {
+  async listByProduct(productId: string, query: ListProductQuestionsQueryDto) {
     await this.assertQuestionableProduct(productId);
 
     const page = Math.max(query.page ?? 1, 1);
@@ -216,7 +218,10 @@ export class ProductQuestionsService {
       },
     });
 
-    if (!existingQuestion || existingQuestion.status === ProductQuestionStatus.DELETED) {
+    if (
+      !existingQuestion ||
+      existingQuestion.status === ProductQuestionStatus.DELETED
+    ) {
       throw new NotFoundException('Question not found');
     }
 

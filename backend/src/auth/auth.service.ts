@@ -13,6 +13,7 @@ import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { MailerService } from './mailer/mailer.service';
+import { UserStatus } from '@prisma/client';
 
 const OTP_MIN = 100000;
 const OTP_MAX = 999999;
@@ -212,16 +213,11 @@ export class AuthService {
       };
     }
 
-    const hashedPassword = await bcrypt.hash(
-      registerDto.password,
-      BCRYPT_ROUNDS,
-    );
     const otpCode = this.generateOtp();
     const otpExpires = this.getOtpExpiration();
 
     const user = await this.usersService.create({
       ...registerDto,
-      password: hashedPassword,
       roles: ['ROLE_USER'],
     });
 
@@ -262,6 +258,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.deletedAt || user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('User account is not active');
+    }
+
     if (!user.isEmailVerified) {
       throw new UnauthorizedException('Please verify your email first');
     }
@@ -294,6 +294,10 @@ export class AuthService {
         },
       });
     } else {
+      if (user.deletedAt || user.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedException('User account is not active');
+      }
+
       const updateData: {
         isEmailVerified?: boolean;
         name?: string;
@@ -376,20 +380,22 @@ export class AuthService {
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
 
+      const user = await this.validateUser(payload.sub);
+
       const newAccessToken = this.jwtService.sign(
         {
-          sub: payload.sub,
-          email: payload.email,
-          roles: payload.roles,
+          sub: user.id,
+          email: user.email,
+          roles: user.roles,
         },
         { expiresIn: ACCESS_TOKEN_EXPIRY },
       );
 
       const newRefreshToken = this.jwtService.sign(
         {
-          sub: payload.sub,
-          email: payload.email,
-          roles: payload.roles,
+          sub: user.id,
+          email: user.email,
+          roles: user.roles,
         },
         { expiresIn: REFRESH_TOKEN_EXPIRY },
       );
@@ -426,6 +432,20 @@ export class AuthService {
   }
 
   async validateUser(userId: string) {
-    return this.usersService.findOne(userId);
+    let user: Awaited<ReturnType<UsersService['findOne']>>;
+    try {
+      user = await this.usersService.findOne(userId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new UnauthorizedException('User account is not active');
+      }
+      throw error;
+    }
+
+    if (user.status !== UserStatus.ACTIVE || !user.isEmailVerified) {
+      throw new UnauthorizedException('User account is not active');
+    }
+
+    return user;
   }
 }

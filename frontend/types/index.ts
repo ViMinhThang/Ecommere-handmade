@@ -141,6 +141,20 @@ export interface Product {
   updatedAt: Date;
 }
 
+export interface WishlistItem {
+  id: string;
+  userId: string;
+  productId: string;
+  product: Product;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface WishlistStatus {
+  productId: string;
+  isWishlisted: boolean;
+}
+
 export type ProductQuestionStatus = "PUBLISHED" | "HIDDEN" | "DELETED";
 
 export interface ProductQuestionUser {

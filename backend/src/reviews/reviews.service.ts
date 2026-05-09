@@ -5,22 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Role } from '@prisma/client';
+import { CreateReviewDto } from './dto/create-review.dto';
 
 @Injectable()
 export class ReviewsService {
   constructor(private prisma: PrismaService) {}
 
-  async createReview(
-    userId: string,
-    data: {
-      productId: string;
-      orderItemId: string;
-      rating: number;
-      comment?: string;
-      images?: string[];
-    },
-  ) {
+  async createReview(userId: string, data: CreateReviewDto) {
     // 1. Check if the orderItem exists and belongs to the user via Order -> customerId
     const orderItem = await this.prisma.orderItem.findUnique({
       where: { id: data.orderItemId },
@@ -39,6 +31,12 @@ export class ReviewsService {
 
     if (orderItem.subOrder.order.customerId !== userId) {
       throw new ForbiddenException('Bạn không có quyền đánh giá vật phẩm này');
+    }
+
+    if (data.productId && data.productId !== orderItem.productId) {
+      throw new BadRequestException(
+        'Product does not match the purchased order item',
+      );
     }
 
     // 2. Check if sub-order is DELIVERED
@@ -64,7 +62,7 @@ export class ReviewsService {
         comment: data.comment,
         images: data.images || [],
         userId,
-        productId: data.productId,
+        productId: orderItem.productId,
         orderItemId: data.orderItemId,
       },
     });
@@ -88,7 +86,16 @@ export class ReviewsService {
     });
   }
 
-  async sellerReply(sellerId: string, reviewId: string, reply: string) {
+  async sellerReply(
+    sellerId: string,
+    roles: string[],
+    reviewId: string,
+    reply: string,
+  ) {
+    if (!roles.includes(Role.ROLE_SELLER)) {
+      throw new ForbiddenException('Seller role is required');
+    }
+
     const review = await this.prisma.review.findUnique({
       where: { id: reviewId },
       include: {

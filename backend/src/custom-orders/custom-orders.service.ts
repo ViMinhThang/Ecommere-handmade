@@ -6,22 +6,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
-import { CustomOrderStatus } from '@prisma/client';
-
-export interface CreateCustomOrderDto {
-  customerId: string;
-  title: string;
-  artisanNote?: string;
-  price: number;
-  leadTime: string;
-  specifications: any[];
-  sketchImageUrl?: string;
-}
-
-export interface UpdateSketchDto {
-  sketchImageUrl?: string;
-  artisanNote?: string;
-}
+import { CustomOrderStatus, Prisma, Role, UserStatus } from '@prisma/client';
+import { CreateCustomOrderDto } from './dto/create-custom-order.dto';
+import { UpdateSketchDto } from './dto/update-sketch.dto';
 
 @Injectable()
 export class CustomOrdersService {
@@ -29,6 +16,22 @@ export class CustomOrdersService {
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
   ) {}
+
+  private isAdmin(roles: string[]) {
+    return roles.includes(Role.ROLE_ADMIN);
+  }
+
+  private canAccessOrder(
+    order: { customerId: string; sellerId: string },
+    userId: string,
+    roles: string[],
+  ) {
+    return (
+      this.isAdmin(roles) ||
+      order.customerId === userId ||
+      order.sellerId === userId
+    );
+  }
 
   async createCustomOrder(sellerId: string, data: CreateCustomOrderDto) {
     const {
@@ -41,8 +44,16 @@ export class CustomOrdersService {
       sketchImageUrl,
     } = data;
 
-    const customer = await this.prisma.user.findUnique({
-      where: { id: customerId },
+    if (customerId === sellerId) {
+      throw new BadRequestException('Seller cannot create an order for self');
+    }
+
+    const customer = await this.prisma.user.findFirst({
+      where: {
+        id: customerId,
+        deletedAt: null,
+        status: UserStatus.ACTIVE,
+      },
     });
     if (!customer) {
       throw new NotFoundException('Customer not found');
@@ -56,9 +67,9 @@ export class CustomOrdersService {
         artisanNote,
         price,
         leadTime,
-        specifications: JSON.stringify(specifications || []),
+        specifications: (specifications ?? []) as Prisma.InputJsonValue,
         sketchImageUrl,
-        status: 'PENDING_REVIEW',
+        status: CustomOrderStatus.PENDING_REVIEW,
       },
       include: {
         seller: {
@@ -68,7 +79,7 @@ export class CustomOrdersService {
     });
   }
 
-  async getCustomOrderById(id: string) {
+  async getCustomOrderById(id: string, userId: string, roles: string[]) {
     const order = await this.prisma.customOrder.findUnique({
       where: { id },
       include: {
@@ -84,6 +95,9 @@ export class CustomOrdersService {
     if (!order) {
       throw new NotFoundException('Custom Order not found');
     }
+    if (!this.canAccessOrder(order, userId, roles)) {
+      throw new ForbiddenException('Not your order');
+    }
 
     return {
       ...order,
@@ -91,9 +105,18 @@ export class CustomOrdersService {
     };
   }
 
-  private parseSpecifications(specs: any): any[] {
+  private parseSpecifications(specs: Prisma.JsonValue | null): unknown[] {
     try {
-      return typeof specs === 'string' ? JSON.parse(specs) : specs || [];
+      if (Array.isArray(specs)) {
+        return specs;
+      }
+
+      if (typeof specs === 'string') {
+        const parsed: unknown = JSON.parse(specs);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+
+      return [];
     } catch {
       return [];
     }
@@ -102,14 +125,14 @@ export class CustomOrdersService {
   async requestRevision(id: string, customerId: string, revisionNote: string) {
     const order = await this.getAndVerifyOrder(id, customerId, 'customer');
 
-    if (order.status !== 'PENDING_REVIEW') {
+    if (order.status !== CustomOrderStatus.PENDING_REVIEW) {
       throw new BadRequestException('Order is not in review state');
     }
 
     return this.prisma.customOrder.update({
       where: { id },
       data: {
-        status: 'REVISION_REQUESTED',
+        status: CustomOrderStatus.REVISION_REQUESTED,
         revisionNote,
       },
     });
@@ -118,7 +141,7 @@ export class CustomOrdersService {
   async approveSketch(id: string, customerId: string) {
     const order = await this.getAndVerifyOrder(id, customerId, 'customer');
 
-    if (order.status !== 'PENDING_REVIEW') {
+    if (order.status !== CustomOrderStatus.PENDING_REVIEW) {
       throw new BadRequestException('Order is not in review state');
     }
 
@@ -127,40 +150,102 @@ export class CustomOrdersService {
 
     if (!paymentIntentId) {
       const intent = await this.stripeService.createPaymentIntent(
-        Number(order.price),
+        Math.round(Number(order.price)),
         'vnd',
-        { customOrderId: order.id, type: 'custom_order' },
+        {
+          customOrderId: order.id,
+          customerId: order.customerId,
+          sellerId: order.sellerId,
+          type: 'custom_order',
+        },
       );
       paymentIntentId = intent.id;
       clientSecret = intent.client_secret;
 
       await this.prisma.customOrder.update({
         where: { id },
-        data: { status: 'AWAITING_PAYMENT', paymentIntentId },
+        data: { status: CustomOrderStatus.AWAITING_PAYMENT, paymentIntentId },
       });
     }
 
     return { success: true, clientSecret, paymentIntentId };
   }
 
-  async confirmPayment(id: string, paymentIntentId: string) {
+  async confirmPayment(
+    id: string,
+    customerId: string,
+    paymentIntentId: string,
+  ) {
     const order = await this.prisma.customOrder.findUnique({ where: { id } });
     if (!order) throw new NotFoundException('Order not found');
 
-    const isSucceeded =
-      await this.stripeService.verifyPaymentIntent(paymentIntentId);
-    if (!isSucceeded) {
+    if (order.customerId !== customerId) {
+      throw new ForbiddenException('Not your order');
+    }
+
+    if (order.paymentIntentId !== paymentIntentId) {
+      throw new BadRequestException('Payment intent does not belong to order');
+    }
+
+    const paidStatuses: CustomOrderStatus[] = [
+      CustomOrderStatus.CRAFTING,
+      CustomOrderStatus.FINISHING,
+      CustomOrderStatus.SHIPPED,
+    ];
+
+    if (paidStatuses.includes(order.status)) {
+      return order;
+    }
+
+    if (order.status !== CustomOrderStatus.AWAITING_PAYMENT) {
+      throw new BadRequestException('Order is not awaiting payment');
+    }
+
+    const paymentIntent =
+      await this.stripeService.retrievePaymentIntent(paymentIntentId);
+
+    if (paymentIntent.status !== 'succeeded') {
       throw new BadRequestException('Payment has not succeeded yet');
+    }
+    if (paymentIntent.currency.toLowerCase() !== 'vnd') {
+      throw new BadRequestException('Payment currency does not match order');
+    }
+    if (paymentIntent.amount !== Math.round(Number(order.price))) {
+      throw new BadRequestException('Payment amount does not match order');
+    }
+    if (
+      paymentIntent.metadata.customOrderId &&
+      paymentIntent.metadata.customOrderId !== order.id
+    ) {
+      throw new BadRequestException('Payment metadata does not match order');
+    }
+    if (
+      paymentIntent.metadata.customerId &&
+      paymentIntent.metadata.customerId !== customerId
+    ) {
+      throw new BadRequestException('Payment metadata does not match customer');
     }
 
     return this.prisma.customOrder.update({
       where: { id },
-      data: { status: 'CRAFTING' },
+      data: { status: CustomOrderStatus.CRAFTING },
     });
   }
 
-  async advanceStatus(id: string, sellerId: string, status: CustomOrderStatus) {
-    await this.getAndVerifyOrder(id, sellerId, 'seller');
+  async advanceStatus(
+    id: string,
+    actorId: string,
+    roles: string[],
+    status: CustomOrderStatus,
+  ) {
+    const order = await this.prisma.customOrder.findUnique({ where: { id } });
+    if (!order) throw new NotFoundException('Custom Order not found');
+
+    if (!this.isAdmin(roles) && order.sellerId !== actorId) {
+      throw new ForbiddenException('Not your order');
+    }
+
+    this.assertStatusTransition(order.status, status);
 
     return this.prisma.customOrder.update({
       where: { id },
@@ -169,16 +254,47 @@ export class CustomOrdersService {
   }
 
   async updateSketch(id: string, sellerId: string, data: UpdateSketchDto) {
-    await this.getAndVerifyOrder(id, sellerId, 'seller');
+    const order = await this.getAndVerifyOrder(id, sellerId, 'seller');
+
+    if (
+      order.status !== CustomOrderStatus.PENDING_REVIEW &&
+      order.status !== CustomOrderStatus.REVISION_REQUESTED
+    ) {
+      throw new BadRequestException(
+        'Sketch can only be updated while order is under review',
+      );
+    }
 
     return this.prisma.customOrder.update({
       where: { id },
       data: {
         sketchImageUrl: data.sketchImageUrl,
         artisanNote: data.artisanNote,
-        status: 'PENDING_REVIEW',
+        status: CustomOrderStatus.PENDING_REVIEW,
       },
     });
+  }
+
+  private assertStatusTransition(
+    currentStatus: CustomOrderStatus,
+    nextStatus: CustomOrderStatus,
+  ) {
+    if (currentStatus === nextStatus) {
+      return;
+    }
+
+    const allowedTransitions: Partial<
+      Record<CustomOrderStatus, CustomOrderStatus[]>
+    > = {
+      [CustomOrderStatus.CRAFTING]: [CustomOrderStatus.FINISHING],
+      [CustomOrderStatus.FINISHING]: [CustomOrderStatus.SHIPPED],
+    };
+
+    if (!allowedTransitions[currentStatus]?.includes(nextStatus)) {
+      throw new BadRequestException(
+        `Invalid custom order status transition from ${currentStatus} to ${nextStatus}`,
+      );
+    }
   }
 
   private async getAndVerifyOrder(
@@ -211,9 +327,9 @@ export class CustomOrdersService {
     }));
   }
 
-  async getSellerCustomOrders(sellerId: string) {
+  async getSellerCustomOrders(sellerId: string, roles: string[] = []) {
     const orders = await this.prisma.customOrder.findMany({
-      where: { sellerId },
+      where: this.isAdmin(roles) ? undefined : { sellerId },
       include: {
         customer: { select: { id: true, name: true, email: true } },
       },

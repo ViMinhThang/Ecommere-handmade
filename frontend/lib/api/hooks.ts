@@ -10,10 +10,11 @@ import {
   UpdateFlashSaleDto,
 } from "./flash-sales";
 import { cartApi } from "./cart";
+import { wishlistApi } from "./wishlist";
 import { ordersApi } from "./orders";
 import type { AdminOrderFilters, OrderStatus as ApiOrderStatus } from "./orders";
 import { analyticsApi } from "./analytics";
-import { reviewsApi } from "./reviews";
+import { reviewsApi, type CreateReviewDto } from "./reviews";
 import { chatApi, CursorParams, StartConversationDto } from "./chat";
 import { customOrdersApi, CustomOrder } from "./custom-orders";
 import {
@@ -24,8 +25,6 @@ import {
   CategoryStatus,
   Address,
   Order,
-  SubOrder,
-  OrderItem,
   ChatConversationSummary,
   ChatMessage,
   SellerSearchParams,
@@ -842,6 +841,58 @@ export function useRemoveVoucher() {
   });
 }
 
+// Wishlist hooks
+export const wishlistKeys = {
+  all: ["wishlist"] as const,
+  list: () => [...wishlistKeys.all, "list"] as const,
+  product: (productId: string) =>
+    [...wishlistKeys.all, "product", productId] as const,
+};
+
+export function useWishlist(enabled = true) {
+  return useQuery({
+    queryKey: wishlistKeys.list(),
+    queryFn: () => wishlistApi.getAll(),
+    enabled,
+  });
+}
+
+export function useWishlistStatus(productId: string, enabled = true) {
+  return useQuery({
+    queryKey: wishlistKeys.product(productId),
+    queryFn: () => wishlistApi.getStatus(productId),
+    enabled: !!productId && enabled,
+  });
+}
+
+export function useAddToWishlist() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (productId: string) => wishlistApi.addItem(productId),
+    onSuccess: (_, productId) => {
+      queryClient.invalidateQueries({ queryKey: wishlistKeys.list() });
+      queryClient.setQueryData(wishlistKeys.product(productId), {
+        productId,
+        isWishlisted: true,
+      });
+    },
+  });
+}
+
+export function useRemoveFromWishlist() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (productId: string) => wishlistApi.removeItem(productId),
+    onSuccess: (_, productId) => {
+      queryClient.invalidateQueries({ queryKey: wishlistKeys.list() });
+      queryClient.setQueryData(wishlistKeys.product(productId), {
+        productId,
+        isWishlisted: false,
+      });
+    },
+  });
+}
+
 // Chat hooks
 export const chatKeys = {
   all: ["chat"] as const,
@@ -1137,7 +1188,7 @@ export function useProductReviews(productId: string) {
 export function useCreateReview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => reviewsApi.createReview(data),
+    mutationFn: (data: CreateReviewDto) => reviewsApi.createReview(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: reviewKeys.product(variables.productId) });
       queryClient.invalidateQueries({ queryKey: orderKeys.all });

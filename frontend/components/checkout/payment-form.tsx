@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import {
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 
@@ -18,7 +22,15 @@ interface PaymentFormProps {
   onSuccess: (orderId: string) => void;
 }
 
-export function PaymentForm({ orderId, paymentIntentId, onSuccess }: PaymentFormProps) {
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+export function PaymentForm({
+  orderId,
+  paymentIntentId,
+  onSuccess,
+}: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -35,39 +47,39 @@ export function PaymentForm({ orderId, paymentIntentId, onSuccess }: PaymentForm
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        // Return URL is required, but we intercept it since we don't strictly redirect 
-        // if we are doing synchronous handling (wait, confirmPayment redirects by default)
-        // For synchronous flow without redirect, we use redirect: "if_required"
         return_url: `${window.location.origin}/checkout/success`,
       },
-      redirect: 'if_required',
+      redirect: "if_required",
     });
 
     if (error) {
-      toast.error(error.message || "An unexpected error occurred during payment.");
+      toast.error(error.message || "Không thể xử lý thanh toán.");
       setIsProcessing(false);
       return;
     }
 
     if (paymentIntent && paymentIntent.status === "succeeded") {
-      // Synchronous Verification Backend Call
       try {
-        const response = await apiClient.post<ConfirmPaymentResponse>("/orders/confirm-payment", { paymentIntentId });
+        const response = await apiClient.post<ConfirmPaymentResponse>(
+          "/orders/confirm-payment",
+          { paymentIntentId },
+        );
         toast.success("Thanh toán thành công! Đơn hàng đã được đặt.");
         const confirmedOrderId = response?.orderId || orderId;
         if (!confirmedOrderId) {
-          toast.error("Payment verified but order id is missing.");
+          toast.error("Thanh toán đã xác nhận nhưng thiếu mã đơn hàng.");
           setIsProcessing(false);
           return;
         }
 
         onSuccess(confirmedOrderId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message || "Failed to verify payment with server.");
+      } catch (error) {
+        toast.error(
+          getErrorMessage(error, "Không thể xác nhận thanh toán với hệ thống."),
+        );
       }
     } else {
-      toast.error("Payment requires further action or failed.");
+      toast.error("Thanh toán cần xác thực thêm hoặc đã thất bại.");
     }
 
     setIsProcessing(false);
@@ -78,9 +90,9 @@ export function PaymentForm({ orderId, paymentIntentId, onSuccess }: PaymentForm
       <PaymentElement />
       <button
         disabled={isProcessing || !stripe || !elements}
-        className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-headline font-bold text-lg hover:bg-primary/90 transition-all disabled:opacity-50"
+        className="w-full rounded-md bg-primary py-4 text-lg font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
       >
-        {isProcessing ? "Processing..." : "Pay Now"}
+        {isProcessing ? "Đang xử lý..." : "Thanh toán ngay"}
       </button>
     </form>
   );
