@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
-import { CategoriesSection } from "@/components/storefront/categories-section";
 import { ProductsSection } from "@/components/storefront/products-section";
 
 export default function Home() {
@@ -60,8 +59,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        <CategoriesSection />
 
         <ProductsSection
           title="Sản phẩm mới"

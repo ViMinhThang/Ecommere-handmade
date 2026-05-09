@@ -17,15 +17,21 @@ function CategoryPageContent() {
   const router = useRouter();
 
   // Parse filters from URL
-  const minPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
-  const maxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
+  const minPrice = searchParams.get("minPrice")
+    ? Number(searchParams.get("minPrice"))
+    : undefined;
+  const maxPrice = searchParams.get("maxPrice")
+    ? Number(searchParams.get("maxPrice"))
+    : undefined;
   const readyToShip = searchParams.get("readyToShip") === "true";
   const sortBy = searchParams.get("sortBy") || "createdAt";
   const order = (searchParams.get("order") as "asc" | "desc") || "desc";
   const sellerId = searchParams.get("sellerId") || undefined;
 
   // Category data
-  const { data: category, isLoading: categoryLoading } = useCategory(slug as string);
+  const { data: category, isLoading: categoryLoading } = useCategory(
+    slug as string,
+  );
 
   // Products data
   const { data: productsData, isLoading: productsLoading } = useProducts({
@@ -41,14 +47,17 @@ function CategoryPageContent() {
 
   const products = productsData?.data || [];
 
-  const updateFilters = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === null) params.delete(key);
-      else params.set(key, value);
-    });
-    router.push(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+  const updateFilters = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null) params.delete(key);
+        else params.set(key, value);
+      });
+      router.push(`?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router],
+  );
 
   const clearFilters = () => {
     router.push(`/categories/${slug}`, { scroll: false });
@@ -68,7 +77,9 @@ function CategoryPageContent() {
           <div className="flex gap-12">
             <div className="w-64 h-96 bg-border/20 rounded hidden lg:block" />
             <div className="grow grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
-              {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-4/5 bg-border/20 rounded-lg" />)}
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-4/5 bg-border/20 rounded-lg" />
+              ))}
             </div>
           </div>
         </main>
@@ -89,14 +100,17 @@ function CategoryPageContent() {
               {category?.name || "Danh mục"}
             </h1>
             <p className="text-muted-foreground max-w-xl font-body leading-relaxed">
-              {category?.description || "Các sản phẩm được tuyển chọn kỹ lưỡng từ những Người bán uy tín nhất."}
+              {category?.description ||
+                "Các sản phẩm được tuyển chọn kỹ lưỡng từ những Người bán uy tín nhất."}
             </p>
           </div>
-          
+
           {/* Sorting Dropdown */}
           <div className="flex items-center gap-4 border-b border-primary/10 pb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sắp xếp:</span>
-            <select 
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Sắp xếp:
+            </span>
+            <select
               className="bg-transparent text-sm font-bold text-primary focus:outline-none cursor-pointer pr-4"
               value={`${sortBy}-${order}`}
               onChange={(e) => {
@@ -118,26 +132,39 @@ function CategoryPageContent() {
             <div className="sticky top-32 space-y-12">
               {/* Price Filter */}
               <section>
-                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6">Khoảng giá</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6">
+                  Khoảng giá
+                </h3>
                 <div className="space-y-4">
                   {[
                     { label: "Dưới 500.000đ", min: 0, max: 500000 },
-                    { label: "500.000đ — 2.000.000đ", min: 500000, max: 2000000 },
-                    { label: "2.000.000đ — 5.000.000đ", min: 2000000, max: 5000000 },
-                    { label: "Trên 5.000.000đ", min: 5000000, max: undefined }
+                    {
+                      label: "500.000đ — 2.000.000đ",
+                      min: 500000,
+                      max: 2000000,
+                    },
+                    {
+                      label: "2.000.000đ — 5.000.000đ",
+                      min: 2000000,
+                      max: 5000000,
+                    },
+                    { label: "Trên 5.000.000đ", min: 5000000, max: undefined },
                   ].map((range) => (
-                    <label key={range.label} className="flex items-center group cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                    <label
+                      key={range.label}
+                      className="flex items-center group cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
                         className="w-4 h-4 rounded-sm border-border text-primary focus:ring-primary/20"
                         checked={isPriceSelected(range.min, range.max)}
                         onChange={() => {
                           if (isPriceSelected(range.min, range.max)) {
                             updateFilters({ minPrice: null, maxPrice: null });
                           } else {
-                            updateFilters({ 
-                              minPrice: range.min.toString(), 
-                              maxPrice: range.max ? range.max.toString() : null 
+                            updateFilters({
+                              minPrice: range.min.toString(),
+                              maxPrice: range.max ? range.max.toString() : null,
                             });
                           }
                         }}
@@ -152,39 +179,55 @@ function CategoryPageContent() {
 
               {/* Availability */}
               <section>
-                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6">Trạng thái</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6">
+                  Trạng thái
+                </h3>
                 <div className="space-y-4">
                   <label className="flex items-center group cursor-pointer">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="w-4 h-4 rounded-sm border-border text-primary focus:ring-primary/20"
                       checked={readyToShip}
-                      onChange={(e) => updateFilters({ readyToShip: e.target.checked ? "true" : null })}
+                      onChange={(e) =>
+                        updateFilters({
+                          readyToShip: e.target.checked ? "true" : null,
+                        })
+                      }
                     />
-                    <span className="ml-3 text-sm text-foreground font-body">Sẵn sàng giao ngay</span>
+                    <span className="ml-3 text-sm text-foreground font-body">
+                      Sẵn sàng giao ngay
+                    </span>
                   </label>
                 </div>
               </section>
 
               {/* Brand Filter Filter (Seller) */}
               <section>
-                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6">Người bán</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6">
+                  Người bán
+                </h3>
                 <div className="space-y-3">
-                   {/* Simplified brand list for now, ideally fetched based on category */}
-                   {["all", "premium", "independent"].map((brand) => (
-                     <button
-                       key={brand}
-                       onClick={() => updateFilters({ sellerId: brand === "all" ? null : brand })}
-                       className={`block text-sm transition-colors ${sellerId === brand ? 'text-primary font-bold' : brand === undefined && brand === "all" ? 'text-primary font-bold' : 'text-muted-foreground hover:text-primary'}`}
-                     >
-                       {brand === "all" ? "Tất cả Người bán" : `Studio ${brand.charAt(0).toUpperCase() + brand.slice(1)}`}
-                     </button>
-                   ))}
+                  {/* Simplified brand list for now, ideally fetched based on category */}
+                  {["all", "premium", "independent"].map((brand) => (
+                    <button
+                      key={brand}
+                      onClick={() =>
+                        updateFilters({
+                          sellerId: brand === "all" ? null : brand,
+                        })
+                      }
+                      className={`block text-sm transition-colors ${sellerId === brand ? "text-primary font-bold" : brand === undefined && brand === "all" ? "text-primary font-bold" : "text-muted-foreground hover:text-primary"}`}
+                    >
+                      {brand === "all"
+                        ? "Tất cả Người bán"
+                        : `Studio ${brand.charAt(0).toUpperCase() + brand.slice(1)}`}
+                    </button>
+                  ))}
                 </div>
               </section>
 
               <div className="pt-4 border-t border-border/10">
-                <button 
+                <button
                   onClick={clearFilters}
                   className="text-[10px] uppercase tracking-widest font-bold text-primary hover:opacity-70 transition-opacity flex items-center group"
                 >
@@ -198,19 +241,24 @@ function CategoryPageContent() {
           {/* Product Grid */}
           <div className="grow">
             {productsLoading ? (
-               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
-                  {[1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={i} className={`animate-pulse ${i % 3 === 1 ? 'md:mt-12' : ''}`}>
-                      <div className="aspect-[4/5] bg-border/10 rounded-lg mb-6" />
-                      <div className="h-6 w-48 bg-border/10 rounded mb-2" />
-                      <div className="h-4 w-24 bg-border/10 rounded" />
-                    </div>
-                  ))}
-               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className={`animate-pulse ${i % 3 === 1 ? "md:mt-12" : ""}`}
+                  >
+                    <div className="aspect-[4/5] bg-border/10 rounded-lg mb-6" />
+                    <div className="h-6 w-48 bg-border/10 rounded mb-2" />
+                    <div className="h-4 w-24 bg-border/10 rounded" />
+                  </div>
+                ))}
+              </div>
             ) : products.length === 0 ? (
               <div className="text-center py-24 border-2 border-dashed border-border/40 rounded-2xl bg-muted/10">
-                <p className="text-muted-foreground italic font-headline text-lg">Không tìm thấy tác phẩm nào phù hợp.</p>
-                <button 
+                <p className="text-muted-foreground italic font-headline text-lg">
+                  Không tìm thấy tác phẩm nào phù hợp.
+                </p>
+                <button
                   onClick={clearFilters}
                   className="mt-4 text-primary font-bold text-sm tracking-widest uppercase hover:underline"
                 >
@@ -220,18 +268,23 @@ function CategoryPageContent() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
                 {products.map((product, index) => (
-                  <div key={product.id} className={`group ${index % 3 === 1 ? 'md:mt-12' : ''}`}>
+                  <div
+                    key={product.id}
+                    className={`group ${index % 3 === 1 ? "md:mt-12" : ""}`}
+                  >
                     <Link href={`/products/${product.id}`}>
                       <div className="relative overflow-hidden aspect-4/5 bg-border/10 rounded-lg shadow-sm mb-6 border border-border/10">
                         {product.images?.[0] ? (
-                          <Image 
+                          <Image
                             src={mediaApi.getImageUrl(product.images[0].url)}
                             alt={product.name}
                             fill
                             className="object-cover transition-transform duration-700 group-hover:scale-105"
                           />
                         ) : (
-                           <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">No image</div>
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">
+                            No image
+                          </div>
                         )}
                         <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <button className="px-8 py-3 bg-background text-primary font-bold text-xs tracking-widest uppercase shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
@@ -251,7 +304,7 @@ function CategoryPageContent() {
                           bởi {product.seller?.shopName || "Người bán"}
                         </p>
                       </div>
-                      <span className="text-primary font-bold text-lg font-body">
+                      <span className="shrink-0 whitespace-nowrap font-body text-lg font-bold text-primary">
                         {formatCurrency(Number(product.price))}
                       </span>
                     </div>

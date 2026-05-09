@@ -168,7 +168,9 @@ function ProductCard({
   const isFlashSale = product.pricing && product.pricing.discountPercent > 0;
   const metricLabel =
     mode === "best-selling"
-      ? `Đã bán ${product.soldQuantity ?? 0}`
+      ? (product.soldQuantity ?? 0) > 0
+        ? `Đã bán ${product.soldQuantity}`
+        : null
       : mode === "most-viewed"
         ? `${product.viewCount ?? 0} lượt xem`
         : null;
@@ -212,19 +214,19 @@ function ProductCard({
             {metricLabel}
           </p>
         )}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex flex-col">
+        <div className="flex items-center justify-between gap-4 pt-2">
+          <div className="flex shrink-0 flex-col">
             {isFlashSale ? (
               <>
-                <p className="text-lg font-bold text-primary">
+                <p className="whitespace-nowrap text-lg font-bold text-primary">
                   {formatCurrency(product.pricing!.discountedPrice)}
                 </p>
-                <p className="text-xs text-muted-foreground line-through">
+                <p className="whitespace-nowrap text-xs text-muted-foreground line-through">
                   {formatCurrency(product.pricing!.originalPrice)}
                 </p>
               </>
             ) : (
-              <p className="text-lg font-bold text-primary">
+              <p className="whitespace-nowrap text-lg font-bold text-primary">
                 {formatCurrency(Number(product.price))}
               </p>
             )}

@@ -1,7 +1,7 @@
 {
   "name": "ecommerce",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000E\u0000c\u0000o\u0000m\u0000m\u0000e\u0000r\u0000e\u0000-\u0000h\u0000a\u0000n\u0000d\u0000m\u0000a\u0000d\u0000e\u0000\r\u0000 \u0000",
+  "description": "Handmade ecommerce application",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

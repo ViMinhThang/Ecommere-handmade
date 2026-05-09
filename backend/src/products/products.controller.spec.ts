@@ -5,10 +5,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Reflector } from '@nestjs/core';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 describe('ProductsController', () => {
   let controller: ProductsController;
-  let productsService: ProductsService;
 
   const mockProductsService = {
     create: jest.fn(),
@@ -42,7 +42,6 @@ describe('ProductsController', () => {
       .compile();
 
     controller = module.get<ProductsController>(ProductsController);
-    productsService = module.get<ProductsService>(ProductsService);
   });
 
   it('should be defined', () => {
@@ -57,7 +56,8 @@ describe('ProductsController', () => {
       };
       mockProductsService.findAll.mockResolvedValue(result);
 
-      const response = await controller.findAll();
+      const request = { user: undefined } as unknown as AuthenticatedRequest;
+      const response = await controller.findAll(request, {});
 
       expect(mockProductsService.findAll).toHaveBeenCalled();
       expect(response).toEqual(result);

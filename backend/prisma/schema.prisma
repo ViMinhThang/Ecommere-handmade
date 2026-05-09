@@ -109,6 +109,7 @@ model User {
   reviews               Review[]
   productQuestions      ProductQuestion[]           @relation("ProductQuestionUser")
   answeredQuestions     ProductQuestion[]           @relation("ProductQuestionAnsweredBy")
+  wishlistItems         WishlistItem[]
 
   @@index([status])
 }
@@ -173,10 +174,25 @@ model Product {
   OrderItem                OrderItem[]
   reviews                  Review[]
   questions                ProductQuestion[]
+  wishlistItems            WishlistItem[]
 
   @@index([sellerId])
   @@index([categoryId])
   @@index([status])
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+  @@index([productId])
 }
 
 enum ChatMessageType {
@@ -408,20 +424,21 @@ model CartItem {
 }
 
 model Order {
-  id              String      @id @default(uuid())
-  customerId      String
-  customer        User        @relation(fields: [customerId], references: [id])
-  totalAmount     Decimal
-  discountAmount  Decimal     @default(0)
-  voucherCode     String?
-  status          OrderStatus @default(PENDING)
-  paymentMethod   PaymentMethod @default(STRIPE)
-  paymentStatus   PaymentStatus @default(UNPAID)
-  paymentIntentId String?     @unique
-  shippingAddress Json?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  subOrders       SubOrder[]
+  id               String        @id @default(uuid())
+  customerId       String
+  customer         User          @relation(fields: [customerId], references: [id])
+  totalAmount      Decimal
+  discountAmount   Decimal       @default(0)
+  voucherCode      String?
+  status           OrderStatus   @default(PENDING)
+  paymentMethod    PaymentMethod @default(STRIPE)
+  paymentStatus    PaymentStatus @default(UNPAID)
+  paymentIntentId  String?       @unique
+  paymentExpiresAt DateTime?
+  shippingAddress  Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  subOrders        SubOrder[]
 
   @@index([customerId])
 }
@@ -452,10 +469,10 @@ model OrderItem {
   quantity   Int
   price      Decimal
 
+  review Review?
+
   @@index([subOrderId])
   @@index([productId])
-
-  review Review?
 }
 
 model Review {
@@ -464,18 +481,18 @@ model Review {
   comment     String?  @db.Text
   images      String[] @default([])
   sellerReply String?  @db.Text
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
-  
-  orderItemId String   @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  orderItemId String    @unique
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([productId])
   @@index([userId])
@@ -504,26 +521,37 @@ model ProductQuestion {
 }
 
 model CustomOrder {
-  id              String             @id @default(uuid())
+  id              String  @id @default(uuid())
   customerId      String
-  customer        User               @relation("CustomerCustomOrders", fields: [customerId], references: [id])
+  customer        User    @relation("CustomerCustomOrders", fields: [customerId], references: [id])
   sellerId        String
-  seller          User               @relation("SellerCustomOrders", fields: [sellerId], references: [id])
-  paymentIntentId String?
-  
-  title           String
-  artisanNote     String?            @db.Text
-  price           Decimal
-  leadTime        String?
-  specifications  Json?              @default("[]")
-  sketchImageUrl  String?
-  revisionNote    String?            @db.Text
+  seller          User    @relation("SellerCustomOrders", fields: [sellerId], references: [id])
+  paymentIntentId String? @unique
 
-  status          CustomOrderStatus  @default(DRAFT)
-  
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  title          String
+  artisanNote    String? @db.Text
+  price          Decimal
+  leadTime       String?
+  specifications Json?   @default("[]")
+  sketchImageUrl String?
+  revisionNote   String? @db.Text
+
+  status CustomOrderStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([customerId])
   @@index([sellerId])
+  @@index([paymentIntentId])
+}
+
+model PaymentWebhookEvent {
+  id              String   @id @default(uuid())
+  eventId         String   @unique
+  type            String
+  paymentIntentId String?
+  processedAt     DateTime @default(now())
+
+  @@index([paymentIntentId])
 }

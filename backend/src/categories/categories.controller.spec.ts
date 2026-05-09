@@ -8,7 +8,6 @@ import { Reflector } from '@nestjs/core';
 
 describe('CategoriesController', () => {
   let controller: CategoriesController;
-  let categoriesService: CategoriesService;
 
   const mockCategoriesService = {
     create: jest.fn(),
@@ -37,7 +36,6 @@ describe('CategoriesController', () => {
       .compile();
 
     controller = module.get<CategoriesController>(CategoriesController);
-    categoriesService = module.get<CategoriesService>(CategoriesService);
   });
 
   it('should be defined', () => {
@@ -52,9 +50,14 @@ describe('CategoriesController', () => {
       };
       mockCategoriesService.findAll.mockResolvedValue(result);
 
-      const response = await controller.findAll();
+      const query = {};
 
-      expect(mockCategoriesService.findAll).toHaveBeenCalled();
+      const response = await controller.findAll(query);
+
+      expect(mockCategoriesService.findAll).toHaveBeenCalledWith(
+        undefined,
+        query,
+      );
       expect(response).toEqual(result);
     });
   });

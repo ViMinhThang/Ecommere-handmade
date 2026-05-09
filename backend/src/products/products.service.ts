@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import {
+  CategoryStatus,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
@@ -19,6 +20,21 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto, InventoryChangeReason } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { FlashSalesService } from '../flash-sales/flash-sales.service';
+
+const FEATURED_PRODUCT_INCLUDE = {
+  images: true,
+  category: true,
+  seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+} satisfies Prisma.ProductInclude;
+
+const PRODUCT_SELLER_SELECT = {
+  id: true,
+  name: true,
+  shopName: true,
+  avatar: true,
+  sellerTitle: true,
+  sellerBio: true,
+} satisfies Prisma.UserSelect;
 
 @Injectable()
 export class ProductsService {
@@ -37,6 +53,21 @@ export class ProductsService {
 
   private isAdmin(userRoles: string[]) {
     return userRoles.includes('ROLE_ADMIN');
+  }
+
+  private isSeller(userRoles: string[]) {
+    return userRoles.includes('ROLE_SELLER');
+  }
+
+  private parseProductStatus(status: string) {
+    const normalizedStatus = status.toUpperCase();
+    if (
+      !Object.values(ProductStatus).includes(normalizedStatus as ProductStatus)
+    ) {
+      throw new BadRequestException('Invalid product status');
+    }
+
+    return normalizedStatus as ProductStatus;
   }
 
   private async assertProductOwnership(
@@ -96,21 +127,27 @@ export class ProductsService {
     };
   }
 
-  async create(sellerId: string, createProductDto: CreateProductDto) {
+  async create(
+    sellerId: string,
+    userRoles: string[],
+    createProductDto: CreateProductDto,
+  ) {
     const { images, ...productData } = createProductDto;
+    const status = this.isAdmin(userRoles)
+      ? (productData.status ?? ProductStatus.PENDING)
+      : ProductStatus.PENDING;
 
     return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
           ...productData,
+          status,
           sellerId,
-          images: {
-            create: images,
-          },
+          images: images?.length ? { create: images } : undefined,
         },
         include: {
           category: true,
-          seller: true,
+          seller: { select: PRODUCT_SELLER_SELECT },
           images: true,
         },
       });
@@ -129,11 +166,25 @@ export class ProductsService {
     categoryId?: string,
     sellerId?: string,
     query?: ListProductsQueryDto,
+    actorId?: string,
+    actorRoles: string[] = [],
   ) {
     const where: Prisma.ProductWhereInput = { deletedAt: null };
+    const isAdmin = this.isAdmin(actorRoles);
+    const isOwnSellerQuery =
+      this.isSeller(actorRoles) &&
+      sellerId !== undefined &&
+      sellerId === actorId;
 
-    // Basic filters
-    if (status) where.status = status.toUpperCase() as any;
+    if (isAdmin) {
+      if (status) where.status = this.parseProductStatus(status);
+    } else if (isOwnSellerQuery) {
+      if (status) where.status = this.parseProductStatus(status);
+    } else {
+      where.status = ProductStatus.APPROVED;
+      where.category = { status: CategoryStatus.ACTIVE, deletedAt: null };
+    }
+
     if (categoryId) where.categoryId = categoryId;
     if (sellerId) where.sellerId = sellerId;
 
@@ -198,16 +249,27 @@ export class ProductsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, actorId?: string, actorRoles: string[] = []) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
         category: true,
-        seller: true,
+        seller: { select: PRODUCT_SELLER_SELECT },
         images: true,
       },
     });
     if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    const canManage =
+      this.isAdmin(actorRoles) ||
+      (this.isSeller(actorRoles) && product.sellerId === actorId);
+    const isPublic =
+      product.status === ProductStatus.APPROVED &&
+      product.category.status === CategoryStatus.ACTIVE;
+
+    if (!canManage && !isPublic) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
@@ -238,6 +300,13 @@ export class ProductsService {
       );
     }
 
+    const nextProductData = {
+      ...productData,
+      status: userRoles.includes('ROLE_ADMIN')
+        ? productData.status
+        : ProductStatus.PENDING,
+    };
+
     return this.prisma.$transaction(async (tx) => {
       // If images are provided, replace them
       if (images) {
@@ -248,7 +317,7 @@ export class ProductsService {
         await tx.product.update({
           where: { id },
           data: {
-            ...productData,
+            ...nextProductData,
             images: {
               create: images,
             },
@@ -257,7 +326,7 @@ export class ProductsService {
       } else {
         await tx.product.update({
           where: { id },
-          data: productData,
+          data: nextProductData,
         });
       }
 
@@ -265,7 +334,7 @@ export class ProductsService {
         where: { id },
         include: {
           category: true,
-          seller: true,
+          seller: { select: PRODUCT_SELLER_SELECT },
           images: true,
         },
       });
@@ -458,6 +527,7 @@ export class ProductsService {
         product: {
           deletedAt: null,
           status: ProductStatus.APPROVED,
+          category: { status: CategoryStatus.ACTIVE, deletedAt: null },
         },
         subOrder: {
           status: { not: OrderStatus.CANCELLED },
@@ -501,46 +571,73 @@ export class ProductsService {
       take,
     });
 
-    if (sales.length === 0) {
-      return [];
+    const soldProductIds = sales.map((item) => item.productId);
+    const soldProducts = soldProductIds.length
+      ? await this.prisma.product.findMany({
+          where: {
+            id: { in: soldProductIds },
+            deletedAt: null,
+            status: ProductStatus.APPROVED,
+            category: { status: CategoryStatus.ACTIVE, deletedAt: null },
+          },
+          include: FEATURED_PRODUCT_INCLUDE,
+        })
+      : [];
+
+    const productMap = new Map(
+      soldProducts.map((product) => [product.id, product]),
+    );
+
+    const rankedProducts = sales
+      .map((item) => {
+        const product = productMap.get(item.productId);
+        if (!product) {
+          return null;
+        }
+
+        return {
+          ...product,
+          soldQuantity: item._sum.quantity ?? 0,
+        };
+      })
+      .filter((product): product is NonNullable<typeof product> =>
+        Boolean(product),
+      );
+
+    const fallbackCount = take - rankedProducts.length;
+
+    if (fallbackCount > 0) {
+      const excludedProductIds = rankedProducts.map((product) => product.id);
+      const fallbackProducts = await this.prisma.product.findMany({
+        where: {
+          deletedAt: null,
+          status: ProductStatus.APPROVED,
+          category: { status: CategoryStatus.ACTIVE, deletedAt: null },
+          ...(excludedProductIds.length > 0
+            ? { id: { notIn: excludedProductIds } }
+            : {}),
+        },
+        include: FEATURED_PRODUCT_INCLUDE,
+        orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+        take: fallbackCount,
+      });
+
+      rankedProducts.push(
+        ...fallbackProducts.map((product) => ({
+          ...product,
+          soldQuantity: 0,
+        })),
+      );
     }
 
-    const products = await this.prisma.product.findMany({
-      where: {
-        id: { in: sales.map((item) => item.productId) },
-        deletedAt: null,
-        status: ProductStatus.APPROVED,
-      },
-      include: {
-        images: true,
-        category: true,
-        seller: { select: { id: true, name: true, shopName: true, avatar: true } },
-      },
-    });
-
-    const productMap = new Map(products.map((product) => [product.id, product]));
-
     return Promise.all(
-      sales
-        .map((item) => {
-          const product = productMap.get(item.productId);
-          if (!product) {
-            return null;
-          }
-
-          return {
-            ...product,
-            soldQuantity: item._sum.quantity ?? 0,
-          };
-        })
-        .filter((product): product is NonNullable<typeof product> => Boolean(product))
-        .map(async (product) => ({
-          ...product,
-          pricing: await this.flashSalesService.calculateEffectivePrice(
-            Number(product.price),
-            product.categoryId,
-          ),
-        })),
+      rankedProducts.map(async (product) => ({
+        ...product,
+        pricing: await this.flashSalesService.calculateEffectivePrice(
+          Number(product.price),
+          product.categoryId,
+        ),
+      })),
     );
   }
 
@@ -551,12 +648,9 @@ export class ProductsService {
       where: {
         deletedAt: null,
         status: ProductStatus.APPROVED,
+        category: { status: CategoryStatus.ACTIVE, deletedAt: null },
       },
-      include: {
-        images: true,
-        category: true,
-        seller: { select: { id: true, name: true, shopName: true, avatar: true } },
-      },
+      include: FEATURED_PRODUCT_INCLUDE,
       orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
       take,
     });
@@ -573,9 +667,20 @@ export class ProductsService {
   }
 
   async incrementViewCount(id: string) {
-    return this.prisma.product.update({
-      where: { id },
+    const result = await this.prisma.product.updateMany({
+      where: {
+        id,
+        deletedAt: null,
+        status: ProductStatus.APPROVED,
+        category: { status: CategoryStatus.ACTIVE, deletedAt: null },
+      },
       data: { viewCount: { increment: 1 } },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    return { success: true };
   }
 }

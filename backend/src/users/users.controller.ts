@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
@@ -12,7 +13,8 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -24,6 +26,17 @@ import type { AuthenticatedRequest } from '../common/interfaces/request.interfac
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  private assertCanAccessUser(request: AuthenticatedRequest, userId: string) {
+    if (
+      request.user.id === userId ||
+      request.user.roles.includes('ROLE_ADMIN')
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException('You can only manage your own addresses');
+  }
+
   @Get('me')
   getMe(@Request() req: AuthenticatedRequest) {
     return this.usersService.findOne(req.user.id);
@@ -32,9 +45,9 @@ export class UsersController {
   @Patch('profile')
   updateProfile(
     @Request() req: AuthenticatedRequest,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.usersService.update(req.user.id, updateUserDto);
+    return this.usersService.updateProfile(req.user.id, updateProfileDto);
   }
 
   @Post()
@@ -59,15 +72,18 @@ export class UsersController {
   }
 
   @Get(':id/addresses')
-  getAddresses(@Param('id') id: string) {
+  getAddresses(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    this.assertCanAccessUser(req, id);
     return this.usersService.getAddresses(id);
   }
 
   @Post(':id/addresses')
   addAddress(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() createAddressDto: CreateAddressDto,
   ) {
+    this.assertCanAccessUser(req, id);
     return this.usersService.addAddress(id, createAddressDto);
   }
 
@@ -78,7 +94,7 @@ export class UsersController {
 
   @Patch(':id')
   @Roles('ROLE_ADMIN')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(@Param('id') id: string, @Body() updateUserDto: AdminUpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
@@ -90,18 +106,22 @@ export class UsersController {
 
   @Patch(':userId/addresses/:addressId')
   updateAddress(
+    @Request() req: AuthenticatedRequest,
     @Param('userId') userId: string,
     @Param('addressId') addressId: string,
     @Body() updateAddressDto: Partial<CreateAddressDto>,
   ) {
+    this.assertCanAccessUser(req, userId);
     return this.usersService.updateAddress(userId, addressId, updateAddressDto);
   }
 
   @Delete(':userId/addresses/:addressId')
   deleteAddress(
+    @Request() req: AuthenticatedRequest,
     @Param('userId') userId: string,
     @Param('addressId') addressId: string,
   ) {
+    this.assertCanAccessUser(req, userId);
     return this.usersService.deleteAddress(userId, addressId);
   }
 }

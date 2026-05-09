@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import { useRouter } from "next/navigation";
 import { authApi, AuthResponse, AuthUser, LoginData, RegisterData } from "@/lib/api/auth";
 
@@ -25,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const logout = useCallback(async () => {
+  const clearAuthSession = useCallback(async () => {
     setUser(null);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -33,8 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(refreshTimerRef.current);
     }
     await fetch("/api/auth/cookies", { method: "DELETE" });
+  }, []);
+
+  const logout = useCallback(async () => {
+    await clearAuthSession();
     router.push("/login");
-  }, [router]);
+  }, [clearAuthSession, router]);
 
   const scheduleTokenRefresh = useCallback(function scheduleNextRefresh() {
     if (refreshTimerRef.current) {
@@ -58,8 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const storedUser = localStorage.getItem(USER_KEY);
+    const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
 
-    if (storedUser) {
+    if (storedUser && storedAccessToken) {
       try {
         setUser(JSON.parse(storedUser));
         scheduleTokenRefresh();
@@ -67,9 +79,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(USER_KEY);
         localStorage.removeItem(ACCESS_TOKEN_KEY);
       }
+    } else {
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
     }
     setIsLoading(false);
   }, [scheduleTokenRefresh]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      void clearAuthSession();
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [clearAuthSession]);
 
   const applyAuthSession = useCallback(async (response: AuthResponse) => {
     await fetch("/api/auth/cookies", {

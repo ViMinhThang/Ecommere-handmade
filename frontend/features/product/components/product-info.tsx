@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 import { Product } from "@/lib/api/products";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, stripHtml, stripProductSource } from "@/lib/utils";
 
 interface ProductInfoProps {
   product: Product;
@@ -8,7 +8,15 @@ interface ProductInfoProps {
   reviewsCount: number;
 }
 
-export function ProductInfo({ product, averageRating, reviewsCount }: ProductInfoProps) {
+export function ProductInfo({
+  product,
+  averageRating,
+  reviewsCount,
+}: ProductInfoProps) {
+  const descriptionPreview = stripProductSource(
+    stripHtml(product.description || ""),
+  ).slice(0, 160);
+
   return (
     <div className="space-y-6">
       <div>
@@ -20,26 +28,28 @@ export function ProductInfo({ product, averageRating, reviewsCount }: ProductInf
             <div className="flex items-center gap-2">
               <div className="flex gap-0.5">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star 
-                    key={i} 
-                    className={`w-3.5 h-3.5 ${i < Math.round(averageRating) ? "fill-brand text-brand" : "text-stone-200"}`} 
+                  <Star
+                    key={i}
+                    className={`w-3.5 h-3.5 ${i < Math.round(averageRating) ? "fill-brand text-brand" : "text-stone-200"}`}
                   />
                 ))}
               </div>
-              <span className="text-xs font-bold text-muted-foreground">({reviewsCount})</span>
+              <span className="text-xs font-bold text-muted-foreground">
+                ({reviewsCount})
+              </span>
             </div>
           )}
         </div>
         <h1 className="text-5xl font-headline italic font-bold text-foreground mt-2 leading-tight">
           {product.name}
         </h1>
-        <p className="text-primary text-3xl font-headline italic mt-4">
+        <p className="mt-4 whitespace-nowrap font-headline text-3xl italic text-primary">
           {formatCurrency(Number(product.price))}
         </p>
       </div>
-      
+
       <p className="text-muted-foreground leading-relaxed text-lg font-body line-clamp-3">
-        {(product.description || "").replace(/<[^>]*>/g, '').slice(0, 160)}...
+        {descriptionPreview}...
       </p>
     </div>
   );

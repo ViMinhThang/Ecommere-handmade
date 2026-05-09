@@ -18,6 +18,7 @@ import { CustomOrdersModule } from './custom-orders/custom-orders.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { ProductQuestionsModule } from './product-questions/product-questions.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 import { EbayProductImportService } from './startup/ebay-product-import.service';
 
 @Module({
@@ -47,6 +48,7 @@ import { EbayProductImportService } from './startup/ebay-product-import.service'
     AnalyticsModule,
     ReviewsModule,
     ProductQuestionsModule,
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [EbayProductImportService],

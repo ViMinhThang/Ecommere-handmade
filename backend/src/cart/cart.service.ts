@@ -6,7 +6,13 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { Prisma, Voucher, VoucherRange } from '@prisma/client';
+import {
+  CategoryStatus,
+  Prisma,
+  ProductStatus,
+  Voucher,
+  VoucherRange,
+} from '@prisma/client';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { FlashSalesService } from '../flash-sales/flash-sales.service';
 import {
@@ -59,6 +65,14 @@ export class CartService {
       },
     },
     items: {
+      where: {
+        product: {
+          deletedAt: null,
+          status: ProductStatus.APPROVED,
+          stock: { gt: 0 },
+          category: { status: CategoryStatus.ACTIVE, deletedAt: null },
+        },
+      },
       include: {
         product: {
           include: {
@@ -100,7 +114,9 @@ export class CartService {
     };
   }
 
-  private async enrichCartItems(items: any[]): Promise<EnrichedCartItem[]> {
+  private async enrichCartItems(
+    items: CartWithItems['items'],
+  ): Promise<EnrichedCartItem[]> {
     return Promise.all(
       items.map(async (item) => {
         const pricing = await this.flashSalesService.calculateEffectivePrice(
@@ -205,6 +221,7 @@ export class CartService {
 
   async addToCart(userId: string, dto: AddToCartDto) {
     const cart = await this.getOrCreateCart(userId);
+    const requestedQuantity = dto.quantity || 1;
 
     const existingItem = await this.prisma.cartItem.findUnique({
       where: {
@@ -216,17 +233,22 @@ export class CartService {
     });
 
     if (existingItem) {
+      const nextQuantity = existingItem.quantity + requestedQuantity;
+      await this.assertProductPurchasable(dto.productId, nextQuantity);
+
       return this.prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + (dto.quantity || 1) },
+        data: { quantity: nextQuantity },
       });
     }
+
+    await this.assertProductPurchasable(dto.productId, requestedQuantity);
 
     return this.prisma.cartItem.create({
       data: {
         cartId: cart.id,
         productId: dto.productId,
-        quantity: dto.quantity || 1,
+        quantity: requestedQuantity,
       },
     });
   }
@@ -254,6 +276,8 @@ export class CartService {
     if (dto.quantity <= 0) {
       return this.removeItem(userId, productId);
     }
+
+    await this.assertProductPurchasable(productId, dto.quantity);
 
     return this.prisma.cartItem.update({
       where: { id: item.id },
@@ -285,7 +309,11 @@ export class CartService {
 
     if (categoryIds.length === 0) {
       return this.prisma.product.findMany({
-        where: { status: 'APPROVED', deletedAt: null },
+        where: {
+          status: ProductStatus.APPROVED,
+          deletedAt: null,
+          category: { status: CategoryStatus.ACTIVE, deletedAt: null },
+        },
         take: limit,
         include: { images: { where: { isMain: true } } },
       });
@@ -293,8 +321,9 @@ export class CartService {
 
     return this.prisma.product.findMany({
       where: {
-        status: 'APPROVED',
+        status: ProductStatus.APPROVED,
         deletedAt: null,
+        category: { status: CategoryStatus.ACTIVE, deletedAt: null },
         categoryId: { in: categoryIds },
         id: { notIn: cart.items.map((i) => i.productId) },
       },
@@ -345,6 +374,26 @@ export class CartService {
 
   private async getOrCreateCart(userId: string) {
     return this.getOrCreateCartTransactional(userId, this.prisma);
+  }
+
+  private async assertProductPurchasable(productId: string, quantity: number) {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: productId,
+        deletedAt: null,
+        status: ProductStatus.APPROVED,
+        stock: { gte: quantity },
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!product) {
+      throw new BadRequestException('Product is not available for purchase');
+    }
   }
 
   private async getOrCreateCartTransactional(

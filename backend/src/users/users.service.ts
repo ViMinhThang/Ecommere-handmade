@@ -6,13 +6,13 @@ import {
 import { Prisma, ProductStatus, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import {
   SearchSellersQueryDto,
   SellerSearchSortBy,
-  SellerSearchSortOrder,
 } from './dto/search-sellers-query.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -171,8 +171,8 @@ export class UsersService {
   }
 
   async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+    const user = await this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
       select: this.userSelect,
     });
     if (!user) {
@@ -212,8 +212,8 @@ export class UsersService {
     const page = Math.max(query.page ?? 1, 1);
     const limit = this.normalizeSellerSearchLimit(query.limit);
     const skip = (page - 1) * limit;
-    const sortBy = (query.sortBy ?? 'relevance') as SellerSearchSortBy;
-    const sortOrder = (query.sortOrder ?? 'desc') as SellerSearchSortOrder;
+    const sortBy = query.sortBy ?? 'relevance';
+    const sortOrder = query.sortOrder ?? 'desc';
 
     const where: Prisma.UserWhereInput = {
       deletedAt: null,
@@ -382,7 +382,50 @@ export class UsersService {
     `;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    const {
+      name,
+      avatar,
+      phone,
+      shopName,
+      sellerTitle,
+      sellerBio,
+      sellerAbout,
+      sellerHeroImage,
+      sellerAboutImage,
+      sellerStat1Label,
+      sellerStat1Value,
+      sellerStat2Label,
+      sellerStat2Value,
+    } = updateProfileDto;
+
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        avatar,
+        phone,
+        shopName,
+        sellerTitle,
+        sellerBio,
+        sellerAbout,
+        sellerHeroImage,
+        sellerAboutImage,
+        sellerStat1Label,
+        sellerStat1Value,
+        sellerStat2Label,
+        sellerStat2Value,
+      },
+      select: this.userSelect,
+    });
+  }
+
+  async update(id: string, updateUserDto: AdminUpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -393,10 +436,17 @@ export class UsersService {
       roles = this.processRoles(updateUserDto.roles);
     }
 
+    const password = updateUserDto.password
+      ? await bcrypt.hash(updateUserDto.password, 10)
+      : undefined;
+    const updateData: AdminUpdateUserDto = { ...updateUserDto };
+    delete updateData.password;
+
     return this.prisma.user.update({
       where: { id },
       data: {
-        ...updateUserDto,
+        ...updateData,
+        ...(password ? { password } : {}),
         roles,
       },
       select: this.userSelect,
@@ -434,13 +484,13 @@ export class UsersService {
 
     if (createAddressDto.isDefault) {
       await this.prisma.address.updateMany({
-        where: { userId },
+        where: { userId, deletedAt: null },
         data: { isDefault: false },
       });
     }
 
     const addressCount = await this.prisma.address.count({
-      where: { userId },
+      where: { userId, deletedAt: null },
     });
 
     if (addressCount >= 5) {
@@ -457,7 +507,8 @@ export class UsersService {
 
   async getAddresses(userId: string) {
     return this.prisma.address.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     });
   }
 
@@ -475,7 +526,7 @@ export class UsersService {
 
     if (updateAddressDto.isDefault) {
       await this.prisma.address.updateMany({
-        where: { userId },
+        where: { userId, deletedAt: null },
         data: { isDefault: false },
       });
     }

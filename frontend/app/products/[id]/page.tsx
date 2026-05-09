@@ -21,6 +21,8 @@ import { ProductReviews } from "@/features/product/components/product-reviews";
 import { ProductQuestionsSection } from "@/features/product/components/product-questions";
 import { RelatedProducts } from "@/features/product/components/related-products";
 
+type ProductReviewList = Parameters<typeof ProductReviews>[0]["reviews"];
+
 export default function ProductDetailPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -102,7 +104,7 @@ function ProductDetailContent({
 }: {
   product: Product;
   artisanImage: string | null;
-  reviews: any[];
+  reviews: ProductReviewList;
   isReviewsLoading: boolean;
 }) {
   const { user, isAuthenticated } = useAuth();
@@ -188,6 +190,7 @@ function ProductDetailContent({
               isAdding={isAdding}
               addedSuccess={addedSuccess}
               onOpenChat={openChat}
+              isAuthenticated={isAuthenticated}
             />
 
             <div className="border-t border-border/30 pt-8 space-y-6">

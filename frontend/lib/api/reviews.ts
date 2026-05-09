@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { ProductImage } from '@/types';
 
 export interface Review {
   id: string;
@@ -15,7 +16,7 @@ export interface Review {
   productId: string;
   product: {
     name: string;
-    images?: any[];
+    images?: ProductImage[];
   };
   orderItemId: string;
   createdAt: string;

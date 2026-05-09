@@ -20,6 +20,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 @Controller('products')
@@ -58,16 +59,26 @@ export class ProductsController {
     @Request() req: AuthenticatedRequest,
     @Body() createProductDto: CreateProductDto,
   ) {
-    return this.productsService.create(req.user.id, createProductDto);
+    return this.productsService.create(
+      req.user.id,
+      req.user.roles,
+      createProductDto,
+    );
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  findAll(@Query() query: ListProductsQueryDto) {
+  findAll(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: ListProductsQueryDto,
+  ) {
     return this.productsService.findAll(
       query.status,
       query.categoryId,
       query.sellerId,
       query,
+      req.user?.id,
+      req.user?.roles ?? [],
     );
   }
 
@@ -85,7 +96,11 @@ export class ProductsController {
     @Request() req: AuthenticatedRequest,
     @Param('sellerId') sellerId: string,
   ) {
-    return this.productsService.getBySeller(req.user.id, req.user.roles, sellerId);
+    return this.productsService.getBySeller(
+      req.user.id,
+      req.user.roles,
+      sellerId,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -112,9 +127,14 @@ export class ProductsController {
     return this.productsService.getMostViewedProducts(this.parseLimit(limit));
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(id);
+  findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.productsService.findOne(
+      id,
+      req.user?.id,
+      req.user?.roles ?? [],
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -143,10 +163,7 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id/inventory')
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
-  getInventory(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  getInventory(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.productsService.getInventory(id, req.user.id, req.user.roles);
   }
 
@@ -173,7 +190,11 @@ export class ProductsController {
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.productsService.getInventoryLog(id, req.user.id, req.user.roles);
+    return this.productsService.getInventoryLog(
+      id,
+      req.user.id,
+      req.user.roles,
+    );
   }
 
   @Post(':id/view')

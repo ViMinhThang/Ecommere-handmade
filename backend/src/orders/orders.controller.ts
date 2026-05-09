@@ -13,11 +13,8 @@ import {
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
-import {
-  OrderStatus,
-  PaymentMethod,
-  PaymentStatus,
-} from '@prisma/client';
+import { CheckoutDto } from './dto/checkout.dto';
+import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('orders')
@@ -46,8 +43,7 @@ export class OrdersController {
   @Post('checkout')
   async checkout(
     @Request() req: AuthenticatedRequest,
-    @Body()
-    body: { shippingAddress: Record<string, unknown>; paymentMethod?: string },
+    @Body() body: CheckoutDto,
   ) {
     const paymentMethod = body.paymentMethod ?? PaymentMethod.STRIPE;
 
@@ -58,11 +54,7 @@ export class OrdersController {
       throw new BadRequestException('Invalid payment method');
     }
 
-    return this.ordersService.checkout(
-      req.user.id,
-      body.shippingAddress,
-      paymentMethod as PaymentMethod,
-    );
+    return this.ordersService.checkout(req.user.id, body, paymentMethod);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -137,11 +129,7 @@ export class OrdersController {
     @Param('id') id: string,
     @Body('status') status: string,
   ) {
-    const normalizedStatus = this.parseEnumValue(
-      status,
-      OrderStatus,
-      'status',
-    );
+    const normalizedStatus = this.parseEnumValue(status, OrderStatus, 'status');
 
     if (!normalizedStatus) {
       throw new BadRequestException('Status is required');
@@ -176,11 +164,7 @@ export class OrdersController {
     @Param('id') id: string,
     @Body('status') status: string,
   ) {
-    const normalizedStatus = this.parseEnumValue(
-      status,
-      OrderStatus,
-      'status',
-    );
+    const normalizedStatus = this.parseEnumValue(status, OrderStatus, 'status');
 
     if (!normalizedStatus) {
       throw new BadRequestException('Status is required');

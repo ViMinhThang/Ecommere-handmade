@@ -4,6 +4,8 @@ import {
   IsArray,
   IsOptional,
   IsEnum,
+  IsInt,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -23,7 +25,9 @@ export class CreateProductDto {
   @IsString()
   description: string;
 
+  @Type(() => Number)
   @IsNumber()
+  @Min(0)
   price: number;
 
   @IsOptional()
@@ -45,11 +49,15 @@ export class CreateProductDto {
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   stock?: number;
 
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   lowStockThreshold?: number;
 
   @IsOptional()

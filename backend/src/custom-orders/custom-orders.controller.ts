@@ -12,6 +12,11 @@ import { CustomOrdersService } from './custom-orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import { CreateCustomOrderDto } from './dto/create-custom-order.dto';
+import { RequestRevisionDto } from './dto/request-revision.dto';
+import { ConfirmCustomOrderPaymentDto } from './dto/confirm-custom-order-payment.dto';
+import { UpdateCustomOrderStatusDto } from './dto/update-custom-order-status.dto';
+import { UpdateSketchDto } from './dto/update-sketch.dto';
 
 @Controller('custom-orders')
 export class CustomOrdersController {
@@ -20,7 +25,10 @@ export class CustomOrdersController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
-  create(@Request() req: AuthenticatedRequest, @Body() createData: any) {
+  create(
+    @Request() req: AuthenticatedRequest,
+    @Body() createData: CreateCustomOrderDto,
+  ) {
     return this.customOrdersService.createCustomOrder(req.user.id, createData);
   }
 
@@ -34,12 +42,20 @@ export class CustomOrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   getSellerOrders(@Request() req: AuthenticatedRequest) {
-    return this.customOrdersService.getSellerCustomOrders(req.user.id);
+    return this.customOrdersService.getSellerCustomOrders(
+      req.user.id,
+      req.user.roles,
+    );
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.customOrdersService.getCustomOrderById(id);
+  @UseGuards(JwtAuthGuard)
+  findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.customOrdersService.getCustomOrderById(
+      id,
+      req.user.id,
+      req.user.roles,
+    );
   }
 
   @Post(':id/request-revision')
@@ -47,7 +63,7 @@ export class CustomOrdersController {
   requestRevision(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() body: { revisionNote: string },
+    @Body() body: RequestRevisionDto,
   ) {
     return this.customOrdersService.requestRevision(
       id,
@@ -66,9 +82,14 @@ export class CustomOrdersController {
   @UseGuards(JwtAuthGuard)
   confirmPayment(
     @Param('id') id: string,
-    @Body() body: { paymentIntentId: string },
+    @Request() req: AuthenticatedRequest,
+    @Body() body: ConfirmCustomOrderPaymentDto,
   ) {
-    return this.customOrdersService.confirmPayment(id, body.paymentIntentId);
+    return this.customOrdersService.confirmPayment(
+      id,
+      req.user.id,
+      body.paymentIntentId,
+    );
   }
 
   @Patch(':id/status')
@@ -77,9 +98,14 @@ export class CustomOrdersController {
   updateStatus(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() body: { status: any },
+    @Body() body: UpdateCustomOrderStatusDto,
   ) {
-    return this.customOrdersService.advanceStatus(id, req.user.id, body.status);
+    return this.customOrdersService.advanceStatus(
+      id,
+      req.user.id,
+      req.user.roles,
+      body.status,
+    );
   }
 
   @Patch(':id/sketch')
@@ -88,7 +114,7 @@ export class CustomOrdersController {
   updateSketch(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() body: any,
+    @Body() body: UpdateSketchDto,
   ) {
     return this.customOrdersService.updateSketch(id, req.user.id, body);
   }

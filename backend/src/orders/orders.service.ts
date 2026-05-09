@@ -3,6 +3,8 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
@@ -19,8 +21,16 @@ import {
   PaymentStatus,
   Prisma,
   SubOrder,
-  CustomOrder,
+  ProductStatus,
+  CategoryStatus,
+  InventoryChangeReason,
+  CustomOrderStatus,
 } from '@prisma/client';
+import { CheckoutDto } from './dto/checkout.dto';
+
+const SHIPPING_FEE = 25000;
+const STRIPE_PAYMENT_EXPIRY_MS = 30 * 60 * 1000;
+const EXPIRED_ORDER_SWEEP_MS = 5 * 60 * 1000;
 
 interface SubOrderGroup {
   subTotal: number;
@@ -35,7 +45,39 @@ interface ExecuteCheckoutTransactionParams {
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   paymentIntentId?: string | null;
+  paymentExpiresAt?: Date | null;
 }
+
+interface PaymentIntentSnapshot {
+  id: string;
+  amount: number;
+  currency: string;
+  metadata?: Record<string, string>;
+}
+
+interface StripeWebhookPaymentPayload {
+  eventId: string;
+  paymentIntentId: string;
+  type: string;
+  amount?: number;
+  currency?: string;
+  metadata?: Record<string, string>;
+}
+
+type OrderWithStockItems = Prisma.OrderGetPayload<{
+  include: {
+    subOrders: {
+      include: {
+        items: {
+          select: {
+            productId: true;
+            quantity: true;
+          };
+        };
+      };
+    };
+  };
+}>;
 
 interface AdminOrderFilters {
   status?: OrderStatus;
@@ -45,44 +87,54 @@ interface AdminOrderFilters {
   seller?: string;
 }
 
-type SubOrderWithRelations = Prisma.SubOrderGetPayload<{
-  include: {
-    seller: { select: { id: true; name: true; shopName: true; avatar: true } };
-    items: {
-      include: { product: { include: { images: true } }; review: true };
-    };
-    order: {
-      select: {
-        createdAt: true;
-        shippingAddress: true;
-        customer: {
-          select: { id: true; name: true; email: true; avatar: true };
-        };
-      };
-    };
-  };
-}>;
-
-type CustomOrderWithRelations = Prisma.CustomOrderGetPayload<{
-  include: {
-    seller: { select: { id: true; name: true; shopName: true; avatar: true } };
-    customer: { select: { id: true; name: true; email: true; avatar: true } };
-  };
-}>;
+type CustomOrderSummary = {
+  id: string;
+  sellerId: string;
+  seller?: unknown;
+  customer?: unknown;
+  price: Prisma.Decimal | number;
+  title: string;
+  sketchImageUrl: string | null;
+  status: CustomOrderStatus;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 @Injectable()
-export class OrdersService {
+export class OrdersService implements OnModuleInit, OnModuleDestroy {
+  private expiredOrderSweepTimer?: NodeJS.Timeout;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
     private readonly cartService: CartService,
   ) {}
 
+  onModuleInit() {
+    this.expiredOrderSweepTimer = setInterval(
+      () => void this.releaseExpiredStripeOrders(),
+      EXPIRED_ORDER_SWEEP_MS,
+    );
+    this.expiredOrderSweepTimer.unref?.();
+  }
+
+  onModuleDestroy() {
+    if (this.expiredOrderSweepTimer) {
+      clearInterval(this.expiredOrderSweepTimer);
+    }
+  }
+
   async checkout(
     userId: string,
-    shippingAddress: Record<string, unknown>,
+    checkoutDto: CheckoutDto,
     paymentMethod: PaymentMethod = PaymentMethod.STRIPE,
   ) {
+    await this.releaseExpiredStripeOrders();
+
+    const shippingAddress = await this.resolveCheckoutShippingAddress(
+      userId,
+      checkoutDto,
+    );
     const cart = await this.cartService.getCart(userId);
     this.validateCart(cart);
 
@@ -106,8 +158,7 @@ export class OrdersService {
       };
     }
 
-    const shippingFee = 25000;
-    const finalTotal = cart.total + shippingFee;
+    const finalTotal = cart.total + SHIPPING_FEE;
 
     const paymentIntent = await this.stripeService.createPaymentIntent(
       finalTotal,
@@ -115,14 +166,27 @@ export class OrdersService {
       { userId, voucherCode: cart.appliedVoucher?.code || '' },
     );
 
-    const order = await this.executeCheckoutTransaction({
+    let order: Order;
+    try {
+      order = await this.executeCheckoutTransaction({
+        userId,
+        cart,
+        sellerGroups,
+        shippingAddress,
+        paymentMethod: PaymentMethod.STRIPE,
+        paymentStatus: PaymentStatus.UNPAID,
+        paymentIntentId: paymentIntent.id,
+        paymentExpiresAt: new Date(Date.now() + STRIPE_PAYMENT_EXPIRY_MS),
+      });
+    } catch (error) {
+      await this.stripeService.cancelPaymentIntent(paymentIntent.id);
+      throw error;
+    }
+
+    await this.stripeService.updatePaymentIntentMetadata(paymentIntent.id, {
+      orderId: order.id,
       userId,
-      cart,
-      sellerGroups,
-      shippingAddress,
-      paymentMethod: PaymentMethod.STRIPE,
-      paymentStatus: PaymentStatus.UNPAID,
-      paymentIntentId: paymentIntent.id,
+      voucherCode: cart.appliedVoucher?.code || '',
     });
 
     return {
@@ -144,12 +208,59 @@ export class OrdersService {
     return paymentMethod;
   }
 
+  private async resolveCheckoutShippingAddress(
+    userId: string,
+    checkoutDto: CheckoutDto,
+  ): Promise<Record<string, unknown>> {
+    if (checkoutDto.addressId) {
+      const address = await this.prisma.address.findFirst({
+        where: {
+          id: checkoutDto.addressId,
+          userId,
+          deletedAt: null,
+        },
+      });
+
+      if (!address) {
+        throw new NotFoundException('Shipping address not found');
+      }
+
+      return {
+        addressId: address.id,
+        fullName: address.fullName,
+        phone: address.phone,
+        address: address.address,
+        city: address.city,
+        district: address.district,
+        ward: address.ward,
+      };
+    }
+
+    if (checkoutDto.shippingAddress) {
+      return { ...checkoutDto.shippingAddress };
+    }
+
+    throw new BadRequestException('Shipping address is required');
+  }
+
   private validateCart(cart: EnrichedCart) {
     if (!cart || cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
 
     for (const item of cart.items) {
+      const isPurchasable =
+        item.product.status === ProductStatus.APPROVED &&
+        item.product.category.status === CategoryStatus.ACTIVE &&
+        item.product.deletedAt === null &&
+        item.product.category.deletedAt === null;
+
+      if (!isPurchasable) {
+        throw new BadRequestException(
+          `Product ${item.product.name} is not available for purchase`,
+        );
+      }
+
       if (item.product.stock < item.quantity) {
         throw new BadRequestException(
           `Product ${item.product.name} is out of stock (Available: ${item.product.stock})`,
@@ -185,6 +296,7 @@ export class OrdersService {
       paymentMethod,
       paymentStatus,
       paymentIntentId,
+      paymentExpiresAt,
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
@@ -193,12 +305,13 @@ export class OrdersService {
       const order = await tx.order.create({
         data: {
           customerId: userId,
-          totalAmount: cart.total + 25000,
+          totalAmount: cart.total + SHIPPING_FEE,
           discountAmount: cart.discountAmount,
           voucherCode: cart.appliedVoucher?.code,
           paymentMethod,
           paymentStatus,
           paymentIntentId: paymentIntentId ?? null,
+          paymentExpiresAt: paymentExpiresAt ?? null,
           shippingAddress: shippingAddress
             ? (shippingAddress as Prisma.InputJsonValue)
             : undefined,
@@ -225,9 +338,32 @@ export class OrdersService {
     items: EnrichedCartItem[],
   ) {
     for (const item of items) {
-      await tx.product.update({
-        where: { id: item.productId },
+      const result = await tx.product.updateMany({
+        where: {
+          id: item.productId,
+          deletedAt: null,
+          status: ProductStatus.APPROVED,
+          stock: { gte: item.quantity },
+          category: {
+            deletedAt: null,
+            status: CategoryStatus.ACTIVE,
+          },
+        },
         data: { stock: { decrement: item.quantity } },
+      });
+
+      if (result.count !== 1) {
+        throw new BadRequestException(
+          `Product ${item.product.name} is out of stock`,
+        );
+      }
+
+      await tx.inventoryLog.create({
+        data: {
+          productId: item.productId,
+          change: -item.quantity,
+          reason: InventoryChangeReason.ORDER,
+        },
       });
     }
   }
@@ -289,8 +425,8 @@ export class OrdersService {
     ]);
 
     return this.mergeAndSortOrders(
-      this.formatStandardOrders(subOrders as any[]),
-      this.formatCustomOrders(customOrders as any[]),
+      this.formatStandardOrders(subOrders),
+      this.formatCustomOrders(customOrders),
     );
   }
 
@@ -309,48 +445,53 @@ export class OrdersService {
     ]);
 
     return this.mergeAndSortOrders(
-      this.formatStandardOrders(subOrders as any[]),
-      this.formatCustomOrders(customOrders as any[]),
+      this.formatStandardOrders(subOrders),
+      this.formatCustomOrders(customOrders),
     );
   }
 
-  private formatStandardOrders(orders: any[]): UnifiedOrder[] {
-    return orders.map((o) => ({ ...o, type: 'STANDARD' })) as UnifiedOrder[];
+  private formatStandardOrders<T extends object>(orders: T[]): UnifiedOrder[] {
+    return orders.map(
+      (order) => ({ ...order, type: 'STANDARD' }) as unknown as UnifiedOrder,
+    );
   }
 
-  private formatCustomOrders(orders: any[]): UnifiedOrder[] {
-    return orders.map((co) => ({
-      id: co.id,
-      orderId: co.id,
-      sellerId: co.sellerId,
-      seller: co.seller,
-      subTotal: co.price,
-      status: co.status,
-      createdAt: co.createdAt,
-      updatedAt: co.updatedAt,
-      type: 'CUSTOM',
-      items: [
-        {
+  private formatCustomOrders(orders: CustomOrderSummary[]): UnifiedOrder[] {
+    return orders.map(
+      (co) =>
+        ({
           id: co.id,
-          productId: 'custom',
-          quantity: 1,
-          price: co.price,
-          product: {
-            name: co.title,
-            images: co.sketchImageUrl
-              ? [{ url: co.sketchImageUrl, isMain: true }]
-              : [],
+          orderId: co.id,
+          sellerId: co.sellerId,
+          seller: co.seller,
+          subTotal: co.price,
+          status: co.status,
+          createdAt: co.createdAt,
+          updatedAt: co.updatedAt,
+          type: 'CUSTOM',
+          items: [
+            {
+              id: co.id,
+              productId: 'custom',
+              quantity: 1,
+              price: co.price,
+              product: {
+                name: co.title,
+                images: co.sketchImageUrl
+                  ? [{ url: co.sketchImageUrl, isMain: true }]
+                  : [],
+              },
+            },
+          ],
+          order: {
+            createdAt: co.createdAt,
+            shippingAddress: null,
+            paymentMethod: null,
+            paymentStatus: null,
+            customer: co.customer,
           },
-        },
-      ],
-      order: {
-        createdAt: co.createdAt,
-        shippingAddress: null,
-        paymentMethod: null,
-        paymentStatus: null,
-        customer: co.customer,
-      },
-    })) as UnifiedOrder[];
+        }) as unknown as UnifiedOrder,
+    );
   }
 
   private mergeAndSortOrders(
@@ -537,6 +678,13 @@ export class OrdersService {
       await tx.product.update({
         where: { id: item.productId },
         data: { stock: { increment: item.quantity } },
+      });
+      await tx.inventoryLog.create({
+        data: {
+          productId: item.productId,
+          change: item.quantity,
+          reason: InventoryChangeReason.RETURN,
+        },
       });
     }
   }
@@ -747,7 +895,11 @@ export class OrdersService {
     if (!this.isAdmin(roles) && subOrder.sellerId !== actorId)
       throw new ForbiddenException('Not your order');
 
-    this.assertSubOrderStatusTransition(subOrder.order, subOrder.status, status);
+    this.assertSubOrderStatusTransition(
+      subOrder.order,
+      subOrder.status,
+      status,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       if (
@@ -825,12 +977,6 @@ export class OrdersService {
   }
 
   async confirmPayment(userId: string, paymentIntentId: string) {
-    const isSucceeded =
-      await this.stripeService.verifyPaymentIntent(paymentIntentId);
-    if (!isSucceeded) {
-      throw new BadRequestException('Payment has not succeeded yet');
-    }
-
     const order = await this.prisma.order.findUnique({
       where: { paymentIntentId },
     });
@@ -844,19 +990,34 @@ export class OrdersService {
     if (order.customerId !== userId)
       throw new ForbiddenException('Not your order');
 
-    return this.prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id: order.id },
-        data: {
-          status: OrderStatus.PAID,
-          paymentStatus: PaymentStatus.PAID,
-        },
-      });
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      return {
+        success: true,
+        orderId: order.id,
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.status,
+      };
+    }
 
-      await tx.subOrder.updateMany({
-        where: { orderId: order.id },
-        data: { status: OrderStatus.PAID },
-      });
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Order has been cancelled');
+    }
+
+    const paymentIntent =
+      await this.stripeService.retrievePaymentIntent(paymentIntentId);
+    if (paymentIntent.status !== 'succeeded') {
+      throw new BadRequestException('Payment has not succeeded yet');
+    }
+
+    this.assertStripePaymentMatchesOrder(order, {
+      id: paymentIntent.id,
+      amount: paymentIntent.amount_received || paymentIntent.amount,
+      currency: paymentIntent.currency,
+      metadata: paymentIntent.metadata,
+    });
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedOrder = await this.markStripeOrderPaid(tx, order.id);
 
       return {
         success: true,
@@ -865,6 +1026,291 @@ export class OrdersService {
         orderStatus: updatedOrder.status,
       };
     });
+  }
+
+  private assertStripePaymentMatchesOrder(
+    order: Order,
+    payment: PaymentIntentSnapshot,
+  ) {
+    if (payment.id !== order.paymentIntentId) {
+      throw new BadRequestException('Payment intent does not belong to order');
+    }
+
+    const expectedAmount = Math.round(Number(order.totalAmount));
+    if (payment.amount !== expectedAmount) {
+      throw new BadRequestException('Payment amount does not match order');
+    }
+
+    if (payment.currency.toLowerCase() !== 'vnd') {
+      throw new BadRequestException('Payment currency does not match order');
+    }
+
+    const metadata = payment.metadata ?? {};
+    if (metadata.orderId && metadata.orderId !== order.id) {
+      throw new BadRequestException('Payment metadata does not match order');
+    }
+
+    if (metadata.userId && metadata.userId !== order.customerId) {
+      throw new BadRequestException('Payment metadata does not match customer');
+    }
+  }
+
+  private async markStripeOrderPaid(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+  ) {
+    const updatedOrder = await tx.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.PAID,
+        paymentStatus: PaymentStatus.PAID,
+        paymentExpiresAt: null,
+      },
+    });
+
+    await tx.subOrder.updateMany({
+      where: {
+        orderId,
+        status: { not: OrderStatus.CANCELLED },
+      },
+      data: { status: OrderStatus.PAID },
+    });
+
+    return updatedOrder;
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
+  }
+
+  private async recordWebhookEvent(
+    tx: Prisma.TransactionClient,
+    payload: StripeWebhookPaymentPayload,
+  ) {
+    try {
+      await tx.paymentWebhookEvent.create({
+        data: {
+          eventId: payload.eventId,
+          type: payload.type,
+          paymentIntentId: payload.paymentIntentId,
+        },
+      });
+      return true;
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async handlePaymentIntentSucceeded(payload: StripeWebhookPaymentPayload) {
+    return this.prisma.$transaction(async (tx) => {
+      const recorded = await this.recordWebhookEvent(tx, payload);
+      if (!recorded) {
+        return { received: true, processed: false, reason: 'duplicate' };
+      }
+
+      const order = await tx.order.findUnique({
+        where: { paymentIntentId: payload.paymentIntentId },
+      });
+
+      if (!order) {
+        return { received: true, processed: false, reason: 'order_not_found' };
+      }
+
+      if (order.paymentMethod !== PaymentMethod.STRIPE) {
+        return {
+          received: true,
+          processed: false,
+          reason: 'not_stripe_order',
+        };
+      }
+
+      if (order.paymentStatus === PaymentStatus.PAID) {
+        return { received: true, processed: false, reason: 'already_paid' };
+      }
+
+      if (order.status === OrderStatus.CANCELLED) {
+        return {
+          received: true,
+          processed: false,
+          reason: 'order_cancelled',
+        };
+      }
+
+      if (payload.amount === undefined || payload.currency === undefined) {
+        throw new BadRequestException('Payment payload is incomplete');
+      }
+
+      this.assertStripePaymentMatchesOrder(order, {
+        id: payload.paymentIntentId,
+        amount: payload.amount,
+        currency: payload.currency,
+        metadata: payload.metadata,
+      });
+
+      const updatedOrder = await this.markStripeOrderPaid(tx, order.id);
+
+      return {
+        received: true,
+        processed: true,
+        orderId: updatedOrder.id,
+        paymentStatus: updatedOrder.paymentStatus,
+        orderStatus: updatedOrder.status,
+      };
+    });
+  }
+
+  async handlePaymentIntentFailed(payload: StripeWebhookPaymentPayload) {
+    return this.prisma.$transaction(async (tx) => {
+      const recorded = await this.recordWebhookEvent(tx, payload);
+      if (!recorded) {
+        return { received: true, processed: false, reason: 'duplicate' };
+      }
+
+      const order = await tx.order.findUnique({
+        where: { paymentIntentId: payload.paymentIntentId },
+        include: {
+          subOrders: {
+            include: {
+              items: {
+                select: {
+                  productId: true,
+                  quantity: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!order) {
+        return { received: true, processed: false, reason: 'order_not_found' };
+      }
+
+      if (
+        order.paymentMethod !== PaymentMethod.STRIPE ||
+        order.paymentStatus === PaymentStatus.PAID ||
+        order.status === OrderStatus.CANCELLED
+      ) {
+        return { received: true, processed: false, reason: 'terminal_order' };
+      }
+
+      const updatedOrder = await this.cancelStripeOrderAndRestoreStock(
+        tx,
+        order,
+      );
+
+      return {
+        received: true,
+        processed: true,
+        orderId: updatedOrder.id,
+        paymentStatus: updatedOrder.paymentStatus,
+        orderStatus: updatedOrder.status,
+      };
+    });
+  }
+
+  private async cancelStripeOrderAndRestoreStock(
+    tx: Prisma.TransactionClient,
+    order: OrderWithStockItems,
+  ) {
+    for (const subOrder of order.subOrders) {
+      if (subOrder.status === OrderStatus.CANCELLED) {
+        continue;
+      }
+      await this.restoreSubOrderStock(tx, subOrder.items);
+    }
+
+    await tx.subOrder.updateMany({
+      where: {
+        orderId: order.id,
+        status: { not: OrderStatus.CANCELLED },
+      },
+      data: { status: OrderStatus.CANCELLED },
+    });
+
+    return tx.order.update({
+      where: { id: order.id },
+      data: {
+        status: OrderStatus.CANCELLED,
+        paymentStatus: PaymentStatus.FAILED,
+        paymentExpiresAt: null,
+      },
+    });
+  }
+
+  async releaseExpiredStripeOrders() {
+    const now = new Date();
+    const expiredOrders = await this.prisma.order.findMany({
+      where: {
+        paymentMethod: PaymentMethod.STRIPE,
+        paymentStatus: PaymentStatus.UNPAID,
+        status: OrderStatus.PENDING,
+        paymentExpiresAt: { lt: now },
+      },
+      include: {
+        subOrders: {
+          include: {
+            items: {
+              select: {
+                productId: true,
+                quantity: true,
+              },
+            },
+          },
+        },
+      },
+      take: 50,
+    });
+
+    let released = 0;
+
+    for (const order of expiredOrders) {
+      if (order.paymentIntentId) {
+        await this.stripeService.cancelPaymentIntent(order.paymentIntentId);
+      }
+
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const freshOrder = await tx.order.findUnique({
+          where: { id: order.id },
+          include: {
+            subOrders: {
+              include: {
+                items: {
+                  select: {
+                    productId: true,
+                    quantity: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (
+          !freshOrder ||
+          freshOrder.paymentStatus !== PaymentStatus.UNPAID ||
+          freshOrder.status !== OrderStatus.PENDING ||
+          !freshOrder.paymentExpiresAt ||
+          freshOrder.paymentExpiresAt > now
+        ) {
+          return null;
+        }
+
+        return this.cancelStripeOrderAndRestoreStock(tx, freshOrder);
+      });
+
+      if (updated) {
+        released += 1;
+      }
+    }
+
+    return { released };
   }
 
   private async syncMasterOrderStatus(
