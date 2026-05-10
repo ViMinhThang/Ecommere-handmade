@@ -26,6 +26,13 @@ interface SocketData {
   userId: string;
 }
 
+type ChatSocket = Socket<
+  Record<string, never>,
+  Record<string, never>,
+  Record<string, never>,
+  SocketData
+>;
+
 @Injectable()
 @WebSocketGateway({
   namespace: '/chat',
@@ -47,9 +54,7 @@ export class ChatGateway implements OnGatewayConnection {
     private readonly configService: ConfigService,
   ) {}
 
-  async handleConnection(
-    client: Socket<any, any, any, SocketData>,
-  ): Promise<void> {
+  async handleConnection(client: ChatSocket): Promise<void> {
     const token = this.extractAccessToken(client);
     if (!token) {
       client.disconnect();
@@ -74,7 +79,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   @SubscribeMessage('chat.conversation.join')
   async handleJoinConversation(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: ChatSocket,
     @MessageBody() body: JoinConversationPayload,
   ) {
     const userId = this.getClientUserId(client);
@@ -123,8 +128,8 @@ export class ChatGateway implements OnGatewayConnection {
     );
   }
 
-  private getClientUserId(client: Socket): string {
-    const userId = (client as Socket<any, any, any, SocketData>).data.userId;
+  private getClientUserId(client: ChatSocket): string {
+    const userId = client.data.userId;
     if (!userId || typeof userId !== 'string') {
       throw new WsException('Unauthorized');
     }
@@ -139,9 +144,9 @@ export class ChatGateway implements OnGatewayConnection {
     return `conversation:${conversationId}`;
   }
 
-  private extractAccessToken(client: Socket): string | null {
-    const authToken = client.handshake.auth?.token;
-    if (typeof authToken === 'string' && authToken.length > 0) {
+  private extractAccessToken(client: ChatSocket): string | null {
+    const authToken = this.getHandshakeAuthToken(client.handshake.auth);
+    if (authToken) {
       return authToken;
     }
 
@@ -170,5 +175,14 @@ export class ChatGateway implements OnGatewayConnection {
     }
 
     return null;
+  }
+
+  private getHandshakeAuthToken(auth: unknown): string | null {
+    if (!auth || typeof auth !== 'object' || !('token' in auth)) {
+      return null;
+    }
+
+    const token = (auth as { token?: unknown }).token;
+    return typeof token === 'string' && token.length > 0 ? token : null;
   }
 }

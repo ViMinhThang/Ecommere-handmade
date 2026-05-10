@@ -20,6 +20,7 @@ type OrderFindUniqueArgs = {
     id?: string;
     paymentIntentId?: string;
   };
+  include?: unknown;
 };
 
 type LedgerCreateArgs = {
@@ -422,8 +423,9 @@ describe('OrdersService', () => {
       .map((call) => call[0].data)
       .filter((data) => data.type === MarketplaceLedgerEntryType.REFUND);
     expect(refundLedgerCalls).toHaveLength(1);
-    expect(refundLedgerCalls[0].subOrder.connect.id).toBe('sub_1');
-    expect(refundLedgerCalls[0].seller.connect.id).toBe('seller_1');
+    const refundLedgerCall = refundLedgerCalls.at(0);
+    expect(refundLedgerCall?.subOrder?.connect.id).toBe('sub_1');
+    expect(refundLedgerCall?.seller?.connect.id).toBe('seller_1');
   });
 
   it('does not restore stock twice when a sub-order cancel is retried', async () => {
@@ -472,5 +474,105 @@ describe('OrdersService', () => {
     });
     expect(mockPrisma.product.update).not.toHaveBeenCalled();
     expect(mockPrisma.inventoryLog.create).not.toHaveBeenCalled();
+  });
+
+  it('marks COD master order paid and posts ledger when all active sub-orders are delivered', async () => {
+    const order = {
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 225000,
+      paymentMethod: PaymentMethod.COD,
+      paymentStatus: PaymentStatus.COD_PENDING,
+      status: OrderStatus.SHIPPED,
+    };
+
+    mockPrisma.subOrder.findUnique.mockResolvedValue({
+      id: 'sub_1',
+      orderId: 'order_1',
+      sellerId: 'seller_1',
+      status: OrderStatus.SHIPPED,
+      items: [{ productId: 'product_1', quantity: 1 }],
+      order,
+    });
+    mockPrisma.subOrder.update.mockResolvedValue({
+      id: 'sub_1',
+      status: OrderStatus.DELIVERED,
+    });
+    mockPrisma.subOrder.findMany.mockResolvedValue([
+      { id: 'sub_1', status: OrderStatus.DELIVERED },
+      { id: 'sub_2', status: OrderStatus.DELIVERED },
+    ]);
+    mockPrisma.order.findUnique.mockImplementation(
+      (args: OrderFindUniqueArgs) => {
+        if (args.include) {
+          return Promise.resolve({
+            ...order,
+            subOrders: [
+              {
+                id: 'sub_1',
+                sellerId: 'seller_1',
+                discountAmount: 0,
+                items: [
+                  {
+                    productId: 'product_1',
+                    quantity: 1,
+                    price: 100000,
+                    originalPrice: 100000,
+                  },
+                ],
+              },
+              {
+                id: 'sub_2',
+                sellerId: 'seller_2',
+                discountAmount: 0,
+                items: [
+                  {
+                    productId: 'product_2',
+                    quantity: 1,
+                    price: 100000,
+                    originalPrice: 100000,
+                  },
+                ],
+              },
+            ],
+          });
+        }
+
+        return Promise.resolve(order);
+      },
+    );
+    mockPrisma.order.update.mockResolvedValue({
+      id: 'order_1',
+      status: OrderStatus.DELIVERED,
+      paymentStatus: PaymentStatus.PAID,
+    });
+
+    await service.updateSubOrderStatus(
+      'seller_1',
+      ['ROLE_SELLER'],
+      'sub_1',
+      OrderStatus.DELIVERED,
+    );
+
+    expect(mockPrisma.order.update).toHaveBeenCalledWith({
+      where: { id: 'order_1' },
+      data: {
+        status: OrderStatus.DELIVERED,
+        paymentStatus: PaymentStatus.PAID,
+      },
+    });
+
+    const ledgerCreateMock = mockPrisma.marketplaceLedgerEntry
+      .create as jest.MockedFunction<(args: LedgerCreateArgs) => unknown>;
+    const sellerEarningCalls = ledgerCreateMock.mock.calls
+      .map((call) => call[0].data)
+      .filter(
+        (data) => data.type === MarketplaceLedgerEntryType.SELLER_EARNING,
+      );
+    expect(sellerEarningCalls).toHaveLength(2);
+    expect(sellerEarningCalls.map((call) => call.seller?.connect.id)).toEqual([
+      'seller_1',
+      'seller_2',
+    ]);
   });
 });

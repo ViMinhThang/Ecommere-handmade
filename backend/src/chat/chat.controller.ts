@@ -83,7 +83,7 @@ export class ChatController {
       dto,
     );
     this.chatGateway.emitMessageCreated(conversationId, message);
-    this.chatGateway.emitConversationUpdated(conversationId);
+    await this.chatGateway.emitConversationUpdated(conversationId);
     return message;
   }
 
@@ -99,7 +99,7 @@ export class ChatController {
       dto,
     );
     this.chatGateway.emitMessageCreated(conversationId, message);
-    this.chatGateway.emitConversationUpdated(conversationId);
+    await this.chatGateway.emitConversationUpdated(conversationId);
     return message;
   }
 
@@ -128,7 +128,7 @@ export class ChatController {
       caption,
     );
     this.chatGateway.emitMessageCreated(conversationId, message);
-    this.chatGateway.emitConversationUpdated(conversationId);
+    await this.chatGateway.emitConversationUpdated(conversationId);
     return message;
   }
 
@@ -138,7 +138,7 @@ export class ChatController {
     @Param('conversationId') conversationId: string,
   ) {
     await this.chatService.markConversationRead(req.user.id, conversationId);
-    this.chatGateway.emitConversationUpdated(conversationId);
+    await this.chatGateway.emitConversationUpdated(conversationId);
     return { success: true };
   }
 

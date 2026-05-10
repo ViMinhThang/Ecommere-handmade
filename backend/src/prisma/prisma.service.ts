@@ -18,6 +18,13 @@ const SOFT_DELETE_MODELS = [
   'cart',
 ];
 
+type MiddlewareArgs = {
+  where?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+};
+
+const FIND_ACTIONS = ['findUnique', 'findFirst', 'findMany'];
+
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -25,40 +32,41 @@ export class PrismaService
 {
   async onModuleInit() {
     this.$use(async (params: Prisma.MiddlewareParams, next) => {
-      if (
-        SOFT_DELETE_MODELS.includes(params.model?.toLowerCase() || '') &&
-        (params.action === 'findUnique' ||
-          params.action === 'findFirst' ||
-          params.action === 'findMany')
-      ) {
-        if (!params.args.where?.deletedAt) {
-          params.args.where = { ...params.args.where, deletedAt: null };
+      const model = params.model?.toLowerCase();
+      const isSoftDeleteModel = model
+        ? SOFT_DELETE_MODELS.includes(model)
+        : false;
+
+      if (isSoftDeleteModel) {
+        const args = (params.args ?? {}) as unknown as MiddlewareArgs;
+
+        if (FIND_ACTIONS.includes(params.action)) {
+          const where = args.where ?? {};
+          if (!Object.prototype.hasOwnProperty.call(where, 'deletedAt')) {
+            args.where = { ...where, deletedAt: null };
+            params.args = args;
+          }
+        }
+
+        if (params.action === 'delete') {
+          params.action = 'update';
+          params.args = {
+            data: { deletedAt: new Date() },
+            where: args.where,
+          };
+        }
+
+        if (params.action === 'deleteMany') {
+          params.action = 'updateMany';
+          params.args = {
+            data: { deletedAt: new Date() },
+            where: args.where,
+          };
         }
       }
 
-      if (
-        SOFT_DELETE_MODELS.includes(params.model?.toLowerCase() || '') &&
-        params.action === 'delete'
-      ) {
-        params.action = 'update';
-        params.args = {
-          data: { deletedAt: new Date() },
-          where: params.args.where,
-        };
-      }
-
-      if (
-        SOFT_DELETE_MODELS.includes(params.model?.toLowerCase() || '') &&
-        params.action === 'deleteMany'
-      ) {
-        params.action = 'updateMany';
-        params.args = {
-          data: { deletedAt: new Date() },
-          where: params.args.where,
-        };
-      }
-
-      return next(params);
+      const result: unknown = await next(params);
+      return result;
     });
 
     await this.$connect();
