@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { ImageFolder, Image } from '@/types'
 import { mediaApi } from '@/lib/api/media'
 import { Button } from '@/components/ui/button'
@@ -30,7 +30,7 @@ export function ImageSelector({ userId, selectedImages, onSelectionChange, mode 
   const [selectedFolderId, setSelectedFolderId] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
-  const fetchFolders = async () => {
+  const fetchFolders = useCallback(async () => {
     try {
       const data = await mediaApi.getFolders(userId)
       const folderList = data as ImageFolder[]
@@ -41,9 +41,9 @@ export function ImageSelector({ userId, selectedImages, onSelectionChange, mode 
     } catch (error) {
       console.error('Failed to fetch folders:', error)
     }
-  }
+  }, [userId])
 
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     if (!selectedFolderId) return
     setLoading(true)
     try {
@@ -54,19 +54,19 @@ export function ImageSelector({ userId, selectedImages, onSelectionChange, mode 
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedFolderId])
 
   useEffect(() => {
     if (userId) {
       fetchFolders()
     }
-  }, [userId])
+  }, [fetchFolders, userId])
 
   useEffect(() => {
     if (userId && selectedFolderId) {
       fetchImages()
     }
-  }, [userId, selectedFolderId])
+  }, [fetchImages, userId, selectedFolderId])
 
   const handleFolderChange = (value: string | null) => {
     if (value) setSelectedFolderId(value)

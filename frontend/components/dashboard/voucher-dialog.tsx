@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable react-hooks/set-state-in-effect, react/no-unescaped-entities */
+
 import { useState, useEffect } from 'react'
 import { Voucher, Category } from '@/types'
 import { formatCurrency } from '@/lib/utils'

@@ -1,6 +1,8 @@
 "use client"
 
-import { useMe, useMySubOrders } from "@/lib/api/hooks"
+/* eslint-disable react/no-unescaped-entities */
+
+import { useMySubOrders } from "@/lib/api/hooks"
 import { formatCurrency } from "@/lib/utils"
 import { 
   Package, 
@@ -17,7 +19,12 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { Product, ProductImage } from "@/types"
+import { OrderItem, Product, ProductImage, SubOrder } from "@/types"
+
+type CustomerSubOrder = SubOrder & {
+  type?: "CUSTOM"
+  discountAmount?: number
+}
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -32,8 +39,7 @@ function getProductImageUrl(product: Product): string {
 }
 
 export default function OrdersPage() {
-  const { data: user } = useMe()
-  const { data: subOrders, isLoading, error } = useMySubOrders()
+  const { data: subOrders, isLoading } = useMySubOrders()
 
   const getDisplayedOrderAmount = (subOrder: {
     subTotal: number
@@ -148,7 +154,7 @@ export default function OrdersPage() {
               </Link>
             </div>
           ) : (
-            subOrders.map((subOrder: any) => (
+            (subOrders as CustomerSubOrder[]).map((subOrder) => (
               <div key={subOrder.id} className="bg-white rounded-xl p-8 shadow-[0_15px_30px_-15px_rgba(84,67,60,0.08)] border border-border/30 transition-all hover:shadow-[0_20px_40px_-20px_rgba(84,67,60,0.12)] group">
                 {/* Order Header */}
                 <div className="flex justify-between items-start mb-6">
@@ -186,7 +192,7 @@ export default function OrdersPage() {
 
                 {/* Items List */}
                 <div className="space-y-6 mb-8">
-                  {subOrder.items.map((item: any) => (
+                  {subOrder.items.map((item: OrderItem) => (
                     <div key={item.id} className="flex items-center space-x-5">
                       <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden relative border border-border/20 shadow-sm shrink-0">
                         {item.product.images?.[0]?.url ? (

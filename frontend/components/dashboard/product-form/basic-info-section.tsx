@@ -13,7 +13,7 @@ interface BasicInfoSectionProps {
   description: string
   categoryId: string
   categories: Category[]
-  onChange: (field: string, value: any) => void
+  onChange: (field: 'name' | 'description' | 'categoryId', value: string) => void
 }
 
 export const BasicInfoSection = memo(function BasicInfoSection({
@@ -50,7 +50,7 @@ export const BasicInfoSection = memo(function BasicInfoSection({
           <Label>Danh mục *</Label>
           <Select 
             value={categoryId ?? ''}
-            onValueChange={(v) => onChange('categoryId', v)}
+            onValueChange={(v) => onChange('categoryId', v || '')}
           >
             <SelectTrigger className="mt-2">
               <SelectValue placeholder="Chọn danh mục...">

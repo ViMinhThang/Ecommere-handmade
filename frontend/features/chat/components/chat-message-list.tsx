@@ -17,6 +17,13 @@ interface ChatMessageListProps {
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 }
 
+interface CustomOrderOfferPayload {
+  customOrderId?: string;
+  title?: string;
+  price?: number | string;
+  text?: string;
+}
+
 export function ChatMessageList({
   messages,
   currentUserId,
@@ -50,7 +57,8 @@ export function ChatMessageList({
     }
 
     if (message.type === "CUSTOM_ORDER_OFFER") {
-      const payload = message.payload as any;
+      const payload = message.payload as CustomOrderOfferPayload;
+      const customOrderId = payload.customOrderId || "";
       return (
         <div className="space-y-3 py-1">
           <div className="flex items-start gap-2.5 text-foreground">
@@ -59,19 +67,19 @@ export function ChatMessageList({
             </div>
             <div>
               <p className="text-sm font-bold">Báo giá Tùy chỉnh</p>
-              <p className="text-[11px] text-muted-foreground uppercase font-bold tracking-tight">#{payload.customOrderId.slice(0, 8)}</p>
+              <p className="text-[11px] text-muted-foreground uppercase font-bold tracking-tight">#{customOrderId.slice(0, 8)}</p>
             </div>
           </div>
           
           <div className="rounded-md bg-muted/50 p-3 border border-border/40 text-foreground">
             <p className="text-sm font-medium mb-1">{payload.title}</p>
-            <p className="text-sm font-bold text-primary">{formatCurrency(payload.price)}</p>
+            <p className="text-sm font-bold text-primary">{formatCurrency(Number(payload.price || 0))}</p>
             {payload.text && (
-              <p className="text-xs text-muted-foreground mt-2 italic">"{payload.text}"</p>
+              <p className="text-xs text-muted-foreground mt-2 italic">&quot;{payload.text}&quot;</p>
             )}
           </div>
 
-          <Link href={`/custom-orders/${payload.customOrderId}/review`}>
+          <Link href={`/custom-orders/${customOrderId}/review`}>
             <Button size="sm" className="w-full h-8 text-[11px] font-bold uppercase tracking-widest">
               Xem chi tiết & Thanh toán
             </Button>

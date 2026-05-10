@@ -59,6 +59,13 @@ export class CustomOrdersController {
     return this.customOrdersService.refundCustomOrder(id, body);
   }
 
+  @Get('admin/:id/ledger')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
+  getAdminCustomOrderLedger(@Param('id') id: string) {
+    return this.customOrdersService.getAdminCustomOrderLedger(id);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {

@@ -1,19 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Check, Truck, ArrowRight, PenTool, User } from "lucide-react";
+import { useState } from "react";
+import { useParams } from "next/navigation";
+import { Check, Truck, ArrowRight, PenTool, User, RotateCcw, XCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
-import { useMe } from "@/lib/api/hooks";
+import {
+  useAdminCustomOrderLedger,
+  useCancelCustomOrder,
+  useMe,
+  useRefundAdminCustomOrder,
+} from "@/lib/api/hooks";
 import { toast } from "sonner";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { formatCurrency } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  FinancialSummaryPanel,
+  LedgerTable,
+  RefundDialog,
+} from "@/components/dashboard/financial-operations";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_TYooMQauvdEDq54NiTphI7jx"
 );
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 function PaymentForm({ order, onSuccess }: { order: CustomOrder, onSuccess: () => void }) {
   const stripe = useStripe();
@@ -28,8 +43,8 @@ function PaymentForm({ order, onSuccess }: { order: CustomOrder, onSuccess: () =
       queryClient.invalidateQueries({ queryKey: ["customOrder", order.id] });
       onSuccess();
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Lỗi xác nhận thanh toán trên máy chủ.");
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, "Lỗi xác nhận thanh toán trên máy chủ."));
     }
   });
 
@@ -73,35 +88,51 @@ function PaymentForm({ order, onSuccess }: { order: CustomOrder, onSuccess: () =
 export default function CustomOrderReviewPage() {
   const params = useParams();
   const id = params.id as string;
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
 
   const { data: user } = useMe();
+  const isAdmin = user?.roles?.includes("ROLE_ADMIN");
+  const adminLedgerQuery = useAdminCustomOrderLedger(id, Boolean(isAdmin));
+  const refundAdminCustomOrder = useRefundAdminCustomOrder();
+  const cancelCustomOrder = useCancelCustomOrder();
   
   const { data: order, isLoading } = useQuery({
     queryKey: ["customOrder", id],
-    queryFn: async () => {
-      const res = await customOrdersApi.getById(id);
-      return res as CustomOrder;
-    }
+    queryFn: () => customOrdersApi.getById(id),
   });
 
   const isCustomer = user?.id === order?.customerId;
   const isSeller = user?.id === order?.sellerId;
+  const remainingRefundable = Math.max(
+    0,
+    Number(order?.financialSummary?.customerPaid || order?.price || 0) -
+      Number(order?.financialSummary?.refundedAmount || 0),
+  );
+  const canAdminRefund =
+    Boolean(isAdmin && order) &&
+    (order?.paymentStatus === "PAID" ||
+      order?.paymentStatus === "PARTIALLY_REFUNDED") &&
+    remainingRefundable > 0;
+  const canAdminCancel =
+    Boolean(isAdmin && order) &&
+    order?.status !== "CANCELLED" &&
+    order?.status !== "DELIVERED";
 
   const approveSketch = useMutation({
     mutationFn: () => customOrdersApi.approveSketch(id),
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       if (data?.clientSecret) {
          setClientSecret(data.clientSecret);
          setShowCheckout(true);
       }
       queryClient.invalidateQueries({ queryKey: ["customOrder", id] });
     },
-    onError: (err: any) => toast.error(err.message || "Không thể duyệt bản phác thảo")
+    onError: (err: unknown) =>
+      toast.error(getErrorMessage(err, "Không thể duyệt bản phác thảo"))
   });
 
   const requestRevision = useMutation({
@@ -112,9 +143,40 @@ export default function CustomOrderReviewPage() {
     }
   });
 
+  const handleAdminRefund = async (data: { amount?: number; reason: string }) => {
+    if (!order) {
+      return;
+    }
+
+    try {
+      await refundAdminCustomOrder.mutateAsync({ id: order.id, data });
+      toast.success("Refund created");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Could not create refund");
+      throw err;
+    }
+  };
+
+  const handleAdminCancel = async () => {
+    if (!order) {
+      return;
+    }
+
+    const confirmed = window.confirm("Cancel this custom order?");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await cancelCustomOrder.mutateAsync(order.id);
+      toast.success("Custom order cancelled");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Could not cancel order");
+    }
+  };
+
   if (isLoading || !order) return <div className="p-24 text-center font-serif text-slate-500">Đang tải bản thiết kế riêng của bạn...</div>;
 
-  const STATUS_STEPS = ["DRAFT", "PENDING_REVIEW", "AWAITING_PAYMENT", "CRAFTING", "FINISHING", "SHIPPED"];
   // Map our DB statuses to the UI phases
   const getPhaseIndex = () => {
     switch(order.status) {
@@ -205,7 +267,7 @@ export default function CustomOrderReviewPage() {
                       <h2 className="text-sm uppercase tracking-widest font-bold text-slate-800 italic font-serif">Ghi chú từ Người bán</h2>
                   </div>
                   <p className="text-slate-600 italic leading-relaxed mb-8 text-base">
-                      "{order.artisanNote}"
+                      &quot;{order.artisanNote}&quot;
                   </p>
                   <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-300">
@@ -237,6 +299,44 @@ export default function CustomOrderReviewPage() {
                       </div>
                   </div>
               </div>
+
+              {isAdmin && (
+                <div className="mb-10 space-y-4">
+                  <FinancialSummaryPanel
+                    title="Custom order financial summary"
+                    summary={order.financialSummary}
+                    remainingRefundable={remainingRefundable}
+                  />
+                  <div className="flex flex-wrap gap-3">
+                    {canAdminRefund && (
+                      <Button
+                        className="gap-2"
+                        onClick={() => setIsRefundDialogOpen(true)}
+                        disabled={refundAdminCustomOrder.isPending}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        Refund
+                      </Button>
+                    )}
+                    {canAdminCancel && (
+                      <Button
+                        className="gap-2"
+                        variant="outline"
+                        onClick={handleAdminCancel}
+                        disabled={cancelCustomOrder.isPending}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Cancel order
+                      </Button>
+                    )}
+                  </div>
+                  <LedgerTable
+                    title="Custom order ledger"
+                    entries={adminLedgerQuery.data}
+                    isLoading={adminLedgerQuery.isLoading}
+                  />
+                </div>
+              )}
 
               {order.status === 'PENDING_REVIEW' && !showCheckout && (
                 <div className="space-y-4">
@@ -310,6 +410,16 @@ export default function CustomOrderReviewPage() {
               )}
           </div>
       </main>
+      {isAdmin && order && (
+        <RefundDialog
+          open={isRefundDialogOpen}
+          onOpenChange={setIsRefundDialogOpen}
+          onSubmit={handleAdminRefund}
+          maxAmount={remainingRefundable}
+          isSubmitting={refundAdminCustomOrder.isPending}
+          title="Refund custom order"
+        />
+      )}
     </div>
   );
 }

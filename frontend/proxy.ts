@@ -13,7 +13,7 @@ function getVersionedApiBaseUrl(baseUrl: string): string {
   return `${normalized}/v1`;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith(API_ROUTE)) {

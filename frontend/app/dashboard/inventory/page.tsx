@@ -16,6 +16,7 @@ import { Product, InventoryLog } from '@/types'
 import { Search, Package, TrendingUp, TrendingDown, History } from 'lucide-react'
 
 type Reason = 'MANUAL' | 'RESTOCK' | 'RETURN'
+type InventoryProduct = Product & { categoryName?: string }
 
 export default function InventoryPage() {
   const { user } = useAuth()
@@ -33,17 +34,17 @@ export default function InventoryPage() {
   const updateStock = useUpdateStock()
   const { data: inventoryLogData } = useInventoryLog(selectedProduct?.id || '')
 
-  const products = Array.isArray(productsData) ? productsData : (productsData as any)?.data || []
-  const meta = Array.isArray(productsData) ? { total: productsData.length } : (productsData as any)?.meta
+  const products: InventoryProduct[] = productsData?.data || []
+  const meta = productsData?.meta
 
-  const filteredProducts = products.filter((product: Product) =>
+  const filteredProducts = products.filter((product: InventoryProduct) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.sku?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const totalStock = products.reduce((sum: number, p: Product) => sum + (Number(p.stock) || 0), 0)
-  const lowStockCount = products.filter((p: Product) => (Number(p.stock) || 0) <= (Number(p.lowStockThreshold) || 0)).length
-  const outOfStockCount = products.filter((p: Product) => (Number(p.stock) || 0) === 0).length
+  const totalStock = products.reduce((sum: number, p: InventoryProduct) => sum + (Number(p.stock) || 0), 0)
+  const lowStockCount = products.filter((p: InventoryProduct) => (Number(p.stock) || 0) <= (Number(p.lowStockThreshold) || 0)).length
+  const outOfStockCount = products.filter((p: InventoryProduct) => (Number(p.stock) || 0) === 0).length
 
   const handlePageChange = (newPage: number) => setPage(newPage)
   const handleLimitChange = (newLimit: number) => {
@@ -158,11 +159,11 @@ export default function InventoryPage() {
                 </TableRow>
               </TableHeader>
 <TableBody>
-                {filteredProducts.map((product: Product) => (
+                {filteredProducts.map((product: InventoryProduct) => (
                   <TableRow key={product.id}>
                     <TableCell className='font-medium'>{product.name}</TableCell>
                     <TableCell className='text-muted-foreground'>{product.sku || '-'}</TableCell>
-                    <TableCell>{(product as any).categoryName || (product.category?.name) || '-'}</TableCell>
+                    <TableCell>{product.categoryName || product.category?.name || '-'}</TableCell>
                     <TableCell className='font-semibold'>{product.stock}</TableCell>
                     <TableCell className='text-muted-foreground'>{product.lowStockThreshold}</TableCell>
                     <TableCell>

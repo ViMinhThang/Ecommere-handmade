@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useState, useEffect } from 'react'
 import { Product, Category } from '@/types'
 import { Button } from '@/components/ui/button'

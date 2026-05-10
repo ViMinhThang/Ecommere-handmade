@@ -61,6 +61,8 @@ const PAYMENT_STATUS_OPTIONS: PaymentStatus[] = [
   'UNPAID',
   'PAID',
   'FAILED',
+  'PARTIALLY_REFUNDED',
+  'REFUNDED',
 ]
 
 const statusClasses: Record<string, string> = {
@@ -91,6 +93,8 @@ const paymentStatusLabels: Record<PaymentStatus, string> = {
   UNPAID: 'Unpaid',
   PAID: 'Paid',
   FAILED: 'Failed',
+  PARTIALLY_REFUNDED: 'Partially refunded',
+  REFUNDED: 'Refunded',
 }
 
 function getCustomerName(order: Order) {
@@ -460,7 +464,9 @@ export default function OrdersPage() {
                           <div className="flex flex-col gap-1 text-xs">
                             <span>{order.paymentMethod || '-'}</span>
                             <span className="text-muted-foreground">
-                              {order.paymentStatus || '-'}
+                              {order.paymentStatus
+                                ? paymentStatusLabels[order.paymentStatus]
+                                : '-'}
                             </span>
                           </div>
                         </TableCell>
@@ -526,7 +532,9 @@ export default function OrdersPage() {
                         <div className="flex flex-col gap-1 text-xs">
                           <span>{subOrder.order?.paymentMethod || '-'}</span>
                           <span className="text-muted-foreground">
-                            {subOrder.order?.paymentStatus || '-'}
+                            {subOrder.order?.paymentStatus
+                              ? paymentStatusLabels[subOrder.order.paymentStatus]
+                              : '-'}
                           </span>
                         </div>
                       </TableCell>

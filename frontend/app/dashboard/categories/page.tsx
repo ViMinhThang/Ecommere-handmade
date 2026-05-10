@@ -29,7 +29,15 @@ export default function CategoriesPage() {
     page,
     limit,
   })
-  const { data: statsData } = useCategoryStats() as { data?: { total?: number; active?: number; inactive?: number } }
+  const { data: statsData } = useCategoryStats() as {
+    data?: {
+      total?: number
+      active?: number
+      inactive?: number
+      activeCategories?: number
+      inactiveCategories?: number
+    }
+  }
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
   const deleteCategory = useDeleteCategory()
@@ -37,6 +45,8 @@ export default function CategoriesPage() {
   const categories = categoriesData?.data || []
   const meta = categoriesData?.meta
   const stats = statsData || { total: 0, active: 0, inactive: 0 }
+  const activeCategoryCount = stats.active ?? stats.activeCategories ?? 0
+  const inactiveCategoryCount = stats.inactive ?? stats.inactiveCategories ?? 0
 
   const filteredCategories = categories.filter((category) => {
     const matchesSearch = category.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -105,13 +115,13 @@ export default function CategoriesPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Hoạt động</p>
-            <p className="text-2xl font-bold">{(stats as any)?.active || (stats as any)?.activeCategories || 0}</p>
+            <p className="text-2xl font-bold">{activeCategoryCount}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Không hoạt động</p>
-            <p className="text-2xl font-bold">{(stats as any)?.inactive || (stats as any)?.inactiveCategories || 0}</p>
+            <p className="text-2xl font-bold">{inactiveCategoryCount}</p>
           </CardContent>
         </Card>
       </div>

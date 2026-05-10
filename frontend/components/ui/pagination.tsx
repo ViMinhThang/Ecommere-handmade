@@ -44,6 +44,8 @@ export function Pagination({ page, limit, total, onPageChange, onLimitChange }: 
         </span>
         {onLimitChange && (
           <select
+            id="pagination-limit"
+            name="pagination-limit"
             value={limit}
             onChange={(e) => onLimitChange(Number(e.target.value))}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-primary"

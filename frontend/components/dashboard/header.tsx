@@ -37,9 +37,15 @@ export function Header() {
     <header className="h-[4.4rem] border-b border-border/70 bg-background/85 backdrop-blur-xl flex items-center justify-between px-6">
       <div className="flex items-center gap-4 flex-1">
         <div className="relative w-full max-w-[24rem]">
+          <label htmlFor="dashboard-search" className="sr-only">
+            Tìm kiếm trong dashboard
+          </label>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            id="dashboard-search"
             type="search"
+            name="dashboard-search"
+            aria-label="Tìm kiếm trong dashboard"
             placeholder="Tìm kiếm bộ sưu tập, sản phẩm, đơn hàng..."
             className="pl-9 h-10"
           />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { useCart, useAddToCart, useUpdateCartItem, useRemoveCartItem, useClearCart } from "@/lib/api/hooks";
 import type { CartItem } from "@/types";

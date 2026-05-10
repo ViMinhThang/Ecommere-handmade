@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import { useState } from 'react'
@@ -127,11 +126,6 @@ export default function ProductsPage() {
     rejectProduct.mutate(id)
   }
 
-  const openEditDialog = (product: Product) => {
-    setSelectedProduct(product)
-    setDialogOpen(true)
-  }
-
   return (
     <div className='space-y-7'>
       <div className='flex items-center justify-between'>
@@ -157,13 +151,13 @@ export default function ProductsPage() {
         <Card>
           <CardContent className='p-4'>
             <p className='text-sm text-muted-foreground'>Chờ duyệt</p>
-            <p className='text-2xl font-bold'>{(stats as any)?.pending || 0}</p>
+            <p className='text-2xl font-bold'>{stats.pending || 0}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className='p-4'>
             <p className='text-sm text-muted-foreground'>Đã duyệt</p>
-            <p className='text-2xl font-bold'>{(stats as any)?.approved || 0}</p>
+            <p className='text-2xl font-bold'>{stats.approved || 0}</p>
           </CardContent>
         </Card>
       </div>

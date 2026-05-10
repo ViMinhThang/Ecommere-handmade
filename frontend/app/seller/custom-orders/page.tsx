@@ -1,12 +1,14 @@
 "use client";
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Eye, Plus, PenTool, Package, CheckCircle, Truck, RefreshCcw } from 'lucide-react';
+import { Search, Eye, Plus, Package, CheckCircle, Truck, RefreshCcw } from 'lucide-react';
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";

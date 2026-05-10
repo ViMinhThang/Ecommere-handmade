@@ -1,26 +1,28 @@
 "use client"
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { useState } from "react"
-import { useSellerReply, useMe } from "@/lib/api/hooks"
+import { useMe, useSellerReply } from "@/lib/api/hooks"
 import { reviewsApi, Review } from "@/lib/api/reviews"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { Star, MessageSquare, Loader2, Package, CheckCircle2, MessageCircle } from "lucide-react"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { toast } from "sonner"
-import Image from "next/image"
 
 export default function SellerReviewsPage() {
-  const { data: user } = useMe()
+  const { data: user, isLoading: isUserLoading } = useMe()
   const queryClient = useQueryClient()
+  const isSeller = user?.roles.includes("ROLE_SELLER") ?? false
   
-  const { data: reviews, isLoading, error } = useQuery({
+  const { data: reviews, isLoading } = useQuery({
     queryKey: ["reviews", "seller", "latest"],
     queryFn: () => reviewsApi.getSellerLatestReviews(),
+    enabled: isSeller,
   })
 
   const replyMutation = useSellerReply()
@@ -43,16 +45,26 @@ export default function SellerReviewsPage() {
       toast.success("Đã gửi phản hồi đến tri kỷ!")
       queryClient.invalidateQueries({ queryKey: ["reviews", "seller", "latest"] })
       handleReplyChange(review.id, "")
-    } catch (err) {
+    } catch {
       toast.error("Không thể gửi phản hồi lúc này")
     }
   }
 
-  if (isLoading) {
+  if (isUserLoading || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-primary/50" />
         <p className="artisan-subtitle italic">Đang thu thập phản hồi của tri kỷ...</p>
+      </div>
+    )
+  }
+
+  if (user && !isSeller) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <p className="artisan-subtitle italic">
+          Khu vực đánh giá này dành cho tài khoản người bán.
+        </p>
       </div>
     )
   }

@@ -470,6 +470,7 @@ export function useFolders(userId: string) {
   return useQuery({
     queryKey: mediaKeys.folders(userId),
     queryFn: () => mediaApi.getFolders(userId),
+    enabled: !!userId,
   });
 }
 
@@ -1047,6 +1048,7 @@ export const orderKeys = {
   subOrderDetail: (id: string) => [...orderKeys.subOrderDetails(), id] as const,
   adminDetails: () => [...orderKeys.all, "admin-detail"] as const,
   adminDetail: (id: string) => [...orderKeys.adminDetails(), id] as const,
+  adminLedger: (id: string) => [...orderKeys.adminDetail(id), "ledger"] as const,
 };
 
 export function useMySubOrders() {
@@ -1096,6 +1098,14 @@ export function useAdminOrder(id: string, enabled = true) {
   });
 }
 
+export function useAdminOrderLedger(id: string, enabled = true) {
+  return useQuery({
+    queryKey: orderKeys.adminLedger(id),
+    queryFn: () => ordersApi.getAdminOrderLedger(id),
+    enabled: !!id && enabled,
+  });
+}
+
 export function useUpdateSubOrderStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -1121,6 +1131,25 @@ export function useUpdateAdminOrderStatus() {
   });
 }
 
+export function useRefundAdminOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Parameters<typeof ordersApi.refundAdminOrder>[1];
+    }) => ordersApi.refundAdminOrder(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.adminLedger(id) });
+    },
+  });
+}
+
 export function useCancelOrder() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -1134,12 +1163,64 @@ export function useCancelOrder() {
 }
 
 // Custom Order hooks
+export const customOrderKeys = {
+  all: ["customOrders"] as const,
+  seller: () => [...customOrderKeys.all, "seller"] as const,
+  detail: (id: string) => ["customOrder", id] as const,
+  adminLedger: (id: string) =>
+    [...customOrderKeys.detail(id), "admin-ledger"] as const,
+};
+
 export function useCreateCustomOrder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<CustomOrder>) => customOrdersApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customOrders"] });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.all });
+    },
+  });
+}
+
+export function useAdminCustomOrderLedger(id: string, enabled = true) {
+  return useQuery({
+    queryKey: customOrderKeys.adminLedger(id),
+    queryFn: () => customOrdersApi.getAdminCustomOrderLedger(id),
+    enabled: !!id && enabled,
+  });
+}
+
+export function useRefundAdminCustomOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Parameters<typeof customOrdersApi.refundAdminCustomOrder>[1];
+    }) => customOrdersApi.refundAdminCustomOrder(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.seller() });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: customOrderKeys.adminLedger(id),
+      });
+    },
+  });
+}
+
+export function useCancelCustomOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => customOrdersApi.cancel(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.seller() });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: customOrderKeys.adminLedger(id),
+      });
     },
   });
 }
@@ -1154,19 +1235,27 @@ export const analyticsKeys = {
     [...analyticsKeys.seller(), "revenue-by-category", params] as const,
 };
 
-export function useSellerRevenueOverTime(startDate: string, endDate: string) {
+export function useSellerRevenueOverTime(
+  startDate: string,
+  endDate: string,
+  enabled = true,
+) {
   return useQuery({
     queryKey: analyticsKeys.revenueOverTime({ startDate, endDate }),
     queryFn: () => analyticsApi.getSellerRevenueOverTime(startDate, endDate),
-    enabled: !!startDate && !!endDate,
+    enabled: enabled && !!startDate && !!endDate,
   });
 }
 
-export function useSellerRevenueByCategory(month: number, year: number) {
+export function useSellerRevenueByCategory(
+  month: number,
+  year: number,
+  enabled = true,
+) {
   return useQuery({
     queryKey: analyticsKeys.revenueByCategory({ month, year }),
     queryFn: () => analyticsApi.getSellerRevenueByCategory(month, year),
-    enabled: !!month && !!year,
+    enabled: enabled && !!month && !!year,
   });
 }
 

@@ -172,6 +172,8 @@ export function ProductQuestionsSection({
             {isAuthenticated ? (
               <div className="space-y-4">
                 <Textarea
+                  id="product-question"
+                  name="product-question"
                   value={questionDraft}
                   onChange={(event) => setQuestionDraft(event.target.value)}
                   placeholder="Nhập câu hỏi của bạn về sản phẩm..."
@@ -351,6 +353,8 @@ export function ProductQuestionsSection({
                         Trả lời câu hỏi này
                       </p>
                       <Textarea
+                        id={`product-answer-${question.id}`}
+                        name={`product-answer-${question.id}`}
                         value={answerDrafts[question.id] ?? ""}
                         onChange={(event) =>
                           setAnswerDrafts((currentDrafts) => ({

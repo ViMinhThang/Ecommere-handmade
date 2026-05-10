@@ -15,9 +15,6 @@ import {
   Save,
   X,
   Camera,
-  Plus,
-  Trash2,
-  Star,
   MessageCircle,
   ChevronDown,
 } from "lucide-react";
@@ -151,7 +148,7 @@ function SellerProfilePageContent() {
       await updateProfileMutation.mutateAsync(formData);
       setIsEditMode(false);
       toast.success("Hồ sơ đã được cập nhật thành công!");
-    } catch (error) {
+    } catch {
       toast.error("Không thể cập nhật hồ sơ. Vui lòng thử lại.");
     }
   };
@@ -237,15 +234,21 @@ function SellerProfilePageContent() {
           <div className="w-full md:w-3/5 order-2 md:order-1">
             <div className="relative group">
               <div className="overflow-hidden rounded-lg shadow-2xl aspect-4/5 relative bg-accent">
-                <Image
-                  src={
-                    formData.sellerHeroImage ||
-                    "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80"
-                  }
-                  alt={seller.name}
-                  fill
-                  className="object-cover"
-                />
+                {formData.sellerHeroImage ? (
+                  <Image
+                    src={formData.sellerHeroImage}
+                    alt={seller.name}
+                    fill
+                    priority
+                    sizes="(min-width: 768px) 60vw, 100vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#d8cdbd]">
+                    <div className="absolute inset-6 rounded-md border border-white/50" />
+                    <Camera className="h-14 w-14 text-primary/35" aria-hidden="true" />
+                  </div>
+                )}
                 {isEditMode && (
                   <div
                     className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
@@ -274,10 +277,15 @@ function SellerProfilePageContent() {
               {isEditMode ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                    <label
+                      htmlFor="seller-title"
+                      className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                    >
                       Chức danh
                     </label>
                     <Input
+                      id="seller-title"
+                      name="seller-title"
                       value={formData.sellerTitle}
                       onChange={(e) =>
                         updateFormData({
@@ -307,10 +315,15 @@ function SellerProfilePageContent() {
 
             {isEditMode ? (
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                <label
+                  htmlFor="seller-bio"
+                  className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                >
                   Giới thiệu ngắn
                 </label>
                 <Textarea
+                  id="seller-bio"
+                  name="seller-bio"
                   value={formData.sellerBio}
                   onChange={(e) =>
                     updateFormData({ ...formData, sellerBio: e.target.value })
@@ -351,10 +364,15 @@ function SellerProfilePageContent() {
 
               {isEditMode ? (
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                  <label
+                    htmlFor="seller-about"
+                    className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                  >
                     Câu chuyện chi tiết
                   </label>
                   <Textarea
+                    id="seller-about"
+                    name="seller-about"
                     value={formData.sellerAbout}
                     onChange={(e) =>
                       updateFormData({
@@ -376,6 +394,9 @@ function SellerProfilePageContent() {
                   {isEditMode ? (
                     <>
                       <Input
+                        id="seller-stat-1-value"
+                        name="seller-stat-1-value"
+                        aria-label="Seller statistic one value"
                         value={formData.sellerStat1Value}
                         onChange={(e) =>
                           updateFormData({
@@ -386,6 +407,9 @@ function SellerProfilePageContent() {
                         className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
+                        id="seller-stat-1-label"
+                        name="seller-stat-1-label"
+                        aria-label="Seller statistic one label"
                         value={formData.sellerStat1Label}
                         onChange={(e) =>
                           updateFormData({
@@ -411,6 +435,9 @@ function SellerProfilePageContent() {
                   {isEditMode ? (
                     <>
                       <Input
+                        id="seller-stat-2-value"
+                        name="seller-stat-2-value"
+                        aria-label="Seller statistic two value"
                         value={formData.sellerStat2Value}
                         onChange={(e) =>
                           updateFormData({
@@ -421,6 +448,9 @@ function SellerProfilePageContent() {
                         className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
+                        id="seller-stat-2-label"
+                        name="seller-stat-2-label"
+                        aria-label="Seller statistic two label"
                         value={formData.sellerStat2Label}
                         onChange={(e) =>
                           updateFormData({
@@ -448,15 +478,20 @@ function SellerProfilePageContent() {
             <div className="md:col-span-5 relative group">
               <div className="aspect-square bg-[#e6e2dc] rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
               <div className="rounded-lg shadow-xl overflow-hidden relative aspect-square bg-accent">
-                <Image
-                  src={
-                    formData.sellerAboutImage ||
-                    "https://images.unsplash.com/photo-1459749411177-042180ce673c?auto=format&fit=crop&q=80"
-                  }
-                  alt="Detail of craft"
-                  fill
-                  className="object-cover"
-                />
+                {formData.sellerAboutImage ? (
+                  <Image
+                    src={formData.sellerAboutImage}
+                    alt="Detail of craft"
+                    fill
+                    sizes="(min-width: 768px) 42vw, 100vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#ece4d8]">
+                    <div className="absolute inset-8 rounded-full border border-primary/15" />
+                    <Camera className="h-10 w-10 text-primary/30" aria-hidden="true" />
+                  </div>
+                )}
                 {isEditMode && (
                   <div
                     className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
@@ -493,10 +528,15 @@ function SellerProfilePageContent() {
 
                 {/* Sorting Selection */}
                 <section>
-                  <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6">
+                  <label
+                    htmlFor="seller-collection-sort"
+                    className="block text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-6"
+                  >
                     Sắp xếp
-                  </h3>
+                  </label>
                   <select
+                    id="seller-collection-sort"
+                    name="seller-collection-sort"
                     className="w-full bg-white border border-primary/20 rounded-md p-3 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
                     value={`${sortBy}-${order}`}
                     onChange={(e) => {
@@ -537,33 +577,40 @@ function SellerProfilePageContent() {
                         min: 5000000,
                         max: undefined,
                       },
-                    ].map((range) => (
-                      <label
-                        key={range.label}
-                        className="flex items-center group cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded-sm border-primary/20 text-primary focus:ring-primary/10"
-                          checked={isPriceSelected(range.min, range.max)}
-                          onChange={() => {
-                            if (isPriceSelected(range.min, range.max)) {
-                              updateFilters({ minPrice: null, maxPrice: null });
-                            } else {
-                              updateFilters({
-                                minPrice: range.min.toString(),
-                                maxPrice: range.max
-                                  ? range.max.toString()
-                                  : null,
-                              });
-                            }
-                          }}
-                        />
-                        <span className="ml-3 text-sm text-[#1c1c18] group-hover:text-primary transition-colors">
-                          {range.label}
-                        </span>
-                      </label>
-                    ))}
+                    ].map((range) => {
+                      const rangeId = `seller-price-${range.min}-${range.max ?? "up"}`;
+
+                      return (
+                        <label
+                          key={range.label}
+                          htmlFor={rangeId}
+                          className="flex items-center group cursor-pointer"
+                        >
+                          <input
+                            id={rangeId}
+                            name="seller-price-range"
+                            type="checkbox"
+                            className="w-4 h-4 rounded-sm border-primary/20 text-primary focus:ring-primary/10"
+                            checked={isPriceSelected(range.min, range.max)}
+                            onChange={() => {
+                              if (isPriceSelected(range.min, range.max)) {
+                                updateFilters({ minPrice: null, maxPrice: null });
+                              } else {
+                                updateFilters({
+                                  minPrice: range.min.toString(),
+                                  maxPrice: range.max
+                                    ? range.max.toString()
+                                    : null,
+                                });
+                              }
+                            }}
+                          />
+                          <span className="ml-3 text-sm text-[#1c1c18] group-hover:text-primary transition-colors">
+                            {range.label}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </section>
 
@@ -573,8 +620,13 @@ function SellerProfilePageContent() {
                     Trạng thái
                   </h3>
                   <div className="space-y-4">
-                    <label className="flex items-center group cursor-pointer">
+                    <label
+                      htmlFor="seller-ready-to-ship"
+                      className="flex items-center group cursor-pointer"
+                    >
                       <input
+                        id="seller-ready-to-ship"
+                        name="seller-ready-to-ship"
                         type="checkbox"
                         className="w-4 h-4 rounded-sm border-primary/20 text-primary focus:ring-primary/10"
                         checked={readyToShip}

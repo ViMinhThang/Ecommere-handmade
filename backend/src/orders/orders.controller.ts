@@ -128,6 +128,13 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ROLE_ADMIN')
+  @Get('admin/:id/ledger')
+  async getAdminOrderLedger(@Param('id') id: string) {
+    return this.ordersService.getAdminOrderLedger(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
   @Get('admin/:id')
   async getAdminOrder(@Param('id') id: string) {
     return this.ordersService.findAdminOrderById(id);

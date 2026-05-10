@@ -40,14 +40,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns"
+import { format, subDays, startOfMonth } from "date-fns"
+import { vi } from "date-fns/locale"
 
 // Standard Colors for Artisan Aesthetic
 const COLORS = ["#853724", "#576957", "#4f4537", "#a44e39", "#7a2f1c", "#c2b2a3"]
 
 export default function DashboardPage() {
-  const { data: user } = useMe()
-  const isSeller = user?.roles.includes("ROLE_SELLER")
+  const { data: user, isLoading: isUserLoading } = useMe()
+  const isSeller = user?.roles.includes("ROLE_SELLER") ?? false
 
   // Date Range State for Bar Chart
   const [dateRange, setDateRange] = useState({
@@ -60,9 +61,9 @@ export default function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
   // Data Hooks
-  const { data: revenueOverTime, isLoading: isRevLoading } = useSellerRevenueOverTime(dateRange.startDate, dateRange.endDate)
-  const { data: categoryRevenue, isLoading: isCatLoading } = useSellerRevenueByCategory(selectedMonth, selectedYear)
-  const { data: recentOrders, isLoading: isOrdersLoading } = useSellerOrders()
+  const { data: revenueOverTime, isLoading: isRevLoading } = useSellerRevenueOverTime(dateRange.startDate, dateRange.endDate, isSeller)
+  const { data: categoryRevenue, isLoading: isCatLoading } = useSellerRevenueByCategory(selectedMonth, selectedYear, isSeller)
+  const { data: recentOrders, isLoading: isOrdersLoading } = useSellerOrders(isSeller)
 
   // Formatters
   const formatShortCurrency = (value: number) => {
@@ -168,7 +169,15 @@ export default function DashboardPage() {
     )
   }
 
-  if (!isSeller && user) {
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+      </div>
+    )
+  }
+
+  if (!isSeller) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="artisan-subtitle italic">Vui lòng truy cập trang cá nhân để xem thông tin mua hàng.</p>
@@ -245,8 +254,8 @@ export default function DashboardPage() {
                       tickLine={false}
                     />
                     <Tooltip 
-                      formatter={(value: any) => [formatCurrency(Number(value)), "Doanh thu"]}
-                      labelFormatter={(label) => format(new Date(label), "dd MMMM yyyy", { locale: require('date-fns/locale/vi') })}
+                      formatter={(value: unknown) => [formatCurrency(Number(value)), "Doanh thu"]}
+                      labelFormatter={(label) => format(new Date(label), "dd MMMM yyyy", { locale: vi })}
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                     />
                     <Bar 
@@ -326,7 +335,7 @@ export default function DashboardPage() {
                       ))}
                     </Pie>
                     <Tooltip 
-                      formatter={(value: any) => formatCurrency(Number(value))}
+                      formatter={(value: unknown) => formatCurrency(Number(value))}
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                     />
                     <Legend 

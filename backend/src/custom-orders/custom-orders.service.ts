@@ -670,6 +670,29 @@ export class CustomOrdersService {
     };
   }
 
+  async getAdminCustomOrderLedger(customOrderId: string) {
+    const order = await this.prisma.customOrder.findUnique({
+      where: { id: customOrderId },
+      select: { id: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Custom Order not found');
+    }
+
+    return this.prisma.marketplaceLedgerEntry.findMany({
+      where: { customOrderId },
+      include: {
+        seller: {
+          select: { id: true, name: true, shopName: true, avatar: true },
+        },
+        customer: { select: { id: true, name: true, email: true } },
+        refund: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   private assertStripePaymentMatchesOrder(
     order: {
       id: string;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -9,11 +9,8 @@ import { Loader2, Save, User as UserIcon, Camera } from "lucide-react"
 import Image from "next/image"
 import { useMe, useUpdateProfile, useFolders, useCreateFolder, useUploadImage } from "@/lib/api/hooks"
 import { mediaApi } from "@/lib/api/media"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { getErrorMessage } from "@/lib/utils"
 import { AddressSection } from "@/components/profile/address-section"
 
 const profileSchema = z.object({
@@ -66,8 +63,8 @@ export default function ProfilePage() {
       onSuccess: () => {
         toast.success("Hồ sơ đã được cập nhật thành công")
       },
-      onError: (error: any) => {
-        toast.error(error.message || "Cập nhật hồ sơ thất bại")
+      onError: (error: unknown) => {
+        toast.error(getErrorMessage(error, "Cập nhật hồ sơ thất bại"))
       },
     })
   }
@@ -104,8 +101,8 @@ export default function ProfilePage() {
           toast.success("Ảnh đại diện đã được cập nhật")
         }
       })
-    } catch (error: any) {
-      toast.error(error.message || "Không thể tải ảnh lên")
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Không thể tải ảnh lên"))
     }
   }
 
@@ -147,6 +144,9 @@ export default function ProfilePage() {
                 )}
               </div>
               <input 
+                id="profile-avatar"
+                name="profile-avatar"
+                aria-label="Tải ảnh đại diện"
                 type="file" 
                 ref={fileInputRef} 
                 className="hidden" 
@@ -169,6 +169,7 @@ export default function ProfilePage() {
                   <Label htmlFor="name" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Họ và Tên</Label>
                   <input
                     id="name"
+                    autoComplete="name"
                     {...form.register("name")}
                     className="input-minimal"
                     placeholder="Nhập tên của quý khách"
@@ -178,8 +179,11 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Địa chỉ Email</Label>
+                  <Label htmlFor="email" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Địa chỉ Email</Label>
                   <input
+                    id="email"
+                    name="email"
+                    autoComplete="email"
                     value={user?.email || ""}
                     disabled
                     className="input-minimal opacity-60 cursor-not-allowed"
@@ -208,6 +212,7 @@ export default function ProfilePage() {
                 <Label htmlFor="shopName" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Tên Cửa hàng</Label>
                 <input
                   id="shopName"
+                  autoComplete="organization"
                   {...form.register("shopName")}
                   className="input-minimal"
                   placeholder="Ví dụ: Terra & Thread"
@@ -217,6 +222,7 @@ export default function ProfilePage() {
                 <Label htmlFor="phone" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Số điện thoại Liên hệ</Label>
                 <input
                   id="phone"
+                  autoComplete="tel"
                   {...form.register("phone")}
                   className="input-minimal"
                   placeholder="Nhập số điện thoại"

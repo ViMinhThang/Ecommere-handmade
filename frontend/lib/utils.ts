@@ -31,3 +31,25 @@ export function stripProductSource(description: string) {
 export function stripHtml(value: string) {
   return value.replace(/<[^>]*>/g, "");
 }
+
+export function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error !== "object" || error === null) {
+    return fallback;
+  }
+
+  const maybeResponse = error as {
+    response?: { data?: { message?: unknown } };
+    data?: { message?: unknown };
+    message?: unknown;
+  };
+  const message =
+    maybeResponse.response?.data?.message ??
+    maybeResponse.data?.message ??
+    maybeResponse.message;
+
+  return typeof message === "string" && message.trim() ? message : fallback;
+}

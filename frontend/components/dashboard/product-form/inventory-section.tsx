@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 
 interface InventorySectionProps {
   stock: number
-  onChange: (field: string, value: any) => void
+  onChange: (field: 'stock', value: number) => void
 }
 
 export const InventorySection = memo(function InventorySection({

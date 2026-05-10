@@ -193,6 +193,61 @@ export interface AnswerProductQuestionInput {
   answer: string;
 }
 
+export interface FinancialSummary {
+  gross: number;
+  customerPaid: number;
+  platformDiscount: number;
+  platformFee: number;
+  sellerNet: number;
+  refundedAmount: number;
+}
+
+export type MarketplaceLedgerEntryType =
+  | "PAYMENT_CAPTURE"
+  | "SELLER_EARNING"
+  | "PLATFORM_FEE"
+  | "PLATFORM_DISCOUNT"
+  | "REFUND"
+  | "PAYOUT";
+
+export type MarketplaceLedgerEntryStatus = "PENDING" | "POSTED" | "VOIDED";
+
+export interface LedgerRefundSnapshot {
+  id: string;
+  amount: number | string;
+  currency: string;
+  reason: string;
+  status: "PENDING" | "SUCCEEDED" | "FAILED";
+  providerRefundId?: string | null;
+  createdAt: Date | string;
+}
+
+export interface MarketplaceLedgerEntry {
+  id: string;
+  type: MarketplaceLedgerEntryType;
+  status: MarketplaceLedgerEntryStatus;
+  amount: number | string;
+  currency: string;
+  idempotencyKey: string;
+  orderId?: string | null;
+  subOrderId?: string | null;
+  customOrderId?: string | null;
+  refundId?: string | null;
+  sellerId?: string | null;
+  customerId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: Date | string;
+  seller?: Pick<User, "id" | "name" | "shopName" | "avatar"> | null;
+  customer?: Pick<User, "id" | "name" | "email" | "avatar"> | null;
+  refund?: LedgerRefundSnapshot | null;
+}
+
+export interface RefundRequest {
+  subOrderId?: string;
+  amount?: number;
+  reason: string;
+}
+
 export interface Order {
   id: string;
   customer: Customer;
@@ -214,6 +269,7 @@ export interface Order {
   shippingAddress?: string | OrderShippingAddress | null;
   createdAt: Date;
   subOrders?: SubOrder[];
+  financialSummary?: FinancialSummary;
 }
 
 export interface SubOrder {

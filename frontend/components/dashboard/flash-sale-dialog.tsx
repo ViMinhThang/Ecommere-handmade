@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useState, useEffect } from 'react'
 import { FlashSale, Category } from '@/types'
 import { formatCurrency } from '@/lib/utils'
@@ -46,6 +48,13 @@ interface FlashSaleDialogProps {
     categoryIds: string[]
     ranges: FlashSaleRange[]
   }) => void
+}
+
+const formatDateTimeLocal = (date: Date | string) => {
+  const d = new Date(date)
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().slice(0, 16)
 }
 
 export function FlashSaleDialog({ open, onOpenChange, flashSale, categories, userId, isSaving, onSave }: FlashSaleDialogProps) {
@@ -128,13 +137,6 @@ export function FlashSaleDialog({ open, onOpenChange, flashSale, categories, use
       setErrors([])
     }
   }, [open, flashSale])
-
-  const formatDateTimeLocal = (date: Date | string) => {
-    const d = new Date(date)
-    const offset = d.getTimezoneOffset()
-    const local = new Date(d.getTime() - offset * 60000)
-    return local.toISOString().slice(0, 16)
-  }
 
   const addRange = () => {
     setRanges([...ranges, { minPrice: 0, maxPrice: 100000, discountPercent: 10, endDate: '' }])

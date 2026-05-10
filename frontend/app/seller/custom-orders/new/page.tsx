@@ -6,19 +6,20 @@ import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
 import { useUsers } from "@/lib/api/hooks";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import { SketchUpload } from "@/components/dashboard/sketch-upload";
+import { getErrorMessage } from "@/lib/utils";
 
 // Minimal reproduction of custom_order1 style generator
 export default function NewCustomOrderPage() {
   const router = useRouter();
   
   const { data: usersData, isLoading: isLoadingUsers } = useUsers({ 
-    role: "ROLE_USER" as any,
+    role: "ROLE_USER" as UserRole,
     limit: 100 
   });
   
-  const customers = Array.isArray(usersData) ? usersData : (usersData as any)?.data || [];
+  const customers = usersData?.data || [];
   
   const [formData, setFormData] = useState({
     customerId: "",
@@ -40,8 +41,8 @@ export default function NewCustomOrderPage() {
       // navigate to the newly created review link so they can see what the user sees
       router.push(`/custom-orders/${data.id}/review`);
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Lỗi khi tạo đơn hàng thiết kế");
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, "Lỗi khi tạo đơn hàng thiết kế"));
     }
   });
 
@@ -73,11 +74,13 @@ export default function NewCustomOrderPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Chọn Khách hàng</label>
+             <label htmlFor="custom-order-customer" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Chọn Khách hàng</label>
              {isLoadingUsers ? (
                <div className="py-2 text-sm text-slate-400 animate-pulse">Đang tải danh sách...</div>
              ) : (
                <select 
+                 id="custom-order-customer"
+                 name="custom-order-customer"
                  required
                  value={formData.customerId}
                  onChange={e => setFormData({...formData, customerId: e.target.value})}
@@ -95,8 +98,10 @@ export default function NewCustomOrderPage() {
           </div>
 
           <div>
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Tên Sản phẩm</label>
+             <label htmlFor="custom-order-title" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Tên Sản phẩm</label>
              <input 
+               id="custom-order-title"
+               name="custom-order-title"
                type="text" 
                required
                value={formData.title}
@@ -106,8 +111,10 @@ export default function NewCustomOrderPage() {
           </div>
 
           <div>
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Ghi chú từ Người bán</label>
+             <label htmlFor="custom-order-note" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Ghi chú từ Người bán</label>
              <textarea 
+               id="custom-order-note"
+               name="custom-order-note"
                required
                rows={4}
                value={formData.artisanNote}
@@ -118,8 +125,10 @@ export default function NewCustomOrderPage() {
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Tổng chi phí ($)</label>
+               <label htmlFor="custom-order-price" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Tổng chi phí ($)</label>
                <input 
+                 id="custom-order-price"
+                 name="custom-order-price"
                  type="number" 
                  required
                  value={formData.price}
@@ -128,8 +137,10 @@ export default function NewCustomOrderPage() {
                />
             </div>
             <div>
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Thời gian hoàn thiện</label>
+               <label htmlFor="custom-order-lead-time" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Thời gian hoàn thiện</label>
                <input 
+                 id="custom-order-lead-time"
+                 name="custom-order-lead-time"
                  type="text" 
                  required
                  value={formData.leadTime}
@@ -140,7 +151,7 @@ export default function NewCustomOrderPage() {
           </div>
 
           <div>
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Bản phác thảo sơ bộ</label>
+             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Bản phác thảo sơ bộ</div>
              <SketchUpload 
                value={formData.sketchImageUrl} 
                onChange={(url) => setFormData({...formData, sketchImageUrl: url})} 
@@ -150,9 +161,11 @@ export default function NewCustomOrderPage() {
           </div>
 
           <div>
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Thông số kỹ thuật</label>
+             <label htmlFor="custom-order-spec" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Thông số kỹ thuật</label>
              <div className="flex gap-2 mb-3">
                 <input 
+                   id="custom-order-spec"
+                   name="custom-order-spec"
                    type="text" 
                    value={specInput}
                    onChange={e => setSpecInput(e.target.value)}

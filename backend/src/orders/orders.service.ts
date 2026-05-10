@@ -1184,6 +1184,34 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return this.attachFinancialSummary(order);
   }
 
+  async getAdminOrderLedger(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        subOrders: { select: { id: true } },
+      },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    const subOrderIds = order.subOrders.map((subOrder) => subOrder.id);
+    const where: Prisma.MarketplaceLedgerEntryWhereInput =
+      subOrderIds.length > 0
+        ? { OR: [{ orderId }, { subOrderId: { in: subOrderIds } }] }
+        : { orderId };
+
+    return this.prisma.marketplaceLedgerEntry.findMany({
+      where,
+      include: {
+        seller: { select: this.sellerSelect },
+        customer: { select: this.customerSelect },
+        refund: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async findOrderById(userId: string, roles: string[], id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },

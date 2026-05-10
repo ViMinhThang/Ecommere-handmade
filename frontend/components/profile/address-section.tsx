@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, MapPin, Trash2, CheckCircle2, MoreVertical, Edit2 } from "lucide-react"
+import { Plus, MapPin, Trash2, CheckCircle2, Edit2 } from "lucide-react"
 import { toast } from "sonner"
 import { useAddresses, useAddAddress, useUpdateAddress, useDeleteAddress } from "@/lib/api/hooks"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Address } from "@/types"
-import { cn } from "@/lib/utils"
+import { cn, getErrorMessage } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
   const { data: addresses, isLoading } = useAddresses(userId)
   const { mutate: addAddress, isPending: isAdding } = useAddAddress()
   const { mutate: updateAddress, isPending: isUpdating } = useUpdateAddress()
-  const { mutate: deleteAddress, isPending: isDeleting } = useDeleteAddress()
+  const { mutate: deleteAddress } = useDeleteAddress()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
@@ -80,8 +80,8 @@ export function AddressSection({ userId }: AddressSectionProps) {
             toast.success("Cập nhật địa chỉ thành công")
             setIsDialogOpen(false)
           },
-          onError: (err: any) => {
-            toast.error(err.message || "Không thể cập nhật địa chỉ")
+          onError: (err: unknown) => {
+            toast.error(getErrorMessage(err, "Không thể cập nhật địa chỉ"))
           },
         }
       )
@@ -98,8 +98,8 @@ export function AddressSection({ userId }: AddressSectionProps) {
             toast.success("Thêm địa chỉ mới thành công")
             setIsDialogOpen(false)
           },
-          onError: (err: any) => {
-            toast.error(err.message || "Không thể thêm địa chỉ")
+          onError: (err: unknown) => {
+            toast.error(getErrorMessage(err, "Không thể thêm địa chỉ"))
           },
         }
       )
@@ -112,7 +112,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
         { userId, addressId },
         {
           onSuccess: () => toast.success("Đã xóa địa chỉ"),
-          onError: (err: any) => toast.error(err.message || "Xóa thất bại"),
+          onError: (err: unknown) => toast.error(getErrorMessage(err, "Xóa thất bại")),
         }
       )
     }

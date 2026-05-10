@@ -2,11 +2,12 @@ import { ArrowLeft, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatConversationSummary } from "@/types";
+import type { AuthUser } from "@/lib/api/auth";
 import { getInitials } from "../utils";
 
 interface ChatHeaderProps {
   selectedConversation: ChatConversationSummary;
-  user: any;
+  user?: AuthUser | null;
   compact: boolean;
   onBackToList: () => void;
   onOpenOfferDialog: () => void;

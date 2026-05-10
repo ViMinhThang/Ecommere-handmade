@@ -7,12 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Pagination } from '@/components/ui/pagination'
 import { FlashSaleDialog } from '@/components/dashboard/flash-sale-dialog'
 import { useFlashSales, useCreateFlashSale, useUpdateFlashSale, useDeleteFlashSale, useCategories } from '@/lib/api/hooks'
-import { FlashSale, Category } from '@/types'
-import { Search, Plus, Pencil, Trash2, Zap, Clock } from 'lucide-react'
+import { FlashSale } from '@/types'
+import { Search, Plus, Pencil, Trash2, Clock } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { mediaApi } from '@/lib/api/media'
 
@@ -31,9 +30,9 @@ export default function FlashSalesPage() {
   const updateFlashSale = useUpdateFlashSale()
   const deleteFlashSale = useDeleteFlashSale()
 
-  const flashSales = Array.isArray(flashSalesData) ? flashSalesData : []
-  const meta = Array.isArray(flashSalesData) ? { total: flashSalesData.length } : (flashSalesData as any)?.meta
-  const categories = Array.isArray(categoriesData) ? categoriesData : (categoriesData as any)?.data || []
+  const flashSales = flashSalesData || []
+  const meta = { total: flashSales.length }
+  const categories = categoriesData?.data || []
 
   const filteredFlashSales = flashSales.filter((fs: FlashSale) => {
     const matchesSearch =

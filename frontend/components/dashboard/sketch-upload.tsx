@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { useFolders, useMe } from '@/lib/api/hooks'
 import { mediaApi } from '@/lib/api/media'
+import { getErrorMessage } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface SketchUploadProps {
@@ -13,6 +14,7 @@ interface SketchUploadProps {
 }
 
 export function SketchUpload({ value, onChange, label = "Tải bản phác thảo" }: SketchUploadProps) {
+  const inputId = useId()
   const { data: user } = useMe()
   const { data: folders, isLoading: isLoadingFolders } = useFolders(user?.id || '')
   const [isUploading, setIsUploading] = useState(false)
@@ -39,8 +41,8 @@ export function SketchUpload({ value, onChange, label = "Tải bản phác thả
       const imageUrl = mediaApi.getImageUrl(result.path)
       onChange(imageUrl)
       toast.success('Đã tải bản phác thảo lên thành công')
-    } catch (error: any) {
-      toast.error(error.message || 'Lỗi khi tải bản phác thảo')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Lỗi khi tải bản phác thảo'))
     } finally {
       setIsUploading(false)
     }
@@ -72,6 +74,8 @@ export function SketchUpload({ value, onChange, label = "Tải bản phác thả
             </p>
           </div>
           <input 
+            id={inputId}
+            name="sketch-upload"
             type="file" 
             className="hidden" 
             accept="image/*" 

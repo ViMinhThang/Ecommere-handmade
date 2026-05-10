@@ -67,6 +67,7 @@ describe('OrdersService', () => {
     },
     marketplaceLedgerEntry: {
       create: jest.fn(),
+      findMany: jest.fn(),
     },
     refund: {
       create: jest.fn(),
@@ -100,6 +101,7 @@ describe('OrdersService', () => {
     mockPrisma.marketplaceLedgerEntry.create.mockResolvedValue({
       id: 'ledger_1',
     });
+    mockPrisma.marketplaceLedgerEntry.findMany.mockResolvedValue([]);
     mockPrisma.refund.findUnique.mockResolvedValue(null);
     mockStripe.createRefund.mockResolvedValue({
       id: 're_1',
@@ -356,6 +358,57 @@ describe('OrdersService', () => {
       }),
     ).rejects.toThrow(BadRequestException);
     expect(mockStripe.createRefund).not.toHaveBeenCalled();
+  });
+
+  it('returns admin order ledger rows for order and sub-orders', async () => {
+    const ledgerRows = [
+      {
+        id: 'ledger_capture',
+        type: MarketplaceLedgerEntryType.PAYMENT_CAPTURE,
+        amount: 225000,
+      },
+      {
+        id: 'ledger_refund',
+        type: MarketplaceLedgerEntryType.REFUND,
+        amount: -90000,
+      },
+    ];
+    mockPrisma.order.findUnique.mockResolvedValue({
+      id: 'order_1',
+      subOrders: [{ id: 'sub_1' }, { id: 'sub_2' }],
+    });
+    mockPrisma.marketplaceLedgerEntry.findMany.mockResolvedValue(ledgerRows);
+
+    const result = await service.getAdminOrderLedger('order_1');
+
+    expect(result).toBe(ledgerRows);
+    expect(mockPrisma.marketplaceLedgerEntry.findMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { orderId: 'order_1' },
+          { subOrderId: { in: ['sub_1', 'sub_2'] } },
+        ],
+      },
+      include: {
+        seller: {
+          select: { id: true, name: true, shopName: true, avatar: true },
+        },
+        customer: {
+          select: { id: true, name: true, email: true, avatar: true },
+        },
+        refund: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  });
+
+  it('throws when admin order ledger target does not exist', async () => {
+    mockPrisma.order.findUnique.mockResolvedValue(null);
+
+    await expect(service.getAdminOrderLedger('missing_order')).rejects.toThrow(
+      'Order not found',
+    );
+    expect(mockPrisma.marketplaceLedgerEntry.findMany).not.toHaveBeenCalled();
   });
 
   it('posts a sub-order refund only against the selected seller', async () => {

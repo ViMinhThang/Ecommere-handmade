@@ -2,13 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useSubOrder, useCreateReview, useCancelOrder } from "@/lib/api/hooks"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, getErrorMessage } from "@/lib/utils"
 import { 
   Package, 
   Truck, 
   CheckCircle2, 
   Clock, 
-  XCircle, 
   ChevronLeft,
   ShoppingBag,
   ExternalLink,
@@ -23,7 +22,7 @@ import {
 import { useState, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { OrderShippingAddress, Product, ProductImage } from "@/types"
+import { OrderItem, OrderShippingAddress, Product, ProductImage } from "@/types"
 import {
   Dialog,
   DialogContent,
@@ -35,6 +34,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+
+type ReviewableOrderItem = OrderItem & {
+  review?: { rating: number } | null
+}
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -58,14 +61,14 @@ export default function OrderDetailPage() {
   const cancelOrderMutation = useCancelOrder()
 
   // Review Modal State
-  const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [selectedItem, setSelectedItem] = useState<ReviewableOrderItem | null>(null)
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const [images, setImages] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleOpenReview = (item: any) => {
+  const handleOpenReview = (item: ReviewableOrderItem) => {
     setSelectedItem(item)
     setRating(5)
     setComment("")
@@ -96,8 +99,8 @@ export default function OrderDetailPage() {
       })
       toast.success("Cảm ơn quý khách đã gửi đánh giá sản phẩm!")
       setIsReviewModalOpen(false)
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Không thể gửi đánh giá vào lúc này")
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Không thể gửi đánh giá vào lúc này"))
     }
   }
 
@@ -120,8 +123,8 @@ export default function OrderDetailPage() {
       )
       router.push("/profile/orders")
       router.refresh()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Khong the huy don hang nay")
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Khong the huy don hang nay"))
     }
   }
 
@@ -333,7 +336,7 @@ export default function OrderDetailPage() {
             </div>
             
             <div className="divide-y divide-border/20">
-              {subOrder.items.map((item: any) => (
+              {(subOrder.items as ReviewableOrderItem[]).map((item) => (
                 <div key={item.id} className="p-8 flex flex-col sm:flex-row gap-8 group">
                   <div className="w-32 h-32 rounded-xl bg-muted overflow-hidden relative border border-border/20 shadow-sm shrink-0">
                     <Image 
@@ -382,7 +385,7 @@ export default function OrderDetailPage() {
                                 <span className="text-[10px] uppercase font-bold tracking-widest text-primary/60">Quý khách đã đánh giá:</span>
                                 <div className="flex gap-0.5">
                                   {Array.from({ length: 5 }).map((_, i) => (
-                                    <Star key={i} className={`w-3 h-3 ${i < item.review.rating ? "fill-brand text-brand" : "text-stone-200"}`} />
+                                    <Star key={i} className={`w-3 h-3 ${i < (item.review?.rating ?? 0) ? "fill-brand text-brand" : "text-stone-200"}`} />
                                   ))}
                                 </div>
                               </div>
@@ -454,7 +457,7 @@ export default function OrderDetailPage() {
             
             <div className="space-y-4 mb-8">
               <p className="text-xs text-muted-foreground leading-relaxed italic">
-                "{subOrder.seller.sellerBio || "Những tâm huyết gửi gắm vào từng đường nét của tác phẩm thủ công."}"
+                &quot;{subOrder.seller.sellerBio || "Những tâm huyết gửi gắm vào từng đường nét của tác phẩm thủ công."}&quot;
               </p>
             </div>
             

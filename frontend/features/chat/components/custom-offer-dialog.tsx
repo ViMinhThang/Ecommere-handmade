@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateCustomOrder, useSendCustomOrderOffer } from "@/lib/api/hooks";
+import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 
 const formSchema = z.object({
@@ -80,8 +81,8 @@ export function CustomOfferDialog({
       toast.success("Đã gửi báo giá thành công!");
       onOpenChange(false);
       reset();
-    } catch (error: any) {
-      toast.error(error.message || "Không thể gửi báo giá.");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Không thể gửi báo giá."));
     }
   };
 

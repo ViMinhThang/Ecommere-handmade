@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCategories, useCreateProduct, useUpdateProduct, useProduct } from '@/lib/api/hooks'
-import { useAuth } from '@/contexts/auth-context'
 import { Category } from '@/types'
 import { productsApi } from '@/lib/api/products'
 
@@ -24,7 +23,6 @@ const SECTIONS = [
 
 function NewListingContent() {
   const router = useRouter()
-  const { user } = useAuth()
   const searchParams = useSearchParams()
   const productId = searchParams.get('id')
 
@@ -59,7 +57,7 @@ function NewListingContent() {
         name: existingProduct.name || '',
         description: existingProduct.description || '',
         price: existingProduct.price || 0,
-        categoryId: existingProduct.categoryId || (existingProduct as any).category?.id || '',
+        categoryId: existingProduct.categoryId || existingProduct.category?.id || '',
         images: existingProduct.images?.map(img => ({ url: img.url, isMain: img.isMain })) || [],
         descriptionImages: existingProduct.descriptionImages || [],
         stock: existingProduct.stock || 0,
@@ -71,7 +69,7 @@ function NewListingContent() {
   }, [existingProduct])
 
   // Stable callbacks for child components to prevent unnecessary re-renders
-  const handleInputChange = useCallback((field: string, value: any) => {
+  const handleInputChange = useCallback((field: keyof typeof formData, value: (typeof formData)[keyof typeof formData]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }, [])
 

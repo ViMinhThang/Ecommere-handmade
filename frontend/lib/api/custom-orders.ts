@@ -1,4 +1,9 @@
 import { apiClient } from './client';
+import type {
+  FinancialSummary,
+  MarketplaceLedgerEntry,
+  RefundRequest,
+} from '@/types';
 
 export interface CustomOrder {
   id: string;
@@ -16,6 +21,7 @@ export interface CustomOrder {
   status: 'DRAFT' | 'PENDING_REVIEW' | 'REVISION_REQUESTED' | 'AWAITING_PAYMENT' | 'CRAFTING' | 'FINISHING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   createdAt: string;
   updatedAt: string;
+  financialSummary?: FinancialSummary;
   seller?: {
     id: string;
     name: string;
@@ -64,5 +70,22 @@ export const customOrdersApi = {
 
   updateSketch: (id: string, data: { sketchImageUrl?: string; artisanNote?: string }) => {
     return apiClient.patch<CustomOrder>(`/custom-orders/${id}/sketch`, data);
-  }
+  },
+
+  cancel: (id: string) => {
+    return apiClient.patch<CustomOrder>(`/custom-orders/${id}/cancel`, {});
+  },
+
+  refundAdminCustomOrder: (
+    id: string,
+    data: Omit<RefundRequest, 'subOrderId'>,
+  ) => {
+    return apiClient.post<CustomOrder>(`/custom-orders/admin/${id}/refunds`, data);
+  },
+
+  getAdminCustomOrderLedger: (id: string) => {
+    return apiClient.get<MarketplaceLedgerEntry[]>(
+      `/custom-orders/admin/${id}/ledger`,
+    );
+  },
 };

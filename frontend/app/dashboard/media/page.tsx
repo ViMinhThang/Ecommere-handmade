@@ -1,10 +1,9 @@
 ﻿'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import {
   useFolders,
@@ -19,11 +18,11 @@ import {
 import { useAuth } from '@/contexts/auth-context'
 import { mediaApi } from '@/lib/api/media'
 import { ImageFolder, Image } from '@/types'
-import { Search, Plus, Pencil, Trash2, Folder as FolderIcon, Image as ImageIcon, ArrowLeft, Upload, X } from 'lucide-react'
+import { Search, Plus, Pencil, Trash2, Folder as FolderIcon, Image as ImageIcon, ArrowLeft, Upload } from 'lucide-react'
 
 export default function MediaPage() {
   const { user } = useAuth()
-  const [userId, setUserId] = useState('')
+  const userId = user?.id || ''
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [folderDialogOpen, setFolderDialogOpen] = useState(false)
@@ -35,14 +34,8 @@ export default function MediaPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (user?.id) {
-      setUserId(user.id)
-    }
-  }, [user])
-
   const { data: foldersData, isLoading: foldersLoading } = useFolders(userId)
-  const { data: folderData, isLoading: folderLoading } = useFolder(selectedFolderId || '')
+  const { data: folderData } = useFolder(selectedFolderId || '')
   const { data: imagesData, isLoading: imagesLoading } = useImages(selectedFolderId || '')
 
   const createFolder = useCreateFolder()
@@ -354,7 +347,7 @@ export default function MediaPage() {
             <DialogTitle>Xóa thư mục</DialogTitle>
           </DialogHeader>
           <p className="py-4">
-            Bạn có chắc chắn muốn xóa "{selectedFolder?.name}"? Tất cả ảnh trong thư mục này cũng sẽ bị xóa.
+            Bạn có chắc chắn muốn xóa &quot;{selectedFolder?.name}&quot;? Tất cả ảnh trong thư mục này cũng sẽ bị xóa.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteFolderDialogOpen(false)}>

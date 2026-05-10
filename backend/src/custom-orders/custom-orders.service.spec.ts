@@ -45,6 +45,7 @@ describe('CustomOrdersService', () => {
     },
     marketplaceLedgerEntry: {
       create: jest.fn(),
+      findMany: jest.fn(),
     },
     refund: {
       create: jest.fn(),
@@ -68,6 +69,7 @@ describe('CustomOrdersService', () => {
     mockPrisma.marketplaceLedgerEntry.create.mockResolvedValue({
       id: 'ledger_1',
     });
+    mockPrisma.marketplaceLedgerEntry.findMany.mockResolvedValue([]);
     mockPrisma.refund.findUnique.mockResolvedValue(null);
     mockStripe.cancelPaymentIntent.mockResolvedValue(null);
     mockStripe.createRefund.mockResolvedValue({
@@ -258,5 +260,46 @@ describe('CustomOrdersService', () => {
       paymentStatus: PaymentStatus.REFUNDED,
     });
     expect(result.refund).toMatchObject({ id: 'refund_1' });
+  });
+
+  it('returns admin custom order ledger rows', async () => {
+    const ledgerRows = [
+      {
+        id: 'ledger_capture',
+        type: MarketplaceLedgerEntryType.PAYMENT_CAPTURE,
+        amount: 100000,
+      },
+      {
+        id: 'ledger_refund',
+        type: MarketplaceLedgerEntryType.REFUND,
+        amount: -90000,
+      },
+    ];
+    mockPrisma.customOrder.findUnique.mockResolvedValue({ id: 'co_1' });
+    mockPrisma.marketplaceLedgerEntry.findMany.mockResolvedValue(ledgerRows);
+
+    const result = await service.getAdminCustomOrderLedger('co_1');
+
+    expect(result).toBe(ledgerRows);
+    expect(mockPrisma.marketplaceLedgerEntry.findMany).toHaveBeenCalledWith({
+      where: { customOrderId: 'co_1' },
+      include: {
+        seller: {
+          select: { id: true, name: true, shopName: true, avatar: true },
+        },
+        customer: { select: { id: true, name: true, email: true } },
+        refund: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  });
+
+  it('throws when admin custom order ledger target does not exist', async () => {
+    mockPrisma.customOrder.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.getAdminCustomOrderLedger('missing_custom_order'),
+    ).rejects.toThrow('Custom Order not found');
+    expect(mockPrisma.marketplaceLedgerEntry.findMany).not.toHaveBeenCalled();
   });
 });

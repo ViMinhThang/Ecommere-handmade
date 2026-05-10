@@ -16,6 +16,7 @@ import {
   Undo,
   Redo
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
 
@@ -28,7 +29,7 @@ interface RichTextEditorProps {
 interface ToolbarButtonProps {
   onClick: () => void;
   active?: boolean;
-  icon: any;
+  icon: LucideIcon;
   title: string;
 }
 

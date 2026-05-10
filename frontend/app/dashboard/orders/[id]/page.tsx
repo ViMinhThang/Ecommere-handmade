@@ -22,16 +22,26 @@ import {
 } from '@/components/ui/table'
 import { useAuth } from '@/contexts/auth-context'
 import {
+  FinancialSummaryPanel,
+  LedgerTable,
+  RefundDialog,
+} from '@/components/dashboard/financial-operations'
+import {
   useAdminOrder,
+  useAdminOrderLedger,
+  useRefundAdminOrder,
   useSubOrder,
   useUpdateAdminOrderStatus,
   useUpdateSubOrderStatus,
 } from '@/lib/api/hooks'
-import type { Order, OrderShippingAddress, SubOrder } from '@/types'
-import type { OrderStatus as ApiOrderStatus } from '@/lib/api/orders'
+import type { Order, OrderShippingAddress } from '@/types'
+import type {
+  OrderStatus as ApiOrderStatus,
+  PaymentStatus,
+} from '@/lib/api/orders'
 import { formatCurrency } from '@/lib/utils'
-import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { AlertCircle, ArrowLeft, Loader2, RotateCcw } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
@@ -60,6 +70,11 @@ const statusLabels: Record<string, string> = {
   DELIVERED: 'Da giao',
   CANCELLED: 'Da huy',
 }
+
+const refundablePaymentStatuses: PaymentStatus[] = [
+  'PAID',
+  'PARTIALLY_REFUNDED',
+]
 
 function parseShippingAddress(
   shippingAddress: Order['shippingAddress'],
@@ -96,16 +111,20 @@ export default function DashboardOrderDetailPage() {
   const isSeller = user?.roles?.includes('ROLE_SELLER')
 
   const adminOrderQuery = useAdminOrder(id, Boolean(isAdmin))
+  const adminOrderLedgerQuery = useAdminOrderLedger(id, Boolean(isAdmin))
   const sellerSubOrderQuery = useSubOrder(id, Boolean(!isAdmin && isSeller))
   const updateAdminOrderStatus = useUpdateAdminOrderStatus()
   const updateSubOrderStatus = useUpdateSubOrderStatus()
+  const refundAdminOrder = useRefundAdminOrder()
 
   const order = isAdmin ? adminOrderQuery.data : undefined
   const subOrder = !isAdmin && isSeller ? sellerSubOrderQuery.data : undefined
 
-  const [nextOrderStatus, setNextOrderStatus] = useState<ApiOrderStatus>('PENDING')
+  const [nextOrderStatus, setNextOrderStatus] =
+    useState<ApiOrderStatus | null>(null)
   const [nextSubOrderStatus, setNextSubOrderStatus] =
-    useState<ApiOrderStatus>('PENDING')
+    useState<ApiOrderStatus | null>(null)
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false)
 
   const activeStatus = useMemo(() => {
     if (order?.status) {
@@ -122,21 +141,22 @@ export default function DashboardOrderDetailPage() {
   const shippingAddress = parseShippingAddress(
     order?.shippingAddress || subOrder?.order?.shippingAddress || null,
   )
+  const financialSummary = order?.financialSummary
+  const remainingRefundable = Math.max(
+    0,
+    Number(financialSummary?.customerPaid || 0) -
+      Number(financialSummary?.refundedAmount || 0),
+  )
+  const canRefundOrder =
+    Boolean(isAdmin && order) &&
+    order?.paymentMethod === 'STRIPE' &&
+    refundablePaymentStatuses.includes(order.paymentStatus as PaymentStatus) &&
+    remainingRefundable > 0
+  const selectedOrderStatus = nextOrderStatus ?? order?.status ?? 'PENDING'
+  const selectedSubOrderStatus = nextSubOrderStatus ?? subOrder?.status ?? 'PENDING'
 
   const isLoading = isAdmin ? adminOrderQuery.isLoading : sellerSubOrderQuery.isLoading
   const error = isAdmin ? adminOrderQuery.error : sellerSubOrderQuery.error
-
-  useEffect(() => {
-    if (order?.status) {
-      setNextOrderStatus(order.status)
-    }
-  }, [order?.status])
-
-  useEffect(() => {
-    if (subOrder?.status) {
-      setNextSubOrderStatus(subOrder.status)
-    }
-  }, [subOrder?.status])
 
   const handleAdminStatusUpdate = async () => {
     if (!order) {
@@ -146,7 +166,7 @@ export default function DashboardOrderDetailPage() {
     try {
       await updateAdminOrderStatus.mutateAsync({
         id: order.id,
-        status: nextOrderStatus,
+        status: selectedOrderStatus,
       })
       toast.success('Order status updated')
     } catch (mutationError: unknown) {
@@ -166,7 +186,7 @@ export default function DashboardOrderDetailPage() {
     try {
       await updateSubOrderStatus.mutateAsync({
         id: subOrder.id,
-        status: nextSubOrderStatus,
+        status: selectedSubOrderStatus,
       })
       toast.success('Sub-order status updated')
     } catch (mutationError: unknown) {
@@ -175,6 +195,28 @@ export default function DashboardOrderDetailPage() {
           ? mutationError.message
           : 'Could not update sub-order status',
       )
+    }
+  }
+
+  const handleAdminRefund = async (data: {
+    subOrderId?: string
+    amount?: number
+    reason: string
+  }) => {
+    if (!order) {
+      return
+    }
+
+    try {
+      await refundAdminOrder.mutateAsync({ id: order.id, data })
+      toast.success('Refund created')
+    } catch (mutationError: unknown) {
+      toast.error(
+        mutationError instanceof Error
+          ? mutationError.message
+          : 'Could not create refund',
+      )
+      throw mutationError
     }
   }
 
@@ -219,9 +261,21 @@ export default function DashboardOrderDetailPage() {
 
       <Card>
         <CardHeader className="space-y-2">
-          <CardTitle>
-            {isAdmin ? `Order #${order?.id.slice(0, 8)}` : `Sub-order #${subOrder?.id.slice(0, 8)}`}
-          </CardTitle>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <CardTitle>
+              {isAdmin ? `Order #${order?.id.slice(0, 8)}` : `Sub-order #${subOrder?.id.slice(0, 8)}`}
+            </CardTitle>
+            {canRefundOrder && (
+              <Button
+                className="gap-2"
+                onClick={() => setIsRefundDialogOpen(true)}
+                disabled={refundAdminOrder.isPending}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Refund
+              </Button>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <StatusBadge status={activeStatus} />
             <span>
@@ -265,13 +319,20 @@ export default function DashboardOrderDetailPage() {
         </CardContent>
       </Card>
 
+      {isAdmin && order && (
+        <FinancialSummaryPanel
+          summary={financialSummary}
+          remainingRefundable={remainingRefundable}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Status update</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 md:flex-row md:items-center">
           <Select
-            value={isAdmin ? nextOrderStatus : nextSubOrderStatus}
+            value={isAdmin ? selectedOrderStatus : selectedSubOrderStatus}
             onValueChange={(value) => {
               if (isAdmin) {
                 setNextOrderStatus(value as ApiOrderStatus)
@@ -355,6 +416,13 @@ export default function DashboardOrderDetailPage() {
         </Card>
       )}
 
+      {isAdmin && (
+        <LedgerTable
+          entries={adminOrderLedgerQuery.data}
+          isLoading={adminOrderLedgerQuery.isLoading}
+        />
+      )}
+
       {!isAdmin && subOrder && (
         <Card>
           <CardHeader>
@@ -389,6 +457,18 @@ export default function DashboardOrderDetailPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {isAdmin && order && (
+        <RefundDialog
+          open={isRefundDialogOpen}
+          onOpenChange={setIsRefundDialogOpen}
+          onSubmit={handleAdminRefund}
+          maxAmount={remainingRefundable}
+          isSubmitting={refundAdminOrder.isPending}
+          subOrders={order.subOrders}
+          title="Refund standard order"
+        />
       )}
     </div>
   )

@@ -1,5 +1,10 @@
 import { apiClient } from './client';
-import type { Order, SubOrder } from '@/types';
+import type {
+  MarketplaceLedgerEntry,
+  Order,
+  RefundRequest,
+  SubOrder,
+} from '@/types';
 
 export type OrderStatus =
   | 'PENDING'
@@ -51,6 +56,12 @@ export const ordersApi = {
   },
 
   getAdminOrder: (id: string) => apiClient.get<Order>(`/orders/admin/${id}`),
+
+  getAdminOrderLedger: (id: string) =>
+    apiClient.get<MarketplaceLedgerEntry[]>(`/orders/admin/${id}/ledger`),
+
+  refundAdminOrder: (id: string, data: RefundRequest) =>
+    apiClient.post<Order>(`/orders/admin/${id}/refunds`, data),
 
   updateSubOrderStatus: (id: string, status: OrderStatus) =>
     apiClient.patch<SubOrder>(`/orders/sub-order/${id}/status`, { status }),

@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/utils'
 interface PricingSectionProps {
   price: number
   sku: string
-  onChange: (field: string, value: any) => void
+  onChange: (field: 'price' | 'sku', value: number | string) => void
 }
 
 export const PricingSection = memo(function PricingSection({

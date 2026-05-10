@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { customOrdersApi } from "@/lib/api/custom-orders";
+import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
 import Link from "next/link";
 import { PenTool, ArrowRight, Clock, Box } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 export default function ProfileCustomOrdersPage() {
   const { data: orders, isLoading } = useQuery({
@@ -54,7 +54,7 @@ export default function ProfileCustomOrdersPage() {
       </p>
 
       <div className="space-y-4">
-        {mappedOrders.map((order: any) => {
+        {mappedOrders.map((order: CustomOrder) => {
           const statusDef = getStatusDisplay(order.status);
           return (
             <div key={order.id} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-center">
