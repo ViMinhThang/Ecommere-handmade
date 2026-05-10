@@ -1,4 +1,8 @@
 uploads
+backend/uploads/
+.agents/**/__pycache__/
+__pycache__/
+*.pyc
 .env
 AGENTS.md
 

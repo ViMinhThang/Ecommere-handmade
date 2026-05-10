@@ -17,6 +17,7 @@ import { RequestRevisionDto } from './dto/request-revision.dto';
 import { ConfirmCustomOrderPaymentDto } from './dto/confirm-custom-order-payment.dto';
 import { UpdateCustomOrderStatusDto } from './dto/update-custom-order-status.dto';
 import { UpdateSketchDto } from './dto/update-sketch.dto';
+import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto';
 
 @Controller('custom-orders')
 export class CustomOrdersController {
@@ -46,6 +47,16 @@ export class CustomOrdersController {
       req.user.id,
       req.user.roles,
     );
+  }
+
+  @Post('admin/:id/refunds')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
+  refundCustomOrder(
+    @Param('id') id: string,
+    @Body() body: CreateCustomOrderRefundDto,
+  ) {
+    return this.customOrdersService.refundCustomOrder(id, body);
   }
 
   @Get(':id')
@@ -89,6 +100,19 @@ export class CustomOrdersController {
       id,
       req.user.id,
       body.paymentIntentId,
+    );
+  }
+
+  @Patch(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  cancelCustomOrder(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.customOrdersService.cancelOrder(
+      id,
+      req.user.id,
+      req.user.roles,
     );
   }
 

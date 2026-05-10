@@ -24,6 +24,14 @@ export type StripeWebhookEvent = {
   };
 };
 
+export type StripeRefund = {
+  id: string;
+  status: string | null;
+  amount: number;
+  currency: string;
+  payment_intent: string | null | { id: string };
+};
+
 type StripeClient = {
   paymentIntents: {
     create(params: {
@@ -38,6 +46,16 @@ type StripeClient = {
     ): Promise<StripePaymentIntent>;
     retrieve(paymentIntentId: string): Promise<StripePaymentIntent>;
     cancel(paymentIntentId: string): Promise<StripePaymentIntent>;
+  };
+  refunds: {
+    create(
+      params: {
+        payment_intent: string;
+        amount?: number;
+        metadata?: Record<string, string>;
+      },
+      options?: { idempotencyKey?: string },
+    ): Promise<StripeRefund>;
   };
   webhooks: {
     constructEvent(
@@ -141,6 +159,29 @@ export class StripeService {
         `Error cancelling PaymentIntent: ${this.getErrorMessage(error)}`,
       );
       return null;
+    }
+  }
+
+  async createRefund(
+    paymentIntentId: string,
+    amount: number,
+    metadata?: Record<string, string>,
+    idempotencyKey?: string,
+  ) {
+    try {
+      return await this.stripe.refunds.create(
+        {
+          payment_intent: paymentIntentId,
+          amount,
+          metadata,
+        },
+        idempotencyKey ? { idempotencyKey } : undefined,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error creating refund: ${this.getErrorMessage(error)}`,
+      );
+      throw new InternalServerErrorException('Failed to initialize refund');
     }
   }
 

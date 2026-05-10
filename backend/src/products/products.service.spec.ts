@@ -40,6 +40,7 @@ describe('ProductsService', () => {
       create: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
+      updateMany: jest.Mock;
     };
     category: { update: jest.Mock };
     inventoryLog: { create: jest.Mock };
@@ -53,6 +54,7 @@ describe('ProductsService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
       },
       category: { update: jest.fn() },
       inventoryLog: {
@@ -164,7 +166,7 @@ describe('ProductsService', () => {
       mockPrisma.product.findUnique.mockResolvedValue({ id: '1', stock: 5 });
       mockPrisma.$transaction = jest.fn(
         (cb: (tx: typeof mockTx) => unknown) => {
-          mockTx.product.findUnique.mockResolvedValue({ stock: 5 });
+          mockTx.product.updateMany.mockResolvedValue({ count: 0 });
           return cb(mockTx);
         },
       );
@@ -175,6 +177,31 @@ describe('ProductsService', () => {
           reason: InventoryChangeReason.ORDER,
         }),
       ).rejects.toThrow(BadRequestException);
+      expect(mockTx.inventoryLog.create).not.toHaveBeenCalled();
+    });
+
+    it('uses a conditional decrement for negative stock changes', async () => {
+      const updatedProduct = { id: '1', stock: 3 };
+      mockPrisma.product.findUnique.mockResolvedValue({ id: '1', stock: 5 });
+      mockPrisma.$transaction = jest.fn(
+        (cb: (tx: typeof mockTx) => unknown) => {
+          mockTx.product.updateMany.mockResolvedValue({ count: 1 });
+          mockTx.product.findUnique.mockResolvedValue(updatedProduct);
+          return cb(mockTx);
+        },
+      );
+
+      const result = await service.updateStock('1', {
+        quantity: -2,
+        reason: InventoryChangeReason.ORDER,
+      });
+
+      expect(result).toEqual(updatedProduct);
+      expect(mockTx.product.updateMany).toHaveBeenCalledWith({
+        where: { id: '1', stock: { gte: 2 } },
+        data: { stock: { decrement: 2 } },
+      });
+      expect(mockTx.inventoryLog.create).toHaveBeenCalledTimes(1);
     });
   });
 

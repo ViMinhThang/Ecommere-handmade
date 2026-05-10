@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus } from '@prisma/client';
+import {
+  MarketplaceLedgerEntryStatus,
+  MarketplaceLedgerEntryType,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class AnalyticsService {
   constructor(private prisma: PrismaService) {}
 
-  private readonly revenueStatuses: OrderStatus[] = [
-    OrderStatus.PAID,
-    OrderStatus.PROCESSING,
-    OrderStatus.SHIPPED,
-    OrderStatus.DELIVERED,
+  private readonly revenueLedgerTypes: MarketplaceLedgerEntryType[] = [
+    MarketplaceLedgerEntryType.SELLER_EARNING,
+    MarketplaceLedgerEntryType.REFUND,
   ];
 
   async getSellerRevenueOverTime(
@@ -22,17 +24,18 @@ export class AnalyticsService {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    const subOrders = await this.prisma.subOrder.findMany({
+    const ledgerEntries = await this.prisma.marketplaceLedgerEntry.findMany({
       where: {
         sellerId,
-        status: { in: this.revenueStatuses },
+        status: MarketplaceLedgerEntryStatus.POSTED,
+        type: { in: this.revenueLedgerTypes },
         createdAt: {
           gte: start,
           lte: end,
         },
       },
       select: {
-        subTotal: true,
+        amount: true,
         createdAt: true,
       },
       orderBy: {
@@ -51,10 +54,10 @@ export class AnalyticsService {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    subOrders.forEach((so) => {
-      const dateStr = so.createdAt.toISOString().split('T')[0];
+    ledgerEntries.forEach((entry) => {
+      const dateStr = entry.createdAt.toISOString().split('T')[0];
       const existing = revenueMap.get(dateStr) || 0;
-      revenueMap.set(dateStr, existing + Number(so.subTotal));
+      revenueMap.set(dateStr, existing + Number(entry.amount));
     });
 
     return Array.from(revenueMap.entries()).map(([date, revenue]) => ({
@@ -71,21 +74,28 @@ export class AnalyticsService {
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const orderItems = await this.prisma.orderItem.findMany({
+    const ledgerEntries = await this.prisma.marketplaceLedgerEntry.findMany({
       where: {
-        subOrder: {
-          sellerId,
-          status: { in: this.revenueStatuses },
-          createdAt: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
+        sellerId,
+        status: MarketplaceLedgerEntryStatus.POSTED,
+        type: { in: this.revenueLedgerTypes },
+        createdAt: {
+          gte: startOfMonth,
+          lte: endOfMonth,
         },
       },
       include: {
-        product: {
+        subOrder: {
           include: {
-            category: true,
+            items: {
+              include: {
+                product: {
+                  include: {
+                    category: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -93,16 +103,38 @@ export class AnalyticsService {
 
     const categoryMap = new Map<string, number>();
 
-    orderItems.forEach((item) => {
-      const categoryName = item.product.category.name;
-      const amount = Number(item.price) * item.quantity;
-      const existing = categoryMap.get(categoryName) || 0;
-      categoryMap.set(categoryName, existing + amount);
+    ledgerEntries.forEach((entry) => {
+      const items = entry.subOrder?.items ?? [];
+      const grossTotal = items.reduce(
+        (sum, item) => sum + this.getItemGross(item),
+        0,
+      );
+
+      for (const item of items) {
+        const categoryName = item.product.category.name;
+        const ratio = grossTotal > 0 ? this.getItemGross(item) / grossTotal : 0;
+        const amount = Number(entry.amount) * ratio;
+        const existing = categoryMap.get(categoryName) || 0;
+        categoryMap.set(categoryName, existing + amount);
+      }
     });
 
     return Array.from(categoryMap.entries()).map(([name, value]) => ({
       name,
       value,
     }));
+  }
+
+  private getItemGross(item: {
+    quantity: number;
+    price: Prisma.Decimal | number;
+    originalPrice: Prisma.Decimal | number;
+  }) {
+    const originalPrice =
+      Number(item.originalPrice) === 0
+        ? Number(item.price)
+        : Number(item.originalPrice);
+
+    return originalPrice * item.quantity;
   }
 }

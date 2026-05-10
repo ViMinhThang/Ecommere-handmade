@@ -10,7 +10,13 @@ export type OrderStatus =
   | 'CANCELLED';
 
 export type PaymentMethod = 'STRIPE' | 'COD';
-export type PaymentStatus = 'UNPAID' | 'PAID' | 'COD_PENDING' | 'FAILED';
+export type PaymentStatus =
+  | 'UNPAID'
+  | 'PAID'
+  | 'COD_PENDING'
+  | 'FAILED'
+  | 'PARTIALLY_REFUNDED'
+  | 'REFUNDED';
 
 export interface AdminOrderFilters {
   status?: OrderStatus;

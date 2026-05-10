@@ -25,10 +25,16 @@ import {
   CategoryStatus,
   InventoryChangeReason,
   CustomOrderStatus,
+  MarketplaceLedgerEntryStatus,
+  MarketplaceLedgerEntryType,
+  RefundStatus,
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
+import { CreateRefundDto } from './dto/create-refund.dto';
 
 const SHIPPING_FEE = 25000;
+const CURRENCY = 'vnd';
+const DEFAULT_PLATFORM_COMMISSION_BPS = 1000;
 const STRIPE_PAYMENT_EXPIRY_MS = 30 * 60 * 1000;
 const EXPIRED_ORDER_SWEEP_MS = 5 * 60 * 1000;
 
@@ -46,6 +52,7 @@ interface ExecuteCheckoutTransactionParams {
   paymentStatus: PaymentStatus;
   paymentIntentId?: string | null;
   paymentExpiresAt?: Date | null;
+  idempotencyKey?: string | null;
 }
 
 interface PaymentIntentSnapshot {
@@ -79,6 +86,17 @@ type OrderWithStockItems = Prisma.OrderGetPayload<{
   };
 }>;
 
+type OrderWithFinancialRelations = Prisma.OrderGetPayload<{
+  include: {
+    subOrders: {
+      include: {
+        items: true;
+      };
+    };
+    refunds: true;
+  };
+}>;
+
 interface AdminOrderFilters {
   status?: OrderStatus;
   paymentMethod?: PaymentMethod;
@@ -96,6 +114,7 @@ type CustomOrderSummary = {
   title: string;
   sketchImageUrl: string | null;
   status: CustomOrderStatus;
+  paymentStatus?: PaymentStatus | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -124,12 +143,133 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private getPlatformCommissionBps() {
+    const configured = Number(process.env.PLATFORM_COMMISSION_BPS);
+    if (!Number.isFinite(configured) || configured < 0) {
+      return DEFAULT_PLATFORM_COMMISSION_BPS;
+    }
+
+    return Math.min(Math.floor(configured), 10000);
+  }
+
+  private roundMoney(amount: number) {
+    return Math.round(amount);
+  }
+
+  private calculateSubOrderGross(
+    items: Array<{
+      quantity: number;
+      price: Prisma.Decimal | number;
+      originalPrice?: Prisma.Decimal | number;
+    }>,
+  ) {
+    return items.reduce((sum, item) => {
+      const originalPrice =
+        item.originalPrice === undefined || Number(item.originalPrice) === 0
+          ? Number(item.price)
+          : Number(item.originalPrice);
+      return sum + originalPrice * item.quantity;
+    }, 0);
+  }
+
+  private calculateSubOrderPlatformDiscount(subOrder: {
+    subTotal?: Prisma.Decimal | number;
+    discountAmount: Prisma.Decimal | number;
+    items: Array<{
+      quantity: number;
+      price: Prisma.Decimal | number;
+      originalPrice?: Prisma.Decimal | number;
+    }>;
+  }) {
+    const gross = this.calculateSubOrderGross(subOrder.items);
+    const paidLineTotal = subOrder.items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0,
+    );
+
+    return this.roundMoney(
+      Math.max(0, gross - paidLineTotal + Number(subOrder.discountAmount)),
+    );
+  }
+
+  private calculateSubOrderCustomerPaid(subOrder: {
+    subTotal: Prisma.Decimal | number;
+    discountAmount: Prisma.Decimal | number;
+  }) {
+    return this.roundMoney(
+      Math.max(0, Number(subOrder.subTotal) - Number(subOrder.discountAmount)),
+    );
+  }
+
+  private calculatePlatformFee(gross: number) {
+    return this.roundMoney((gross * this.getPlatformCommissionBps()) / 10000);
+  }
+
+  private calculateRefundedAmount(
+    refunds: Array<{ amount: Prisma.Decimal | number; status: RefundStatus }>,
+  ) {
+    return refunds
+      .filter((refund) => refund.status === RefundStatus.SUCCEEDED)
+      .reduce((sum, refund) => sum + Number(refund.amount), 0);
+  }
+
+  private calculateOrderFinancialSummary(order: OrderWithFinancialRelations) {
+    const gross = order.subOrders.reduce(
+      (sum, subOrder) => sum + this.calculateSubOrderGross(subOrder.items),
+      0,
+    );
+    const platformDiscount = order.subOrders.reduce(
+      (sum, subOrder) => sum + this.calculateSubOrderPlatformDiscount(subOrder),
+      0,
+    );
+    const platformFee = this.calculatePlatformFee(gross);
+    const refundedAmount = this.calculateRefundedAmount(order.refunds);
+    const sellerNetBeforeRefunds = this.roundMoney(
+      Math.max(0, gross - platformFee),
+    );
+    const refundedRatio =
+      Number(order.totalAmount) > 0
+        ? Math.min(refundedAmount / Number(order.totalAmount), 1)
+        : 0;
+
+    return {
+      gross: this.roundMoney(gross),
+      customerPaid: Number(order.totalAmount),
+      platformDiscount: this.roundMoney(platformDiscount),
+      platformFee,
+      sellerNet: this.roundMoney(
+        Math.max(0, sellerNetBeforeRefunds * (1 - refundedRatio)),
+      ),
+      refundedAmount,
+    };
+  }
+
+  private attachFinancialSummary<T extends OrderWithFinancialRelations>(
+    order: T,
+  ) {
+    return {
+      ...order,
+      financialSummary: this.calculateOrderFinancialSummary(order),
+    };
+  }
+
   async checkout(
     userId: string,
     checkoutDto: CheckoutDto,
     paymentMethod: PaymentMethod = PaymentMethod.STRIPE,
   ) {
     await this.releaseExpiredStripeOrders();
+
+    const normalizedPaymentMethod = this.normalizePaymentMethod(paymentMethod);
+    const idempotencyKey = checkoutDto.idempotencyKey?.trim() || undefined;
+    const reusableCheckout = await this.findReusableCheckoutResponse(
+      userId,
+      idempotencyKey,
+      normalizedPaymentMethod,
+    );
+    if (reusableCheckout) {
+      return reusableCheckout;
+    }
 
     const shippingAddress = await this.resolveCheckoutShippingAddress(
       userId,
@@ -139,7 +279,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     this.validateCart(cart);
 
     const sellerGroups = this.groupItemsBySeller(cart.items);
-    const normalizedPaymentMethod = this.normalizePaymentMethod(paymentMethod);
 
     if (normalizedPaymentMethod === PaymentMethod.COD) {
       const order = await this.executeCheckoutTransaction({
@@ -149,11 +288,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         shippingAddress,
         paymentMethod: PaymentMethod.COD,
         paymentStatus: PaymentStatus.COD_PENDING,
+        idempotencyKey,
       });
 
       return {
         orderId: order.id,
         paymentMethod: PaymentMethod.COD,
+        paymentStatus: order.paymentStatus,
+        expiresAt: null,
         requiresPayment: false,
       };
     }
@@ -177,6 +319,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         paymentStatus: PaymentStatus.UNPAID,
         paymentIntentId: paymentIntent.id,
         paymentExpiresAt: new Date(Date.now() + STRIPE_PAYMENT_EXPIRY_MS),
+        idempotencyKey,
       });
     } catch (error) {
       await this.stripeService.cancelPaymentIntent(paymentIntent.id);
@@ -193,8 +336,79 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       clientSecret: paymentIntent.client_secret as string,
       orderId: order.id,
       paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: order.paymentStatus,
+      expiresAt: order.paymentExpiresAt,
       requiresPayment: true,
     };
+  }
+
+  private async findReusableCheckoutResponse(
+    userId: string,
+    idempotencyKey: string | undefined,
+    requestedPaymentMethod: PaymentMethod,
+  ) {
+    if (!idempotencyKey) {
+      return null;
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        customerId: userId,
+        checkoutIdempotencyKey: idempotencyKey,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!order || order.status === OrderStatus.CANCELLED) {
+      return null;
+    }
+
+    if (order.paymentMethod !== requestedPaymentMethod) {
+      throw new BadRequestException(
+        'Idempotency key was used with another payment method',
+      );
+    }
+
+    if (order.paymentMethod === PaymentMethod.COD) {
+      return {
+        orderId: order.id,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: order.paymentStatus,
+        expiresAt: null,
+        requiresPayment: false,
+      };
+    }
+
+    if (
+      order.paymentStatus === PaymentStatus.UNPAID &&
+      order.paymentIntentId &&
+      order.paymentExpiresAt &&
+      order.paymentExpiresAt > new Date()
+    ) {
+      const intent = await this.stripeService.retrievePaymentIntent(
+        order.paymentIntentId,
+      );
+      return {
+        clientSecret: intent.client_secret as string,
+        orderId: order.id,
+        paymentMethod: PaymentMethod.STRIPE,
+        paymentStatus: order.paymentStatus,
+        expiresAt: order.paymentExpiresAt,
+        requiresPayment: true,
+      };
+    }
+
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      return {
+        orderId: order.id,
+        paymentMethod: PaymentMethod.STRIPE,
+        paymentStatus: order.paymentStatus,
+        expiresAt: null,
+        requiresPayment: false,
+      };
+    }
+
+    return null;
   }
 
   private normalizePaymentMethod(paymentMethod: PaymentMethod): PaymentMethod {
@@ -297,6 +511,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       paymentStatus,
       paymentIntentId,
       paymentExpiresAt,
+      idempotencyKey,
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
@@ -312,6 +527,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           paymentStatus,
           paymentIntentId: paymentIntentId ?? null,
           paymentExpiresAt: paymentExpiresAt ?? null,
+          checkoutIdempotencyKey: idempotencyKey ?? null,
+          currency: CURRENCY,
           shippingAddress: shippingAddress
             ? (shippingAddress as Prisma.InputJsonValue)
             : undefined,
@@ -405,8 +622,99 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           productId: item.productId,
           quantity: item.quantity,
           price: item.pricing.discountedPrice,
+          originalPrice: item.pricing.originalPrice,
+          platformDiscountAmount: Math.max(
+            0,
+            item.pricing.originalPrice - item.pricing.discountedPrice,
+          ),
         })),
       });
+    }
+  }
+
+  private async createLedgerEntry(
+    tx: Prisma.TransactionClient,
+    data: Prisma.MarketplaceLedgerEntryCreateInput,
+  ) {
+    try {
+      return await tx.marketplaceLedgerEntry.create({ data });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  private async postOrderLedger(tx: Prisma.TransactionClient, orderId: string) {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        subOrders: {
+          include: {
+            items: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    await this.createLedgerEntry(tx, {
+      type: MarketplaceLedgerEntryType.PAYMENT_CAPTURE,
+      status: MarketplaceLedgerEntryStatus.POSTED,
+      amount: order.totalAmount,
+      currency: CURRENCY,
+      idempotencyKey: `order:${order.id}:payment_capture`,
+      order: { connect: { id: order.id } },
+      customer: { connect: { id: order.customerId } },
+    });
+
+    for (const subOrder of order.subOrders) {
+      const gross = this.calculateSubOrderGross(subOrder.items);
+      const platformFee = this.calculatePlatformFee(gross);
+      const sellerEarning = Math.max(0, gross - platformFee);
+      const platformDiscount = this.calculateSubOrderPlatformDiscount(subOrder);
+
+      await this.createLedgerEntry(tx, {
+        type: MarketplaceLedgerEntryType.SELLER_EARNING,
+        status: MarketplaceLedgerEntryStatus.POSTED,
+        amount: sellerEarning,
+        currency: CURRENCY,
+        idempotencyKey: `sub_order:${subOrder.id}:seller_earning`,
+        order: { connect: { id: order.id } },
+        subOrder: { connect: { id: subOrder.id } },
+        seller: { connect: { id: subOrder.sellerId } },
+        customer: { connect: { id: order.customerId } },
+      });
+
+      await this.createLedgerEntry(tx, {
+        type: MarketplaceLedgerEntryType.PLATFORM_FEE,
+        status: MarketplaceLedgerEntryStatus.POSTED,
+        amount: platformFee,
+        currency: CURRENCY,
+        idempotencyKey: `sub_order:${subOrder.id}:platform_fee`,
+        order: { connect: { id: order.id } },
+        subOrder: { connect: { id: subOrder.id } },
+        seller: { connect: { id: subOrder.sellerId } },
+        customer: { connect: { id: order.customerId } },
+      });
+
+      if (platformDiscount > 0) {
+        await this.createLedgerEntry(tx, {
+          type: MarketplaceLedgerEntryType.PLATFORM_DISCOUNT,
+          status: MarketplaceLedgerEntryStatus.POSTED,
+          amount: platformDiscount,
+          currency: CURRENCY,
+          idempotencyKey: `sub_order:${subOrder.id}:platform_discount`,
+          order: { connect: { id: order.id } },
+          subOrder: { connect: { id: subOrder.id } },
+          seller: { connect: { id: subOrder.sellerId } },
+          customer: { connect: { id: order.customerId } },
+        });
+      }
     }
   }
 
@@ -487,7 +795,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             createdAt: co.createdAt,
             shippingAddress: null,
             paymentMethod: null,
-            paymentStatus: null,
+            paymentStatus: co.paymentStatus ?? null,
             customer: co.customer,
           },
         }) as unknown as UnifiedOrder,
@@ -558,6 +866,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         items: { include: { product: { include: { images: true } } } },
       },
     },
+    refunds: true,
   };
 
   private readonly subOrderDetailInclude = {
@@ -689,14 +998,109 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private async postOrderRefundLedger(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    refundId: string,
+    refundAmount: number,
+    subOrderId?: string,
+  ) {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        subOrders: {
+          include: {
+            items: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const targetSubOrders = subOrderId
+      ? order.subOrders.filter((subOrder) => subOrder.id === subOrderId)
+      : order.subOrders;
+    const targetPaidTotal = subOrderId
+      ? targetSubOrders.reduce(
+          (sum, subOrder) => sum + this.calculateSubOrderCustomerPaid(subOrder),
+          0,
+        )
+      : Number(order.totalAmount);
+    const ratio =
+      targetPaidTotal > 0 ? Math.min(refundAmount / targetPaidTotal, 1) : 0;
+
+    for (const subOrder of targetSubOrders) {
+      const gross = this.calculateSubOrderGross(subOrder.items);
+      const sellerNet = Math.max(0, gross - this.calculatePlatformFee(gross));
+      const sellerRefundImpact = this.roundMoney(sellerNet * ratio);
+
+      if (sellerRefundImpact === 0) {
+        continue;
+      }
+
+      await this.createLedgerEntry(tx, {
+        type: MarketplaceLedgerEntryType.REFUND,
+        status: MarketplaceLedgerEntryStatus.POSTED,
+        amount: -sellerRefundImpact,
+        currency: CURRENCY,
+        idempotencyKey: `refund:${refundId}:sub_order:${subOrder.id}`,
+        order: { connect: { id: order.id } },
+        subOrder: { connect: { id: subOrder.id } },
+        refund: { connect: { id: refundId } },
+        seller: { connect: { id: subOrder.sellerId } },
+        customer: { connect: { id: order.customerId } },
+      });
+    }
+  }
+
+  private getOrderRefundPaymentStatus(
+    orderTotal: number,
+    refundedTotal: number,
+  ) {
+    return refundedTotal >= orderTotal
+      ? PaymentStatus.REFUNDED
+      : PaymentStatus.PARTIALLY_REFUNDED;
+  }
+
+  private async cancelSubOrdersAndRestoreStock(
+    tx: Prisma.TransactionClient,
+    subOrders: Array<{
+      id: string;
+      items: Array<{ productId: string; quantity: number }>;
+    }>,
+  ) {
+    for (const subOrder of subOrders) {
+      const updated = await tx.subOrder.updateMany({
+        where: {
+          id: subOrder.id,
+          status: { not: OrderStatus.CANCELLED },
+        },
+        data: { status: OrderStatus.CANCELLED },
+      });
+
+      if (updated.count === 1) {
+        await this.restoreSubOrderStock(tx, subOrder.items);
+      }
+    }
+  }
+
   private resolveCancelledPaymentStatus(order: Order) {
     if (order.paymentMethod === PaymentMethod.COD) {
       return PaymentStatus.FAILED;
     }
 
-    return order.paymentStatus === PaymentStatus.PAID
-      ? PaymentStatus.PAID
-      : PaymentStatus.FAILED;
+    if (
+      order.paymentStatus === PaymentStatus.PAID ||
+      order.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED ||
+      order.paymentStatus === PaymentStatus.REFUNDED
+    ) {
+      return order.paymentStatus;
+    }
+
+    return PaymentStatus.FAILED;
   }
 
   async findAdminOrders(filters: AdminOrderFilters) {
@@ -760,11 +1164,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: conditions.length > 0 ? { AND: conditions } : undefined,
       include: this.orderDetailInclude,
       orderBy: { createdAt: 'desc' },
     });
+
+    return orders.map((order) => this.attachFinancialSummary(order));
   }
 
   async findAdminOrderById(id: string) {
@@ -775,7 +1181,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    return order;
+    return this.attachFinancialSummary(order);
   }
 
   async findOrderById(userId: string, roles: string[], id: string) {
@@ -789,7 +1195,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       throw new ForbiddenException('Not your order');
     }
 
-    return order;
+    return this.attachFinancialSummary(order);
   }
 
   async findSubOrderById(userId: string, roles: string[], subOrderId: string) {
@@ -809,6 +1215,157 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
 
     return subOrder;
+  }
+
+  async refundOrder(orderId: string, dto: CreateRefundDto) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        subOrders: {
+          include: {
+            items: true,
+          },
+        },
+        refunds: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (
+      order.paymentMethod !== PaymentMethod.STRIPE ||
+      !order.paymentIntentId
+    ) {
+      throw new BadRequestException('Only paid Stripe orders can be refunded');
+    }
+
+    if (
+      order.paymentStatus !== PaymentStatus.PAID &&
+      order.paymentStatus !== PaymentStatus.PARTIALLY_REFUNDED
+    ) {
+      throw new BadRequestException('Order is not refundable');
+    }
+
+    const targetSubOrder = dto.subOrderId
+      ? order.subOrders.find((subOrder) => subOrder.id === dto.subOrderId)
+      : null;
+
+    if (dto.subOrderId && !targetSubOrder) {
+      throw new BadRequestException('Sub-order does not belong to order');
+    }
+
+    const refundedAmount = this.calculateRefundedAmount(order.refunds);
+    const refundableBalance = Number(order.totalAmount) - refundedAmount;
+    const productPaidTotal = order.subOrders.reduce(
+      (sum, subOrder) => sum + this.calculateSubOrderCustomerPaid(subOrder),
+      0,
+    );
+    const directTargetRefundedAmount = dto.subOrderId
+      ? order.refunds
+          .filter(
+            (refund) =>
+              refund.status === RefundStatus.SUCCEEDED &&
+              refund.subOrderId === dto.subOrderId,
+          )
+          .reduce((sum, refund) => sum + Number(refund.amount), 0)
+      : refundedAmount;
+    const allocatedOrderWideRefundAmount =
+      targetSubOrder && productPaidTotal > 0
+        ? order.refunds
+            .filter(
+              (refund) =>
+                refund.status === RefundStatus.SUCCEEDED && !refund.subOrderId,
+            )
+            .reduce(
+              (sum, refund) =>
+                sum +
+                Number(refund.amount) *
+                  (this.calculateSubOrderCustomerPaid(targetSubOrder) /
+                    productPaidTotal),
+              0,
+            )
+        : 0;
+    const targetRefundedAmount = targetSubOrder
+      ? directTargetRefundedAmount + allocatedOrderWideRefundAmount
+      : directTargetRefundedAmount;
+    const targetRefundableBalance = targetSubOrder
+      ? this.calculateSubOrderCustomerPaid(targetSubOrder) -
+        targetRefundedAmount
+      : refundableBalance;
+    const amount = this.roundMoney(dto.amount ?? targetRefundableBalance);
+
+    if (
+      amount <= 0 ||
+      amount > refundableBalance ||
+      amount > targetRefundableBalance
+    ) {
+      throw new BadRequestException('Refund amount exceeds paid balance');
+    }
+
+    const idempotencyKey = [
+      'refund',
+      'order',
+      order.id,
+      dto.subOrderId ?? 'all',
+      amount,
+      dto.reason.trim(),
+    ].join(':');
+
+    const existingRefund = await this.prisma.refund.findUnique({
+      where: { idempotencyKey },
+    });
+    if (existingRefund) {
+      return existingRefund;
+    }
+
+    const stripeRefund = await this.stripeService.createRefund(
+      order.paymentIntentId,
+      amount,
+      {
+        orderId: order.id,
+        subOrderId: dto.subOrderId ?? '',
+        reason: dto.reason,
+      },
+      idempotencyKey,
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      const refund = await tx.refund.create({
+        data: {
+          orderId: order.id,
+          subOrderId: dto.subOrderId ?? null,
+          paymentIntentId: order.paymentIntentId!,
+          providerRefundId: stripeRefund.id,
+          amount,
+          currency: CURRENCY,
+          reason: dto.reason,
+          status: RefundStatus.SUCCEEDED,
+          idempotencyKey,
+        },
+      });
+
+      await this.postOrderRefundLedger(
+        tx,
+        order.id,
+        refund.id,
+        amount,
+        dto.subOrderId,
+      );
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: this.getOrderRefundPaymentStatus(
+            Number(order.totalAmount),
+            refundedAmount + amount,
+          ),
+        },
+      });
+
+      return refund;
+    });
   }
 
   async cancelOrder(userId: string, orderId: string) {
@@ -840,34 +1397,33 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('This order can no longer be cancelled');
     }
 
+    const shouldRefund =
+      order.paymentMethod === PaymentMethod.STRIPE &&
+      (order.paymentStatus === PaymentStatus.PAID ||
+        order.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED);
+
+    const refund = shouldRefund
+      ? await this.refundOrder(orderId, { reason: 'Customer cancellation' })
+      : null;
+
     return this.prisma.$transaction(async (tx) => {
-      for (const subOrder of order.subOrders) {
-        if (subOrder.status === OrderStatus.CANCELLED) {
-          continue;
-        }
-
-        await this.restoreSubOrderStock(tx, subOrder.items);
-      }
-
-      await tx.subOrder.updateMany({
-        where: { orderId },
-        data: { status: OrderStatus.CANCELLED },
-      });
+      await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders);
 
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: {
           status: OrderStatus.CANCELLED,
-          paymentStatus: this.resolveCancelledPaymentStatus(order),
+          paymentStatus: refund
+            ? PaymentStatus.REFUNDED
+            : this.resolveCancelledPaymentStatus(order),
         },
         include: this.orderDetailInclude,
       });
 
       return {
-        ...updatedOrder,
-        refundRequired:
-          order.paymentMethod === PaymentMethod.STRIPE &&
-          order.paymentStatus === PaymentStatus.PAID,
+        ...this.attachFinancialSummary(updatedOrder),
+        refund,
+        refundRequired: false,
       };
     });
   }
@@ -901,12 +1457,38 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       status,
     );
 
+    if (
+      status === OrderStatus.CANCELLED &&
+      subOrder.status !== OrderStatus.CANCELLED &&
+      subOrder.order.paymentMethod === PaymentMethod.STRIPE &&
+      (subOrder.order.paymentStatus === PaymentStatus.PAID ||
+        subOrder.order.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED)
+    ) {
+      await this.refundOrder(subOrder.orderId, {
+        subOrderId,
+        reason: 'Sub-order cancellation',
+      });
+    }
+
     return this.prisma.$transaction(async (tx) => {
-      if (
-        status === OrderStatus.CANCELLED &&
-        subOrder.status !== OrderStatus.CANCELLED
-      ) {
-        await this.restoreSubOrderStock(tx, subOrder.items);
+      if (status === OrderStatus.CANCELLED) {
+        const cancelled = await tx.subOrder.updateMany({
+          where: {
+            id: subOrderId,
+            status: { not: OrderStatus.CANCELLED },
+          },
+          data: { status },
+        });
+
+        if (cancelled.count === 1) {
+          await this.restoreSubOrderStock(tx, subOrder.items);
+        }
+
+        await this.syncMasterOrderStatus(tx, subOrder.orderId);
+        return tx.subOrder.update({
+          where: { id: subOrderId },
+          data: { status },
+        });
       }
 
       const updated = await tx.subOrder.update({
@@ -952,27 +1534,36 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       this.assertSubOrderStatusTransition(order, subOrder.status, status);
     }
 
+    if (
+      status === OrderStatus.CANCELLED &&
+      order.paymentMethod === PaymentMethod.STRIPE &&
+      (order.paymentStatus === PaymentStatus.PAID ||
+        order.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED)
+    ) {
+      await this.refundOrder(orderId, { reason: 'Admin cancellation' });
+    }
+
     return this.prisma.$transaction(async (tx) => {
       if (status === OrderStatus.CANCELLED) {
-        for (const subOrder of updatableSubOrders) {
-          await this.restoreSubOrderStock(tx, subOrder.items);
-        }
+        await this.cancelSubOrdersAndRestoreStock(tx, updatableSubOrders);
+      } else {
+        await tx.subOrder.updateMany({
+          where: {
+            orderId,
+            status: { not: OrderStatus.CANCELLED },
+          },
+          data: { status },
+        });
       }
-
-      await tx.subOrder.updateMany({
-        where: {
-          orderId,
-          status: { not: OrderStatus.CANCELLED },
-        },
-        data: { status },
-      });
 
       await this.syncMasterOrderStatus(tx, orderId);
 
-      return tx.order.findUnique({
+      const updatedOrder = await tx.order.findUnique({
         where: { id: orderId },
         include: this.orderDetailInclude,
       });
+
+      return updatedOrder ? this.attachFinancialSummary(updatedOrder) : null;
     });
   }
 
@@ -1076,6 +1667,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       data: { status: OrderStatus.PAID },
     });
 
+    await this.postOrderLedger(tx, orderId);
+
     return updatedOrder;
   }
 
@@ -1109,17 +1702,17 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
   async handlePaymentIntentSucceeded(payload: StripeWebhookPaymentPayload) {
     return this.prisma.$transaction(async (tx) => {
-      const recorded = await this.recordWebhookEvent(tx, payload);
-      if (!recorded) {
-        return { received: true, processed: false, reason: 'duplicate' };
-      }
-
       const order = await tx.order.findUnique({
         where: { paymentIntentId: payload.paymentIntentId },
       });
 
       if (!order) {
         return { received: true, processed: false, reason: 'order_not_found' };
+      }
+
+      const recorded = await this.recordWebhookEvent(tx, payload);
+      if (!recorded) {
+        return { received: true, processed: false, reason: 'duplicate' };
       }
 
       if (order.paymentMethod !== PaymentMethod.STRIPE) {
@@ -1167,11 +1760,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
   async handlePaymentIntentFailed(payload: StripeWebhookPaymentPayload) {
     return this.prisma.$transaction(async (tx) => {
-      const recorded = await this.recordWebhookEvent(tx, payload);
-      if (!recorded) {
-        return { received: true, processed: false, reason: 'duplicate' };
-      }
-
       const order = await tx.order.findUnique({
         where: { paymentIntentId: payload.paymentIntentId },
         include: {
@@ -1192,9 +1780,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         return { received: true, processed: false, reason: 'order_not_found' };
       }
 
+      const recorded = await this.recordWebhookEvent(tx, payload);
+      if (!recorded) {
+        return { received: true, processed: false, reason: 'duplicate' };
+      }
+
       if (
         order.paymentMethod !== PaymentMethod.STRIPE ||
-        order.paymentStatus === PaymentStatus.PAID ||
+        order.paymentStatus !== PaymentStatus.UNPAID ||
         order.status === OrderStatus.CANCELLED
       ) {
         return { received: true, processed: false, reason: 'terminal_order' };
@@ -1219,20 +1812,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     tx: Prisma.TransactionClient,
     order: OrderWithStockItems,
   ) {
-    for (const subOrder of order.subOrders) {
-      if (subOrder.status === OrderStatus.CANCELLED) {
-        continue;
-      }
-      await this.restoreSubOrderStock(tx, subOrder.items);
-    }
-
-    await tx.subOrder.updateMany({
-      where: {
-        orderId: order.id,
-        status: { not: OrderStatus.CANCELLED },
-      },
-      data: { status: OrderStatus.CANCELLED },
-    });
+    await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders);
 
     return tx.order.update({
       where: { id: order.id },
@@ -1240,6 +1820,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         status: OrderStatus.CANCELLED,
         paymentStatus: PaymentStatus.FAILED,
         paymentExpiresAt: null,
+        checkoutIdempotencyKey: null,
       },
     });
   }
@@ -1382,7 +1963,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         : PaymentStatus.COD_PENDING;
     } else if (
       order.paymentMethod === PaymentMethod.STRIPE &&
-      order.paymentStatus !== PaymentStatus.PAID
+      order.paymentStatus === PaymentStatus.UNPAID
     ) {
       newPaymentStatus = PaymentStatus.UNPAID;
     }
@@ -1394,5 +1975,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         paymentStatus: newPaymentStatus,
       },
     });
+
+    if (
+      order.paymentMethod === PaymentMethod.COD &&
+      newPaymentStatus === PaymentStatus.PAID
+    ) {
+      await this.postOrderLedger(tx, orderId);
+    }
   }
 }

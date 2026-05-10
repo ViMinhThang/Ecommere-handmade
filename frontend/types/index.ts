@@ -203,7 +203,13 @@ export interface Order {
   voucherCode?: string | null;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   paymentMethod?: "STRIPE" | "COD";
-  paymentStatus?: "UNPAID" | "PAID" | "COD_PENDING" | "FAILED";
+  paymentStatus?:
+    | "UNPAID"
+    | "PAID"
+    | "COD_PENDING"
+    | "FAILED"
+    | "PARTIALLY_REFUNDED"
+    | "REFUNDED";
   paymentIntentId?: string;
   shippingAddress?: string | OrderShippingAddress | null;
   createdAt: Date;
@@ -231,6 +237,8 @@ export interface OrderItem {
   product: Product;
   quantity: number;
   price: number;
+  originalPrice?: number;
+  platformDiscountAmount?: number;
 }
 
 export interface Customer {

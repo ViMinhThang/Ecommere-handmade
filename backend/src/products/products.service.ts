@@ -439,20 +439,24 @@ export class ProductsService {
     }
 
     const updatedProduct = await this.prisma.$transaction(async (tx) => {
-      const current = await tx.product.findUnique({ where: { id: productId } });
-      if (!current) {
-        throw new NotFoundException(`Product with ID ${productId} not found`);
-      }
+      if (updateStockDto.quantity < 0) {
+        const result = await tx.product.updateMany({
+          where: {
+            id: productId,
+            stock: { gte: Math.abs(updateStockDto.quantity) },
+          },
+          data: { stock: { decrement: Math.abs(updateStockDto.quantity) } },
+        });
 
-      const newStock = current.stock + updateStockDto.quantity;
-      if (newStock < 0) {
-        throw new BadRequestException('Insufficient stock');
+        if (result.count !== 1) {
+          throw new BadRequestException('Insufficient stock');
+        }
+      } else {
+        await tx.product.update({
+          where: { id: productId },
+          data: { stock: { increment: updateStockDto.quantity } },
+        });
       }
-
-      const updated = await tx.product.update({
-        where: { id: productId },
-        data: { stock: { increment: updateStockDto.quantity } },
-      });
 
       await tx.inventoryLog.create({
         data: {
@@ -462,7 +466,7 @@ export class ProductsService {
         },
       });
 
-      return updated;
+      return tx.product.findUnique({ where: { id: productId } });
     });
 
     return updatedProduct;

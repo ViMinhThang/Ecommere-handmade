@@ -12,7 +12,8 @@ export interface CustomOrder {
   specifications: string[];
   sketchImageUrl: string | null;
   revisionNote: string | null;
-  status: 'DRAFT' | 'PENDING_REVIEW' | 'REVISION_REQUESTED' | 'AWAITING_PAYMENT' | 'CRAFTING' | 'FINISHING' | 'SHIPPED';
+  paymentStatus?: 'UNPAID' | 'PAID' | 'COD_PENDING' | 'FAILED' | 'PARTIALLY_REFUNDED' | 'REFUNDED';
+  status: 'DRAFT' | 'PENDING_REVIEW' | 'REVISION_REQUESTED' | 'AWAITING_PAYMENT' | 'CRAFTING' | 'FINISHING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   createdAt: string;
   updatedAt: string;
   seller?: {

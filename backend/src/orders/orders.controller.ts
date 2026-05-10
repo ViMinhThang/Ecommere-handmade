@@ -14,6 +14,7 @@ import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 import { CheckoutDto } from './dto/checkout.dto';
+import { CreateRefundDto } from './dto/create-refund.dto';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 
@@ -113,6 +114,16 @@ export class OrdersController {
       customer,
       seller,
     });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
+  @Post('admin/:id/refunds')
+  async refundAdminOrder(
+    @Param('id') id: string,
+    @Body() body: CreateRefundDto,
+  ) {
+    return this.ordersService.refundOrder(id, body);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

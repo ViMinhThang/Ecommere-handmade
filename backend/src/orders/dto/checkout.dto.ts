@@ -37,6 +37,11 @@ export class CheckoutShippingAddressDto {
 
 export class CheckoutDto {
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  idempotencyKey?: string;
+
+  @IsOptional()
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
 
