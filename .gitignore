@@ -3,8 +3,20 @@ backend/uploads/
 .agents/**/__pycache__/
 __pycache__/
 *.pyc
-.env
 AGENTS.md
+
+# Environment files (never commit real secrets)
+.env
+.env.*
+*.env
+.env.local
+.env.production
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+!.env.example
+!**/.env.example
 
 # Dependencies
 node_modules/
