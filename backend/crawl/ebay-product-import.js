@@ -280,12 +280,47 @@ function parseTextCsvItems(sourceFile) {
   return rowsToObjects(parseCsvRows(raw));
 }
 
+function parseJsonItems(sourceFile) {
+  const raw = fs.readFileSync(sourceFile, 'utf8').replace(/^\uFEFF/, '').trim();
+  if (!raw) return [];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`Invalid JSON format: ${error?.message || error}`);
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('JSON source must be an array of items');
+  }
+
+  return parsed
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => {
+      const record = item;
+      return Object.keys(record).reduce((result, key) => {
+        result[key] = String(record[key] ?? '').trim();
+        return result;
+      }, {});
+    });
+}
+
 function readSourceItems(sourceFile) {
   const fileStart = fs.readFileSync(sourceFile);
+  const trimmedHeader = fileStart
+    .subarray(0, 64)
+    .toString('utf8')
+    .replace(/^\uFEFF/, '')
+    .trimStart();
   const isXlsx =
     fileStart.length >= 4 &&
     fileStart.readUInt32LE(0) === ZIP_LOCAL_FILE_SIGNATURE;
-  return isXlsx ? parseXlsxItems(sourceFile) : parseTextCsvItems(sourceFile);
+  const isJson = trimmedHeader.startsWith('[') || trimmedHeader.startsWith('{');
+
+  if (isXlsx) return parseXlsxItems(sourceFile);
+  if (isJson) return parseJsonItems(sourceFile);
+  return parseTextCsvItems(sourceFile);
 }
 
 function warnInvalidSourceColumns(sourceFile, items) {
