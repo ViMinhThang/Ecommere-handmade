@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { createImageFileName } from '../common/utils/image-upload';
 
 @Injectable()
 export class MediaService {
@@ -90,8 +91,7 @@ export class MediaService {
     const uploadPath = path.join('uploads', userId, folderId);
     await fs.mkdir(uploadPath, { recursive: true });
 
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const fileName = `${Date.now()}-${safeName}`;
+    const fileName = createImageFileName(file);
     const filePath = path.join(uploadPath, fileName);
     await fs.writeFile(filePath, file.buffer);
 

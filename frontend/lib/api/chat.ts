@@ -1,8 +1,6 @@
 import { API_BASE_URL, apiClient } from './client';
 import type { ChatConversationSummary, ChatMessage, CursorResponse } from '@/types';
 
-const ACCESS_TOKEN_STORAGE_KEY = 'auth_access_token_client';
-
 export interface StartConversationDto {
   sellerId: string;
   productId?: string;
@@ -34,21 +32,9 @@ function toQueryString(params?: CursorParams): string {
   return value ? `?${value}` : '';
 }
 
-function getAccessTokenFromStorage(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
 export const chatApi = {
   startConversation: (data: StartConversationDto) =>
-    apiClient.post<ChatConversationSummary>('/chat/conversations/start', data),
+    apiClient.post<ChatConversationSummary>('/chat/conversations', data),
 
   getConversations: (params?: CursorParams) =>
     apiClient.get<CursorResponse<ChatConversationSummary>>(
@@ -91,30 +77,10 @@ export const chatApi = {
       formData.append('caption', caption);
     }
 
-    const accessToken = getAccessTokenFromStorage();
-    const headers = new Headers();
-    if (accessToken) {
-      headers.set('Authorization', `Bearer ${accessToken}`);
-    }
-
-    const response = await fetch(
-      `${API_BASE_URL}/chat/conversations/${conversationId}/messages/image`,
-      {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-        headers,
-      },
+    return apiClient.post<ChatMessage>(
+      `/chat/conversations/${conversationId}/messages/image`,
+      formData,
     );
-
-    if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ message: 'Failed to upload chat image' }));
-      throw new Error(error.message || 'Failed to upload chat image');
-    }
-
-    return (await response.json()) as ChatMessage;
   },
 
   markConversationRead: (conversationId: string) =>

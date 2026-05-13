@@ -61,6 +61,9 @@ export const usersApi = {
 
   updateProfile: (data: Partial<User>) => apiClient.patch<User>('/users/profile', data),
 
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    apiClient.patch<{ success: boolean }>('/users/account/password', data),
+
   delete: (id: string) => apiClient.delete<void>(`/users/${id}`),
 
   getStats: () => apiClient.get<UsersResponse>('/users/stats'),

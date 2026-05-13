@@ -31,6 +31,7 @@ import {
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
+import { SettingsService } from '../settings/settings.service';
 
 const SHIPPING_FEE = 25000;
 const CURRENCY = 'vnd';
@@ -127,6 +128,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
     private readonly cartService: CartService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   onModuleInit() {
@@ -144,12 +146,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   }
 
   private getPlatformCommissionBps() {
-    const configured = Number(process.env.PLATFORM_COMMISSION_BPS);
-    if (!Number.isFinite(configured) || configured < 0) {
-      return DEFAULT_PLATFORM_COMMISSION_BPS;
-    }
-
-    return Math.min(Math.floor(configured), 10000);
+    return (
+      this.settingsService?.getPlatformCommissionBps() ??
+      DEFAULT_PLATFORM_COMMISSION_BPS
+    );
   }
 
   private roundMoney(amount: number) {

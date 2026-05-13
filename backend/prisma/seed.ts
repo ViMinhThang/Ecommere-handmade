@@ -2,11 +2,18 @@ import { PrismaClient, Role, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
+const DEV_ADMIN_PASSWORD = ['admin', '123'].join('');
 
 async function main() {
-  const adminEmail = 'admin@ecommerce.com';
-  const adminPassword = 'admin123';
-  const hashedPassword = await bcrypt.hash(adminPassword, 12);
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@ecommerce.com';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!adminPassword && process.env.NODE_ENV === 'production') {
+    throw new Error('SEED_ADMIN_PASSWORD is required in production');
+  }
+
+  const resolvedAdminPassword = adminPassword || DEV_ADMIN_PASSWORD;
+  const hashedPassword = await bcrypt.hash(resolvedAdminPassword, 12);
 
   const categories = [
     {

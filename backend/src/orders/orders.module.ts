@@ -6,9 +6,16 @@ import { StripeModule } from '../stripe/stripe.module';
 import { CartModule } from '../cart/cart.module';
 import { StripeWebhookController } from './stripe-webhook.controller';
 import { CustomOrdersModule } from '../custom-orders/custom-orders.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [PrismaModule, StripeModule, CartModule, CustomOrdersModule],
+  imports: [
+    PrismaModule,
+    StripeModule,
+    CartModule,
+    CustomOrdersModule,
+    SettingsModule,
+  ],
   controllers: [OrdersController, StripeWebhookController],
   providers: [OrdersService],
   exports: [OrdersService],

@@ -23,6 +23,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import { isAllowedImageMimeType } from '../common/utils/image-upload';
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -46,6 +47,13 @@ export class ProductsController {
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+      fileFilter: (_req, file, callback) => {
+        if (isAllowedImageMimeType(file.mimetype)) {
+          callback(null, true);
+          return;
+        }
+        callback(new BadRequestException('Only image files are allowed'), false);
+      },
     }),
   )
   uploadImage(@UploadedFile() file: Express.Multer.File) {

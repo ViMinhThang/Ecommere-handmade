@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
+import { getSafeRedirectPath } from "@/lib/safe-redirect";
 
 let isGoogleIdentityInitialized = false;
 let initializedGoogleClientId: string | null = null;
@@ -27,7 +28,12 @@ function LoginPageContent() {
   const { theme, setTheme } = useTheme();
   const { login, loginWithGoogle } = useAuth();
 
-  const redirectTo = searchParams.get("redirect") || "/";
+  const redirectTo = getSafeRedirectPath(searchParams.get("redirect"));
+  const demoAdminEmail = process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL;
+  const demoAdminPassword = process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD;
+  const showDemoCredentials =
+    process.env.NODE_ENV !== "production" &&
+    Boolean(demoAdminEmail && demoAdminPassword);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   const [email, setEmail] = useState("");
@@ -55,7 +61,7 @@ function LoginPageContent() {
     }
 
     setGoogleUnavailable(false);
-    googleButtonRef.current.innerHTML = "";
+    googleButtonRef.current.replaceChildren();
     if (
       !isGoogleIdentityInitialized ||
       initializedGoogleClientId !== clientId
@@ -308,6 +314,7 @@ function LoginPageContent() {
             )}
           </div>
 
+          {showDemoCredentials && (
           <div className="group mt-10 space-y-4 rounded-xl border border-primary/10 bg-primary/5 p-6 shadow-sm transition-colors duration-300 hover:bg-primary/10">
             <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
               <AlertCircle className="h-3.5 w-3.5" />
@@ -319,7 +326,7 @@ function LoginPageContent() {
                   Email
                 </p>
                 <p className="font-serif font-semibold tracking-tight text-foreground">
-                  admin@ecommerce.com
+                  {demoAdminEmail}
                 </p>
               </div>
               <div>
@@ -327,7 +334,7 @@ function LoginPageContent() {
                   Mật khẩu
                 </p>
                 <p className="font-serif font-semibold tracking-tight text-foreground">
-                  admin123
+                  {demoAdminPassword}
                 </p>
               </div>
             </div>
@@ -336,13 +343,14 @@ function LoginPageContent() {
               size="sm"
               className="h-9 w-full border border-primary/20 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 hover:bg-primary hover:text-white"
               onClick={() => {
-                setEmail("admin@ecommerce.com");
-                setPassword("admin123");
+                setEmail(demoAdminEmail || "");
+                setPassword(demoAdminPassword || "");
               }}
             >
               Tự động điền thông tin
             </Button>
           </div>
+          )}
 
           <div className="mt-12 text-center font-serif text-lg italic text-muted-foreground">
             Bạn chưa có tài khoản?{" "}

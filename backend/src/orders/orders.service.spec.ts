@@ -13,6 +13,7 @@ import {
 import { CartService } from '../cart/cart.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
+import { SettingsService } from '../settings/settings.service';
 import { OrdersService } from './orders.service';
 
 type OrderFindUniqueArgs = {
@@ -92,6 +93,9 @@ describe('OrdersService', () => {
   const mockCart = {
     getCart: jest.fn(),
   };
+  const mockSettings = {
+    getPlatformCommissionBps: jest.fn(() => 1000),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -121,6 +125,7 @@ describe('OrdersService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StripeService, useValue: mockStripe },
         { provide: CartService, useValue: mockCart },
+        { provide: SettingsService, useValue: mockSettings },
       ],
     }).compile();
 

@@ -77,20 +77,30 @@ async function bootstrap() {
     }),
   );
 
-  const config = new DocumentBuilder()
-    .setTitle('E-commerce API')
-    .setDescription('API for the e-commerce platform')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  if (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.ENABLE_SWAGGER === 'true'
+  ) {
+    const config = new DocumentBuilder()
+      .setTitle('E-commerce API')
+      .setDescription('API for the e-commerce platform')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
+  }
 
   app.enableShutdownHooks();
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
   logger.log(`Application is running on: http://localhost:${port}`);
-  logger.log(`Swagger docs: http://localhost:${port}/api`);
+  if (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.ENABLE_SWAGGER === 'true'
+  ) {
+    logger.log(`Swagger docs: http://localhost:${port}/api`);
+  }
 }
 void bootstrap();

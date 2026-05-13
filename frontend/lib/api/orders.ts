@@ -31,6 +31,13 @@ export interface AdminOrderFilters {
   seller?: string;
 }
 
+export interface ConfirmPaymentResponse {
+  success: boolean;
+  orderId: string;
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatus;
+}
+
 export const ordersApi = {
   getMyOrders: () => apiClient.get<SubOrder[]>('/orders/my-orders'),
 
@@ -70,4 +77,9 @@ export const ordersApi = {
     apiClient.patch<Order>(`/orders/admin/${id}/status`, { status }),
 
   cancelOrder: (id: string) => apiClient.patch<Order>(`/orders/${id}/cancel`, {}),
+
+  confirmPayment: (paymentIntentId: string) =>
+    apiClient.post<ConfirmPaymentResponse>('/orders/confirm-payment', {
+      paymentIntentId,
+    }),
 };

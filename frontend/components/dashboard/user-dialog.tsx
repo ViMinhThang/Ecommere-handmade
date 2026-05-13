@@ -169,7 +169,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder={isEdit ? '••••••••' : 'Mặc định: Handmade@123'}
+                placeholder={isEdit ? '••••••••' : 'Để trống để tự sinh mật khẩu'}
               />
             </div>
             <div className="grid gap-2">

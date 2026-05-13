@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { Check, Truck, ArrowRight, PenTool, User, RotateCcw, XCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
@@ -87,12 +87,15 @@ function PaymentForm({ order, onSuccess }: { order: CustomOrder, onSuccess: () =
 
 export default function CustomOrderReviewPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
   const queryClient = useQueryClient();
+  const redirectPaymentIntentId = searchParams.get("payment_intent");
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+  const handledRedirectPaymentIntentRef = useRef<string | null>(null);
 
   const { data: user } = useMe();
   const isAdmin = user?.roles?.includes("ROLE_ADMIN");
@@ -104,6 +107,32 @@ export default function CustomOrderReviewPage() {
     queryKey: ["customOrder", id],
     queryFn: () => customOrdersApi.getById(id),
   });
+
+  const redirectConfirmPayment = useMutation({
+    mutationFn: (paymentIntentId: string) =>
+      customOrdersApi.confirmPayment(id, paymentIntentId),
+    onSuccess: () => {
+      toast.success("Thanh toán thành công! Đơn hàng đã chuyển sang chế tác.");
+      queryClient.invalidateQueries({ queryKey: ["customOrder", id] });
+    },
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, "Không thể xác nhận thanh toán."));
+    },
+  });
+  const { mutate: confirmRedirectPayment } = redirectConfirmPayment;
+
+  useEffect(() => {
+    if (
+      !redirectPaymentIntentId ||
+      order?.paymentStatus === "PAID" ||
+      handledRedirectPaymentIntentRef.current === redirectPaymentIntentId
+    ) {
+      return;
+    }
+
+    handledRedirectPaymentIntentRef.current = redirectPaymentIntentId;
+    confirmRedirectPayment(redirectPaymentIntentId);
+  }, [confirmRedirectPayment, order?.paymentStatus, redirectPaymentIntentId]);
 
   const isCustomer = user?.id === order?.customerId;
   const isSeller = user?.id === order?.sellerId;

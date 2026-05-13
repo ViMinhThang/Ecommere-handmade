@@ -19,8 +19,7 @@ import { SendTextMessageDto } from './dto/send-text-message.dto';
 import { SendCustomOrderOfferDto } from './dto/send-custom-order-offer.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
-
-const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/;
+import { isAllowedImageMimeType } from '../common/utils/image-upload';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
@@ -108,7 +107,7 @@ export class ChatController {
     FileInterceptor('file', {
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_req, file, callback) => {
-        if (!ALLOWED_IMAGE_TYPES.test(file.mimetype)) {
+        if (!isAllowedImageMimeType(file.mimetype)) {
           return callback(new Error('Only image files are allowed'), false);
         }
         callback(null, true);
