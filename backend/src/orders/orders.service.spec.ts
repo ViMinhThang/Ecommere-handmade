@@ -900,6 +900,58 @@ describe('OrdersService', () => {
     expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
   });
 
+  it('does not reserve flash sale counters when an idempotent checkout is reused', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockPrisma.cart.findUnique.mockResolvedValue({
+      items: [{ productId: 'product_1', quantity: 1 }],
+    });
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.order.findFirst.mockResolvedValue(
+      buildReusableOrder({
+        totalAmount: 115000,
+        subOrders: [
+          {
+            items: [
+              {
+                productId: 'product_1',
+                quantity: 1,
+                price: 90000,
+                originalPrice: 100000,
+                platformDiscountAmount: 10000,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    mockStripe.retrievePaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+      status: 'requires_payment_method',
+      amount: 115000,
+      currency: 'vnd',
+      metadata: {},
+    });
+
+    const result = await service.checkout(
+      'customer_1',
+      {
+        idempotencyKey: 'checkout-key-1',
+        shippingAddress,
+      },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(result).toMatchObject({
+      orderId: 'order_1',
+      clientSecret: 'secret_1',
+      requiresPayment: true,
+    });
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
+  });
+
   it('does not create an order when PaymentIntent creation fails', async () => {
     mockCart.getCart.mockResolvedValue(buildCart());
     mockStripe.createPaymentIntent.mockRejectedValue(new Error('stripe_down'));
@@ -1506,6 +1558,58 @@ describe('OrdersService', () => {
     expect(mockPrisma.product.update).toHaveBeenCalled();
   });
 
+  it('does not touch flash sale counters on failed webhook when guardrails flag is off', async () => {
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+    });
+    mockPrisma.order.findUnique.mockResolvedValue(order);
+    mockPrisma.order.update.mockResolvedValue({
+      ...order,
+      status: OrderStatus.CANCELLED,
+      paymentStatus: PaymentStatus.FAILED,
+    });
+
+    const result = await service.handlePaymentIntentFailed({
+      eventId: 'evt_failed',
+      type: 'payment_intent.payment_failed',
+      paymentIntentId: 'pi_1',
+    });
+
+    expect(result).toMatchObject({ processed: true, orderId: 'order_1' });
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('rolls back failed webhook path when flash sale release counters are inconsistent', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+    });
+    mockPrisma.order.findUnique.mockImplementation(
+      (args: OrderFindUniqueArgs & { select?: unknown }) => {
+        if (args.where.paymentIntentId || args.select) {
+          return Promise.resolve(order);
+        }
+        return Promise.resolve(order);
+      },
+    );
+    mockPrisma.flashSale.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.handlePaymentIntentFailed({
+        eventId: 'evt_failed',
+        type: 'payment_intent.payment_failed',
+        paymentIntentId: 'pi_1',
+      }),
+    ).rejects.toThrow('Flash sale reservation state is inconsistent');
+
+    expect(mockPrisma.order.update).not.toHaveBeenCalled();
+    expect(mockPrisma.marketplaceLedgerEntry.create).not.toHaveBeenCalled();
+  });
+
   it('skips flash sale release for duplicate Stripe failed webhooks', async () => {
     process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
     mockPrisma.order.findUnique.mockResolvedValue(
@@ -1843,6 +1947,7 @@ describe('OrdersService', () => {
   });
 
   it('does not restore stock twice when a sub-order cancel is retried', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
     mockPrisma.subOrder.findUnique.mockResolvedValue({
       id: 'sub_1',
       orderId: 'order_1',
@@ -1888,6 +1993,7 @@ describe('OrdersService', () => {
     });
     expect(mockPrisma.product.update).not.toHaveBeenCalled();
     expect(mockPrisma.inventoryLog.create).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
   });
 
   it('marks COD master order paid and posts ledger when all active sub-orders are delivered', async () => {
