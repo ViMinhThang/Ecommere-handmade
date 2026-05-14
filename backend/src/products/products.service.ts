@@ -36,6 +36,26 @@ const PRODUCT_SELLER_SELECT = {
   sellerBio: true,
 } satisfies Prisma.UserSelect;
 
+const LOW_STOCK_DEFAULT_PAGE = 1;
+const LOW_STOCK_DEFAULT_LIMIT = 20;
+const LOW_STOCK_MAX_LIMIT = 100;
+
+export interface LowStockResponseMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface LowStockProductRow extends Record<string, unknown> {
+  categoryName: string | null;
+}
+
+export interface LowStockResponse {
+  data: LowStockProductRow[];
+  meta: LowStockResponseMeta;
+}
+
 @Injectable()
 export class ProductsService {
   constructor(
@@ -49,6 +69,22 @@ export class ProductsService {
     }
 
     return Math.min(Math.max(Math.floor(limit), 1), 50);
+  }
+
+  private normalizeLowStockPage(page?: number) {
+    if (!page || !Number.isFinite(page)) {
+      return LOW_STOCK_DEFAULT_PAGE;
+    }
+
+    return Math.max(Math.floor(page), 1);
+  }
+
+  private normalizeLowStockLimit(limit?: number) {
+    if (!limit || !Number.isFinite(limit)) {
+      return LOW_STOCK_DEFAULT_LIMIT;
+    }
+
+    return Math.min(Math.max(Math.floor(limit), 1), LOW_STOCK_MAX_LIMIT);
   }
 
   private isAdmin(userRoles: string[]) {
@@ -496,7 +532,9 @@ export class ProductsService {
     userId: string,
     userRoles: string[],
     sellerId?: string,
-  ) {
+    page?: number,
+    limit?: number,
+  ): Promise<LowStockResponse> {
     if (!this.isAdmin(userRoles) && sellerId && sellerId !== userId) {
       throw new ForbiddenException(
         'You can only view low stock products from your own shop',
@@ -504,6 +542,9 @@ export class ProductsService {
     }
 
     const effectiveSellerId = this.isAdmin(userRoles) ? sellerId : userId;
+    const normalizedPage = this.normalizeLowStockPage(page);
+    const normalizedLimit = this.normalizeLowStockLimit(limit);
+    const offset = (normalizedPage - 1) * normalizedLimit;
 
     // Note: Prisma doesn't easily support field-to-field comparison in where clause (stock <= lowStockThreshold)
     // We use queryRaw for efficiency to avoid fetching all products
@@ -511,7 +552,15 @@ export class ProductsService {
       ? Prisma.sql`AND p."sellerId" = ${effectiveSellerId}`
       : Prisma.empty;
 
-    return this.prisma.$queryRaw`
+    const [countRows, data] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ total: number | bigint }>>`
+        SELECT COUNT(*)::int AS total
+        FROM "Product" p
+        WHERE p.stock <= p."lowStockThreshold"
+          AND p."deletedAt" IS NULL
+          ${sellerFilter}
+      `,
+      this.prisma.$queryRaw<LowStockProductRow[]>`
       SELECT p.*, c.name as "categoryName"
       FROM "Product" p
       LEFT JOIN "Category" c ON p."categoryId" = c.id
@@ -519,7 +568,23 @@ export class ProductsService {
       AND p."deletedAt" IS NULL
       ${sellerFilter}
       ORDER BY p.stock ASC
-    `;
+      LIMIT ${normalizedLimit}
+      OFFSET ${offset}
+    `,
+    ]);
+
+    const total = Number(countRows[0]?.total ?? 0);
+
+    return {
+      data,
+      meta: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        total,
+        totalPages:
+          total === 0 ? 0 : Math.ceil(total / normalizedLimit),
+      },
+    };
   }
 
   async getBestSellingProducts(limit?: number) {

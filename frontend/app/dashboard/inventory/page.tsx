@@ -13,7 +13,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { useLowStockProducts, useUpdateStock, useInventoryLog } from '@/lib/api/hooks'
 import { useAuth } from '@/contexts/auth-context'
 import { Product, InventoryLog } from '@/types'
-import { Search, Package, TrendingUp, TrendingDown, History } from 'lucide-react'
+import { Search, Package, TrendingUp, TrendingDown, History, AlertTriangle } from 'lucide-react'
 
 type Reason = 'MANUAL' | 'RESTOCK' | 'RETURN'
 type InventoryProduct = Product & { categoryName?: string }
@@ -30,12 +30,21 @@ export default function InventoryPage() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
 
-  const { data: productsData, isLoading } = useLowStockProducts(showAll ? undefined : user?.id, page, limit)
+  const {
+    data: productsData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useLowStockProducts(showAll ? undefined : user?.id, page, limit)
   const updateStock = useUpdateStock()
   const { data: inventoryLogData } = useInventoryLog(selectedProduct?.id || '')
 
   const products: InventoryProduct[] = productsData?.data || []
   const meta = productsData?.meta
+  const errorMessage = error instanceof Error
+    ? error.message
+    : 'Failed to load inventory data.'
 
   const filteredProducts = products.filter((product: InventoryProduct) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -140,6 +149,14 @@ export default function InventoryPage() {
         <CardContent>
           {isLoading ? (
             <div className='text-center py-4'>Đang tải...</div>
+          ) : isError ? (
+            <div className='text-center py-8 text-muted-foreground space-y-3'>
+              <AlertTriangle className='h-12 w-12 mx-auto text-red-500' />
+              <p>{errorMessage}</p>
+              <Button variant='outline' onClick={() => refetch()}>
+                Retry
+              </Button>
+            </div>
           ) : filteredProducts.length === 0 ? (
             <div className='text-center py-8 text-muted-foreground'>
               <Package className='h-12 w-12 mx-auto mb-4 opacity-50' />

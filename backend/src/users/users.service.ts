@@ -92,7 +92,12 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     const roles = this.processRoles(createUserDto.roles);
-    const password = createUserDto.password || 'Handmade@123';
+    const password = createUserDto.password?.trim();
+    if (!password) {
+      throw new BadRequestException(
+        'Password is required when creating a user',
+      );
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
 
     return this.prisma.user.create({

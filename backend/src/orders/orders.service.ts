@@ -6,6 +6,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CartService } from '../cart/cart.service';
@@ -37,6 +38,8 @@ const CURRENCY = 'vnd';
 const DEFAULT_PLATFORM_COMMISSION_BPS = 1000;
 const STRIPE_PAYMENT_EXPIRY_MS = 30 * 60 * 1000;
 const EXPIRED_ORDER_SWEEP_MS = 5 * 60 * 1000;
+const FLASH_SALE_GUARDRAILS_ENABLED =
+  process.env.FLASH_SALE_GUARDRAILS_ENABLED === 'true';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -53,6 +56,24 @@ interface ExecuteCheckoutTransactionParams {
   paymentIntentId?: string | null;
   paymentExpiresAt?: Date | null;
   idempotencyKey?: string | null;
+}
+
+interface CheckoutFingerprintContext {
+  userId: string;
+  paymentMethod: PaymentMethod;
+  cart: EnrichedCart;
+  shippingAddress: Record<string, unknown>;
+}
+
+interface CheckoutReuseValidationContext {
+  expectedFingerprint?: string;
+  shippingAddressHash?: string;
+  currentCartItems?: CheckoutCartComparisonItem[];
+}
+
+interface CheckoutCartComparisonItem {
+  productId: string;
+  quantity: number;
 }
 
 interface PaymentIntentSnapshot {
@@ -79,6 +100,24 @@ type OrderWithStockItems = Prisma.OrderGetPayload<{
           select: {
             productId: true;
             quantity: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
+type OrderWithCheckoutSnapshot = Prisma.OrderGetPayload<{
+  include: {
+    subOrders: {
+      include: {
+        items: {
+          select: {
+            productId: true;
+            quantity: true;
+            price: true;
+            originalPrice: true;
+            platformDiscountAmount: true;
           };
         };
       };
@@ -122,6 +161,8 @@ type CustomOrderSummary = {
 @Injectable()
 export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private expiredOrderSweepTimer?: NodeJS.Timeout;
+  private readonly flashSaleGuardrailsEnabled =
+    FLASH_SALE_GUARDRAILS_ENABLED;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -261,35 +302,91 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     await this.releaseExpiredStripeOrders();
 
     const normalizedPaymentMethod = this.normalizePaymentMethod(paymentMethod);
-    const idempotencyKey = checkoutDto.idempotencyKey?.trim() || undefined;
-    const reusableCheckout = await this.findReusableCheckoutResponse(
-      userId,
-      idempotencyKey,
-      normalizedPaymentMethod,
-    );
-    if (reusableCheckout) {
-      return reusableCheckout;
-    }
+    const providedIdempotencyKey =
+      checkoutDto.idempotencyKey?.trim() || undefined;
 
     const shippingAddress = await this.resolveCheckoutShippingAddress(
       userId,
       checkoutDto,
     );
+    let currentCartItemsForProvidedKey:
+      | CheckoutCartComparisonItem[]
+      | undefined;
+
+    if (providedIdempotencyKey) {
+      currentCartItemsForProvidedKey =
+        await this.getCurrentCartComparisonItems(userId);
+
+      if (currentCartItemsForProvidedKey.length === 0) {
+        const reusableCheckout = await this.findReusableCheckoutResponse(
+          userId,
+          providedIdempotencyKey,
+          normalizedPaymentMethod,
+          {
+            shippingAddressHash: this.hashCheckoutValue(shippingAddress),
+          },
+        );
+        if (reusableCheckout) {
+          return reusableCheckout;
+        }
+      }
+    }
+
     const cart = await this.cartService.getCart(userId);
     this.validateCart(cart);
 
     const sellerGroups = this.groupItemsBySeller(cart.items);
+    const checkoutFingerprint = this.buildCheckoutFingerprint({
+      userId,
+      paymentMethod: normalizedPaymentMethod,
+      cart,
+      shippingAddress,
+    });
+    const idempotencyKey =
+      providedIdempotencyKey ??
+      this.buildServerCheckoutIdempotencyKey(checkoutFingerprint);
+    const reuseValidation: CheckoutReuseValidationContext = {
+      expectedFingerprint: checkoutFingerprint,
+      shippingAddressHash: this.hashCheckoutValue(shippingAddress),
+      currentCartItems:
+        currentCartItemsForProvidedKey ?? this.getCartComparisonItems(cart.items),
+    };
+
+    const reusableCheckout = await this.findReusableCheckoutResponse(
+      userId,
+      idempotencyKey,
+      normalizedPaymentMethod,
+      reuseValidation,
+    );
+    if (reusableCheckout) {
+      return reusableCheckout;
+    }
 
     if (normalizedPaymentMethod === PaymentMethod.COD) {
-      const order = await this.executeCheckoutTransaction({
-        userId,
-        cart,
-        sellerGroups,
-        shippingAddress,
-        paymentMethod: PaymentMethod.COD,
-        paymentStatus: PaymentStatus.COD_PENDING,
-        idempotencyKey,
-      });
+      let order: Order;
+      try {
+        order = await this.executeCheckoutTransaction({
+          userId,
+          cart,
+          sellerGroups,
+          shippingAddress,
+          paymentMethod: PaymentMethod.COD,
+          paymentStatus: PaymentStatus.COD_PENDING,
+          idempotencyKey,
+        });
+      } catch (error) {
+        const recovered = await this.recoverReusableCheckoutFromConflict(
+          error,
+          userId,
+          idempotencyKey,
+          normalizedPaymentMethod,
+          reuseValidation,
+        );
+        if (recovered) {
+          return recovered;
+        }
+        throw error;
+      }
 
       return {
         orderId: order.id,
@@ -323,6 +420,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       });
     } catch (error) {
       await this.stripeService.cancelPaymentIntent(paymentIntent.id);
+      const recovered = await this.recoverReusableCheckoutFromConflict(
+        error,
+        userId,
+        idempotencyKey,
+        normalizedPaymentMethod,
+        reuseValidation,
+      );
+      if (recovered) {
+        return recovered;
+      }
       throw error;
     }
 
@@ -346,6 +453,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     userId: string,
     idempotencyKey: string | undefined,
     requestedPaymentMethod: PaymentMethod,
+    validation?: CheckoutReuseValidationContext,
   ) {
     if (!idempotencyKey) {
       return null;
@@ -355,6 +463,21 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       where: {
         customerId: userId,
         checkoutIdempotencyKey: idempotencyKey,
+      },
+      include: {
+        subOrders: {
+          include: {
+            items: {
+              select: {
+                productId: true,
+                quantity: true,
+                price: true,
+                originalPrice: true,
+                platformDiscountAmount: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -368,6 +491,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         'Idempotency key was used with another payment method',
       );
     }
+
+    this.assertReusableCheckoutMatchesRequest(order, validation);
 
     if (order.paymentMethod === PaymentMethod.COD) {
       return {
@@ -411,6 +536,74 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return null;
   }
 
+  private assertReusableCheckoutMatchesRequest(
+    order: OrderWithCheckoutSnapshot,
+    validation?: CheckoutReuseValidationContext,
+  ) {
+    if (!validation) {
+      return;
+    }
+
+    if (
+      validation.shippingAddressHash &&
+      this.hashCheckoutValue(order.shippingAddress ?? null) !==
+        validation.shippingAddressHash
+    ) {
+      throw new BadRequestException(
+        'Idempotency key was used with another checkout payload',
+      );
+    }
+
+    if (
+      validation.expectedFingerprint &&
+      this.buildExistingOrderFingerprint(order) !==
+        validation.expectedFingerprint
+    ) {
+      throw new BadRequestException(
+        'Idempotency key was used with another checkout payload',
+      );
+    }
+
+    if (
+      !validation.expectedFingerprint &&
+      validation.currentCartItems &&
+      validation.currentCartItems.length > 0 &&
+      !this.areCheckoutItemsEquivalent(
+        validation.currentCartItems,
+        this.getOrderComparisonItems(order),
+      )
+    ) {
+      throw new BadRequestException(
+        'Idempotency key was used with another checkout payload',
+      );
+    }
+  }
+
+  private async recoverReusableCheckoutFromConflict(
+    error: unknown,
+    userId: string,
+    idempotencyKey: string,
+    requestedPaymentMethod: PaymentMethod,
+    validation: CheckoutReuseValidationContext,
+  ) {
+    if (!this.isCheckoutIdempotencyConflict(error)) {
+      return null;
+    }
+
+    const reusable = await this.findReusableCheckoutResponse(
+      userId,
+      idempotencyKey,
+      requestedPaymentMethod,
+      validation,
+    );
+
+    if (!reusable) {
+      throw new BadRequestException('Checkout is already being processed');
+    }
+
+    return reusable;
+  }
+
   private normalizePaymentMethod(paymentMethod: PaymentMethod): PaymentMethod {
     if (
       paymentMethod !== PaymentMethod.STRIPE &&
@@ -420,6 +613,155 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
 
     return paymentMethod;
+  }
+
+  private buildServerCheckoutIdempotencyKey(fingerprint: string) {
+    return `server:${fingerprint}`;
+  }
+
+  private buildCheckoutFingerprint(context: CheckoutFingerprintContext) {
+    return this.hashCheckoutValue({
+      userId: context.userId,
+      paymentMethod: context.paymentMethod,
+      voucherCode: context.cart.appliedVoucher?.code ?? null,
+      orderTotal: this.toCheckoutMoney(context.cart.total + SHIPPING_FEE),
+      discountAmount: this.toCheckoutMoney(context.cart.discountAmount),
+      shippingAddressHash: this.hashCheckoutValue(context.shippingAddress),
+      items: this.getCheckoutFingerprintItems(context.cart.items),
+    });
+  }
+
+  private buildExistingOrderFingerprint(order: OrderWithCheckoutSnapshot) {
+    return this.hashCheckoutValue({
+      userId: order.customerId,
+      paymentMethod: order.paymentMethod,
+      voucherCode: order.voucherCode ?? null,
+      orderTotal: this.toCheckoutMoney(order.totalAmount),
+      discountAmount: this.toCheckoutMoney(order.discountAmount),
+      shippingAddressHash: this.hashCheckoutValue(order.shippingAddress ?? null),
+      items: this.getExistingOrderFingerprintItems(order),
+    });
+  }
+
+  private getCheckoutFingerprintItems(items: EnrichedCartItem[]) {
+    return items
+      .map((item) => {
+        const discountedPrice = this.toCheckoutMoney(
+          item.pricing.discountedPrice,
+        );
+        const originalPrice = this.toCheckoutMoney(
+          item.pricing.originalPrice ?? item.pricing.discountedPrice,
+        );
+
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: discountedPrice,
+          originalPrice,
+          platformDiscountAmount: this.toCheckoutMoney(
+            Math.max(0, originalPrice - discountedPrice),
+          ),
+        };
+      })
+      .sort((a, b) => a.productId.localeCompare(b.productId));
+  }
+
+  private getExistingOrderFingerprintItems(order: OrderWithCheckoutSnapshot) {
+    return order.subOrders
+      .flatMap((subOrder) => subOrder.items)
+      .map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: this.toCheckoutMoney(item.price),
+        originalPrice: this.toCheckoutMoney(item.originalPrice),
+        platformDiscountAmount: this.toCheckoutMoney(
+          item.platformDiscountAmount,
+        ),
+      }))
+      .sort((a, b) => a.productId.localeCompare(b.productId));
+  }
+
+  private getCartComparisonItems(items: EnrichedCartItem[]) {
+    return items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    }));
+  }
+
+  private getOrderComparisonItems(order: OrderWithCheckoutSnapshot) {
+    return order.subOrders.flatMap((subOrder) =>
+      subOrder.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      })),
+    );
+  }
+
+  private async getCurrentCartComparisonItems(userId: string) {
+    const cart = await this.prisma.cart.findUnique({
+      where: { userId },
+      select: {
+        items: {
+          select: {
+            productId: true,
+            quantity: true,
+          },
+        },
+      },
+    });
+
+    return cart?.items ?? [];
+  }
+
+  private areCheckoutItemsEquivalent(
+    left: CheckoutCartComparisonItem[],
+    right: CheckoutCartComparisonItem[],
+  ) {
+    const normalize = (items: CheckoutCartComparisonItem[]) =>
+      items
+        .map((item) => `${item.productId}:${item.quantity}`)
+        .sort()
+        .join('|');
+
+    return normalize(left) === normalize(right);
+  }
+
+  private toCheckoutMoney(value: Prisma.Decimal | number | null | undefined) {
+    return this.roundMoney(Number(value ?? 0));
+  }
+
+  private hashCheckoutValue(value: unknown) {
+    return createHash('sha256')
+      .update(JSON.stringify(this.normalizeCheckoutValue(value)))
+      .digest('hex');
+  }
+
+  private normalizeCheckoutValue(value: unknown): unknown {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.normalizeCheckoutValue(item));
+    }
+
+    if (typeof value === 'object') {
+      return Object.keys(value as Record<string, unknown>)
+        .sort()
+        .reduce<Record<string, unknown>>((normalized, key) => {
+          const nestedValue = (value as Record<string, unknown>)[key];
+          if (nestedValue !== undefined) {
+            normalized[key] = this.normalizeCheckoutValue(nestedValue);
+          }
+          return normalized;
+        }, {});
+    }
+
+    return value;
   }
 
   private async resolveCheckoutShippingAddress(
@@ -1700,11 +2042,36 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return updatedOrder;
   }
 
-  private isUniqueConstraintError(error: unknown) {
+  private isUniqueConstraintError(
+    error: unknown,
+  ): error is Prisma.PrismaClientKnownRequestError {
     return (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     );
+  }
+
+  private isCheckoutIdempotencyConflict(error: unknown) {
+    if (!this.isUniqueConstraintError(error)) {
+      return false;
+    }
+
+    const target = error.meta?.target;
+    if (Array.isArray(target)) {
+      return (
+        target.includes('customerId') &&
+        target.includes('checkoutIdempotencyKey')
+      );
+    }
+
+    if (typeof target === 'string') {
+      return (
+        target.includes('customerId') &&
+        target.includes('checkoutIdempotencyKey')
+      );
+    }
+
+    return false;
   }
 
   private async recordWebhookEvent(
