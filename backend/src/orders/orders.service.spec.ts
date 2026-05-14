@@ -203,11 +203,18 @@ describe('OrdersService', () => {
     expect(mockPrisma.flashSaleUserUsage.upsert).not.toHaveBeenCalled();
   };
 
-  const getLastFlashSaleReservationSqlValues = () => {
-    const sql = mockPrisma.$queryRaw.mock.calls.at(-1)?.[0] as
+  const getRawSqlValues = (callIndex: number) => {
+    const sql = mockPrisma.$queryRaw.mock.calls.at(callIndex)?.[0] as
       | { values?: unknown[] }
       | undefined;
     return sql?.values ?? [];
+  };
+
+  const getRawSqlText = (callIndex: number) => {
+    const sql = mockPrisma.$queryRaw.mock.calls.at(callIndex)?.[0] as
+      | { strings?: readonly string[] }
+      | undefined;
+    return sql?.strings?.join(' ') ?? '';
   };
 
   const buildReusableOrder = (overrides: Record<string, unknown> = {}) => ({
@@ -777,18 +784,21 @@ describe('OrdersService', () => {
         }),
       }),
     );
-    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
-    expect(getLastFlashSaleReservationSqlValues()).toEqual(
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(getRawSqlValues(0)).toEqual(
       expect.arrayContaining(['flash_sale_1', 1, 1]),
+    );
+    expect(getRawSqlValues(1)).toEqual(
+      expect.arrayContaining(['flash_sale_1', 'customer_1', 1, 1]),
     );
     expectNoFlashSaleCounterWrites();
   });
 
-  it('allows flash sale reservation when maxUnits is null', async () => {
+  it('allows flash sale reservation and tracks user usage when limits are null', async () => {
     process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
     mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
     mockPrisma.flashSale.findFirst.mockResolvedValue(
-      buildFlashSale({ maxUnits: null }),
+      buildFlashSale({ maxUnits: null, perUserLimit: null }),
     );
     mockStripe.createPaymentIntent.mockResolvedValue({
       id: 'pi_1',
@@ -801,7 +811,15 @@ describe('OrdersService', () => {
       PaymentMethod.STRIPE,
     );
 
-    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(getRawSqlValues(1)).toEqual(
+      expect.arrayContaining(['flash_sale_1', 'customer_1', 1, 1]),
+    );
+    expect(getRawSqlText(1)).toContain('INSERT INTO "FlashSaleUserUsage"');
+    expect(getRawSqlText(1)).toContain(
+      'ON CONFLICT ("flashSaleId", "userId")',
+    );
+    expect(getRawSqlText(1)).toContain('DO UPDATE SET');
     expect(mockPrisma.order.create).toHaveBeenCalled();
     expectNoFlashSaleCounterWrites();
   });
@@ -820,6 +838,36 @@ describe('OrdersService', () => {
       service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
     ).rejects.toThrow('Flash sale is sold out. Please refresh your cart.');
 
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('rejects checkout when per-user flash sale limit reservation fails', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(
+      buildFlashSale({ perUserLimit: 1 }),
+    );
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([{ id: 'flash_sale_1' }])
+      .mockResolvedValueOnce([]);
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow(
+      'Flash sale purchase limit exceeded. Please refresh your cart.',
+    );
+
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(getRawSqlValues(1)).toEqual(
+      expect.arrayContaining(['flash_sale_1', 'customer_1', 1, 1]),
+    );
     expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
     expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
     expect(mockPrisma.order.create).not.toHaveBeenCalled();
@@ -896,9 +944,12 @@ describe('OrdersService', () => {
       PaymentMethod.STRIPE,
     );
 
-    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
-    expect(getLastFlashSaleReservationSqlValues()).toEqual(
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(getRawSqlValues(0)).toEqual(
       expect.arrayContaining(['flash_sale_1', 3, 3]),
+    );
+    expect(getRawSqlValues(1)).toEqual(
+      expect.arrayContaining(['flash_sale_1', 'customer_1', 3, 3]),
     );
   });
 
@@ -1023,6 +1074,28 @@ describe('OrdersService', () => {
     expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
     expect(mockStripe.cancelPaymentIntent).not.toHaveBeenCalled();
     expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('rejects COD checkout on per-user reservation failure without Stripe calls', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(buildFlashSale());
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([{ id: 'flash_sale_1' }])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow(
+      'Flash sale purchase limit exceeded. Please refresh your cart.',
+    );
+
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+    expect(mockStripe.cancelPaymentIntent).not.toHaveBeenCalled();
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
     expectNoFlashSaleCounterWrites();
   });
 

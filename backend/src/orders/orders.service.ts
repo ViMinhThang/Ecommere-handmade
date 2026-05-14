@@ -6,7 +6,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CartService } from '../cart/cart.service';
@@ -45,6 +45,8 @@ const FLASH_SALE_SOLD_OUT_MESSAGE =
   'Flash sale is sold out. Please refresh your cart.';
 const FLASH_SALE_INSUFFICIENT_STOCK_MESSAGE =
   'Insufficient stock for flash sale. Please refresh your cart.';
+const FLASH_SALE_PURCHASE_LIMIT_EXCEEDED_MESSAGE =
+  'Flash sale purchase limit exceeded. Please refresh your cart.';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -881,6 +883,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         : [];
 
       await this.reserveFlashSaleUnits(tx, flashSaleReservationGroups);
+      await this.reserveFlashSaleUserUsage(
+        tx,
+        userId,
+        flashSaleReservationGroups,
+      );
       await this.updateStock(tx, cart.items, flashSaleSnapshots);
 
       const order = await tx.order.create({
@@ -993,6 +1000,74 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       if (reservedRows.length !== 1) {
         throw new BadRequestException(FLASH_SALE_SOLD_OUT_MESSAGE);
+      }
+    }
+  }
+
+  private async reserveFlashSaleUserUsage(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    groups: FlashSaleReservationGroup[],
+  ) {
+    for (const group of groups) {
+      const usageRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        INSERT INTO "FlashSaleUserUsage" (
+          "id",
+          "flashSaleId",
+          "userId",
+          "soldUnits",
+          "reservedUnits",
+          "createdAt",
+          "updatedAt"
+        )
+        SELECT
+          ${randomUUID()},
+          ${group.flashSaleId},
+          ${userId},
+          0,
+          ${group.quantity},
+          NOW(),
+          NOW()
+        WHERE EXISTS (
+          SELECT 1
+          FROM "FlashSale"
+          WHERE "id" = ${group.flashSaleId}
+            AND "isActive" = true
+            AND "saleState" = 'ACTIVE'::"FlashSaleState"
+            AND "startAt" <= NOW()
+            AND "endAt" >= NOW()
+            AND (
+              "perUserLimit" IS NULL
+              OR ${group.quantity} <= "perUserLimit"
+            )
+        )
+        ON CONFLICT ("flashSaleId", "userId")
+        DO UPDATE SET
+          "reservedUnits" =
+            "FlashSaleUserUsage"."reservedUnits" + ${group.quantity},
+          "updatedAt" = NOW()
+        WHERE EXISTS (
+          SELECT 1
+          FROM "FlashSale"
+          WHERE "id" = ${group.flashSaleId}
+            AND "isActive" = true
+            AND "saleState" = 'ACTIVE'::"FlashSaleState"
+            AND "startAt" <= NOW()
+            AND "endAt" >= NOW()
+            AND (
+              "perUserLimit" IS NULL
+              OR "FlashSaleUserUsage"."soldUnits"
+                + "FlashSaleUserUsage"."reservedUnits"
+                + ${group.quantity} <= "perUserLimit"
+            )
+        )
+        RETURNING "id"
+      `);
+
+      if (usageRows.length !== 1) {
+        throw new BadRequestException(
+          FLASH_SALE_PURCHASE_LIMIT_EXCEEDED_MESSAGE,
+        );
       }
     }
   }
