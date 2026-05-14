@@ -17,6 +17,8 @@ import { analyticsApi } from "./analytics";
 import { reviewsApi, type CreateReviewDto } from "./reviews";
 import { chatApi, CursorParams, StartConversationDto } from "./chat";
 import { customOrdersApi, CustomOrder } from "./custom-orders";
+import { paymentsApi } from "./payments";
+import { settingsApi } from "./settings";
 import {
   paymentReliabilityApi,
   type PaymentReliabilityAnomaliesQuery,
@@ -181,6 +183,13 @@ export function useUpdateProfile() {
       });
       queryClient.invalidateQueries({ queryKey: sellerKeys.all });
     },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      usersApi.changePassword(data),
   });
 }
 
@@ -1057,6 +1066,40 @@ export const orderKeys = {
   adminDetail: (id: string) => [...orderKeys.adminDetails(), id] as const,
   adminLedger: (id: string) => [...orderKeys.adminDetail(id), "ledger"] as const,
 };
+
+export const paymentKeys = {
+  all: ["payments"] as const,
+  history: () => [...paymentKeys.all, "history"] as const,
+};
+
+export const settingsKeys = {
+  all: ["settings"] as const,
+  platform: () => [...settingsKeys.all, "platform"] as const,
+};
+
+export function usePaymentHistory() {
+  return useQuery({
+    queryKey: paymentKeys.history(),
+    queryFn: () => paymentsApi.getHistory(),
+  });
+}
+
+export function usePlatformSettings() {
+  return useQuery({
+    queryKey: settingsKeys.platform(),
+    queryFn: () => settingsApi.getPlatform(),
+  });
+}
+
+export function useUpdatePlatformSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: settingsApi.updatePlatform,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.platform() });
+    },
+  });
+}
 
 export function useMySubOrders() {
   return useQuery({

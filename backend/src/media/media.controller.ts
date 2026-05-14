@@ -17,37 +17,10 @@ import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
-
-const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/;
-const MAGIC_BYTES: Record<string, number[][]> = {
-  'image/jpeg': [[0xff, 0xd8, 0xff]],
-  'image/png': [[0x89, 0x50, 0x4e, 0x47]],
-  'image/gif': [[0x47, 0x49, 0x46, 0x38]],
-  'image/webp': [[0x52, 0x49, 0x46, 0x46]],
-};
-
-function validateFileContent(file: Express.Multer.File): void {
-  const expectedBytes = MAGIC_BYTES[file.mimetype];
-  if (!expectedBytes) {
-    return;
-  }
-
-  const buffer = file.buffer;
-  for (const signature of expectedBytes) {
-    let matches = true;
-    for (let i = 0; i < signature.length; i++) {
-      if (buffer[i] !== signature[i]) {
-        matches = false;
-        break;
-      }
-    }
-    if (matches) {
-      return;
-    }
-  }
-
-  throw new BadRequestException('File content does not match declared type');
-}
+import {
+  isAllowedImageMimeType,
+  validateImageFile,
+} from '../common/utils/image-upload';
 
 @UseGuards(JwtAuthGuard)
 @Controller('media')
@@ -101,7 +74,7 @@ export class MediaController {
     FileInterceptor('file', {
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (req, file, cb) => {
-        if (ALLOWED_IMAGE_TYPES.test(file.mimetype)) {
+        if (isAllowedImageMimeType(file.mimetype)) {
           cb(null, true);
         } else {
           cb(
@@ -120,7 +93,7 @@ export class MediaController {
     @UploadedFile() file: Express.Multer.File,
     @Body('displayName') displayName: string,
   ) {
-    validateFileContent(file);
+    validateImageFile(file);
     return this.mediaService.uploadImage(
       req.user.id,
       folderId,

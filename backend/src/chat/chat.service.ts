@@ -12,6 +12,10 @@ import { CursorQueryDto } from './dto/cursor-query.dto';
 import { SendTextMessageDto } from './dto/send-text-message.dto';
 import { SendCustomOrderOfferDto } from './dto/send-custom-order-offer.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
+import {
+  createImageFileName,
+  validateImageFile,
+} from '../common/utils/image-upload';
 
 const CHAT_USER_SELECT = {
   id: true,
@@ -784,8 +788,8 @@ export class ChatService {
     conversationId: string,
     file: Express.Multer.File,
   ): Promise<string> {
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const fileName = `${Date.now()}-${safeName}`;
+    validateImageFile(file);
+    const fileName = createImageFileName(file);
     const relativePath = path.posix.join('chat', conversationId, fileName);
     const absolutePath = path.join('uploads', ...relativePath.split('/'));
 

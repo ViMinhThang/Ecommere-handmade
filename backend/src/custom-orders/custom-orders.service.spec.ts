@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
+import { SettingsService } from '../settings/settings.service';
 import { CustomOrdersService } from './custom-orders.service';
 
 type LedgerCreateArgs = {
@@ -59,6 +60,9 @@ describe('CustomOrdersService', () => {
     createPaymentIntent: jest.fn(),
     retrievePaymentIntent: jest.fn(),
   };
+  const mockSettings = {
+    getPlatformCommissionBps: jest.fn(() => 1000),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -85,6 +89,7 @@ describe('CustomOrdersService', () => {
         CustomOrdersService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StripeService, useValue: mockStripe },
+        { provide: SettingsService, useValue: mockSettings },
       ],
     }).compile();
 

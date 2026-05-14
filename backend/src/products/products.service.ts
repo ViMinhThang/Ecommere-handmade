@@ -20,6 +20,11 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto, InventoryChangeReason } from './dto/update-stock.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { FlashSalesService } from '../flash-sales/flash-sales.service';
+import {
+  createImageFileName,
+  validateImageFile,
+} from '../common/utils/image-upload';
+import { sanitizeRichTextHtml } from '../common/utils/html-sanitizer';
 
 const FEATURED_PRODUCT_INCLUDE = {
   images: true,
@@ -106,6 +111,31 @@ export class ProductsService {
     return normalizedStatus as ProductStatus;
   }
 
+  private normalizePagination(query?: ListProductsQueryDto) {
+    const page = Math.max(Number(query?.page) || 1, 1);
+    const rawLimit = Number(query?.limit) || 20;
+    const limit = Math.min(Math.max(Math.floor(rawLimit), 1), 50);
+
+    return { page, limit, skip: (page - 1) * limit };
+  }
+
+  private normalizeSort(query?: ListProductsQueryDto) {
+    const allowedSortFields = new Set([
+      'createdAt',
+      'price',
+      'name',
+      'viewCount',
+      'stock',
+    ]);
+    const sortBy =
+      query?.sortBy && allowedSortFields.has(query.sortBy)
+        ? query.sortBy
+        : 'createdAt';
+    const order = query?.order === 'asc' ? 'asc' : 'desc';
+
+    return { [sortBy]: order } as Prisma.ProductOrderByWithRelationInput;
+  }
+
   private async assertProductOwnership(
     productId: string,
     userId: string,
@@ -133,12 +163,15 @@ export class ProductsService {
   }
 
   async uploadImage(file: Express.Multer.File) {
+    validateImageFile(file);
+
     if (!file) {
       throw new BadRequestException('Vui lòng cung cấp file ảnh');
     }
 
     const aloudMimeTypes = [
       'image/jpeg',
+      'image/jpg',
       'image/png',
       'image/webp',
       'image/gif',
@@ -152,8 +185,7 @@ export class ProductsService {
     const uploadPath = path.join('uploads', 'products');
     await fs.mkdir(uploadPath, { recursive: true });
 
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const fileName = `${Date.now()}-${safeName}`;
+    const fileName = createImageFileName(file);
     const filePath = path.join(uploadPath, fileName);
     await fs.writeFile(filePath, file.buffer);
 
@@ -172,11 +204,13 @@ export class ProductsService {
     const status = this.isAdmin(userRoles)
       ? (productData.status ?? ProductStatus.PENDING)
       : ProductStatus.PENDING;
+    const sanitizedDescription = sanitizeRichTextHtml(productData.description);
 
     return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
           ...productData,
+          description: sanitizedDescription,
           status,
           sellerId,
           images: images?.length ? { create: images } : undefined,
@@ -241,9 +275,7 @@ export class ProductsService {
       where.stock = { gt: 0 };
     }
 
-    const page = Number(query?.page) || 1;
-    const limit = Number(query?.limit) || 20;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = this.normalizePagination(query);
 
     const [data, total] = await Promise.all([
       this.prisma.product.findMany({
@@ -253,11 +285,7 @@ export class ProductsService {
           category: { select: { id: true, name: true, slug: true } },
           seller: { select: { id: true, name: true, shopName: true } },
         },
-        orderBy: {
-          [query?.sortBy === 'soldQuantity'
-            ? 'createdAt'
-            : query?.sortBy || 'createdAt']: query?.order || 'desc',
-        },
+        orderBy: this.normalizeSort(query),
         skip,
         take: limit,
       }),
@@ -338,6 +366,9 @@ export class ProductsService {
 
     const nextProductData = {
       ...productData,
+      ...(productData.description !== undefined
+        ? { description: sanitizeRichTextHtml(productData.description) }
+        : {}),
       status: userRoles.includes('ROLE_ADMIN')
         ? productData.status
         : ProductStatus.PENDING,

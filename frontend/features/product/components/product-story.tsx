@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Product } from "@/lib/api/products";
 import { mediaApi } from "@/lib/api/media";
 import { stripProductSource } from "@/lib/utils";
+import { richTextToPlainText } from "@/lib/sanitize-html";
 
 interface ProductStoryProps {
   product: Product;
@@ -10,7 +11,9 @@ interface ProductStoryProps {
 }
 
 export function ProductStory({ product, artisanImage }: ProductStoryProps) {
-  const description = stripProductSource(product.description || "");
+  const description = richTextToPlainText(
+    stripProductSource(product.description || ""),
+  );
 
   return (
     <section className="mt-40 bg-sidebar py-32 overflow-hidden border-y border-border/10">
@@ -59,10 +62,9 @@ export function ProductStory({ product, artisanImage }: ProductStoryProps) {
             </h2>
           </div>
 
-          <div
-            className="text-muted-foreground leading-relaxed text-xl font-body prose prose-stone dark:prose-invert prose-p:leading-relaxed prose-a:text-primary hover:prose-a:text-primary/80 prose-headings:font-headline prose-headings:italic max-w-none"
-            dangerouslySetInnerHTML={{ __html: description }}
-          />
+          <div className="whitespace-pre-line text-xl leading-relaxed text-muted-foreground">
+            {description || "Sản phẩm được chế tác thủ công với chất liệu chọn lọc và hoàn thiện kỹ lưỡng."}
+          </div>
           <Link
             href={`/sellers/${product.sellerId}`}
             className="flex items-center gap-6 pt-8 border-t border-border/30 group/seller hover:opacity-80 transition-opacity"

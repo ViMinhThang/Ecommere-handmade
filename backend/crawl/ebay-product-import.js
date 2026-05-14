@@ -9,6 +9,7 @@ const {
   UserStatus,
 } = require('@prisma/client');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -100,10 +101,8 @@ function getXmlTagValue(xml, tagName) {
 function getTextRuns(xml) {
   const values = [];
   const pattern = /<(?:\w+:)?t\b[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/g;
-  let match = pattern.exec(xml);
-  while (match) {
+  for (const match of xml.matchAll(pattern)) {
     values.push(decodeXml(match[1]));
-    match = pattern.exec(xml);
   }
   return values.join('');
 }
@@ -173,10 +172,8 @@ function parseSharedStrings(sharedStringsXml) {
   const xml = sharedStringsXml || '';
   const strings = [];
   const pattern = /<(?:\w+:)?si\b[^>]*>([\s\S]*?)<\/(?:\w+:)?si>/g;
-  let match = pattern.exec(xml);
-  while (match) {
+  for (const match of xml.matchAll(pattern)) {
     strings.push(getTextRuns(match[1]));
-    match = pattern.exec(xml);
   }
   return strings;
 }
@@ -184,14 +181,12 @@ function parseSharedStrings(sharedStringsXml) {
 function parseWorksheetRows(sheetXml, sharedStrings) {
   const rows = [];
   const rowPattern = /<(?:\w+:)?row\b[^>]*>([\s\S]*?)<\/(?:\w+:)?row>/g;
-  let rowMatch = rowPattern.exec(sheetXml);
 
-  while (rowMatch) {
+  for (const rowMatch of sheetXml.matchAll(rowPattern)) {
     const row = [];
     const cellPattern = /<(?:\w+:)?c\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?c>/g;
-    let cellMatch = cellPattern.exec(rowMatch[1]);
 
-    while (cellMatch) {
+    for (const cellMatch of rowMatch[1].matchAll(cellPattern)) {
       const attributes = cellMatch[1];
       const cellType = getXmlAttr(attributes, 't');
       const cellRef = getXmlAttr(attributes, 'r');
@@ -202,11 +197,9 @@ function parseWorksheetRows(sheetXml, sharedStrings) {
       const columnIndex = getColumnIndex(cellRef);
       row[columnIndex] =
         cellType === 's' ? sharedStrings[Number(value)] || '' : value;
-      cellMatch = cellPattern.exec(rowMatch[1]);
     }
 
     rows.push(row.map((value) => value ?? ''));
-    rowMatch = rowPattern.exec(sheetXml);
   }
 
   return rows;
@@ -362,7 +355,9 @@ async function ensureImporterSeller() {
   });
   if (existing) return existing.id;
 
-  const hashedPassword = await bcrypt.hash('Importer@123', 12);
+  const importerPassword =
+    process.env.EBAY_IMPORTER_PASSWORD || crypto.randomBytes(24).toString('hex');
+  const hashedPassword = await bcrypt.hash(importerPassword, 12);
   const seller = await prisma.user.create({
     data: {
       email: IMPORTER_EMAIL,

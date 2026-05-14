@@ -1,8 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import * as bcrypt from 'bcrypt';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -183,6 +188,59 @@ describe('UsersService', () => {
       expect(data).not.toHaveProperty('status');
       expect(data).not.toHaveProperty('password');
       expect(data).not.toHaveProperty('isEmailVerified');
+    });
+  });
+
+  describe('changePassword', () => {
+    it('requires the current password and stores a fresh hash', async () => {
+      const currentPassword = 'Secure123!';
+      const newPassword = 'Stronger123!';
+      const oldHash = await bcrypt.hash(currentPassword, 4);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        password: oldHash,
+      });
+      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
+
+      await expect(
+        service.changePassword('1', { currentPassword, newPassword }),
+      ).resolves.toEqual({ success: true });
+
+      const updateCall = mockPrismaService.user.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.where).toEqual({ id: '1' });
+      expect(updateCall?.data.password).not.toBe(oldHash);
+      await expect(
+        bcrypt.compare(newPassword, updateCall?.data.password),
+      ).resolves.toBe(true);
+    });
+
+    it('rejects an invalid current password', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        password: await bcrypt.hash('Secure123!', 4),
+      });
+
+      await expect(
+        service.changePassword('1', {
+          currentPassword: 'Wrong123!',
+          newPassword: 'Stronger123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('rejects reusing the same password', async () => {
+      const currentPassword = 'Secure123!';
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        password: await bcrypt.hash(currentPassword, 4),
+      });
+
+      await expect(
+        service.changePassword('1', {
+          currentPassword,
+          newPassword: currentPassword,
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

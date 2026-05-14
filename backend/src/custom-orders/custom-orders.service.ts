@@ -19,6 +19,7 @@ import {
 import { CreateCustomOrderDto } from './dto/create-custom-order.dto';
 import { UpdateSketchDto } from './dto/update-sketch.dto';
 import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto';
+import { SettingsService } from '../settings/settings.service';
 
 const CURRENCY = 'vnd';
 const DEFAULT_PLATFORM_COMMISSION_BPS = 1000;
@@ -38,6 +39,7 @@ export class CustomOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   private isAdmin(roles: string[]) {
@@ -57,12 +59,10 @@ export class CustomOrdersService {
   }
 
   private getPlatformCommissionBps() {
-    const configured = Number(process.env.PLATFORM_COMMISSION_BPS);
-    if (!Number.isFinite(configured) || configured < 0) {
-      return DEFAULT_PLATFORM_COMMISSION_BPS;
-    }
-
-    return Math.min(Math.floor(configured), 10000);
+    return (
+      this.settingsService?.getPlatformCommissionBps() ??
+      DEFAULT_PLATFORM_COMMISSION_BPS
+    );
   }
 
   private roundMoney(amount: number) {
