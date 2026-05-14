@@ -3,9 +3,17 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { FlashSaleState } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFlashSaleDto } from './dto/create-flash-sale.dto';
 import { UpdateFlashSaleDto } from './dto/update-flash-sale.dto';
+
+interface FlashSaleGuardrailValues {
+  maxUnits?: number | null;
+  perUserLimit?: number | null;
+  reserveStock?: number | null;
+  autoPauseThreshold?: number | null;
+}
 
 @Injectable()
 export class FlashSalesService {
@@ -17,6 +25,7 @@ export class FlashSalesService {
       createFlashSaleDto.endAt,
     );
     this.validateRanges(createFlashSaleDto.ranges);
+    this.validateGuardrails(createFlashSaleDto);
     await this.validateNoOverlap(
       createFlashSaleDto.startAt,
       createFlashSaleDto.endAt,
@@ -37,6 +46,12 @@ export class FlashSalesService {
         startAt: new Date(createFlashSaleDto.startAt),
         endAt: new Date(createFlashSaleDto.endAt),
         isActive: createFlashSaleDto.isActive ?? true,
+        saleState: createFlashSaleDto.saleState ?? FlashSaleState.ACTIVE,
+        pausedReason: createFlashSaleDto.pausedReason,
+        maxUnits: createFlashSaleDto.maxUnits,
+        perUserLimit: createFlashSaleDto.perUserLimit,
+        reserveStock: createFlashSaleDto.reserveStock,
+        autoPauseThreshold: createFlashSaleDto.autoPauseThreshold,
         categories: {
           create: createFlashSaleDto.categoryIds.map((categoryId) => ({
             categoryId,
@@ -73,6 +88,7 @@ export class FlashSalesService {
     return this.prisma.flashSale.findMany({
       where: {
         isActive: true,
+        saleState: FlashSaleState.ACTIVE,
         startAt: { lte: now },
         endAt: { gte: now },
       },
@@ -89,6 +105,7 @@ export class FlashSalesService {
     return this.prisma.flashSale.findFirst({
       where: {
         isActive: true,
+        saleState: FlashSaleState.ACTIVE,
         startAt: { lte: now },
         endAt: { gte: now },
         categories: {
@@ -156,6 +173,14 @@ export class FlashSalesService {
     if (!existing) {
       throw new NotFoundException(`Flash sale with ID ${id} not found`);
     }
+
+    this.validateGuardrails({
+      maxUnits: updateFlashSaleDto.maxUnits ?? existing.maxUnits,
+      perUserLimit: updateFlashSaleDto.perUserLimit ?? existing.perUserLimit,
+      reserveStock: updateFlashSaleDto.reserveStock ?? existing.reserveStock,
+      autoPauseThreshold:
+        updateFlashSaleDto.autoPauseThreshold ?? existing.autoPauseThreshold,
+    });
 
     if (updateFlashSaleDto.startAt && updateFlashSaleDto.endAt) {
       this.validateTimeframe(
@@ -298,6 +323,57 @@ export class FlashSalesService {
           'discountPercent must be between 0 and 100',
         );
       }
+    }
+  }
+
+  private validateGuardrails(values: FlashSaleGuardrailValues) {
+    this.validateOptionalInteger(values.maxUnits, 'maxUnits', 1);
+    this.validateOptionalInteger(values.perUserLimit, 'perUserLimit', 1);
+    this.validateOptionalInteger(values.reserveStock, 'reserveStock', 0);
+    this.validateOptionalInteger(
+      values.autoPauseThreshold,
+      'autoPauseThreshold',
+      0,
+    );
+
+    if (
+      values.maxUnits != null &&
+      values.perUserLimit != null &&
+      values.perUserLimit > values.maxUnits
+    ) {
+      throw new BadRequestException(
+        'perUserLimit must be less than or equal to maxUnits',
+      );
+    }
+
+    if (
+      values.maxUnits != null &&
+      values.autoPauseThreshold != null &&
+      values.autoPauseThreshold > values.maxUnits
+    ) {
+      throw new BadRequestException(
+        'autoPauseThreshold must be less than or equal to maxUnits',
+      );
+    }
+  }
+
+  private validateOptionalInteger(
+    value: number | null | undefined,
+    fieldName: string,
+    minimum: number,
+  ) {
+    if (value == null) {
+      return;
+    }
+
+    if (!Number.isInteger(value)) {
+      throw new BadRequestException(`${fieldName} must be an integer`);
+    }
+
+    if (value < minimum) {
+      throw new BadRequestException(
+        `${fieldName} must be greater than or equal to ${minimum}`,
+      );
     }
   }
 }
