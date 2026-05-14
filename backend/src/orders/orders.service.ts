@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
@@ -47,6 +48,8 @@ const FLASH_SALE_INSUFFICIENT_STOCK_MESSAGE =
   'Insufficient stock for flash sale. Please refresh your cart.';
 const FLASH_SALE_PURCHASE_LIMIT_EXCEEDED_MESSAGE =
   'Flash sale purchase limit exceeded. Please refresh your cart.';
+const FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE =
+  'Flash sale reservation state is inconsistent';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -94,6 +97,18 @@ interface CheckoutFlashSalePricingSnapshot {
 interface FlashSaleReservationGroup {
   flashSaleId: string;
   quantity: number;
+}
+
+interface FlashSaleOrderItemSnapshot {
+  quantity: number;
+  flashSaleId: string | null;
+  flashSaleDiscountPercent: Prisma.Decimal | number | null;
+}
+
+interface FlashSaleSubOrderSnapshot {
+  id: string;
+  status: OrderStatus;
+  items: FlashSaleOrderItemSnapshot[];
 }
 
 interface PaymentIntentSnapshot {
@@ -1287,6 +1302,164 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  private aggregateDiscountedFlashSaleOrderItems(
+    subOrders: FlashSaleSubOrderSnapshot[],
+  ): FlashSaleReservationGroup[] {
+    const groups = new Map<string, number>();
+
+    for (const subOrder of subOrders) {
+      for (const item of subOrder.items) {
+        if (
+          !item.flashSaleId ||
+          Number(item.flashSaleDiscountPercent ?? 0) <= 0
+        ) {
+          continue;
+        }
+
+        groups.set(
+          item.flashSaleId,
+          (groups.get(item.flashSaleId) ?? 0) + item.quantity,
+        );
+      }
+    }
+
+    return Array.from(groups.entries())
+      .map(([flashSaleId, quantity]) => ({ flashSaleId, quantity }))
+      .sort((a, b) => a.flashSaleId.localeCompare(b.flashSaleId));
+  }
+
+  private async getDiscountedFlashSaleOrderItemGroups(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    customerId: string,
+    subOrderIds?: string[],
+  ) {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: {
+        customerId: true,
+        subOrders: {
+          where: subOrderIds
+            ? { id: { in: subOrderIds } }
+            : { status: { not: OrderStatus.CANCELLED } },
+          select: {
+            id: true,
+            status: true,
+            items: {
+              select: {
+                quantity: true,
+                flashSaleId: true,
+                flashSaleDiscountPercent: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order || order.customerId !== customerId) {
+      throw new InternalServerErrorException(
+        FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE,
+      );
+    }
+
+    return this.aggregateDiscountedFlashSaleOrderItems(order.subOrders);
+  }
+
+  private assertFlashSaleCounterUpdate(updatedCount: number) {
+    if (updatedCount !== 1) {
+      throw new InternalServerErrorException(
+        FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE,
+      );
+    }
+  }
+
+  private async convertFlashSaleReservationsToSold(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    customerId: string,
+  ) {
+    if (!this.isFlashSaleGuardrailsEnabled()) {
+      return;
+    }
+
+    const groups = await this.getDiscountedFlashSaleOrderItemGroups(
+      tx,
+      orderId,
+      customerId,
+    );
+
+    for (const group of groups) {
+      const saleUpdated = await tx.flashSale.updateMany({
+        where: {
+          id: group.flashSaleId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+          soldUnits: { increment: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(saleUpdated.count);
+
+      const usageUpdated = await tx.flashSaleUserUsage.updateMany({
+        where: {
+          flashSaleId: group.flashSaleId,
+          userId: customerId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+          soldUnits: { increment: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(usageUpdated.count);
+    }
+  }
+
+  private async releaseFlashSaleReservations(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    customerId: string,
+    subOrderIds?: string[],
+  ) {
+    if (!this.isFlashSaleGuardrailsEnabled()) {
+      return;
+    }
+
+    const groups = await this.getDiscountedFlashSaleOrderItemGroups(
+      tx,
+      orderId,
+      customerId,
+      subOrderIds,
+    );
+
+    for (const group of groups) {
+      const saleUpdated = await tx.flashSale.updateMany({
+        where: {
+          id: group.flashSaleId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(saleUpdated.count);
+
+      const usageUpdated = await tx.flashSaleUserUsage.updateMany({
+        where: {
+          flashSaleId: group.flashSaleId,
+          userId: customerId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(usageUpdated.count);
+    }
+  }
+
   private async createLedgerEntry(
     tx: Prisma.TransactionClient,
     data: Prisma.MarketplaceLedgerEntryCreateInput,
@@ -1726,6 +1899,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       id: string;
       items: Array<{ productId: string; quantity: number }>;
     }>,
+    flashSaleRelease?: { orderId: string; customerId: string },
   ) {
     for (const subOrder of subOrders) {
       const updated = await tx.subOrder.updateMany({
@@ -1738,8 +1912,26 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       if (updated.count === 1) {
         await this.restoreSubOrderStock(tx, subOrder.items);
+        if (flashSaleRelease) {
+          await this.releaseFlashSaleReservations(
+            tx,
+            flashSaleRelease.orderId,
+            flashSaleRelease.customerId,
+            [subOrder.id],
+          );
+        }
       }
     }
+  }
+
+  private shouldReleaseFlashSaleReservationsForOrder(
+    order: Pick<Order, 'paymentStatus'>,
+  ) {
+    return (
+      order.paymentStatus !== PaymentStatus.PAID &&
+      order.paymentStatus !== PaymentStatus.PARTIALLY_REFUNDED &&
+      order.paymentStatus !== PaymentStatus.REFUNDED
+    );
   }
 
   private resolveCancelledPaymentStatus(order: Order) {
@@ -2090,7 +2282,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       : null;
 
     return this.prisma.$transaction(async (tx) => {
-      await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders);
+      await this.cancelSubOrdersAndRestoreStock(
+        tx,
+        order.subOrders,
+        !refund && this.shouldReleaseFlashSaleReservationsForOrder(order)
+          ? { orderId, customerId: order.customerId }
+          : undefined,
+      );
 
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
@@ -2165,6 +2363,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
         if (cancelled.count === 1) {
           await this.restoreSubOrderStock(tx, subOrder.items);
+          if (
+            this.shouldReleaseFlashSaleReservationsForOrder(subOrder.order)
+          ) {
+            await this.releaseFlashSaleReservations(
+              tx,
+              subOrder.orderId,
+              subOrder.order.customerId,
+              [subOrderId],
+            );
+          }
         }
 
         await this.syncMasterOrderStatus(tx, subOrder.orderId);
@@ -2228,7 +2436,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     return this.prisma.$transaction(async (tx) => {
       if (status === OrderStatus.CANCELLED) {
-        await this.cancelSubOrdersAndRestoreStock(tx, updatableSubOrders);
+        await this.cancelSubOrdersAndRestoreStock(
+          tx,
+          updatableSubOrders,
+          this.shouldReleaseFlashSaleReservationsForOrder(order)
+            ? { orderId, customerId: order.customerId }
+            : undefined,
+        );
       } else {
         await tx.subOrder.updateMany({
           where: {
@@ -2333,14 +2547,59 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     tx: Prisma.TransactionClient,
     orderId: string,
   ) {
-    const updatedOrder = await tx.order.update({
-      where: { id: orderId },
+    if (!this.isFlashSaleGuardrailsEnabled()) {
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.PAID,
+          paymentStatus: PaymentStatus.PAID,
+          paymentExpiresAt: null,
+        },
+      });
+
+      await tx.subOrder.updateMany({
+        where: {
+          orderId,
+          status: { not: OrderStatus.CANCELLED },
+        },
+        data: { status: OrderStatus.PAID },
+      });
+
+      await this.postOrderLedger(tx, orderId);
+
+      return updatedOrder;
+    }
+
+    const transitioned = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        paymentStatus: PaymentStatus.UNPAID,
+        status: { not: OrderStatus.CANCELLED },
+      },
       data: {
         status: OrderStatus.PAID,
         paymentStatus: PaymentStatus.PAID,
         paymentExpiresAt: null,
       },
     });
+
+    const updatedOrder = await tx.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!updatedOrder) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (transitioned.count !== 1) {
+      return updatedOrder;
+    }
+
+    await this.convertFlashSaleReservationsToSold(
+      tx,
+      updatedOrder.id,
+      updatedOrder.customerId,
+    );
 
     await tx.subOrder.updateMany({
       where: {
@@ -2520,7 +2779,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     tx: Prisma.TransactionClient,
     order: OrderWithStockItems,
   ) {
-    await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders);
+    await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders, {
+      orderId: order.id,
+      customerId: order.customerId,
+    });
 
     return tx.order.update({
       where: { id: order.id },
@@ -2674,6 +2936,36 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       order.paymentStatus === PaymentStatus.UNPAID
     ) {
       newPaymentStatus = PaymentStatus.UNPAID;
+    }
+
+    const shouldConvertCodReservation =
+      this.isFlashSaleGuardrailsEnabled() &&
+      order.paymentMethod === PaymentMethod.COD &&
+      order.paymentStatus !== PaymentStatus.PAID &&
+      newPaymentStatus === PaymentStatus.PAID;
+
+    if (shouldConvertCodReservation) {
+      const transitioned = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          paymentStatus: { not: PaymentStatus.PAID },
+        },
+        data: {
+          status: newMasterStatus,
+          paymentStatus: newPaymentStatus,
+        },
+      });
+
+      if (transitioned.count === 1) {
+        await this.convertFlashSaleReservationsToSold(
+          tx,
+          orderId,
+          order.customerId,
+        );
+        await this.postOrderLedger(tx, orderId);
+      }
+
+      return;
     }
 
     await tx.order.update({

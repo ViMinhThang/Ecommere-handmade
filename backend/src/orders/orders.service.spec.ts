@@ -46,6 +46,7 @@ describe('OrdersService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     subOrder: {
       create: jest.fn(),
@@ -83,10 +84,12 @@ describe('OrdersService', () => {
     flashSale: {
       findFirst: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     flashSaleUserUsage: {
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       upsert: jest.fn(),
     },
     inventoryLog: {
@@ -198,8 +201,10 @@ describe('OrdersService', () => {
 
   const expectNoFlashSaleCounterWrites = () => {
     expect(mockPrisma.flashSale.update).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
     expect(mockPrisma.flashSaleUserUsage.create).not.toHaveBeenCalled();
     expect(mockPrisma.flashSaleUserUsage.update).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
     expect(mockPrisma.flashSaleUserUsage.upsert).not.toHaveBeenCalled();
   };
 
@@ -245,6 +250,78 @@ describe('OrdersService', () => {
     ...overrides,
   });
 
+  const buildFlashSaleCounterOrder = (
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    id: 'order_1',
+    customerId: 'customer_1',
+    totalAmount: 125000,
+    paymentIntentId: 'pi_1',
+    paymentMethod: PaymentMethod.STRIPE,
+    paymentStatus: PaymentStatus.UNPAID,
+    status: OrderStatus.PENDING,
+    refunds: [],
+    subOrders: [
+      {
+        id: 'sub_1',
+        sellerId: 'seller_1',
+        status: OrderStatus.PENDING,
+        discountAmount: 0,
+        subTotal: 280000,
+        items: [
+          {
+            productId: 'product_1',
+            quantity: 1,
+            price: 90000,
+            originalPrice: 100000,
+            flashSaleId: 'flash_sale_1',
+            flashSaleDiscountPercent: 10,
+          },
+          {
+            productId: 'product_2',
+            quantity: 2,
+            price: 95000,
+            originalPrice: 100000,
+            flashSaleId: 'flash_sale_1',
+            flashSaleDiscountPercent: 5,
+          },
+          {
+            productId: 'product_3',
+            quantity: 1,
+            price: 100000,
+            originalPrice: 100000,
+            flashSaleId: 'flash_sale_1',
+            flashSaleDiscountPercent: 0,
+          },
+        ],
+      },
+    ],
+    ...overrides,
+  });
+
+  const mockOrderLifecycleLookup = (
+    paymentIntentOrder: Record<string, unknown>,
+    counterOrder: Record<string, unknown> = buildFlashSaleCounterOrder(),
+  ) => {
+    mockPrisma.order.findUnique.mockImplementation(
+      (args: OrderFindUniqueArgs & { select?: unknown }) => {
+        if (args.where.paymentIntentId) {
+          return Promise.resolve(paymentIntentOrder);
+        }
+
+        if (args.select || args.include) {
+          return Promise.resolve(counterOrder);
+        }
+
+        return Promise.resolve({
+          ...paymentIntentOrder,
+          paymentStatus: PaymentStatus.PAID,
+          status: OrderStatus.PAID,
+        });
+      },
+    );
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     delete process.env.FLASH_SALE_GUARDRAILS_ENABLED;
@@ -256,7 +333,9 @@ describe('OrdersService', () => {
         ...(args.data as Record<string, unknown>),
       }),
     );
+    mockPrisma.order.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.subOrder.create.mockResolvedValue({ id: 'sub_1' });
+    mockPrisma.subOrder.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.orderItem.createMany.mockResolvedValue({ count: 1 });
     mockPrisma.product.findFirst.mockResolvedValue({
       price: 100000,
@@ -264,6 +343,8 @@ describe('OrdersService', () => {
     });
     mockPrisma.product.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.flashSale.findFirst.mockResolvedValue(null);
+    mockPrisma.flashSale.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.flashSaleUserUsage.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.inventoryLog.create.mockResolvedValue({ id: 'inv_1' });
     mockPrisma.$queryRaw.mockResolvedValue([{ id: 'flash_sale_1' }]);
     mockPrisma.cart.findUnique.mockResolvedValue(null);
@@ -438,6 +519,182 @@ describe('OrdersService', () => {
     expect(paymentCaptureCall?.data.idempotencyKey).toBe(
       'order:order_1:payment_capture',
     );
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('converts Stripe webhook flash sale reservations to sold once when guardrails are enabled', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = {
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 125000,
+      paymentIntentId: 'pi_1',
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+    };
+    mockOrderLifecycleLookup(order);
+
+    const result = await service.handlePaymentIntentSucceeded({
+      eventId: 'evt_1',
+      type: 'payment_intent.succeeded',
+      paymentIntentId: 'pi_1',
+      amount: 125000,
+      currency: 'vnd',
+      metadata: { orderId: 'order_1', userId: 'customer_1' },
+    });
+
+    expect(result).toMatchObject({ processed: true, orderId: 'order_1' });
+    expect(mockPrisma.order.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'order_1',
+        paymentStatus: PaymentStatus.UNPAID,
+        status: { not: OrderStatus.CANCELLED },
+      },
+      data: {
+        status: OrderStatus.PAID,
+        paymentStatus: PaymentStatus.PAID,
+        paymentExpiresAt: null,
+      },
+    });
+    expect(mockPrisma.flashSale.updateMany).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.flashSale.updateMany).toHaveBeenCalledWith({
+      where: { id: 'flash_sale_1', reservedUnits: { gte: 3 } },
+      data: {
+        reservedUnits: { decrement: 3 },
+        soldUnits: { increment: 3 },
+      },
+    });
+    expect(mockPrisma.flashSaleUserUsage.updateMany).toHaveBeenCalledWith({
+      where: {
+        flashSaleId: 'flash_sale_1',
+        userId: 'customer_1',
+        reservedUnits: { gte: 3 },
+      },
+      data: {
+        reservedUnits: { decrement: 3 },
+        soldUnits: { increment: 3 },
+      },
+    });
+  });
+
+  it('converts client-confirmed Stripe flash sale reservations once', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = {
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 125000,
+      paymentIntentId: 'pi_1',
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+    };
+    mockOrderLifecycleLookup(order);
+    mockStripe.retrievePaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      status: 'succeeded',
+      amount: 125000,
+      amount_received: 125000,
+      currency: 'vnd',
+      metadata: { orderId: 'order_1', userId: 'customer_1' },
+    });
+
+    const result = await service.confirmPayment('customer_1', 'pi_1');
+
+    expect(result).toMatchObject({
+      success: true,
+      orderId: 'order_1',
+    });
+    expect(mockStripe.retrievePaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.flashSale.updateMany).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.flashSaleUserUsage.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips flash sale conversion for duplicate Stripe success webhooks', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockPrisma.order.findUnique.mockResolvedValue({
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 125000,
+      paymentIntentId: 'pi_1',
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+    });
+    mockPrisma.paymentWebhookEvent.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+
+    const result = await service.handlePaymentIntentSucceeded({
+      eventId: 'evt_1',
+      type: 'payment_intent.succeeded',
+      paymentIntentId: 'pi_1',
+      amount: 125000,
+      currency: 'vnd',
+      metadata: { orderId: 'order_1', userId: 'customer_1' },
+    });
+
+    expect(result).toMatchObject({ processed: false, reason: 'duplicate' });
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('skips flash sale conversion when Stripe order is already paid', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockPrisma.order.findUnique.mockResolvedValue({
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 125000,
+      paymentIntentId: 'pi_1',
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.PAID,
+      status: OrderStatus.PAID,
+    });
+
+    const result = await service.handlePaymentIntentSucceeded({
+      eventId: 'evt_1',
+      type: 'payment_intent.succeeded',
+      paymentIntentId: 'pi_1',
+      amount: 125000,
+      currency: 'vnd',
+      metadata: { orderId: 'order_1', userId: 'customer_1' },
+    });
+
+    expect(result).toMatchObject({ processed: false, reason: 'already_paid' });
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rolls back Stripe paid transition path when flash sale counter conversion fails', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = {
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 125000,
+      paymentIntentId: 'pi_1',
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+    };
+    mockOrderLifecycleLookup(order);
+    mockPrisma.flashSale.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.handlePaymentIntentSucceeded({
+        eventId: 'evt_1',
+        type: 'payment_intent.succeeded',
+        paymentIntentId: 'pi_1',
+        amount: 125000,
+        currency: 'vnd',
+        metadata: { orderId: 'order_1', userId: 'customer_1' },
+      }),
+    ).rejects.toThrow('Flash sale reservation state is inconsistent');
+
+    expect(mockPrisma.subOrder.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.marketplaceLedgerEntry.create).not.toHaveBeenCalled();
   });
 
   it('reuses an active checkout for the same idempotency key', async () => {
@@ -1206,6 +1463,205 @@ describe('OrdersService', () => {
     expect(mockPrisma.orderItem.createMany).not.toHaveBeenCalled();
   });
 
+  it('releases flash sale reservations on Stripe failed webhook', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+    });
+    mockPrisma.order.findUnique.mockImplementation(
+      (args: OrderFindUniqueArgs & { select?: unknown }) => {
+        if (args.where.paymentIntentId || args.select) {
+          return Promise.resolve(order);
+        }
+        return Promise.resolve(order);
+      },
+    );
+    mockPrisma.order.update.mockResolvedValue({
+      ...order,
+      status: OrderStatus.CANCELLED,
+      paymentStatus: PaymentStatus.FAILED,
+    });
+
+    const result = await service.handlePaymentIntentFailed({
+      eventId: 'evt_failed',
+      type: 'payment_intent.payment_failed',
+      paymentIntentId: 'pi_1',
+    });
+
+    expect(result).toMatchObject({ processed: true, orderId: 'order_1' });
+    expect(mockPrisma.flashSale.updateMany).toHaveBeenCalledWith({
+      where: { id: 'flash_sale_1', reservedUnits: { gte: 3 } },
+      data: { reservedUnits: { decrement: 3 } },
+    });
+    expect(mockPrisma.flashSaleUserUsage.updateMany).toHaveBeenCalledWith({
+      where: {
+        flashSaleId: 'flash_sale_1',
+        userId: 'customer_1',
+        reservedUnits: { gte: 3 },
+      },
+      data: { reservedUnits: { decrement: 3 } },
+    });
+    expect(mockPrisma.product.update).toHaveBeenCalled();
+  });
+
+  it('skips flash sale release for duplicate Stripe failed webhooks', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockPrisma.order.findUnique.mockResolvedValue(
+      buildFlashSaleCounterOrder({
+        paymentMethod: PaymentMethod.STRIPE,
+        paymentStatus: PaymentStatus.UNPAID,
+      }),
+    );
+    mockPrisma.paymentWebhookEvent.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+
+    const result = await service.handlePaymentIntentFailed({
+      eventId: 'evt_failed',
+      type: 'payment_intent.payment_failed',
+      paymentIntentId: 'pi_1',
+    });
+
+    expect(result).toMatchObject({ processed: false, reason: 'duplicate' });
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('releases flash sale reservations for expired Stripe orders', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+      paymentExpiresAt: new Date(Date.now() - 60 * 1000),
+    });
+    mockPrisma.order.findMany.mockResolvedValue([order]);
+    mockPrisma.order.findUnique.mockResolvedValue(order);
+    mockPrisma.order.update.mockResolvedValue({
+      ...order,
+      status: OrderStatus.CANCELLED,
+      paymentStatus: PaymentStatus.FAILED,
+    });
+
+    const result = await service.releaseExpiredStripeOrders();
+
+    expect(result).toEqual({ released: 1 });
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.flashSale.updateMany).toHaveBeenCalledWith({
+      where: { id: 'flash_sale_1', reservedUnits: { gte: 3 } },
+      data: { reservedUnits: { decrement: 3 } },
+    });
+    expect(mockPrisma.product.update).toHaveBeenCalled();
+  });
+
+  it('does not release flash sale reservations for stale expired Stripe order scans', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.UNPAID,
+      status: OrderStatus.PENDING,
+      paymentExpiresAt: new Date(Date.now() - 60 * 1000),
+    });
+    mockPrisma.order.findMany.mockResolvedValue([order]);
+    mockPrisma.order.findUnique.mockResolvedValue({
+      ...order,
+      paymentStatus: PaymentStatus.PAID,
+    });
+
+    const result = await service.releaseExpiredStripeOrders();
+
+    expect(result).toEqual({ released: 0 });
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('releases flash sale reservations when COD order is cancelled before paid', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.COD,
+      paymentStatus: PaymentStatus.COD_PENDING,
+      status: OrderStatus.PENDING,
+    });
+    mockPrisma.order.findUnique.mockResolvedValue(order);
+    mockPrisma.order.update.mockResolvedValue({
+      ...order,
+      status: OrderStatus.CANCELLED,
+      paymentStatus: PaymentStatus.FAILED,
+    });
+
+    await service.cancelOrder('customer_1', 'order_1');
+
+    expect(mockPrisma.flashSale.updateMany).toHaveBeenCalledWith({
+      where: { id: 'flash_sale_1', reservedUnits: { gte: 3 } },
+      data: { reservedUnits: { decrement: 3 } },
+    });
+    expect(mockPrisma.flashSaleUserUsage.updateMany).toHaveBeenCalledWith({
+      where: {
+        flashSaleId: 'flash_sale_1',
+        userId: 'customer_1',
+        reservedUnits: { gte: 3 },
+      },
+      data: { reservedUnits: { decrement: 3 } },
+    });
+  });
+
+  it('does not decrement flash sale sold units on paid Stripe refund', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.PAID,
+      status: OrderStatus.PAID,
+      refunds: [],
+    });
+    mockPrisma.order.findUnique.mockResolvedValue(order);
+    mockPrisma.refund.create.mockResolvedValue({
+      id: 'refund_1',
+      amount: 10000,
+      status: RefundStatus.SUCCEEDED,
+    });
+
+    await service.refundOrder('order_1', {
+      amount: 10000,
+      reason: 'Customer refund',
+    });
+
+    expect(mockStripe.createRefund).toHaveBeenCalled();
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does not release flash sale reservations when paid Stripe order is cancelled through refund flow', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = buildFlashSaleCounterOrder({
+      paymentMethod: PaymentMethod.STRIPE,
+      paymentStatus: PaymentStatus.PAID,
+      status: OrderStatus.PAID,
+      refunds: [],
+    });
+    mockPrisma.order.findUnique.mockResolvedValue(order);
+    mockPrisma.refund.create.mockResolvedValue({
+      id: 'refund_1',
+      amount: 125000,
+      status: RefundStatus.SUCCEEDED,
+    });
+    mockPrisma.order.update.mockResolvedValue({
+      ...order,
+      status: OrderStatus.CANCELLED,
+      paymentStatus: PaymentStatus.REFUNDED,
+    });
+
+    await service.cancelOrder('customer_1', 'order_1');
+
+    expect(mockStripe.createRefund).toHaveBeenCalled();
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
+  });
+
   it('treats duplicate payment webhooks as already processed', async () => {
     mockPrisma.order.findUnique.mockResolvedValue({
       id: 'order_1',
@@ -1532,5 +1988,167 @@ describe('OrdersService', () => {
       'seller_1',
       'seller_2',
     ]);
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('converts COD flash sale reservations when order becomes paid', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = {
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 225000,
+      paymentMethod: PaymentMethod.COD,
+      paymentStatus: PaymentStatus.COD_PENDING,
+      status: OrderStatus.SHIPPED,
+    };
+    const counterOrder = buildFlashSaleCounterOrder({
+      ...order,
+      subOrders: [
+        {
+          id: 'sub_1',
+          sellerId: 'seller_1',
+          status: OrderStatus.DELIVERED,
+          discountAmount: 0,
+          subTotal: 280000,
+          items: [
+            {
+              productId: 'product_1',
+              quantity: 1,
+              price: 90000,
+              originalPrice: 100000,
+              flashSaleId: 'flash_sale_1',
+              flashSaleDiscountPercent: 10,
+            },
+          ],
+        },
+      ],
+    });
+
+    mockPrisma.subOrder.findUnique.mockResolvedValue({
+      id: 'sub_1',
+      orderId: 'order_1',
+      sellerId: 'seller_1',
+      status: OrderStatus.SHIPPED,
+      items: [{ productId: 'product_1', quantity: 1 }],
+      order,
+    });
+    mockPrisma.subOrder.update.mockResolvedValue({
+      id: 'sub_1',
+      status: OrderStatus.DELIVERED,
+    });
+    mockPrisma.subOrder.findMany.mockResolvedValue([
+      { id: 'sub_1', status: OrderStatus.DELIVERED },
+    ]);
+    mockPrisma.order.findUnique.mockImplementation(
+      (args: OrderFindUniqueArgs & { select?: unknown }) => {
+        if (args.select || args.include) {
+          return Promise.resolve(counterOrder);
+        }
+        return Promise.resolve(order);
+      },
+    );
+
+    await service.updateSubOrderStatus(
+      'seller_1',
+      ['ROLE_SELLER'],
+      'sub_1',
+      OrderStatus.DELIVERED,
+    );
+
+    expect(mockPrisma.order.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'order_1',
+        paymentStatus: { not: PaymentStatus.PAID },
+      },
+      data: {
+        status: OrderStatus.DELIVERED,
+        paymentStatus: PaymentStatus.PAID,
+      },
+    });
+    expect(mockPrisma.flashSale.updateMany).toHaveBeenCalledWith({
+      where: { id: 'flash_sale_1', reservedUnits: { gte: 1 } },
+      data: {
+        reservedUnits: { decrement: 1 },
+        soldUnits: { increment: 1 },
+      },
+    });
+    expect(mockPrisma.flashSaleUserUsage.updateMany).toHaveBeenCalledWith({
+      where: {
+        flashSaleId: 'flash_sale_1',
+        userId: 'customer_1',
+        reservedUnits: { gte: 1 },
+      },
+      data: {
+        reservedUnits: { decrement: 1 },
+        soldUnits: { increment: 1 },
+      },
+    });
+  });
+
+  it('does not double convert COD reservations when order is already paid', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    const order = {
+      id: 'order_1',
+      customerId: 'customer_1',
+      totalAmount: 225000,
+      paymentMethod: PaymentMethod.COD,
+      paymentStatus: PaymentStatus.PAID,
+      status: OrderStatus.SHIPPED,
+    };
+    mockPrisma.subOrder.findUnique.mockResolvedValue({
+      id: 'sub_1',
+      orderId: 'order_1',
+      sellerId: 'seller_1',
+      status: OrderStatus.SHIPPED,
+      items: [{ productId: 'product_1', quantity: 1 }],
+      order,
+    });
+    mockPrisma.subOrder.update.mockResolvedValue({
+      id: 'sub_1',
+      status: OrderStatus.DELIVERED,
+    });
+    mockPrisma.subOrder.findMany.mockResolvedValue([
+      { id: 'sub_1', status: OrderStatus.DELIVERED },
+    ]);
+    mockPrisma.order.findUnique.mockImplementation(
+      (args: OrderFindUniqueArgs & { include?: unknown }) => {
+        if (args.include) {
+          return Promise.resolve(
+            buildFlashSaleCounterOrder({
+              ...order,
+              subOrders: [
+                {
+                  id: 'sub_1',
+                  sellerId: 'seller_1',
+                  status: OrderStatus.DELIVERED,
+                  discountAmount: 0,
+                  subTotal: 100000,
+                  items: [
+                    {
+                      productId: 'product_1',
+                      quantity: 1,
+                      price: 100000,
+                      originalPrice: 100000,
+                    },
+                  ],
+                },
+              ],
+            }),
+          );
+        }
+
+        return Promise.resolve(order);
+      },
+    );
+
+    await service.updateSubOrderStatus(
+      'seller_1',
+      ['ROLE_SELLER'],
+      'sub_1',
+      OrderStatus.DELIVERED,
+    );
+
+    expect(mockPrisma.flashSale.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.updateMany).not.toHaveBeenCalled();
   });
 });
