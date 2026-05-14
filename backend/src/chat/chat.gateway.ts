@@ -13,6 +13,11 @@ import {
 import { Socket, Server } from 'socket.io';
 import { ChatMessageDto, ChatService } from './chat.service';
 import { UsersService } from '../users/users.service';
+import {
+  describeErrorForObservability,
+  emitObservabilityEvent,
+  extractRequestIdFromHeaders,
+} from '../common/observability/observability.util';
 
 interface JwtPayload {
   sub: string;
@@ -55,8 +60,16 @@ export class ChatGateway implements OnGatewayConnection {
   ) {}
 
   async handleConnection(client: ChatSocket): Promise<void> {
+    const requestId = extractRequestIdFromHeaders(
+      client.handshake.headers as Record<string, unknown>,
+    );
     const token = this.extractAccessToken(client);
     if (!token) {
+      emitObservabilityEvent(this.logger, 'warn', 'chat_socket_auth_failed', {
+        requestId,
+        socketId: client.id,
+        reason: 'missing_access_token',
+      });
       client.disconnect();
       return;
     }
@@ -70,9 +83,12 @@ export class ChatGateway implements OnGatewayConnection {
       client.data.userId = user.id;
       await client.join(this.getUserRoom(user.id));
     } catch (error) {
-      this.logger.warn(
-        `Socket authentication failed: ${(error as Error).message}`,
-      );
+      emitObservabilityEvent(this.logger, 'warn', 'chat_socket_auth_failed', {
+        requestId,
+        socketId: client.id,
+        reason: 'token_verification_failed',
+        ...describeErrorForObservability(error),
+      });
       client.disconnect();
     }
   }

@@ -99,6 +99,12 @@ enum SellerPayoutStatus {
   FAILED
 }
 
+enum FlashSaleState {
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
 model User {
   id                    String                      @id @default(uuid())
   name                  String
@@ -144,6 +150,7 @@ model User {
   customerLedgerEntries MarketplaceLedgerEntry[]    @relation("LedgerEntryCustomer")
   sellerLedgerEntries   MarketplaceLedgerEntry[]    @relation("LedgerEntrySeller")
   sellerPayouts         SellerPayout[]              @relation("SellerPayoutSeller")
+  flashSaleUsages       FlashSaleUserUsage[]
 
   @@index([status])
 }
@@ -382,19 +389,30 @@ model VoucherRange {
 }
 
 model FlashSale {
-  id          String              @id @default(uuid())
-  name        String
-  description String?
-  banner      String?
-  startAt     DateTime
-  endAt       DateTime
-  isActive    Boolean             @default(true)
-  deletedAt   DateTime?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  categories  FlashSaleCategory[]
-  ranges      FlashSaleRange[]
+  id                 String               @id @default(uuid())
+  name               String
+  description        String?
+  banner             String?
+  startAt            DateTime
+  endAt              DateTime
+  isActive           Boolean              @default(true)
+  saleState          FlashSaleState       @default(ACTIVE)
+  pausedReason       String?
+  pausedAt           DateTime?
+  maxUnits           Int?
+  perUserLimit       Int?
+  reserveStock       Int                  @default(0)
+  autoPauseThreshold Int?
+  soldUnits          Int                  @default(0)
+  reservedUnits      Int                  @default(0)
+  deletedAt          DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  categories         FlashSaleCategory[]
+  ranges             FlashSaleRange[]
+  userUsages         FlashSaleUserUsage[]
 
+  @@index([isActive, saleState, startAt, endAt])
   @@index([isActive, startAt, endAt])
 }
 
@@ -424,6 +442,21 @@ model FlashSaleRange {
   updatedAt       DateTime  @updatedAt
 
   @@index([flashSaleId])
+}
+
+model FlashSaleUserUsage {
+  id            String    @id @default(uuid())
+  flashSaleId   String
+  flashSale     FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  soldUnits     Int       @default(0)
+  reservedUnits Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([flashSaleId, userId])
+  @@index([userId])
 }
 
 model RefreshToken {
@@ -512,20 +545,23 @@ model SubOrder {
 }
 
 model OrderItem {
-  id                     String   @id @default(uuid())
-  subOrderId             String
-  subOrder               SubOrder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
-  productId              String
-  product                Product  @relation(fields: [productId], references: [id])
-  quantity               Int
-  price                  Decimal
-  originalPrice          Decimal  @default(0)
-  platformDiscountAmount Decimal  @default(0)
+  id                       String   @id @default(uuid())
+  subOrderId               String
+  subOrder                 SubOrder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+  productId                String
+  product                  Product  @relation(fields: [productId], references: [id])
+  quantity                 Int
+  price                    Decimal
+  originalPrice            Decimal  @default(0)
+  platformDiscountAmount   Decimal  @default(0)
+  flashSaleId              String?
+  flashSaleDiscountPercent Decimal?
 
   review Review?
 
   @@index([subOrderId])
   @@index([productId])
+  @@index([flashSaleId])
 }
 
 model Review {

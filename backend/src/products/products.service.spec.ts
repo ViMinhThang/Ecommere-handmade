@@ -25,6 +25,7 @@ describe('ProductsService', () => {
       create: jest.fn(),
       findMany: jest.fn(),
     },
+    $queryRaw: jest.fn(),
     $transaction: jest.fn(),
   };
   const mockFlashSalesService = {
@@ -212,6 +213,74 @@ describe('ProductsService', () => {
       await expect(
         service.remove('nonexistent', 'seller1', ['ROLE_SELLER']),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getLowStockProducts', () => {
+    it('should return low-stock products with paginated meta', async () => {
+      const rows = [
+        {
+          id: 'product-1',
+          name: 'Product 1',
+          stock: 2,
+          lowStockThreshold: 5,
+          categoryName: 'Category 1',
+        },
+      ];
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([{ total: 1 }])
+        .mockResolvedValueOnce(rows);
+
+      const result = await service.getLowStockProducts(
+        'seller-1',
+        ['ROLE_SELLER'],
+        undefined,
+        1,
+        10,
+      );
+
+      expect(result).toEqual({
+        data: rows,
+        meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      });
+      expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return empty data and zero total pages when no low-stock products', async () => {
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([{ total: 0 }])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getLowStockProducts(
+        'seller-1',
+        ['ROLE_SELLER'],
+        undefined,
+        1,
+        10,
+      );
+
+      expect(result).toEqual({
+        data: [],
+        meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+      });
+    });
+
+    it('should clamp low-stock limit to max value', async () => {
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([{ total: 120 }])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getLowStockProducts(
+        'seller-1',
+        ['ROLE_SELLER'],
+        undefined,
+        1,
+        1000,
+      );
+
+      expect(result.meta.limit).toBe(100);
+      expect(result.meta.total).toBe(120);
+      expect(result.meta.totalPages).toBe(2);
     });
   });
 });

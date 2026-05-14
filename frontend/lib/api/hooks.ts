@@ -20,6 +20,13 @@ import { customOrdersApi, CustomOrder } from "./custom-orders";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
 import {
+  paymentReliabilityApi,
+  type PaymentReliabilityAnomaliesQuery,
+  type PaymentReliabilityDateRangeQuery,
+  type PaymentReliabilityReconciliationQuery,
+  type PaymentReliabilityWebhooksQuery,
+} from "./payment-reliability";
+import {
   User,
   UserRole,
   UserStatus,
@@ -1202,6 +1209,62 @@ export function useCancelOrder() {
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
     },
+  });
+}
+
+export const paymentReliabilityKeys = {
+  all: ["paymentReliability"] as const,
+  summary: (query?: PaymentReliabilityDateRangeQuery) =>
+    [...paymentReliabilityKeys.all, "summary", { ...query }] as const,
+  anomalies: (query?: PaymentReliabilityAnomaliesQuery) =>
+    [...paymentReliabilityKeys.all, "anomalies", { ...query }] as const,
+  reconciliation: (query?: PaymentReliabilityReconciliationQuery) =>
+    [...paymentReliabilityKeys.all, "reconciliation", { ...query }] as const,
+  webhooks: (query?: PaymentReliabilityWebhooksQuery) =>
+    [...paymentReliabilityKeys.all, "webhooks", { ...query }] as const,
+};
+
+export function usePaymentReliabilitySummary(
+  query?: PaymentReliabilityDateRangeQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: paymentReliabilityKeys.summary(query),
+    queryFn: () => paymentReliabilityApi.getSummary(query),
+    enabled,
+  });
+}
+
+export function usePaymentReliabilityAnomalies(
+  query?: PaymentReliabilityAnomaliesQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: paymentReliabilityKeys.anomalies(query),
+    queryFn: () => paymentReliabilityApi.getAnomalies(query),
+    enabled,
+  });
+}
+
+export function usePaymentReliabilityReconciliation(
+  query?: PaymentReliabilityReconciliationQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: paymentReliabilityKeys.reconciliation(query),
+    queryFn: () => paymentReliabilityApi.getReconciliation(query),
+    enabled,
+  });
+}
+
+export function usePaymentReliabilityWebhooks(
+  query?: PaymentReliabilityWebhooksQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: paymentReliabilityKeys.webhooks(query),
+    queryFn: () => paymentReliabilityApi.getWebhooks(query),
+    enabled,
   });
 }
 

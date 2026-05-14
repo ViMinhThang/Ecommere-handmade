@@ -2,19 +2,10 @@ import { PrismaClient, Role, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
-const DEV_ADMIN_PASSWORD = ['admin', '123'].join('');
+const DEFAULT_ADMIN_EMAIL = 'admin@ecommerce.com';
+const ADMIN_SEED_BCRYPT_ROUNDS = 12;
 
 async function main() {
-  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@ecommerce.com';
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
-
-  if (!adminPassword && process.env.NODE_ENV === 'production') {
-    throw new Error('SEED_ADMIN_PASSWORD is required in production');
-  }
-
-  const resolvedAdminPassword = adminPassword || DEV_ADMIN_PASSWORD;
-  const hashedPassword = await bcrypt.hash(resolvedAdminPassword, 12);
-
   const categories = [
     {
       name: 'Sinh nhật',
@@ -56,8 +47,30 @@ async function main() {
     });
   }
 
+  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD?.trim();
+  const seedAdminEmail =
+    process.env.SEED_ADMIN_EMAIL?.trim() || DEFAULT_ADMIN_EMAIL;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction) {
+    console.log('Skip admin seeding in production environment.');
+    return;
+  }
+
+  if (!seedAdminPassword) {
+    console.warn(
+      'Skip admin seeding because SEED_ADMIN_PASSWORD is not set in environment.',
+    );
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(
+    seedAdminPassword,
+    ADMIN_SEED_BCRYPT_ROUNDS,
+  );
+
   const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
+    where: { email: seedAdminEmail },
     update: {
       password: hashedPassword,
       roles: [Role.ROLE_ADMIN],
@@ -65,7 +78,7 @@ async function main() {
       isEmailVerified: true,
     },
     create: {
-      email: adminEmail,
+      email: seedAdminEmail,
       name: 'System Admin',
       password: hashedPassword,
       roles: [Role.ROLE_ADMIN],

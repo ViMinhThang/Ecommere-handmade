@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Logger,
   Param,
   UseGuards,
   Request,
@@ -20,14 +21,38 @@ import { SendCustomOrderOfferDto } from './dto/send-custom-order-offer.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 import { isAllowedImageMimeType } from '../common/utils/image-upload';
+import {
+  describeErrorForObservability,
+  emitObservabilityEvent,
+  extractRequestIdFromHeaders,
+} from '../common/observability/observability.util';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
+  private readonly logger = new Logger(ChatController.name);
+
   constructor(
     private readonly chatService: ChatService,
     private readonly chatGateway: ChatGateway,
   ) {}
+
+  private logMessageSendFailed(
+    req: AuthenticatedRequest,
+    conversationId: string,
+    messageType: 'text' | 'offer' | 'image',
+    error: unknown,
+  ) {
+    emitObservabilityEvent(this.logger, 'warn', 'chat_message_send_failed', {
+      requestId: extractRequestIdFromHeaders(
+        req.headers as Record<string, unknown>,
+      ),
+      conversationId,
+      messageType,
+      userId: req.user.id,
+      ...describeErrorForObservability(error),
+    });
+  }
 
   @Get('conversations')
   getConversations(
@@ -70,20 +95,34 @@ export class ChatController {
     return conversation;
   }
 
+  // Backward-compatible alias for existing clients.
+  @Post('conversations/start')
+  async startConversationAlias(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: StartConversationDto,
+  ) {
+    return this.startConversation(req, dto);
+  }
+
   @Post('conversations/:conversationId/messages/text')
   async sendTextMessage(
     @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
     @Body() dto: SendTextMessageDto,
   ) {
-    const message = await this.chatService.sendTextMessage(
-      req.user.id,
-      conversationId,
-      dto,
-    );
-    this.chatGateway.emitMessageCreated(conversationId, message);
-    await this.chatGateway.emitConversationUpdated(conversationId);
-    return message;
+    try {
+      const message = await this.chatService.sendTextMessage(
+        req.user.id,
+        conversationId,
+        dto,
+      );
+      this.chatGateway.emitMessageCreated(conversationId, message);
+      await this.chatGateway.emitConversationUpdated(conversationId);
+      return message;
+    } catch (error) {
+      this.logMessageSendFailed(req, conversationId, 'text', error);
+      throw error;
+    }
   }
 
   @Post('conversations/:conversationId/messages/offer')
@@ -92,14 +131,19 @@ export class ChatController {
     @Param('conversationId') conversationId: string,
     @Body() dto: SendCustomOrderOfferDto,
   ) {
-    const message = await this.chatService.sendCustomOrderOffer(
-      req.user.id,
-      conversationId,
-      dto,
-    );
-    this.chatGateway.emitMessageCreated(conversationId, message);
-    await this.chatGateway.emitConversationUpdated(conversationId);
-    return message;
+    try {
+      const message = await this.chatService.sendCustomOrderOffer(
+        req.user.id,
+        conversationId,
+        dto,
+      );
+      this.chatGateway.emitMessageCreated(conversationId, message);
+      await this.chatGateway.emitConversationUpdated(conversationId);
+      return message;
+    } catch (error) {
+      this.logMessageSendFailed(req, conversationId, 'offer', error);
+      throw error;
+    }
   }
 
   @Post('conversations/:conversationId/messages/image')
@@ -120,15 +164,20 @@ export class ChatController {
     @UploadedFile() file: Express.Multer.File,
     @Body('caption') caption?: string,
   ) {
-    const message = await this.chatService.sendImageMessage(
-      req.user.id,
-      conversationId,
-      file,
-      caption,
-    );
-    this.chatGateway.emitMessageCreated(conversationId, message);
-    await this.chatGateway.emitConversationUpdated(conversationId);
-    return message;
+    try {
+      const message = await this.chatService.sendImageMessage(
+        req.user.id,
+        conversationId,
+        file,
+        caption,
+      );
+      this.chatGateway.emitMessageCreated(conversationId, message);
+      await this.chatGateway.emitConversationUpdated(conversationId);
+      return message;
+    } catch (error) {
+      this.logMessageSendFailed(req, conversationId, 'image', error);
+      throw error;
+    }
   }
 
   @Post('conversations/:conversationId/read')

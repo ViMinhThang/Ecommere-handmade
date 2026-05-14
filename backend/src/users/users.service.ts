@@ -17,7 +17,6 @@ import {
   SellerSearchSortBy,
 } from './dto/search-sellers-query.dto';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -95,7 +94,12 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     const roles = this.processRoles(createUserDto.roles);
-    const password = createUserDto.password || randomUUID();
+    const password = createUserDto.password?.trim();
+    if (!password) {
+      throw new BadRequestException(
+        'Password is required when creating a user',
+      );
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
 
     return this.prisma.user.create({

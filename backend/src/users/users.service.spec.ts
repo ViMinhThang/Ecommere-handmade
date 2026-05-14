@@ -88,6 +88,18 @@ describe('UsersService', () => {
 
       expect(result.roles).toEqual(['ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN']);
     });
+
+    it('should reject create requests without explicit password', async () => {
+      const dto = {
+        name: 'Test',
+        email: 'test@test.com',
+      };
+
+      await expect(
+        service.create(dto as unknown as Parameters<UsersService['create']>[0]),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.user.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAll', () => {

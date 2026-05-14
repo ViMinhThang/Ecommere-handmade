@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -16,6 +17,11 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import {
+  describeErrorForObservability,
+  emitObservabilityEvent,
+  extractRequestIdFromHeaders,
+} from '../common/observability/observability.util';
 
 const REFRESH_TOKEN_COOKIE = 'auth_refresh_token';
 
@@ -43,12 +49,28 @@ function extractCookieValue(
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private authService: AuthService) {}
 
   @Post('register')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Req() req: ExpressRequest,
+  ) {
+    try {
+      return await this.authService.register(registerDto);
+    } catch (error) {
+      emitObservabilityEvent(this.logger, 'warn', 'auth_register_failed', {
+        requestId: extractRequestIdFromHeaders(
+          req.headers as Record<string, unknown>,
+        ),
+        hasEmail: Boolean(registerDto.email),
+        ...describeErrorForObservability(error),
+      });
+      throw error;
+    }
   }
 
   @Post('verify-otp')
@@ -61,8 +83,19 @@ export class AuthController {
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto.email, loginDto.password);
+  async login(@Body() loginDto: LoginDto, @Req() req: ExpressRequest) {
+    try {
+      return await this.authService.login(loginDto.email, loginDto.password);
+    } catch (error) {
+      emitObservabilityEvent(this.logger, 'warn', 'auth_login_failed', {
+        requestId: extractRequestIdFromHeaders(
+          req.headers as Record<string, unknown>,
+        ),
+        hasEmail: Boolean(loginDto.email),
+        ...describeErrorForObservability(error),
+      });
+      throw error;
+    }
   }
 
   @Post('google')
@@ -97,13 +130,31 @@ export class AuthController {
     @Body('refreshToken') refreshToken: string | undefined,
     @Req() req: ExpressRequest,
   ) {
+    const requestId = extractRequestIdFromHeaders(
+      req.headers as Record<string, unknown>,
+    );
     const cookieToken = extractCookieValue(req, REFRESH_TOKEN_COOKIE);
     const resolvedToken = refreshToken || cookieToken;
 
     if (!resolvedToken) {
+      emitObservabilityEvent(this.logger, 'warn', 'auth_refresh_failed', {
+        requestId,
+        credentialSource: 'missing',
+        errorName: UnauthorizedException.name,
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
       throw new UnauthorizedException('Refresh token is required');
     }
 
-    return this.authService.refreshToken(resolvedToken);
+    try {
+      return await this.authService.refreshToken(resolvedToken);
+    } catch (error) {
+      emitObservabilityEvent(this.logger, 'warn', 'auth_refresh_failed', {
+        requestId,
+        credentialSource: refreshToken ? 'body' : 'cookie',
+        ...describeErrorForObservability(error),
+      });
+      throw error;
+    }
   }
 }

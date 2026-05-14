@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
+import type { LowStockResponse } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
@@ -27,6 +28,23 @@ import { isAllowedImageMimeType } from '../common/utils/image-upload';
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
+
+  private parsePositiveInt(value: string | undefined, field: string) {
+    if (!value) {
+      return undefined;
+    }
+
+    const parsedValue = Number(value);
+    if (
+      !Number.isFinite(parsedValue) ||
+      !Number.isInteger(parsedValue) ||
+      parsedValue < 1
+    ) {
+      throw new BadRequestException(`Invalid ${field}`);
+    }
+
+    return parsedValue;
+  }
 
   private parseLimit(limit?: string) {
     if (!limit) {
@@ -117,11 +135,15 @@ export class ProductsController {
   getLowStock(
     @Request() req: AuthenticatedRequest,
     @Query('sellerId') sellerId?: string,
-  ) {
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ): Promise<LowStockResponse> {
     return this.productsService.getLowStockProducts(
       req.user.id,
       req.user.roles,
       sellerId,
+      this.parsePositiveInt(page, 'page'),
+      this.parsePositiveInt(limit, 'limit'),
     );
   }
 

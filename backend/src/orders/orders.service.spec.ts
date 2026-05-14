@@ -61,6 +61,7 @@ describe('OrdersService', () => {
       deleteMany: jest.fn(),
     },
     cart: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
     paymentWebhookEvent: {
@@ -97,10 +98,90 @@ describe('OrdersService', () => {
     getPlatformCommissionBps: jest.fn(() => 1000),
   };
 
+  const shippingAddress = {
+    fullName: 'Customer',
+    phone: '0900000000',
+    address: '1 Handmade St',
+    city: 'HCM',
+    district: '1',
+    ward: 'Ben Nghe',
+  };
+
+  const buildCart = (overrides: Record<string, unknown> = {}) => ({
+    id: 'cart_1',
+    userId: 'customer_1',
+    subtotal: 100000,
+    discountAmount: 0,
+    total: 100000,
+    appliedVoucher: null,
+    items: [
+      {
+        productId: 'product_1',
+        quantity: 1,
+        pricing: { discountedPrice: 100000, originalPrice: 100000 },
+        product: {
+          id: 'product_1',
+          name: 'Handmade cup',
+          sellerId: 'seller_1',
+          status: ProductStatus.APPROVED,
+          stock: 5,
+          deletedAt: null,
+          categoryId: 'cat_1',
+          category: {
+            status: CategoryStatus.ACTIVE,
+            deletedAt: null,
+          },
+        },
+      },
+    ],
+    ...overrides,
+  });
+
+  const buildReusableOrder = (overrides: Record<string, unknown> = {}) => ({
+    id: 'order_1',
+    customerId: 'customer_1',
+    totalAmount: 125000,
+    discountAmount: 0,
+    voucherCode: null,
+    paymentMethod: PaymentMethod.STRIPE,
+    paymentStatus: PaymentStatus.UNPAID,
+    status: OrderStatus.PENDING,
+    paymentIntentId: 'pi_1',
+    paymentExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    shippingAddress,
+    subOrders: [
+      {
+        items: [
+          {
+            productId: 'product_1',
+            quantity: 1,
+            price: 100000,
+            originalPrice: 100000,
+            platformDiscountAmount: 0,
+          },
+        ],
+      },
+    ],
+    ...overrides,
+  });
+
   beforeEach(async () => {
     jest.clearAllMocks();
     mockPrisma.order.findFirst.mockResolvedValue(null);
     mockPrisma.order.findMany.mockResolvedValue([]);
+    mockPrisma.order.create.mockImplementation((args: { data: unknown }) =>
+      Promise.resolve({
+        id: 'order_1',
+        ...(args.data as Record<string, unknown>),
+      }),
+    );
+    mockPrisma.subOrder.create.mockResolvedValue({ id: 'sub_1' });
+    mockPrisma.orderItem.createMany.mockResolvedValue({ count: 1 });
+    mockPrisma.product.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.inventoryLog.create.mockResolvedValue({ id: 'inv_1' });
+    mockPrisma.cart.findUnique.mockResolvedValue(null);
+    mockPrisma.cartItem.deleteMany.mockResolvedValue({ count: 1 });
+    mockPrisma.cart.update.mockResolvedValue({ id: 'cart_1' });
     mockPrisma.paymentWebhookEvent.create.mockResolvedValue({ id: 'evt_row' });
     mockPrisma.marketplaceLedgerEntry.create.mockResolvedValue({
       id: 'ledger_1',
@@ -114,6 +195,7 @@ describe('OrdersService', () => {
       currency: 'vnd',
       payment_intent: 'pi_1',
     });
+    mockStripe.updatePaymentIntentMetadata.mockResolvedValue(null);
     mockStripe.cancelPaymentIntent.mockResolvedValue(null);
     mockPrisma.$transaction.mockImplementation(
       (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma),
@@ -183,6 +265,7 @@ describe('OrdersService', () => {
         PaymentMethod.STRIPE,
       ),
     ).rejects.toThrow(BadRequestException);
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
   });
 
   it('marks a Stripe order paid once from a valid webhook payload', async () => {
@@ -263,14 +346,9 @@ describe('OrdersService', () => {
 
   it('reuses an active checkout for the same idempotency key', async () => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    mockPrisma.order.findFirst.mockResolvedValue({
-      id: 'order_1',
-      paymentMethod: PaymentMethod.STRIPE,
-      paymentStatus: PaymentStatus.UNPAID,
-      status: OrderStatus.PENDING,
-      paymentIntentId: 'pi_1',
-      paymentExpiresAt: expiresAt,
-    });
+    mockPrisma.order.findFirst.mockResolvedValue(
+      buildReusableOrder({ paymentExpiresAt: expiresAt }),
+    );
     mockStripe.retrievePaymentIntent.mockResolvedValue({
       id: 'pi_1',
       client_secret: 'secret_1',
@@ -284,14 +362,7 @@ describe('OrdersService', () => {
       'customer_1',
       {
         idempotencyKey: 'checkout-key-1',
-        shippingAddress: {
-          fullName: 'Customer',
-          phone: '0900000000',
-          address: '1 Handmade St',
-          city: 'HCM',
-          district: '1',
-          ward: 'Ben Nghe',
-        },
+        shippingAddress,
       },
       PaymentMethod.STRIPE,
     );
@@ -304,6 +375,262 @@ describe('OrdersService', () => {
     });
     expect(mockCart.getCart).not.toHaveBeenCalled();
     expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('rejects a reused idempotency key with another payment method', async () => {
+    mockPrisma.order.findFirst.mockResolvedValue(
+      buildReusableOrder({
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.COD_PENDING,
+        paymentIntentId: null,
+        paymentExpiresAt: null,
+      }),
+    );
+
+    await expect(
+      service.checkout(
+        'customer_1',
+        {
+          idempotencyKey: 'checkout-key-1',
+          shippingAddress,
+        },
+        PaymentMethod.STRIPE,
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockCart.getCart).not.toHaveBeenCalled();
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('rejects a reused idempotency key with another shipping address', async () => {
+    mockPrisma.order.findFirst.mockResolvedValue(
+      buildReusableOrder({
+        shippingAddress: { ...shippingAddress, address: '2 Handmade St' },
+      }),
+    );
+
+    await expect(
+      service.checkout(
+        'customer_1',
+        {
+          idempotencyKey: 'checkout-key-1',
+          shippingAddress,
+        },
+        PaymentMethod.STRIPE,
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockCart.getCart).not.toHaveBeenCalled();
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('rejects a reused idempotency key with another cart payload', async () => {
+    const changedCart = buildCart({
+      items: [
+        {
+          productId: 'product_2',
+          quantity: 1,
+          pricing: { discountedPrice: 100000, originalPrice: 100000 },
+          product: {
+            id: 'product_2',
+            name: 'Handmade bowl',
+            sellerId: 'seller_1',
+            status: ProductStatus.APPROVED,
+            stock: 5,
+            deletedAt: null,
+            categoryId: 'cat_1',
+            category: {
+              status: CategoryStatus.ACTIVE,
+              deletedAt: null,
+            },
+          },
+        },
+      ],
+    });
+    mockPrisma.cart.findUnique.mockResolvedValue({
+      items: [{ productId: 'product_2', quantity: 1 }],
+    });
+    mockCart.getCart.mockResolvedValue(changedCart);
+    mockPrisma.order.findFirst.mockResolvedValue(buildReusableOrder());
+
+    await expect(
+      service.checkout(
+        'customer_1',
+        {
+          idempotencyKey: 'checkout-key-1',
+          shippingAddress,
+        },
+        PaymentMethod.STRIPE,
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('creates a deterministic server idempotency key when client key is missing', async () => {
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    const result = await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    const orderCreateCall = mockPrisma.order.create.mock.calls.at(-1)?.[0];
+    expect(orderCreateCall?.data.checkoutIdempotencyKey).toMatch(/^server:/);
+    expect(result).toMatchObject({
+      orderId: 'order_1',
+      clientSecret: 'secret_1',
+      requiresPayment: true,
+    });
+  });
+
+  it('reuses existing checkout for the same missing-key payload fallback', async () => {
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockPrisma.order.findFirst.mockResolvedValue(buildReusableOrder());
+    mockStripe.retrievePaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+      status: 'requires_payment_method',
+      amount: 125000,
+      currency: 'vnd',
+      metadata: {},
+    });
+
+    const result = await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(result).toMatchObject({
+      orderId: 'order_1',
+      clientSecret: 'secret_1',
+      requiresPayment: true,
+    });
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('reuses a provided idempotency key with the same checkout payload', async () => {
+    mockPrisma.cart.findUnique.mockResolvedValue({
+      items: [{ productId: 'product_1', quantity: 1 }],
+    });
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockPrisma.order.findFirst.mockResolvedValue(buildReusableOrder());
+    mockStripe.retrievePaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+      status: 'requires_payment_method',
+      amount: 125000,
+      currency: 'vnd',
+      metadata: {},
+    });
+
+    const result = await service.checkout(
+      'customer_1',
+      {
+        idempotencyKey: 'checkout-key-1',
+        shippingAddress,
+      },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(result).toMatchObject({
+      orderId: 'order_1',
+      clientSecret: 'secret_1',
+      requiresPayment: true,
+    });
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('does not create an order when PaymentIntent creation fails', async () => {
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockStripe.createPaymentIntent.mockRejectedValue(new Error('stripe_down'));
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow('stripe_down');
+
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('recovers reusable checkout after an idempotency unique conflict', async () => {
+    const uniqueConflict = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: { target: ['customerId', 'checkoutIdempotencyKey'] },
+      },
+    );
+    mockPrisma.cart.findUnique.mockResolvedValue({
+      items: [{ productId: 'product_1', quantity: 1 }],
+    });
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockPrisma.order.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(
+        buildReusableOrder({ paymentIntentId: 'pi_existing' }),
+      );
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_duplicate',
+      client_secret: 'duplicate_secret',
+    });
+    mockStripe.retrievePaymentIntent.mockResolvedValue({
+      id: 'pi_existing',
+      client_secret: 'existing_secret',
+      status: 'requires_payment_method',
+      amount: 125000,
+      currency: 'vnd',
+      metadata: {},
+    });
+    mockPrisma.$transaction.mockRejectedValueOnce(uniqueConflict);
+
+    const result = await service.checkout(
+      'customer_1',
+      {
+        idempotencyKey: 'checkout-key-1',
+        shippingAddress,
+      },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith(
+      'pi_duplicate',
+    );
+    expect(result).toMatchObject({
+      orderId: 'order_1',
+      clientSecret: 'existing_secret',
+      requiresPayment: true,
+    });
+  });
+
+  it('does not reuse a cancelled checkout for the same idempotency key', async () => {
+    mockPrisma.order.findFirst.mockResolvedValue(
+      buildReusableOrder({ status: OrderStatus.CANCELLED }),
+    );
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await service.checkout(
+      'customer_1',
+      {
+        idempotencyKey: 'checkout-key-1',
+        shippingAddress,
+      },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(mockStripe.createPaymentIntent).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.order.create).toHaveBeenCalled();
   });
 
   it('treats duplicate payment webhooks as already processed', async () => {

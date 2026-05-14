@@ -17,10 +17,20 @@ import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
+import { PaymentReliabilityService } from './payment-reliability.service';
+import {
+  PaymentReliabilityAnomaliesQueryDto,
+  PaymentReliabilityReconciliationQueryDto,
+  PaymentReliabilitySummaryQueryDto,
+  PaymentReliabilityWebhooksQueryDto,
+} from './dto/payment-reliability-query.dto';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly paymentReliabilityService: PaymentReliabilityService,
+  ) {}
 
   private parseEnumValue<T extends Record<string, string>>(
     value: string | undefined,
@@ -114,6 +124,49 @@ export class OrdersController {
       customer,
       seller,
     });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
+  @Get('admin/payment-reliability/summary')
+  getPaymentReliabilitySummary(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: PaymentReliabilitySummaryQueryDto,
+  ) {
+    return this.paymentReliabilityService.getSummary(req.user.roles, query);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
+  @Get('admin/payment-reliability/anomalies')
+  getPaymentReliabilityAnomalies(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: PaymentReliabilityAnomaliesQueryDto,
+  ) {
+    return this.paymentReliabilityService.getAnomalies(req.user.roles, query);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
+  @Get('admin/payment-reliability/reconciliation')
+  getPaymentReliabilityReconciliation(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: PaymentReliabilityReconciliationQueryDto,
+  ) {
+    return this.paymentReliabilityService.getReconciliation(
+      req.user.roles,
+      query,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_ADMIN')
+  @Get('admin/payment-reliability/webhooks')
+  getPaymentReliabilityWebhooks(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: PaymentReliabilityWebhooksQueryDto,
+  ) {
+    return this.paymentReliabilityService.getWebhooks(req.user.roles, query);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

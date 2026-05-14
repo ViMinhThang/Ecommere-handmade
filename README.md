@@ -29,7 +29,19 @@ Configure environment variables:
 ```bash
 cp .env.example .env
 ```
-*Note: Edit `.env` and update `DATABASE_URL` with your PostgreSQL credentials. You also need to add `STRIPE_SECRET_KEY=sk_test_...` to utilize the checkout backend functionality.*
+Required backend variables in `backend/.env`:
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `PLATFORM_COMMISSION_BPS`
+- `SEED_ADMIN_PASSWORD` (for local admin seed; do not use shared/static passwords)
 
 Initialize the database and run the seeder:
 ```bash
@@ -50,24 +62,40 @@ cd ../frontend
 npm install
 ```
 
+Configure environment variables:
+```bash
+cp .env.example .env
+```
+
+Required frontend variables in `frontend/.env`:
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+
 Start the development server:
 ```bash
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser. 
 
-*Note: You must set `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...` inside `frontend/.env.local` to render the Stripe UI components on the checkout page.*
+### Environment Security
+- Never commit real `.env` files.
+- Keep only template files (`.env.example`) in Git.
+- If any secret has been committed before, rotate it immediately.
+
+Secret groups that must be rotated if previously exposed:
+- Database credentials
+- JWT signing secret
+- SMTP credentials
+- Stripe API secrets (including webhook signing secret)
+- OAuth client identifiers/secrets (Google, eBay)
 
 ---
 
-## 🔐 Trial Credentials
-To explore the platform's administrative features, use the following credentials on the login page:
-
-- **Email:** `admin@ecommerce.com`
-- **Password:** `admin123`
-- **Role:** `ROLE_ADMIN`
-
-*(Tip: Use the "Auto-fill" button on the login screen for quick access.)*
+## Local Admin Seed
+- The seed script no longer uses a built-in default admin password.
+- To seed a local admin account, set `SEED_ADMIN_PASSWORD` in `backend/.env` before running `npx prisma db seed`.
+- In production environments, admin seeding is skipped by default.
 
 ---
 
@@ -114,3 +142,4 @@ This repository includes a sophisticated AI governance layer in the `.agents/` d
 - **Backend:** NestJS 11, Prisma 5.22, Passport JWT, Swagger.
 - **Frontend:** Next.js 16, Lucide Icons, Recharts, Tiptap, Sonner.
 - **Testing:** Jest, Playwright (E2E).
+

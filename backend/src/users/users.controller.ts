@@ -97,7 +97,8 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    this.assertCanAccessUser(req, id);
     return this.usersService.findOne(id);
   }
 

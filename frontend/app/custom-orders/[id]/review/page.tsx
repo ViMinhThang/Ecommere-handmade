@@ -22,9 +22,14 @@ import {
   RefundDialog,
 } from "@/components/dashboard/financial-operations";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_TYooMQauvdEDq54NiTphI7jx"
-);
+const stripePublishableKey =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
+const isStripeConfigured =
+  stripePublishableKey.startsWith("pk_") &&
+  !stripePublishableKey.includes("REPLACE_WITH_REAL");
+const stripePromise = isStripeConfigured
+  ? loadStripe(stripePublishableKey)
+  : Promise.resolve(null);
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -413,12 +418,20 @@ export default function CustomOrderReviewPage() {
 
               {/* Checkout Form Container when Approved */}
               {(order.status === 'AWAITING_PAYMENT' || showCheckout) && clientSecret && (
+                isStripeConfigured ? (
                 <div>
                    <h3 className="font-serif text-xl font-bold border-b pb-2 mb-4">Hoàn tất thanh toán để bắt đầu chế tác</h3>
                    <Elements stripe={stripePromise} options={{ clientSecret }}>
                       <PaymentForm order={order} onSuccess={() => setShowCheckout(false)} />
                    </Elements>
                 </div>
+                ) : (
+                  <div className="p-6 bg-amber-50 text-amber-800 rounded-lg border border-amber-200">
+                    Stripe checkout is not configured. Please set
+                    <code className="mx-1">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code>
+                    before continuing payment.
+                  </div>
+                )
               )}
 
               {/* If Await Payment but we just loaded the page and don't have clientSecret, we can auto trigger approve mutation to fetch the secret since backend idempotent */}
