@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { ShoppingBag, User } from "lucide-react";
+import { Moon, ShoppingBag, Sun, User } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { useCartContext } from "@/contexts/cart-context";
 import { useCategories } from "@/lib/api/hooks";
@@ -12,20 +13,28 @@ const HIDDEN_HEADER_CATEGORY_NAMES = new Set([
   "Tốt nghiệp",
   "Chia buồn",
   "Cảm ơn",
+  "Kỷ niệm",
+  "Kỉ niệm",
+  "Kỹ niệm",
+  "Đám cưới",
+  "Sinh nhật",
 ]);
 const HIDDEN_HEADER_CATEGORY_SLUGS = new Set([
   "graduation",
   "sympathy",
   "thank-you",
+  "anniversary",
+  "wedding",
+  "birthday",
 ]);
 
 export function CustomerNavBar() {
   const { isAuthenticated } = useAuth();
   const { itemCount } = useCartContext();
+  const { theme, setTheme } = useTheme();
   const { data: categoriesData } = useCategories({ status: "ACTIVE" });
   const categories = categoriesData?.data || [];
   const pathname = usePathname();
-  const isHomePage = pathname === "/";
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -33,7 +42,7 @@ export function CustomerNavBar() {
   );
 
   const displayedCategories =
-    mounted && !isHomePage
+    mounted
       ? categories
           .filter(
             (category) =>
@@ -45,6 +54,7 @@ export function CustomerNavBar() {
   const profileHref =
     mounted && isAuthenticated ? "/profile/settings" : "/login";
   const displayedItemCount = mounted ? itemCount : 0;
+  const isDarkMode = mounted && theme === "dark";
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-xl shadow-[0_40px_40px_rgba(84,67,60,0.06)]">
@@ -111,6 +121,18 @@ export function CustomerNavBar() {
           >
             <User className="w-5 h-5" />
           </Link>
+          <button
+            type="button"
+            aria-label="Chuyển đổi giao diện"
+            className="text-muted-foreground hover:text-primary scale-95 duration-200 ease-out flex h-9 w-9 items-center justify-center rounded-full hover:bg-primary/10"
+            onClick={() => setTheme(isDarkMode ? "light" : "dark")}
+          >
+            {isDarkMode ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
         </div>
       </div>
     </nav>

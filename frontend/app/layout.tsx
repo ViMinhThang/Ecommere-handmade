@@ -10,10 +10,18 @@ import { ChatProvider } from "@/contexts/chat-context";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ChatWidget } from "@/components/chat/chat-widget";
 import { Toaster } from "sonner";
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TAB_TITLE,
+  SITE_NAME,
+} from "@/lib/page-titles";
 
 export const metadata: Metadata = {
-  title: "HandCraft Market - Admin Dashboard",
-  description: "A marketplace for handmade artisan products",
+  title: {
+    default: DEFAULT_TAB_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
 };
 
 const sansFont = Be_Vietnam_Pro({

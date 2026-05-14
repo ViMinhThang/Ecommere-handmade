@@ -8,13 +8,12 @@ import { useTheme } from "next-themes";
 import {
   AlertCircle,
   Loader2,
-  Moon,
-  Sun,
   ArrowRight,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { getSafeRedirectPath } from "@/lib/safe-redirect";
@@ -25,7 +24,7 @@ let initializedGoogleClientId: string | null = null;
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
   const { login, loginWithGoogle } = useAuth();
 
   const redirectTo = getSafeRedirectPath(searchParams.get("redirect"));
@@ -146,21 +145,9 @@ function LoginPageContent() {
 
   return (
     <div className="flex min-h-screen w-full bg-background lg:h-screen lg:overflow-hidden">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed right-6 top-6 z-50 rounded-full hover:bg-primary/10"
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      >
-        {theme === "dark" ? (
-          <Sun className="h-5 w-5 text-primary" />
-        ) : (
-          <Moon className="h-5 w-5 text-primary" />
-        )}
-        <span className="sr-only">Chuyển đổi giao diện</span>
-      </Button>
+      <CustomerNavBar />
 
-      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-accent/30 p-16 lg:flex xl:p-24">
+      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-accent/30 p-16 pt-28 lg:flex xl:p-24 xl:pt-32">
         <div className="animate-pulse absolute -left-[10%] top-[-10%] h-[70%] w-[70%] rounded-full bg-primary/5 blur-[120px]" />
         <div className="absolute -right-[5%] bottom-[5%] h-[50%] w-[50%] rounded-full bg-primary/10 blur-[100px]" />
 
@@ -189,7 +176,7 @@ function LoginPageContent() {
         </div>
       </div>
 
-      <div className="relative flex w-full flex-col items-center justify-start overflow-y-auto bg-background p-8 sm:p-16 lg:w-[55%]">
+      <div className="relative flex w-full flex-col items-center justify-start overflow-y-auto bg-background px-8 pb-8 pt-24 sm:px-16 sm:pb-16 sm:pt-28 lg:w-[55%]">
         <div className="animate-in slide-in-from-right-4 fade-in duration-700 w-full max-w-[420px] py-8 lg:py-10">
           <div className="mb-12">
             <h1 className="mb-3 text-4xl font-serif font-bold text-foreground">
