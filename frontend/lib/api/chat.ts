@@ -48,7 +48,7 @@ function getAccessTokenFromStorage(): string | null {
 
 export const chatApi = {
   startConversation: (data: StartConversationDto) =>
-    apiClient.post<ChatConversationSummary>('/chat/conversations/start', data),
+    apiClient.post<ChatConversationSummary>('/chat/conversations', data),
 
   getConversations: (params?: CursorParams) =>
     apiClient.get<CursorResponse<ChatConversationSummary>>(

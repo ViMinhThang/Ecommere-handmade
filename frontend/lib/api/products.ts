@@ -54,6 +54,84 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface LowStockMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface LowStockResponse {
+  data: Product[];
+  meta: LowStockMeta;
+}
+
+type LowStockApiResponse =
+  | Product[]
+  | {
+      data: Product[];
+      meta?: Partial<LowStockMeta>;
+    };
+
+function normalizeLowStockResponse(
+  payload: LowStockApiResponse,
+  page?: number,
+  limit?: number,
+): LowStockResponse {
+  const fallbackPage = page && page > 0 ? Math.floor(page) : 1;
+  const fallbackLimit = limit && limit > 0 ? Math.floor(limit) : 20;
+
+  if (Array.isArray(payload)) {
+    const total = payload.length;
+    return {
+      data: payload,
+      meta: {
+        page: fallbackPage,
+        limit: fallbackLimit,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / fallbackLimit),
+      },
+    };
+  }
+
+  const data = Array.isArray(payload.data) ? payload.data : [];
+  const rawMeta = payload.meta;
+  const total =
+    typeof rawMeta?.total === 'number' && Number.isFinite(rawMeta.total)
+      ? rawMeta.total
+      : data.length;
+  const normalizedLimit =
+    typeof rawMeta?.limit === 'number' &&
+    Number.isFinite(rawMeta.limit) &&
+    rawMeta.limit > 0
+      ? Math.floor(rawMeta.limit)
+      : fallbackLimit;
+  const normalizedPage =
+    typeof rawMeta?.page === 'number' &&
+    Number.isFinite(rawMeta.page) &&
+    rawMeta.page > 0
+      ? Math.floor(rawMeta.page)
+      : fallbackPage;
+  const totalPages =
+    typeof rawMeta?.totalPages === 'number' &&
+    Number.isFinite(rawMeta.totalPages) &&
+    rawMeta.totalPages >= 0
+      ? Math.floor(rawMeta.totalPages)
+      : total === 0
+        ? 0
+        : Math.ceil(total / normalizedLimit);
+
+  return {
+    data,
+    meta: {
+      page: normalizedPage,
+      limit: normalizedLimit,
+      total,
+      totalPages,
+    },
+  };
+}
+
 export const productsApi = {
   getAll: (params?: { 
     status?: string; 
@@ -86,13 +164,16 @@ export const productsApi = {
 
   getBySeller: (sellerId: string) => apiClient.get<Product[]>(`/products/seller/${sellerId}`),
 
-  getLowStock: (sellerId?: string, page?: number, limit?: number) => {
+  getLowStock: async (sellerId?: string, page?: number, limit?: number) => {
     const params = new URLSearchParams();
     if (sellerId) params.set('sellerId', sellerId);
     if (page) params.set('page', page.toString());
     if (limit) params.set('limit', limit.toString());
     const query = params.toString();
-    return apiClient.get<{ data: Product[]; meta?: { page: number; limit: number; total: number; totalPages: number } }>(`/products/low-stock${query ? `?${query}` : ''}`);
+    const response = await apiClient.get<LowStockApiResponse>(
+      `/products/low-stock${query ? `?${query}` : ''}`,
+    );
+    return normalizeLowStockResponse(response, page, limit);
   },
 
   getBestSellingProducts: (limit = 10) =>

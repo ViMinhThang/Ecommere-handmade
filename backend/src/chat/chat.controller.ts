@@ -71,6 +71,15 @@ export class ChatController {
     return conversation;
   }
 
+  // Backward-compatible alias for existing clients.
+  @Post('conversations/start')
+  async startConversationAlias(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: StartConversationDto,
+  ) {
+    return this.startConversation(req, dto);
+  }
+
   @Post('conversations/:conversationId/messages/text')
   async sendTextMessage(
     @Request() req: AuthenticatedRequest,

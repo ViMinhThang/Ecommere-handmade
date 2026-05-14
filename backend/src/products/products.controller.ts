@@ -27,6 +27,23 @@ import type { AuthenticatedRequest } from '../common/interfaces/request.interfac
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  private parsePositiveInt(value: string | undefined, field: string) {
+    if (!value) {
+      return undefined;
+    }
+
+    const parsedValue = Number(value);
+    if (
+      !Number.isFinite(parsedValue) ||
+      !Number.isInteger(parsedValue) ||
+      parsedValue < 1
+    ) {
+      throw new BadRequestException(`Invalid ${field}`);
+    }
+
+    return parsedValue;
+  }
+
   private parseLimit(limit?: string) {
     if (!limit) {
       return undefined;
@@ -109,11 +126,15 @@ export class ProductsController {
   getLowStock(
     @Request() req: AuthenticatedRequest,
     @Query('sellerId') sellerId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.productsService.getLowStockProducts(
       req.user.id,
       req.user.roles,
       sellerId,
+      this.parsePositiveInt(page, 'page'),
+      this.parsePositiveInt(limit, 'limit'),
     );
   }
 
