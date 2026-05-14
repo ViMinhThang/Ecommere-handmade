@@ -40,18 +40,18 @@ const LOW_STOCK_DEFAULT_PAGE = 1;
 const LOW_STOCK_DEFAULT_LIMIT = 20;
 const LOW_STOCK_MAX_LIMIT = 100;
 
-interface LowStockResponseMeta {
+export interface LowStockResponseMeta {
   page: number;
   limit: number;
   total: number;
   totalPages: number;
 }
 
-interface LowStockProductRow extends Record<string, unknown> {
+export interface LowStockProductRow extends Record<string, unknown> {
   categoryName: string | null;
 }
 
-interface LowStockResponse {
+export interface LowStockResponse {
   data: LowStockProductRow[];
   meta: LowStockResponseMeta;
 }

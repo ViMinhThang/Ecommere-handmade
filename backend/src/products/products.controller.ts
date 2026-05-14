@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
+import type { LowStockResponse } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
@@ -128,7 +129,7 @@ export class ProductsController {
     @Query('sellerId') sellerId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-  ) {
+  ): Promise<LowStockResponse> {
     return this.productsService.getLowStockProducts(
       req.user.id,
       req.user.roles,
