@@ -92,6 +92,7 @@ describe('OrdersService', () => {
     inventoryLog: {
       create: jest.fn(),
     },
+    $queryRaw: jest.fn(),
     $transaction: jest.fn(),
   };
   const mockStripe = {
@@ -202,6 +203,13 @@ describe('OrdersService', () => {
     expect(mockPrisma.flashSaleUserUsage.upsert).not.toHaveBeenCalled();
   };
 
+  const getLastFlashSaleReservationSqlValues = () => {
+    const sql = mockPrisma.$queryRaw.mock.calls.at(-1)?.[0] as
+      | { values?: unknown[] }
+      | undefined;
+    return sql?.values ?? [];
+  };
+
   const buildReusableOrder = (overrides: Record<string, unknown> = {}) => ({
     id: 'order_1',
     customerId: 'customer_1',
@@ -250,6 +258,7 @@ describe('OrdersService', () => {
     mockPrisma.product.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.flashSale.findFirst.mockResolvedValue(null);
     mockPrisma.inventoryLog.create.mockResolvedValue({ id: 'inv_1' });
+    mockPrisma.$queryRaw.mockResolvedValue([{ id: 'flash_sale_1' }]);
     mockPrisma.cart.findUnique.mockResolvedValue(null);
     mockPrisma.cartItem.deleteMany.mockResolvedValue({ count: 1 });
     mockPrisma.cart.update.mockResolvedValue({ id: 'cart_1' });
@@ -733,6 +742,7 @@ describe('OrdersService', () => {
     );
     expect(mockPrisma.product.findFirst).not.toHaveBeenCalled();
     expect(mockPrisma.flashSale.findFirst).not.toHaveBeenCalled();
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
     expectNoFlashSaleCounterWrites();
   });
 
@@ -767,7 +777,129 @@ describe('OrdersService', () => {
         }),
       }),
     );
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(getLastFlashSaleReservationSqlValues()).toEqual(
+      expect.arrayContaining(['flash_sale_1', 1, 1]),
+    );
     expectNoFlashSaleCounterWrites();
+  });
+
+  it('allows flash sale reservation when maxUnits is null', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(
+      buildFlashSale({ maxUnits: null }),
+    );
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.order.create).toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('rejects checkout when flash sale maxUnits reservation fails', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(buildFlashSale());
+    mockPrisma.$queryRaw.mockResolvedValue([]);
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow('Flash sale is sold out. Please refresh your cart.');
+
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('aggregates multiple discounted items by flashSaleId for reservation', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(
+      buildFlashSaleCart({
+        subtotal: 270000,
+        total: 270000,
+        items: [
+          {
+            productId: 'product_1',
+            quantity: 1,
+            pricing: {
+              originalPrice: 100000,
+              discountedPrice: 90000,
+              discountPercent: 10,
+              flashSaleId: 'flash_sale_1',
+            },
+            product: {
+              id: 'product_1',
+              name: 'Handmade cup',
+              sellerId: 'seller_1',
+              status: ProductStatus.APPROVED,
+              stock: 5,
+              price: 100000,
+              deletedAt: null,
+              categoryId: 'cat_1',
+              category: {
+                status: CategoryStatus.ACTIVE,
+                deletedAt: null,
+              },
+            },
+          },
+          {
+            productId: 'product_2',
+            quantity: 2,
+            pricing: {
+              originalPrice: 100000,
+              discountedPrice: 90000,
+              discountPercent: 10,
+              flashSaleId: 'flash_sale_1',
+            },
+            product: {
+              id: 'product_2',
+              name: 'Handmade bowl',
+              sellerId: 'seller_1',
+              status: ProductStatus.APPROVED,
+              stock: 5,
+              price: 100000,
+              deletedAt: null,
+              categoryId: 'cat_1',
+              category: {
+                status: CategoryStatus.ACTIVE,
+                deletedAt: null,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    mockPrisma.flashSale.findFirst.mockResolvedValue(buildFlashSale());
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(getLastFlashSaleReservationSqlValues()).toEqual(
+      expect.arrayContaining(['flash_sale_1', 3, 3]),
+    );
   });
 
   it('preserves active flash sale without matching range as zero-discount snapshot', async () => {
@@ -827,6 +959,71 @@ describe('OrdersService', () => {
       price: 100000,
       originalPrice: 100000,
     });
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('keeps stock decrement behavior unchanged when reserveStock is zero', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(
+      buildFlashSale({ reserveStock: 0 }),
+    );
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(mockPrisma.product.updateMany.mock.calls.at(-1)?.[0].where.stock).toEqual(
+      { gte: 1 },
+    );
+  });
+
+  it('rejects checkout when reserveStock prevents stock decrement', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(
+      buildFlashSale({ reserveStock: 5 }),
+    );
+    mockPrisma.product.updateMany.mockResolvedValue({ count: 0 });
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow(
+      'Insufficient stock for flash sale. Please refresh your cart.',
+    );
+
+    expect(mockPrisma.product.updateMany.mock.calls.at(-1)?.[0].where.stock).toEqual(
+      { gte: 6 },
+    );
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('rejects COD checkout on sale reservation failure without Stripe calls', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(buildFlashSale());
+    mockPrisma.$queryRaw.mockResolvedValue([]);
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow('Flash sale is sold out. Please refresh your cart.');
+
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+    expect(mockStripe.cancelPaymentIntent).not.toHaveBeenCalled();
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
   });
 
   it('rejects paused flash sale pricing when guardrails flag is on', async () => {

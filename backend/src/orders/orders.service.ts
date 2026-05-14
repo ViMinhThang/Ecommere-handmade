@@ -41,6 +41,10 @@ const STRIPE_PAYMENT_EXPIRY_MS = 30 * 60 * 1000;
 const EXPIRED_ORDER_SWEEP_MS = 5 * 60 * 1000;
 const CART_PRICING_CHANGED_MESSAGE =
   'Cart pricing changed. Please refresh your cart.';
+const FLASH_SALE_SOLD_OUT_MESSAGE =
+  'Flash sale is sold out. Please refresh your cart.';
+const FLASH_SALE_INSUFFICIENT_STOCK_MESSAGE =
+  'Insufficient stock for flash sale. Please refresh your cart.';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -82,6 +86,12 @@ interface CheckoutFlashSalePricingSnapshot {
   discountedPrice: number;
   discountPercent: number;
   flashSaleId: string | null;
+  reserveStock: number;
+}
+
+interface FlashSaleReservationGroup {
+  flashSaleId: string;
+  quantity: number;
 }
 
 interface PaymentIntentSnapshot {
@@ -866,8 +876,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       const flashSaleSnapshots = this.isFlashSaleGuardrailsEnabled()
         ? await this.revalidateFlashSalePricing(tx, cart)
         : undefined;
+      const flashSaleReservationGroups = flashSaleSnapshots
+        ? this.buildFlashSaleReservationGroups(cart, flashSaleSnapshots)
+        : [];
 
-      await this.updateStock(tx, cart.items);
+      await this.reserveFlashSaleUnits(tx, flashSaleReservationGroups);
+      await this.updateStock(tx, cart.items, flashSaleSnapshots);
 
       const order = await tx.order.create({
         data: {
@@ -934,6 +948,55 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return snapshots;
   }
 
+  private buildFlashSaleReservationGroups(
+    cart: EnrichedCart,
+    flashSaleSnapshots: Map<string, CheckoutFlashSalePricingSnapshot>,
+  ): FlashSaleReservationGroup[] {
+    const groups = new Map<string, number>();
+
+    for (const item of cart.items) {
+      const snapshot = flashSaleSnapshots.get(item.productId);
+      if (!this.isDiscountedFlashSaleSnapshot(snapshot)) {
+        continue;
+      }
+
+      groups.set(
+        snapshot.flashSaleId,
+        (groups.get(snapshot.flashSaleId) ?? 0) + item.quantity,
+      );
+    }
+
+    return Array.from(groups.entries())
+      .map(([flashSaleId, quantity]) => ({ flashSaleId, quantity }))
+      .sort((a, b) => a.flashSaleId.localeCompare(b.flashSaleId));
+  }
+
+  private async reserveFlashSaleUnits(
+    tx: Prisma.TransactionClient,
+    groups: FlashSaleReservationGroup[],
+  ) {
+    for (const group of groups) {
+      const reservedRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        UPDATE "FlashSale"
+        SET "reservedUnits" = "reservedUnits" + ${group.quantity}
+        WHERE "id" = ${group.flashSaleId}
+          AND "isActive" = true
+          AND "saleState" = 'ACTIVE'::"FlashSaleState"
+          AND "startAt" <= NOW()
+          AND "endAt" >= NOW()
+          AND (
+            "maxUnits" IS NULL
+            OR "soldUnits" + "reservedUnits" + ${group.quantity} <= "maxUnits"
+          )
+        RETURNING "id"
+      `);
+
+      if (reservedRows.length !== 1) {
+        throw new BadRequestException(FLASH_SALE_SOLD_OUT_MESSAGE);
+      }
+    }
+  }
+
   private async calculateTransactionalFlashSalePricing(
     tx: Prisma.TransactionClient,
     productId: string,
@@ -980,6 +1043,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         discountedPrice: originalPrice,
         discountPercent: 0,
         flashSaleId: null,
+        reserveStock: 0,
       };
     }
 
@@ -995,6 +1059,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         discountedPrice: originalPrice,
         discountPercent: 0,
         flashSaleId: flashSale.id,
+        reserveStock: 0,
       };
     }
 
@@ -1006,6 +1071,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       ),
       discountPercent,
       flashSaleId: flashSale.id,
+      reserveStock:
+        discountPercent > 0 ? Math.max(0, flashSale.reserveStock ?? 0) : 0,
     };
   }
 
@@ -1033,14 +1100,23 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private async updateStock(
     tx: Prisma.TransactionClient,
     items: EnrichedCartItem[],
+    flashSaleSnapshots?: Map<string, CheckoutFlashSalePricingSnapshot>,
   ) {
-    for (const item of items) {
+    const sortedItems = flashSaleSnapshots
+      ? [...items].sort((a, b) => a.productId.localeCompare(b.productId))
+      : items;
+
+    for (const item of sortedItems) {
+      const snapshot = flashSaleSnapshots?.get(item.productId);
+      const stockThreshold = this.isDiscountedFlashSaleSnapshot(snapshot)
+        ? item.quantity + snapshot.reserveStock
+        : item.quantity;
       const result = await tx.product.updateMany({
         where: {
           id: item.productId,
           deletedAt: null,
           status: ProductStatus.APPROVED,
-          stock: { gte: item.quantity },
+          stock: { gte: stockThreshold },
           category: {
             deletedAt: null,
             status: CategoryStatus.ACTIVE,
@@ -1050,6 +1126,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (result.count !== 1) {
+        if (this.isDiscountedFlashSaleSnapshot(snapshot)) {
+          throw new BadRequestException(FLASH_SALE_INSUFFICIENT_STOCK_MESSAGE);
+        }
+
         throw new BadRequestException(
           `Product ${item.product.name} is out of stock`,
         );
@@ -1122,6 +1202,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         }),
       });
     }
+  }
+
+  private isDiscountedFlashSaleSnapshot(
+    snapshot: CheckoutFlashSalePricingSnapshot | undefined,
+  ): snapshot is CheckoutFlashSalePricingSnapshot & { flashSaleId: string } {
+    return Boolean(
+      snapshot?.flashSaleId && Number(snapshot.discountPercent) > 0,
+    );
   }
 
   private async createLedgerEntry(
