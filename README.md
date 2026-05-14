@@ -41,6 +41,7 @@ Required backend variables in `backend/.env`:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `PLATFORM_COMMISSION_BPS`
+- `SEED_ADMIN_PASSWORD` (for local admin seed; do not use shared/static passwords)
 
 Initialize the database and run the seeder:
 ```bash
@@ -91,14 +92,10 @@ Secret groups that must be rotated if previously exposed:
 
 ---
 
-## 🔐 Trial Credentials
-To explore the platform's administrative features, use the following credentials on the login page:
-
-- **Email:** `admin@ecommerce.com`
-- **Password:** `admin123`
-- **Role:** `ROLE_ADMIN`
-
-*(Tip: Use the "Auto-fill" button on the login screen for quick access.)*
+## Local Admin Seed
+- The seed script no longer uses a built-in default admin password.
+- To seed a local admin account, set `SEED_ADMIN_PASSWORD` in `backend/.env` before running `npx prisma db seed`.
+- In production environments, admin seeding is skipped by default.
 
 ---
 
@@ -145,3 +142,4 @@ This repository includes a sophisticated AI governance layer in the `.agents/` d
 - **Backend:** NestJS 11, Prisma 5.22, Passport JWT, Swagger.
 - **Frontend:** Next.js 16, Lucide Icons, Recharts, Tiptap, Sonner.
 - **Testing:** Jest, Playwright (E2E).
+

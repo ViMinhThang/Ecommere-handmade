@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 describe('UsersService', () => {
@@ -82,6 +82,18 @@ describe('UsersService', () => {
       const result = await service.create(dto);
 
       expect(result.roles).toEqual(['ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN']);
+    });
+
+    it('should reject create requests without explicit password', async () => {
+      const dto = {
+        name: 'Test',
+        email: 'test@test.com',
+      };
+
+      await expect(
+        service.create(dto as unknown as Parameters<UsersService['create']>[0]),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.user.create).not.toHaveBeenCalled();
     });
   });
 
