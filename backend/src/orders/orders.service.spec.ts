@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   CategoryStatus,
   MarketplaceLedgerEntryType,
+  FlashSaleState,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
@@ -75,8 +76,18 @@ describe('OrdersService', () => {
       findUnique: jest.fn(),
     },
     product: {
+      findFirst: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
+    },
+    flashSale: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
+    },
+    flashSaleUserUsage: {
+      create: jest.fn(),
+      update: jest.fn(),
+      upsert: jest.fn(),
     },
     inventoryLog: {
       create: jest.fn(),
@@ -93,6 +104,8 @@ describe('OrdersService', () => {
   const mockCart = {
     getCart: jest.fn(),
   };
+  const previousFlashSaleGuardrailsFlag =
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED;
 
   const shippingAddress = {
     fullName: 'Customer',
@@ -133,6 +146,62 @@ describe('OrdersService', () => {
     ...overrides,
   });
 
+  const buildFlashSaleCart = (overrides: Record<string, unknown> = {}) =>
+    buildCart({
+      subtotal: 90000,
+      total: 90000,
+      items: [
+        {
+          productId: 'product_1',
+          quantity: 1,
+          pricing: {
+            originalPrice: 100000,
+            discountedPrice: 90000,
+            discountPercent: 10,
+            flashSaleId: 'flash_sale_1',
+          },
+          product: {
+            id: 'product_1',
+            name: 'Handmade cup',
+            sellerId: 'seller_1',
+            status: ProductStatus.APPROVED,
+            stock: 5,
+            price: 100000,
+            deletedAt: null,
+            categoryId: 'cat_1',
+            category: {
+              status: CategoryStatus.ACTIVE,
+              deletedAt: null,
+            },
+          },
+        },
+      ],
+      ...overrides,
+    });
+
+  const buildFlashSale = (overrides: Record<string, unknown> = {}) => ({
+    id: 'flash_sale_1',
+    isActive: true,
+    saleState: FlashSaleState.ACTIVE,
+    startAt: new Date(Date.now() - 60 * 1000),
+    endAt: new Date(Date.now() + 60 * 1000),
+    ranges: [
+      {
+        minPrice: 0,
+        maxPrice: 200000,
+        discountPercent: 10,
+      },
+    ],
+    ...overrides,
+  });
+
+  const expectNoFlashSaleCounterWrites = () => {
+    expect(mockPrisma.flashSale.update).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.create).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.update).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSaleUserUsage.upsert).not.toHaveBeenCalled();
+  };
+
   const buildReusableOrder = (overrides: Record<string, unknown> = {}) => ({
     id: 'order_1',
     customerId: 'customer_1',
@@ -163,6 +232,7 @@ describe('OrdersService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    delete process.env.FLASH_SALE_GUARDRAILS_ENABLED;
     mockPrisma.order.findFirst.mockResolvedValue(null);
     mockPrisma.order.findMany.mockResolvedValue([]);
     mockPrisma.order.create.mockImplementation((args: { data: unknown }) =>
@@ -173,7 +243,12 @@ describe('OrdersService', () => {
     );
     mockPrisma.subOrder.create.mockResolvedValue({ id: 'sub_1' });
     mockPrisma.orderItem.createMany.mockResolvedValue({ count: 1 });
+    mockPrisma.product.findFirst.mockResolvedValue({
+      price: 100000,
+      categoryId: 'cat_1',
+    });
     mockPrisma.product.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.flashSale.findFirst.mockResolvedValue(null);
     mockPrisma.inventoryLog.create.mockResolvedValue({ id: 'inv_1' });
     mockPrisma.cart.findUnique.mockResolvedValue(null);
     mockPrisma.cartItem.deleteMany.mockResolvedValue({ count: 1 });
@@ -207,6 +282,16 @@ describe('OrdersService', () => {
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
+  });
+
+  afterAll(() => {
+    if (previousFlashSaleGuardrailsFlag === undefined) {
+      delete process.env.FLASH_SALE_GUARDRAILS_ENABLED;
+      return;
+    }
+
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED =
+      previousFlashSaleGuardrailsFlag;
   });
 
   it('does not checkout when atomic stock decrement fails', async () => {
@@ -626,6 +711,229 @@ describe('OrdersService', () => {
 
     expect(mockStripe.createPaymentIntent).toHaveBeenCalledTimes(1);
     expect(mockPrisma.order.create).toHaveBeenCalled();
+  });
+
+  it('keeps flash sale snapshot fields unset when guardrails flag is off', async () => {
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    const itemCreateCall = mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    expect(itemCreateCall?.data[0]).not.toHaveProperty('flashSaleId');
+    expect(itemCreateCall?.data[0]).not.toHaveProperty(
+      'flashSaleDiscountPercent',
+    );
+    expect(mockPrisma.product.findFirst).not.toHaveBeenCalled();
+    expect(mockPrisma.flashSale.findFirst).not.toHaveBeenCalled();
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('revalidates active flash sale pricing and writes order item snapshot when flag is on', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(buildFlashSale());
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    const itemCreateCall = mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    expect(itemCreateCall?.data[0]).toMatchObject({
+      flashSaleId: 'flash_sale_1',
+      flashSaleDiscountPercent: 10,
+      price: 90000,
+      originalPrice: 100000,
+    });
+    expect(mockPrisma.flashSale.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          saleState: FlashSaleState.ACTIVE,
+          categories: { some: { categoryId: 'cat_1' } },
+        }),
+      }),
+    );
+    expectNoFlashSaleCounterWrites();
+  });
+
+  it('preserves active flash sale without matching range as zero-discount snapshot', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(
+      buildFlashSaleCart({
+        subtotal: 100000,
+        total: 100000,
+        items: [
+          {
+            productId: 'product_1',
+            quantity: 1,
+            pricing: {
+              originalPrice: 100000,
+              discountedPrice: 100000,
+              discountPercent: 0,
+              flashSaleId: 'flash_sale_1',
+            },
+            product: {
+              id: 'product_1',
+              name: 'Handmade cup',
+              sellerId: 'seller_1',
+              status: ProductStatus.APPROVED,
+              stock: 5,
+              price: 100000,
+              deletedAt: null,
+              categoryId: 'cat_1',
+              category: {
+                status: CategoryStatus.ACTIVE,
+                deletedAt: null,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    mockPrisma.flashSale.findFirst.mockResolvedValue(
+      buildFlashSale({
+        ranges: [{ minPrice: 200000, maxPrice: 300000, discountPercent: 10 }],
+      }),
+    );
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.STRIPE,
+    );
+
+    const itemCreateCall = mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    expect(itemCreateCall?.data[0]).toMatchObject({
+      flashSaleId: 'flash_sale_1',
+      flashSaleDiscountPercent: 0,
+      price: 100000,
+      originalPrice: 100000,
+    });
+  });
+
+  it('rejects paused flash sale pricing when guardrails flag is on', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(null);
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow('Cart pricing changed. Please refresh your cart.');
+
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects ended flash sale pricing when guardrails flag is on', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(null);
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow('Cart pricing changed. Please refresh your cart.');
+
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects inactive flash sale pricing when guardrails flag is on', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(null);
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow('Cart pricing changed. Please refresh your cart.');
+
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects changed flash sale discount percent when guardrails flag is on', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildFlashSaleCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(
+      buildFlashSale({
+        ranges: [{ minPrice: 0, maxPrice: 200000, discountPercent: 20 }],
+      }),
+    );
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow('Cart pricing changed. Please refresh your cart.');
+
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.orderItem.createMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects changed product price during COD checkout without Stripe calls', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockPrisma.product.findFirst.mockResolvedValue({
+      price: 120000,
+      categoryId: 'cat_1',
+    });
+    mockPrisma.flashSale.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow('Cart pricing changed. Please refresh your cart.');
+
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+    expect(mockStripe.cancelPaymentIntent).not.toHaveBeenCalled();
+    expect(mockPrisma.orderItem.createMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a new flash sale appearing after cart pricing when guardrails flag is on', async () => {
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = 'true';
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockPrisma.flashSale.findFirst.mockResolvedValue(buildFlashSale());
+    mockStripe.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+    });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.STRIPE),
+    ).rejects.toThrow('Cart pricing changed. Please refresh your cart.');
+
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
+    expect(mockPrisma.orderItem.createMany).not.toHaveBeenCalled();
   });
 
   it('treats duplicate payment webhooks as already processed', async () => {

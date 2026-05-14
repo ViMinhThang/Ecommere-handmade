@@ -29,6 +29,7 @@ import {
   MarketplaceLedgerEntryStatus,
   MarketplaceLedgerEntryType,
   RefundStatus,
+  FlashSaleState,
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
@@ -38,8 +39,8 @@ const CURRENCY = 'vnd';
 const DEFAULT_PLATFORM_COMMISSION_BPS = 1000;
 const STRIPE_PAYMENT_EXPIRY_MS = 30 * 60 * 1000;
 const EXPIRED_ORDER_SWEEP_MS = 5 * 60 * 1000;
-const FLASH_SALE_GUARDRAILS_ENABLED =
-  process.env.FLASH_SALE_GUARDRAILS_ENABLED === 'true';
+const CART_PRICING_CHANGED_MESSAGE =
+  'Cart pricing changed. Please refresh your cart.';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -74,6 +75,13 @@ interface CheckoutReuseValidationContext {
 interface CheckoutCartComparisonItem {
   productId: string;
   quantity: number;
+}
+
+interface CheckoutFlashSalePricingSnapshot {
+  originalPrice: number;
+  discountedPrice: number;
+  discountPercent: number;
+  flashSaleId: string | null;
 }
 
 interface PaymentIntentSnapshot {
@@ -161,8 +169,6 @@ type CustomOrderSummary = {
 @Injectable()
 export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private expiredOrderSweepTimer?: NodeJS.Timeout;
-  private readonly flashSaleGuardrailsEnabled =
-    FLASH_SALE_GUARDRAILS_ENABLED;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -857,6 +863,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
+      const flashSaleSnapshots = this.isFlashSaleGuardrailsEnabled()
+        ? await this.revalidateFlashSalePricing(tx, cart)
+        : undefined;
+
       await this.updateStock(tx, cart.items);
 
       const order = await tx.order.create({
@@ -878,7 +888,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      await this.createSubOrders(tx, order.id, cart, sellerGroups);
+      await this.createSubOrders(
+        tx,
+        order.id,
+        cart,
+        sellerGroups,
+        flashSaleSnapshots,
+      );
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id },
       });
@@ -890,6 +906,128 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       return order;
     });
+  }
+
+  private isFlashSaleGuardrailsEnabled() {
+    return process.env.FLASH_SALE_GUARDRAILS_ENABLED === 'true';
+  }
+
+  private async revalidateFlashSalePricing(
+    tx: Prisma.TransactionClient,
+    cart: EnrichedCart,
+  ) {
+    const snapshots = new Map<string, CheckoutFlashSalePricingSnapshot>();
+
+    for (const item of cart.items) {
+      const currentPricing = await this.calculateTransactionalFlashSalePricing(
+        tx,
+        item.productId,
+      );
+
+      if (!this.isCartPricingSnapshotCurrent(item, currentPricing)) {
+        throw new BadRequestException(CART_PRICING_CHANGED_MESSAGE);
+      }
+
+      snapshots.set(item.productId, currentPricing);
+    }
+
+    return snapshots;
+  }
+
+  private async calculateTransactionalFlashSalePricing(
+    tx: Prisma.TransactionClient,
+    productId: string,
+  ): Promise<CheckoutFlashSalePricingSnapshot> {
+    const product = await tx.product.findFirst({
+      where: {
+        id: productId,
+        deletedAt: null,
+        status: ProductStatus.APPROVED,
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
+      },
+      select: {
+        price: true,
+        categoryId: true,
+      },
+    });
+
+    if (!product) {
+      throw new BadRequestException(CART_PRICING_CHANGED_MESSAGE);
+    }
+
+    const originalPrice = this.toCheckoutMoney(product.price);
+    const flashSale = await tx.flashSale.findFirst({
+      where: {
+        isActive: true,
+        saleState: FlashSaleState.ACTIVE,
+        startAt: { lte: new Date() },
+        endAt: { gte: new Date() },
+        categories: {
+          some: { categoryId: product.categoryId },
+        },
+      },
+      include: {
+        ranges: true,
+      },
+    });
+
+    if (!flashSale) {
+      return {
+        originalPrice,
+        discountedPrice: originalPrice,
+        discountPercent: 0,
+        flashSaleId: null,
+      };
+    }
+
+    const matchedRange = flashSale.ranges.find(
+      (range) =>
+        originalPrice >= Number(range.minPrice) &&
+        originalPrice <= Number(range.maxPrice),
+    );
+
+    if (!matchedRange) {
+      return {
+        originalPrice,
+        discountedPrice: originalPrice,
+        discountPercent: 0,
+        flashSaleId: flashSale.id,
+      };
+    }
+
+    const discountPercent = Number(matchedRange.discountPercent);
+    return {
+      originalPrice,
+      discountedPrice: this.roundMoney(
+        originalPrice * (1 - discountPercent / 100),
+      ),
+      discountPercent,
+      flashSaleId: flashSale.id,
+    };
+  }
+
+  private isCartPricingSnapshotCurrent(
+    item: EnrichedCartItem,
+    currentPricing: CheckoutFlashSalePricingSnapshot,
+  ) {
+    const cartPricing = {
+      originalPrice: this.toCheckoutMoney(
+        item.pricing.originalPrice ?? item.product.price,
+      ),
+      discountedPrice: this.toCheckoutMoney(item.pricing.discountedPrice),
+      discountPercent: Number(item.pricing.discountPercent ?? 0),
+      flashSaleId: item.pricing.flashSaleId ?? null,
+    };
+
+    return (
+      cartPricing.originalPrice === currentPricing.originalPrice &&
+      cartPricing.discountedPrice === currentPricing.discountedPrice &&
+      cartPricing.discountPercent === currentPricing.discountPercent &&
+      cartPricing.flashSaleId === currentPricing.flashSaleId
+    );
   }
 
   private async updateStock(
@@ -932,6 +1070,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     orderId: string,
     cart: EnrichedCart,
     sellerGroups: Map<string, SubOrderGroup>,
+    flashSaleSnapshots?: Map<string, CheckoutFlashSalePricingSnapshot>,
   ) {
     const groups = Array.from(sellerGroups.entries());
     let remainingDiscount = cart.discountAmount;
@@ -959,17 +1098,28 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       });
 
       await tx.orderItem.createMany({
-        data: data.items.map((item) => ({
-          subOrderId: subOrder.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.pricing.discountedPrice,
-          originalPrice: item.pricing.originalPrice,
-          platformDiscountAmount: Math.max(
-            0,
-            item.pricing.originalPrice - item.pricing.discountedPrice,
-          ),
-        })),
+        data: data.items.map((item) => {
+          const flashSaleSnapshot = flashSaleSnapshots?.get(item.productId);
+
+          return {
+            subOrderId: subOrder.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.pricing.discountedPrice,
+            originalPrice: item.pricing.originalPrice,
+            platformDiscountAmount: Math.max(
+              0,
+              item.pricing.originalPrice - item.pricing.discountedPrice,
+            ),
+            ...(flashSaleSnapshots
+              ? {
+                  flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
+                  flashSaleDiscountPercent:
+                    flashSaleSnapshot?.discountPercent ?? 0,
+                }
+              : {}),
+          };
+        }),
       });
     }
   }
