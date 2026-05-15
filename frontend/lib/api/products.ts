@@ -182,6 +182,9 @@ export const productsApi = {
   getMostViewedProducts: (limit = 10) =>
     apiClient.get<Product[]>(`/products/most-viewed?limit=${limit}`),
 
+  getRecommendations: (limit = 10) =>
+    apiClient.get<Product[]>(`/products/recommendations?limit=${limit}`),
+
   getOne: (id: string) => apiClient.get<Product>(`/products/${id}`),
 
   getQuestions: (

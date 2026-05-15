@@ -133,6 +133,47 @@ describe('UsersService', () => {
     });
   });
 
+  describe('findCustomersForSeller', () => {
+    it('limits a seller without search to customers they already know', async () => {
+      mockPrismaService.user.findMany.mockResolvedValue([]);
+      mockPrismaService.user.count.mockResolvedValue(0);
+
+      await service.findCustomersForSeller('seller-id', ['ROLE_SELLER'], {
+        limit: 10,
+      });
+
+      const findManyCall = mockPrismaService.user.findMany.mock.calls.at(-1)?.[0];
+      expect(findManyCall?.where).toMatchObject({
+        deletedAt: null,
+        status: 'ACTIVE',
+        roles: { has: 'ROLE_USER' },
+        OR: [
+          { customerConversations: { some: { sellerId: 'seller-id' } } },
+          { customerCustomOrders: { some: { sellerId: 'seller-id' } } },
+        ],
+      });
+    });
+
+    it('allows a seller to search active customers by name, email, or phone', async () => {
+      mockPrismaService.user.findMany.mockResolvedValue([]);
+      mockPrismaService.user.count.mockResolvedValue(0);
+
+      await service.findCustomersForSeller('seller-id', ['ROLE_SELLER'], {
+        q: 'linh',
+      });
+
+      const findManyCall = mockPrismaService.user.findMany.mock.calls.at(-1)?.[0];
+      expect(findManyCall?.where.OR).toEqual([
+        { name: { contains: 'linh', mode: 'insensitive' } },
+        { email: { contains: 'linh', mode: 'insensitive' } },
+        { phone: { contains: 'linh', mode: 'insensitive' } },
+      ]);
+      expect(JSON.stringify(findManyCall?.where)).not.toContain(
+        'customerConversations',
+      );
+    });
+  });
+
   describe('findOne', () => {
     it('should return a user', async () => {
       const user = { id: '1', name: 'Test', email: 'test@test.com' };

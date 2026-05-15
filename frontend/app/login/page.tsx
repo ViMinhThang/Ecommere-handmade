@@ -34,6 +34,7 @@ function LoginPageContent() {
     process.env.NODE_ENV !== "production" &&
     Boolean(demoAdminEmail && demoAdminPassword);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const googleButtonRenderKeyRef = useRef<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,7 +61,7 @@ function LoginPageContent() {
     }
 
     setGoogleUnavailable(false);
-    googleButtonRef.current.replaceChildren();
+    const buttonContainer = googleButtonRef.current;
     if (
       !isGoogleIdentityInitialized ||
       initializedGoogleClientId !== clientId
@@ -95,19 +96,34 @@ function LoginPageContent() {
 
     const buttonWidth = Math.max(
       220,
-      Math.min(380, googleButtonRef.current.clientWidth || 380),
+      Math.min(380, buttonContainer.clientWidth || 380),
     );
+    const renderKey = `${clientId}:${theme === "dark" ? "dark" : "light"}:${buttonWidth}`;
+    if (
+      googleButtonRenderKeyRef.current === renderKey &&
+      buttonContainer.childNodes.length > 0
+    ) {
+      setIsGoogleReady(true);
+      return;
+    }
 
-    googleApi.renderButton(googleButtonRef.current, {
-      type: "standard",
-      theme: theme === "dark" ? "filled_black" : "outline",
-      size: "large",
-      text: "continue_with",
-      shape: "rectangular",
-      width: buttonWidth,
-    });
-
-    setIsGoogleReady(true);
+    try {
+      buttonContainer.replaceChildren();
+      googleApi.renderButton(buttonContainer, {
+        type: "standard",
+        theme: theme === "dark" ? "filled_black" : "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        width: buttonWidth,
+      });
+      googleButtonRenderKeyRef.current = renderKey;
+      setIsGoogleReady(true);
+    } catch {
+      googleButtonRenderKeyRef.current = null;
+      setIsGoogleReady(false);
+      setGoogleUnavailable(true);
+    }
   }, [loginWithGoogle, redirectTo, router, theme]);
 
   useEffect(() => {

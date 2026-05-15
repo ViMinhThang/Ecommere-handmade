@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
+import {
+  customOrdersApi,
+  CreateCustomOrderPayload,
+} from "@/lib/api/custom-orders";
 import { usersApi } from "@/lib/api/users";
 import { User } from "@/types";
 import { SketchUpload } from "@/components/dashboard/sketch-upload";
@@ -13,14 +16,22 @@ import { getErrorMessage } from "@/lib/utils";
 // Minimal reproduction of custom_order1 style generator
 export default function NewCustomOrderPage() {
   const router = useRouter();
-  
-  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ["sellerCustomers", { limit: 100 }],
-    queryFn: () => usersApi.getCustomers({ limit: 100 }),
+  const [customerSearch, setCustomerSearch] = useState("");
+  const deferredCustomerSearch = useDeferredValue(customerSearch.trim());
+  const customerSearchQuery =
+    deferredCustomerSearch.length >= 2 ? deferredCustomerSearch : undefined;
+
+  const {
+    data: usersData,
+    isLoading: isLoadingUsers,
+    isFetching: isFetchingUsers,
+  } = useQuery({
+    queryKey: ["sellerCustomers", { q: customerSearchQuery, limit: 20 }],
+    queryFn: () => usersApi.getCustomers({ q: customerSearchQuery, limit: 20 }),
   });
-  
+
   const customers = usersData?.data || [];
-  
+
   const [formData, setFormData] = useState({
     customerId: "",
     title: "Bình Gốm Mỹ Nghệ Chạm Khắc Tay",
@@ -34,7 +45,8 @@ export default function NewCustomOrderPage() {
   const [specifications, setSpecifications] = useState<string[]>(["Gốm thô"]);
 
   const createOrder = useMutation({
-    mutationFn: (data: Partial<CustomOrder>) => customOrdersApi.create(data),
+    mutationFn: (data: CreateCustomOrderPayload) =>
+      customOrdersApi.create(data),
     onSuccess: (data) => {
       toast.success("Đơn hàng thiết kế đã được tạo và gửi bản duyệt.");
       // The seller can be navigated to their dashboard, but for tracking let's just 
@@ -62,7 +74,6 @@ export default function NewCustomOrderPage() {
 
     createOrder.mutate({
       ...formData,
-      price: formData.price.toString(),
       specifications,
     });
   };
@@ -74,8 +85,18 @@ export default function NewCustomOrderPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
+             <label htmlFor="custom-order-customer-search" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Tìm khách hàng</label>
+             <input
+               id="custom-order-customer-search"
+               name="custom-order-customer-search"
+               type="search"
+               value={customerSearch}
+               onChange={(e) => setCustomerSearch(e.target.value)}
+               placeholder="Tên, email hoặc số điện thoại"
+               className="w-full border-b border-slate-300 py-2 mb-5 focus:outline-none focus:border-[#A35C3D] bg-transparent transition-colors"
+             />
              <label htmlFor="custom-order-customer" className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Chọn Khách hàng</label>
-             {isLoadingUsers ? (
+             {isLoadingUsers || isFetchingUsers ? (
                <div className="py-2 text-sm text-slate-400 animate-pulse">Đang tải danh sách...</div>
              ) : (
                <select 
@@ -86,7 +107,9 @@ export default function NewCustomOrderPage() {
                  onChange={e => setFormData({...formData, customerId: e.target.value})}
                  className="w-full border-b border-slate-300 py-2 focus:outline-none focus:border-[#A35C3D] bg-transparent transition-colors cursor-pointer"
                >
-                 <option value="" disabled>Chọn một khách hàng</option>
+                 <option value="" disabled>
+                   {customers.length ? "Chọn một khách hàng" : "Không có khách hàng phù hợp"}
+                 </option>
                  {customers.map((user: User) => (
                    <option key={user.id} value={user.id}>
                      {user.name} ({user.email})

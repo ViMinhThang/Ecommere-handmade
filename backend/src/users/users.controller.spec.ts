@@ -14,6 +14,7 @@ describe('UsersController', () => {
   const mockUsersService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findCustomersForSeller: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
@@ -96,6 +97,27 @@ describe('UsersController', () => {
       expect(mockUsersService.findAll).toHaveBeenCalledWith(
         undefined,
         undefined,
+        query,
+      );
+      expect(response).toEqual(result);
+    });
+  });
+
+  describe('findCustomersForSeller', () => {
+    it('passes seller id, roles, and query to the customer lookup service', async () => {
+      const result = {
+        data: [],
+        meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      };
+      const request = createRequest('seller-id', ['ROLE_SELLER']);
+      const query = { q: 'linh', page: 1, limit: 20 };
+      mockUsersService.findCustomersForSeller.mockResolvedValue(result);
+
+      const response = await controller.findCustomersForSeller(request, query);
+
+      expect(mockUsersService.findCustomersForSeller).toHaveBeenCalledWith(
+        'seller-id',
+        ['ROLE_SELLER'],
         query,
       );
       expect(response).toEqual(result);

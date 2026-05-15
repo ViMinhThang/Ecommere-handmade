@@ -7,7 +7,13 @@ import { apiClient } from "@/lib/api/client";
 import { PaymentForm } from "@/components/checkout/payment-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useMe, useAddresses, useAddAddress, useCart } from "@/lib/api/hooks";
+import {
+  useMe,
+  useAddresses,
+  useAddAddress,
+  useCart,
+  useRewardBalance,
+} from "@/lib/api/hooks";
 import Image from "next/image";
 import { mediaApi } from "@/lib/api/media";
 import { formatCurrency } from "@/lib/utils";
@@ -68,6 +74,7 @@ export default function CheckoutPage() {
   const { data: addresses } = useAddresses(user?.id || "");
   const { mutate: addAddress, isPending: isSavingAddress } = useAddAddress();
   const { data: cart } = useCart();
+  const rewardBalanceQuery = useRewardBalance(Boolean(user));
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [checkoutOrderId, setCheckoutOrderId] = useState("");
@@ -93,6 +100,7 @@ export default function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressFormData, setAddressFormData] =
     useState<AddressFormData>(emptyAddressFormData);
+  const [rewardPointsToRedeem, setRewardPointsToRedeem] = useState(0);
 
   const savedAddresses = addresses || [];
   const selectedAddress =
@@ -232,6 +240,7 @@ export default function CheckoutPage() {
           address: formData.street,
         },
         paymentMethod,
+        rewardPointsToRedeem: normalizedRewardPointsToRedeem,
       });
 
       if (!data?.orderId) {
@@ -277,6 +286,38 @@ export default function CheckoutPage() {
     },
   };
 
+  const subtotal = cart?.subtotal || 0;
+  const discountAmount = cart?.discountAmount || 0;
+  const shipping = 25000;
+  const baseTotal = (cart?.total || 0) + shipping;
+  const rewardBalance = rewardBalanceQuery.data;
+  const rewardVndPerPoint = rewardBalance?.redeemVndPerPoint || 0;
+  const maxRedeemByTotal =
+    rewardVndPerPoint > 0 && baseTotal > 1
+      ? Math.floor((baseTotal - 1) / rewardVndPerPoint)
+      : 0;
+  const maxRedeemPoints = Math.max(
+    0,
+    Math.min(rewardBalance?.balance || 0, maxRedeemByTotal),
+  );
+  const normalizedRewardPointsToRedeem = Math.min(
+    Math.max(0, Math.floor(rewardPointsToRedeem || 0)),
+    maxRedeemPoints,
+  );
+  const rewardDiscountAmount =
+    normalizedRewardPointsToRedeem * rewardVndPerPoint;
+  const total = Math.max(0, baseTotal - rewardDiscountAmount);
+  const estimatedEarnPoints =
+    rewardBalance?.earnVndPerPoint && total > 0
+      ? Math.floor(total / rewardBalance.earnVndPerPoint)
+      : 0;
+
+  useEffect(() => {
+    if (rewardPointsToRedeem > maxRedeemPoints) {
+      setRewardPointsToRedeem(maxRedeemPoints);
+    }
+  }, [maxRedeemPoints, rewardPointsToRedeem]);
+
   if (!cart || cart.items.length === 0) {
     return (
       <div className="min-h-screen bg-[#F8F6F1] flex flex-col items-center justify-center p-6 text-center">
@@ -292,11 +333,6 @@ export default function CheckoutPage() {
       </div>
     );
   }
-
-  const subtotal = cart.subtotal || 0;
-  const discountAmount = cart.discountAmount || 0;
-  const shipping = 25000;
-  const total = (cart.total || 0) + shipping;
 
   return (
     <div className="min-h-screen bg-[#F8F6F1] text-stone-800 font-body">
@@ -636,10 +672,17 @@ export default function CheckoutPage() {
                   </button>
                 </div>
                 <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200">
-                  <Elements stripe={stripePromise} options={options}>
+                  <Elements
+                    key={clientSecret}
+                    stripe={stripePromise}
+                    options={options}
+                  >
                     <PaymentForm
                       orderId={checkoutOrderId}
                       paymentIntentId={paymentIntentId}
+                      onPaymentElementError={(message) => {
+                        toast.error(message);
+                      }}
                       onSuccess={(orderId) => {
                         router.push(`/orders/${orderId}/confirmation`);
                       }}
@@ -711,6 +754,50 @@ export default function CheckoutPage() {
                   <span className="shrink-0 whitespace-nowrap font-semibold">
                     -{formatCurrency(discountAmount)}
                   </span>
+                </div>
+              )}
+              {user && (
+                <div className="space-y-3 rounded-sm border border-[#8B4513]/15 bg-white/70 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-stone-500 font-medium">
+                      Diem thuong
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[#8B4513]">
+                      {rewardBalanceQuery.isLoading
+                        ? "Dang tai..."
+                        : `${rewardBalance?.balance || 0} diem`}
+                    </span>
+                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={maxRedeemPoints}
+                    step={1}
+                    value={rewardPointsToRedeem}
+                    disabled={
+                      rewardBalanceQuery.isLoading || maxRedeemPoints === 0
+                    }
+                    onChange={(event) =>
+                      setRewardPointsToRedeem(
+                        Math.max(0, Math.floor(Number(event.target.value) || 0)),
+                      )
+                    }
+                    placeholder="Nhap so diem muon dung"
+                  />
+                  <div className="flex items-center justify-between gap-4 text-xs text-stone-500">
+                    <span>Dung toi da {maxRedeemPoints} diem</span>
+                    {rewardDiscountAmount > 0 && (
+                      <span className="font-semibold text-[#8B4513]">
+                        -{formatCurrency(rewardDiscountAmount)}
+                      </span>
+                    )}
+                  </div>
+                  {estimatedEarnPoints > 0 && (
+                    <p className="text-xs text-stone-500">
+                      Du kien nhan {estimatedEarnPoints} diem sau khi don hang
+                      hoan tat.
+                    </p>
+                  )}
                 </div>
               )}
               <div className="flex items-center justify-between gap-4">

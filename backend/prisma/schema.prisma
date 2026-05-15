@@ -93,6 +93,28 @@ enum RefundStatus {
   FAILED
 }
 
+enum RewardPointLedgerType {
+  EARN
+  REDEEM
+  REFUND
+  ADJUSTMENT
+  EXPIRE
+}
+
+enum ReportType {
+  SHOP
+  CUSTOMER
+  PRODUCT
+  ORDER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  REJECTED
+}
+
 enum SellerPayoutStatus {
   PENDING
   PAID
@@ -127,6 +149,7 @@ model User {
   otpCode               String?
   otpExpires            DateTime?
   isEmailVerified       Boolean                     @default(false)
+  rewardPointsBalance   Int                         @default(0)
   deletedAt             DateTime?
   createdAt             DateTime                    @default(now())
   updatedAt             DateTime                    @updatedAt
@@ -149,6 +172,10 @@ model User {
   wishlistItems         WishlistItem[]
   customerLedgerEntries MarketplaceLedgerEntry[]    @relation("LedgerEntryCustomer")
   sellerLedgerEntries   MarketplaceLedgerEntry[]    @relation("LedgerEntrySeller")
+  rewardPointLedger     RewardPointLedger[]         @relation("RewardPointLedgerUser")
+  reportsFiled          Report[]                    @relation("ReportReporter")
+  reportsTargetingUser  Report[]                    @relation("ReportTargetUser")
+  reportsResolved       Report[]                    @relation("ReportResolvedBy")
   sellerPayouts         SellerPayout[]              @relation("SellerPayoutSeller")
   flashSaleUsages       FlashSaleUserUsage[]
 
@@ -226,6 +253,7 @@ model Product {
   reviews                  Review[]
   questions                ProductQuestion[]
   wishlistItems            WishlistItem[]
+  reports                  Report[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -506,6 +534,8 @@ model Order {
   customer               User                     @relation(fields: [customerId], references: [id])
   totalAmount            Decimal
   discountAmount         Decimal                  @default(0)
+  rewardPointsRedeemed   Int                      @default(0)
+  rewardDiscountAmount   Decimal                  @default(0)
   voucherCode            String?
   status                 OrderStatus              @default(PENDING)
   paymentMethod          PaymentMethod            @default(STRIPE)
@@ -519,7 +549,9 @@ model Order {
   updatedAt              DateTime                 @updatedAt
   subOrders              SubOrder[]
   ledgerEntries          MarketplaceLedgerEntry[]
+  rewardPointLedger      RewardPointLedger[]
   refunds                Refund[]
+  reports                Report[]
 
   @@unique([customerId, checkoutIdempotencyKey])
   @@index([customerId])
@@ -681,6 +713,53 @@ model MarketplaceLedgerEntry {
   @@index([customOrderId])
   @@index([refundId])
   @@index([type, status])
+}
+
+model RewardPointLedger {
+  id             String                @id @default(uuid())
+  userId         String
+  orderId        String?
+  type           RewardPointLedgerType
+  points         Int
+  balanceAfter   Int
+  description    String?
+  idempotencyKey String                @unique
+  createdAt      DateTime              @default(now())
+  user           User                  @relation("RewardPointLedgerUser", fields: [userId], references: [id], onDelete: Cascade)
+  order          Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([orderId])
+  @@index([type])
+}
+
+model Report {
+  id              String       @id @default(uuid())
+  reporterId      String
+  targetUserId    String?
+  targetProductId String?
+  orderId         String?
+  type            ReportType
+  reason          String
+  description     String?      @db.Text
+  status          ReportStatus @default(PENDING)
+  adminNote       String?      @db.Text
+  resolvedById    String?
+  resolvedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  reporter        User         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUser      User?        @relation("ReportTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetProduct   Product?     @relation(fields: [targetProductId], references: [id], onDelete: SetNull)
+  order           Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  resolvedBy      User?        @relation("ReportResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([reporterId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([targetProductId])
+  @@index([orderId])
+  @@index([status, createdAt])
+  @@index([type])
 }
 
 model Refund {

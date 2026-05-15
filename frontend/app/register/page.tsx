@@ -13,6 +13,10 @@ import {
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  AUTH_PASSWORD_REQUIREMENT,
+  isStrongAuthPassword,
+} from "@/lib/password-policy";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -30,6 +34,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
+    if (!isStrongAuthPassword(password)) {
+      setError(AUTH_PASSWORD_REQUIREMENT);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       await register({ name, email, password, phone });
@@ -191,12 +201,13 @@ export default function RegisterPage() {
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Tối thiểu 6 ký tự"
+                      placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số"
                       className="input-minimal pr-10"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
+                      title={AUTH_PASSWORD_REQUIREMENT}
                     />
                     <button
                       type="button"

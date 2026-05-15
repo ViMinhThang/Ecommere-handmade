@@ -1,12 +1,14 @@
 import {
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
+  Min,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PaymentMethod } from '@prisma/client';
 
 export class CheckoutShippingAddressDto {
@@ -55,4 +57,10 @@ export class CheckoutDto {
   @ValidateNested()
   @Type(() => CheckoutShippingAddressDto)
   shippingAddress?: CheckoutShippingAddressDto;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(0)
+  rewardPointsToRedeem?: number;
 }

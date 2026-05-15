@@ -1,13 +1,15 @@
 import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 @Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   @Get('seller/revenue-over-time')
   async getRevenueOverTime(
     @Req() req: AuthenticatedRequest,
@@ -21,7 +23,8 @@ export class AnalyticsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   @Get('seller/revenue-by-category')
   async getRevenueByCategory(
     @Req() req: AuthenticatedRequest,

@@ -18,6 +18,16 @@ describe('ProductsService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    orderItem: {
+      findMany: jest.fn(),
+      groupBy: jest.fn(),
+    },
+    wishlistItem: {
+      findMany: jest.fn(),
+    },
+    cartItem: {
+      findMany: jest.fn(),
+    },
     category: {
       update: jest.fn(),
     },
@@ -65,6 +75,10 @@ describe('ProductsService', () => {
     mockPrisma.$transaction = jest.fn((cb: (tx: typeof mockTx) => unknown) =>
       cb(mockTx),
     );
+    mockPrisma.orderItem.findMany.mockResolvedValue([]);
+    mockPrisma.orderItem.groupBy.mockResolvedValue([]);
+    mockPrisma.wishlistItem.findMany.mockResolvedValue([]);
+    mockPrisma.cartItem.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -159,6 +173,67 @@ describe('ProductsService', () => {
       await expect(service.findOne('nonexistent')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('getRecommendations', () => {
+    it('returns anonymous fallback products without inactive or out-of-stock items', async () => {
+      const product = {
+        id: 'p1',
+        name: 'Recommended cup',
+        price: 100,
+        categoryId: 'cat1',
+      };
+      mockPrisma.product.findMany.mockResolvedValue([product]);
+
+      const result = await service.getRecommendations(undefined, 4);
+
+      expect(mockPrisma.orderItem.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            product: expect.objectContaining({
+              deletedAt: null,
+              status: ProductStatus.APPROVED,
+              stock: { gt: 0 },
+            }),
+          }),
+        }),
+      );
+      expect(result).toEqual([
+        {
+          ...product,
+          pricing: {
+            originalPrice: 100,
+            discountedPrice: 100,
+            discountPercent: 0,
+          },
+        },
+      ]);
+    });
+
+    it('uses logged-in user history categories before fallback', async () => {
+      const product = {
+        id: 'p1',
+        name: 'Category match',
+        price: 100,
+        categoryId: 'cat1',
+      };
+      mockPrisma.orderItem.findMany.mockResolvedValue([
+        { product: { categoryId: 'cat1' } },
+      ]);
+      mockPrisma.product.findMany.mockResolvedValue([product]);
+
+      const result = await service.getRecommendations('user_1', 1);
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            categoryId: { in: ['cat1'] },
+          }),
+          take: 1,
+        }),
+      );
+      expect(result[0].id).toBe('p1');
     });
   });
 

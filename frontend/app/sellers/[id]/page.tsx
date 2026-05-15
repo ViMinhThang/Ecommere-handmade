@@ -4,7 +4,12 @@ import { Suspense, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { useSeller, useProducts, useUpdateProfile } from "@/lib/api/hooks";
+import {
+  useSeller,
+  useProducts,
+  useUpdateProfile,
+  useCreateReport,
+} from "@/lib/api/hooks";
 import { useAuth } from "@/contexts/auth-context";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
@@ -17,9 +22,18 @@ import {
   Camera,
   MessageCircle,
   ChevronDown,
+  Flag,
 } from "lucide-react";
 import { ImageSelector } from "@/components/dashboard/image-selector";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useChat } from "@/contexts/chat-context";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -105,6 +119,10 @@ function SellerProfilePageContent() {
   };
 
   const updateProfileMutation = useUpdateProfile();
+  const createReportMutation = useCreateReport();
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
 
   const sellerFormData: SellerProfileFormData = seller
     ? {
@@ -150,6 +168,34 @@ function SellerProfilePageContent() {
       toast.success("Hồ sơ đã được cập nhật thành công!");
     } catch {
       toast.error("Không thể cập nhật hồ sơ. Vui lòng thử lại.");
+    }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!seller) {
+      return;
+    }
+
+    if (!reportReason.trim()) {
+      toast.error("Vui long nhap ly do bao cao.");
+      return;
+    }
+
+    try {
+      await createReportMutation.mutateAsync({
+        type: "SHOP",
+        targetUserId: seller.id,
+        reason: reportReason,
+        description: reportDescription || undefined,
+      });
+      setReportReason("");
+      setReportDescription("");
+      setIsReportDialogOpen(false);
+      toast.success("Da gui bao cao gian hang.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Khong the gui bao cao.",
+      );
     }
   };
 
@@ -350,6 +396,16 @@ function SellerProfilePageContent() {
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Lien he
               </Button>
+              {user && !isOwner && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsReportDialogOpen(true)}
+                  className="bg-white/80 text-primary px-6 py-3 rounded-md hover:bg-white transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
+                >
+                  <Flag className="w-4 h-4 mr-2" />
+                  Bao cao
+                </Button>
+              )}
             </div>
           </div>
         </section>
@@ -741,6 +797,63 @@ function SellerProfilePageContent() {
       </main>
 
       <CustomerFooter />
+
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bao cao gian hang</DialogTitle>
+            <DialogDescription>
+              Gui thong tin de admin xem xet gian hang nay.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label
+                htmlFor="report-reason"
+                className="text-sm font-medium text-foreground"
+              >
+                Ly do
+              </label>
+              <Input
+                id="report-reason"
+                value={reportReason}
+                onChange={(event) => setReportReason(event.target.value)}
+                maxLength={120}
+                placeholder="Vi du: Thong tin gian hang gay hieu nham"
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="report-description"
+                className="text-sm font-medium text-foreground"
+              >
+                Mo ta them
+              </label>
+              <Textarea
+                id="report-description"
+                value={reportDescription}
+                onChange={(event) => setReportDescription(event.target.value)}
+                maxLength={2000}
+                placeholder="Bo sung bang chung hoac noi dung can admin kiem tra"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsReportDialogOpen(false)}
+            >
+              Huy
+            </Button>
+            <Button
+              onClick={handleSubmitReport}
+              disabled={createReportMutation.isPending}
+            >
+              {createReportMutation.isPending ? "Dang gui..." : "Gui bao cao"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Image Selector Dialog */}
       {isImageSelectorOpen && (

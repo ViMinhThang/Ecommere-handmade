@@ -1,23 +1,6 @@
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const DEFAULT_API_VERSION = "v1";
+import { API_BASE_URL } from "@/lib/api-base-url";
 
-function trimTrailingSlashes(value: string): string {
-  return value.replace(/\/+$/, "");
-}
-
-function hasVersionSegment(value: string): boolean {
-  return /\/v\d+($|\/)/i.test(value);
-}
-
-export function getVersionedApiBaseUrl(baseUrl: string = RAW_API_URL): string {
-  const normalized = trimTrailingSlashes(baseUrl);
-  if (hasVersionSegment(normalized)) {
-    return normalized;
-  }
-  return `${normalized}/${DEFAULT_API_VERSION}`;
-}
-
-export const API_BASE_URL = getVersionedApiBaseUrl();
+export { API_BASE_URL };
 
 export class ApiError extends Error {
   status: number;
@@ -50,6 +33,28 @@ class ApiClient {
     } catch {
       return false;
     }
+  }
+
+  private shouldRefreshOnUnauthorized(endpoint: string) {
+    return !endpoint.startsWith("/auth/");
+  }
+
+  private async parseErrorResponse(
+    response: Response,
+    fallbackMessage: string,
+  ) {
+    const data = (await response
+      .json()
+      .catch(() => ({ message: fallbackMessage }))) as Record<string, unknown>;
+    const rawMessage = data.message;
+    const message =
+      typeof rawMessage === "string"
+        ? rawMessage
+        : Array.isArray(rawMessage)
+          ? rawMessage.join(", ")
+          : fallbackMessage;
+
+    return { data, message };
   }
 
   private async request<T>(
@@ -85,20 +90,29 @@ class ApiClient {
     });
 
     if (response.status === 401) {
-      if (!didRetry && (await this.refreshSession())) {
+      const canRefresh = this.shouldRefreshOnUnauthorized(endpoint);
+
+      if (!didRetry && canRefresh && (await this.refreshSession())) {
         return this.request<T>(endpoint, options, true);
       }
 
-      if (typeof window !== "undefined") {
+      const { data, message } = await this.parseErrorResponse(
+        response,
+        "Unauthorized",
+      );
+
+      if (typeof window !== "undefined" && canRefresh) {
         window.dispatchEvent(new CustomEvent("auth:unauthorized"));
       }
-      throw new ApiError("Unauthorized", 401, { message: "Unauthorized" });
+      throw new ApiError(message, 401, data);
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: "An error occurred" }));
-      const message = errorData.message || `HTTP error! status: ${response.status}`;
-      throw new ApiError(message, response.status, errorData);
+      const { data, message } = await this.parseErrorResponse(
+        response,
+        `HTTP error! status: ${response.status}`,
+      );
+      throw new ApiError(message, response.status, data);
     }
 
     if (response.status === 204) {

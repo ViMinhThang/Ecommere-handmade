@@ -1,15 +1,17 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { KeyRound, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { Coins, KeyRound, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useChangePassword, useMe } from "@/lib/api/hooks";
+import { useChangePassword, useMe, useRewardBalance, useRewardLedger } from "@/lib/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/utils";
 
 export default function AccountPage() {
   const { data: user, isLoading } = useMe();
+  const rewardBalanceQuery = useRewardBalance(Boolean(user));
+  const rewardLedgerQuery = useRewardLedger({ limit: 5 }, Boolean(user));
   const changePassword = useChangePassword();
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -146,6 +148,54 @@ export default function AccountPage() {
         </section>
 
         <aside className="space-y-4">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <Coins className="h-5 w-5 text-primary" />
+              <h3 className="font-serif text-xl font-bold text-primary">
+                Diem thuong
+              </h3>
+            </div>
+            <p className="text-3xl font-bold text-primary">
+              {rewardBalanceQuery.isLoading
+                ? "..."
+                : rewardBalanceQuery.data?.balance || 0}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Diem co the dung de giam gia khi thanh toan.
+            </p>
+            <div className="mt-5 space-y-3">
+              {(rewardLedgerQuery.data?.data || []).map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between border-t border-primary/10 pt-3 text-xs"
+                >
+                  <div>
+                    <p className="font-semibold text-foreground">{entry.type}</p>
+                    <p className="text-muted-foreground">
+                      {new Date(entry.createdAt).toLocaleDateString("vi-VN")}
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      entry.points >= 0
+                        ? "font-bold text-green-700"
+                        : "font-bold text-red-700"
+                    }
+                  >
+                    {entry.points >= 0 ? "+" : ""}
+                    {entry.points}
+                  </span>
+                </div>
+              ))}
+              {!rewardLedgerQuery.isLoading &&
+                (rewardLedgerQuery.data?.data || []).length === 0 && (
+                  <p className="border-t border-primary/10 pt-3 text-xs text-muted-foreground">
+                    Chua co giao dich diem.
+                  </p>
+                )}
+            </div>
+          </div>
+
           <div className="rounded-lg border border-border/40 bg-muted/30 p-6">
             <div className="mb-4 flex items-center gap-3">
               <Mail className="h-5 w-5 text-primary" />

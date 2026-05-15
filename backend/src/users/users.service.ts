@@ -41,6 +41,7 @@ export class UsersService {
     sellerStat2Label: true,
     sellerStat2Value: true,
     isEmailVerified: true,
+    rewardPointsBalance: true,
     createdAt: true,
     updatedAt: true,
     addresses: true,
@@ -177,15 +178,40 @@ export class UsersService {
     };
   }
 
+  private getCustomerSearchFilter(q?: string): Prisma.UserWhereInput | null {
+    const search = q?.trim();
+    if (!search || search.length < 2) {
+      return null;
+    }
+
+    return {
+      OR: [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ],
+    };
+  }
+
+  private getSellerKnownCustomerFilter(sellerId: string): Prisma.UserWhereInput {
+    return {
+      OR: [
+        { customerConversations: { some: { sellerId } } },
+        { customerCustomOrders: { some: { sellerId } } },
+      ],
+    };
+  }
+
   async findCustomersForSeller(
     actorId: string,
     roles: string[],
-    pagination?: PaginationDto,
+    pagination?: PaginationDto & { q?: string },
   ) {
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 20;
     const skip = (page - 1) * limit;
     const isAdmin = roles.includes(Role.ROLE_ADMIN);
+    const searchFilter = this.getCustomerSearchFilter(pagination?.q);
 
     const where: Prisma.UserWhereInput = {
       deletedAt: null,
@@ -195,13 +221,10 @@ export class UsersService {
         { roles: { has: Role.ROLE_SELLER } },
         { roles: { has: Role.ROLE_ADMIN } },
       ],
-      ...(isAdmin
+      ...(searchFilter ?? {}),
+      ...(isAdmin || searchFilter
         ? {}
-        : {
-            customerConversations: {
-              some: { sellerId: actorId },
-            },
-          }),
+        : this.getSellerKnownCustomerFilter(actorId)),
     };
 
     const [data, total] = await Promise.all([

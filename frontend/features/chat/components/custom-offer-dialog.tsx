@@ -67,7 +67,6 @@ export function CustomOfferDialog({
       const customOrder = await createOrderMutation.mutateAsync({
         customerId,
         ...values,
-        price: values.price.toString(),
         specifications: [],
       });
 
