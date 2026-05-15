@@ -3,10 +3,11 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CartService } from '../cart/cart.service';
@@ -29,6 +30,7 @@ import {
   MarketplaceLedgerEntryStatus,
   MarketplaceLedgerEntryType,
   RefundStatus,
+  FlashSaleState,
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
@@ -39,8 +41,16 @@ const CURRENCY = 'vnd';
 const DEFAULT_PLATFORM_COMMISSION_BPS = 1000;
 const STRIPE_PAYMENT_EXPIRY_MS = 30 * 60 * 1000;
 const EXPIRED_ORDER_SWEEP_MS = 5 * 60 * 1000;
-const FLASH_SALE_GUARDRAILS_ENABLED =
-  process.env.FLASH_SALE_GUARDRAILS_ENABLED === 'true';
+const CART_PRICING_CHANGED_MESSAGE =
+  'Cart pricing changed. Please refresh your cart.';
+const FLASH_SALE_SOLD_OUT_MESSAGE =
+  'Flash sale is sold out. Please refresh your cart.';
+const FLASH_SALE_INSUFFICIENT_STOCK_MESSAGE =
+  'Insufficient stock for flash sale. Please refresh your cart.';
+const FLASH_SALE_PURCHASE_LIMIT_EXCEEDED_MESSAGE =
+  'Flash sale purchase limit exceeded. Please refresh your cart.';
+const FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE =
+  'Flash sale reservation state is inconsistent';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -75,6 +85,31 @@ interface CheckoutReuseValidationContext {
 interface CheckoutCartComparisonItem {
   productId: string;
   quantity: number;
+}
+
+interface CheckoutFlashSalePricingSnapshot {
+  originalPrice: number;
+  discountedPrice: number;
+  discountPercent: number;
+  flashSaleId: string | null;
+  reserveStock: number;
+}
+
+interface FlashSaleReservationGroup {
+  flashSaleId: string;
+  quantity: number;
+}
+
+interface FlashSaleOrderItemSnapshot {
+  quantity: number;
+  flashSaleId: string | null;
+  flashSaleDiscountPercent: Prisma.Decimal | number | null;
+}
+
+interface FlashSaleSubOrderSnapshot {
+  id: string;
+  status: OrderStatus;
+  items: FlashSaleOrderItemSnapshot[];
 }
 
 interface PaymentIntentSnapshot {
@@ -162,8 +197,6 @@ type CustomOrderSummary = {
 @Injectable()
 export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private expiredOrderSweepTimer?: NodeJS.Timeout;
-  private readonly flashSaleGuardrailsEnabled =
-    FLASH_SALE_GUARDRAILS_ENABLED;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -857,7 +890,20 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
-      await this.updateStock(tx, cart.items);
+      const flashSaleSnapshots = this.isFlashSaleGuardrailsEnabled()
+        ? await this.revalidateFlashSalePricing(tx, cart)
+        : undefined;
+      const flashSaleReservationGroups = flashSaleSnapshots
+        ? this.buildFlashSaleReservationGroups(cart, flashSaleSnapshots)
+        : [];
+
+      await this.reserveFlashSaleUnits(tx, flashSaleReservationGroups);
+      await this.reserveFlashSaleUserUsage(
+        tx,
+        userId,
+        flashSaleReservationGroups,
+      );
+      await this.updateStock(tx, cart.items, flashSaleSnapshots);
 
       const order = await tx.order.create({
         data: {
@@ -878,7 +924,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      await this.createSubOrders(tx, order.id, cart, sellerGroups);
+      await this.createSubOrders(
+        tx,
+        order.id,
+        cart,
+        sellerGroups,
+        flashSaleSnapshots,
+      );
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id },
       });
@@ -892,17 +944,269 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  private isFlashSaleGuardrailsEnabled() {
+    return process.env.FLASH_SALE_GUARDRAILS_ENABLED === 'true';
+  }
+
+  private async revalidateFlashSalePricing(
+    tx: Prisma.TransactionClient,
+    cart: EnrichedCart,
+  ) {
+    const snapshots = new Map<string, CheckoutFlashSalePricingSnapshot>();
+
+    for (const item of cart.items) {
+      const currentPricing = await this.calculateTransactionalFlashSalePricing(
+        tx,
+        item.productId,
+      );
+
+      if (!this.isCartPricingSnapshotCurrent(item, currentPricing)) {
+        throw new BadRequestException(CART_PRICING_CHANGED_MESSAGE);
+      }
+
+      snapshots.set(item.productId, currentPricing);
+    }
+
+    return snapshots;
+  }
+
+  private buildFlashSaleReservationGroups(
+    cart: EnrichedCart,
+    flashSaleSnapshots: Map<string, CheckoutFlashSalePricingSnapshot>,
+  ): FlashSaleReservationGroup[] {
+    const groups = new Map<string, number>();
+
+    for (const item of cart.items) {
+      const snapshot = flashSaleSnapshots.get(item.productId);
+      if (!this.isDiscountedFlashSaleSnapshot(snapshot)) {
+        continue;
+      }
+
+      groups.set(
+        snapshot.flashSaleId,
+        (groups.get(snapshot.flashSaleId) ?? 0) + item.quantity,
+      );
+    }
+
+    return Array.from(groups.entries())
+      .map(([flashSaleId, quantity]) => ({ flashSaleId, quantity }))
+      .sort((a, b) => a.flashSaleId.localeCompare(b.flashSaleId));
+  }
+
+  private async reserveFlashSaleUnits(
+    tx: Prisma.TransactionClient,
+    groups: FlashSaleReservationGroup[],
+  ) {
+    for (const group of groups) {
+      const reservedRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        UPDATE "FlashSale"
+        SET "reservedUnits" = "reservedUnits" + ${group.quantity}
+        WHERE "id" = ${group.flashSaleId}
+          AND "isActive" = true
+          AND "saleState" = 'ACTIVE'::"FlashSaleState"
+          AND "startAt" <= (NOW() AT TIME ZONE 'UTC')
+          AND "endAt" >= (NOW() AT TIME ZONE 'UTC')
+          AND (
+            "maxUnits" IS NULL
+            OR "soldUnits" + "reservedUnits" + ${group.quantity} <= "maxUnits"
+          )
+        RETURNING "id"
+      `);
+
+      if (reservedRows.length !== 1) {
+        throw new BadRequestException(FLASH_SALE_SOLD_OUT_MESSAGE);
+      }
+    }
+  }
+
+  private async reserveFlashSaleUserUsage(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    groups: FlashSaleReservationGroup[],
+  ) {
+    for (const group of groups) {
+      const usageRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        INSERT INTO "FlashSaleUserUsage" (
+          "id",
+          "flashSaleId",
+          "userId",
+          "soldUnits",
+          "reservedUnits",
+          "createdAt",
+          "updatedAt"
+        )
+        SELECT
+          ${randomUUID()},
+          ${group.flashSaleId},
+          ${userId},
+          0,
+          ${group.quantity},
+          NOW(),
+          NOW()
+        WHERE EXISTS (
+          SELECT 1
+          FROM "FlashSale"
+          WHERE "id" = ${group.flashSaleId}
+            AND "isActive" = true
+            AND "saleState" = 'ACTIVE'::"FlashSaleState"
+            AND "startAt" <= (NOW() AT TIME ZONE 'UTC')
+            AND "endAt" >= (NOW() AT TIME ZONE 'UTC')
+            AND (
+              "perUserLimit" IS NULL
+              OR ${group.quantity} <= "perUserLimit"
+            )
+        )
+        ON CONFLICT ("flashSaleId", "userId")
+        DO UPDATE SET
+          "reservedUnits" =
+            "FlashSaleUserUsage"."reservedUnits" + ${group.quantity},
+          "updatedAt" = NOW()
+        WHERE EXISTS (
+          SELECT 1
+          FROM "FlashSale"
+          WHERE "id" = ${group.flashSaleId}
+            AND "isActive" = true
+            AND "saleState" = 'ACTIVE'::"FlashSaleState"
+            AND "startAt" <= (NOW() AT TIME ZONE 'UTC')
+            AND "endAt" >= (NOW() AT TIME ZONE 'UTC')
+            AND (
+              "perUserLimit" IS NULL
+              OR "FlashSaleUserUsage"."soldUnits"
+                + "FlashSaleUserUsage"."reservedUnits"
+                + ${group.quantity} <= "perUserLimit"
+            )
+        )
+        RETURNING "id"
+      `);
+
+      if (usageRows.length !== 1) {
+        throw new BadRequestException(
+          FLASH_SALE_PURCHASE_LIMIT_EXCEEDED_MESSAGE,
+        );
+      }
+    }
+  }
+
+  private async calculateTransactionalFlashSalePricing(
+    tx: Prisma.TransactionClient,
+    productId: string,
+  ): Promise<CheckoutFlashSalePricingSnapshot> {
+    const product = await tx.product.findFirst({
+      where: {
+        id: productId,
+        deletedAt: null,
+        status: ProductStatus.APPROVED,
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
+      },
+      select: {
+        price: true,
+        categoryId: true,
+      },
+    });
+
+    if (!product) {
+      throw new BadRequestException(CART_PRICING_CHANGED_MESSAGE);
+    }
+
+    const originalPrice = this.toCheckoutMoney(product.price);
+    const flashSale = await tx.flashSale.findFirst({
+      where: {
+        isActive: true,
+        saleState: FlashSaleState.ACTIVE,
+        startAt: { lte: new Date() },
+        endAt: { gte: new Date() },
+        categories: {
+          some: { categoryId: product.categoryId },
+        },
+      },
+      include: {
+        ranges: true,
+      },
+    });
+
+    if (!flashSale) {
+      return {
+        originalPrice,
+        discountedPrice: originalPrice,
+        discountPercent: 0,
+        flashSaleId: null,
+        reserveStock: 0,
+      };
+    }
+
+    const matchedRange = flashSale.ranges.find(
+      (range) =>
+        originalPrice >= Number(range.minPrice) &&
+        originalPrice <= Number(range.maxPrice),
+    );
+
+    if (!matchedRange) {
+      return {
+        originalPrice,
+        discountedPrice: originalPrice,
+        discountPercent: 0,
+        flashSaleId: flashSale.id,
+        reserveStock: 0,
+      };
+    }
+
+    const discountPercent = Number(matchedRange.discountPercent);
+    return {
+      originalPrice,
+      discountedPrice: this.roundMoney(
+        originalPrice * (1 - discountPercent / 100),
+      ),
+      discountPercent,
+      flashSaleId: flashSale.id,
+      reserveStock:
+        discountPercent > 0 ? Math.max(0, flashSale.reserveStock ?? 0) : 0,
+    };
+  }
+
+  private isCartPricingSnapshotCurrent(
+    item: EnrichedCartItem,
+    currentPricing: CheckoutFlashSalePricingSnapshot,
+  ) {
+    const cartPricing = {
+      originalPrice: this.toCheckoutMoney(
+        item.pricing.originalPrice ?? item.product.price,
+      ),
+      discountedPrice: this.toCheckoutMoney(item.pricing.discountedPrice),
+      discountPercent: Number(item.pricing.discountPercent ?? 0),
+      flashSaleId: item.pricing.flashSaleId ?? null,
+    };
+
+    return (
+      cartPricing.originalPrice === currentPricing.originalPrice &&
+      cartPricing.discountedPrice === currentPricing.discountedPrice &&
+      cartPricing.discountPercent === currentPricing.discountPercent &&
+      cartPricing.flashSaleId === currentPricing.flashSaleId
+    );
+  }
+
   private async updateStock(
     tx: Prisma.TransactionClient,
     items: EnrichedCartItem[],
+    flashSaleSnapshots?: Map<string, CheckoutFlashSalePricingSnapshot>,
   ) {
-    for (const item of items) {
+    const sortedItems = flashSaleSnapshots
+      ? [...items].sort((a, b) => a.productId.localeCompare(b.productId))
+      : items;
+
+    for (const item of sortedItems) {
+      const snapshot = flashSaleSnapshots?.get(item.productId);
+      const stockThreshold = this.isDiscountedFlashSaleSnapshot(snapshot)
+        ? item.quantity + snapshot.reserveStock
+        : item.quantity;
       const result = await tx.product.updateMany({
         where: {
           id: item.productId,
           deletedAt: null,
           status: ProductStatus.APPROVED,
-          stock: { gte: item.quantity },
+          stock: { gte: stockThreshold },
           category: {
             deletedAt: null,
             status: CategoryStatus.ACTIVE,
@@ -912,6 +1216,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (result.count !== 1) {
+        if (this.isDiscountedFlashSaleSnapshot(snapshot)) {
+          throw new BadRequestException(FLASH_SALE_INSUFFICIENT_STOCK_MESSAGE);
+        }
+
         throw new BadRequestException(
           `Product ${item.product.name} is out of stock`,
         );
@@ -932,6 +1240,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     orderId: string,
     cart: EnrichedCart,
     sellerGroups: Map<string, SubOrderGroup>,
+    flashSaleSnapshots?: Map<string, CheckoutFlashSalePricingSnapshot>,
   ) {
     const groups = Array.from(sellerGroups.entries());
     let remainingDiscount = cart.discountAmount;
@@ -959,18 +1268,195 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       });
 
       await tx.orderItem.createMany({
-        data: data.items.map((item) => ({
-          subOrderId: subOrder.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.pricing.discountedPrice,
-          originalPrice: item.pricing.originalPrice,
-          platformDiscountAmount: Math.max(
-            0,
-            item.pricing.originalPrice - item.pricing.discountedPrice,
-          ),
-        })),
+        data: data.items.map((item) => {
+          const flashSaleSnapshot = flashSaleSnapshots?.get(item.productId);
+
+          return {
+            subOrderId: subOrder.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.pricing.discountedPrice,
+            originalPrice: item.pricing.originalPrice,
+            platformDiscountAmount: Math.max(
+              0,
+              item.pricing.originalPrice - item.pricing.discountedPrice,
+            ),
+            ...(flashSaleSnapshots
+              ? {
+                  flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
+                  flashSaleDiscountPercent:
+                    flashSaleSnapshot?.discountPercent ?? 0,
+                }
+              : {}),
+          };
+        }),
       });
+    }
+  }
+
+  private isDiscountedFlashSaleSnapshot(
+    snapshot: CheckoutFlashSalePricingSnapshot | undefined,
+  ): snapshot is CheckoutFlashSalePricingSnapshot & { flashSaleId: string } {
+    return Boolean(
+      snapshot?.flashSaleId && Number(snapshot.discountPercent) > 0,
+    );
+  }
+
+  private aggregateDiscountedFlashSaleOrderItems(
+    subOrders: FlashSaleSubOrderSnapshot[],
+  ): FlashSaleReservationGroup[] {
+    const groups = new Map<string, number>();
+
+    for (const subOrder of subOrders) {
+      for (const item of subOrder.items) {
+        if (
+          !item.flashSaleId ||
+          Number(item.flashSaleDiscountPercent ?? 0) <= 0
+        ) {
+          continue;
+        }
+
+        groups.set(
+          item.flashSaleId,
+          (groups.get(item.flashSaleId) ?? 0) + item.quantity,
+        );
+      }
+    }
+
+    return Array.from(groups.entries())
+      .map(([flashSaleId, quantity]) => ({ flashSaleId, quantity }))
+      .sort((a, b) => a.flashSaleId.localeCompare(b.flashSaleId));
+  }
+
+  private async getDiscountedFlashSaleOrderItemGroups(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    customerId: string,
+    subOrderIds?: string[],
+  ) {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: {
+        customerId: true,
+        subOrders: {
+          where: subOrderIds
+            ? { id: { in: subOrderIds } }
+            : { status: { not: OrderStatus.CANCELLED } },
+          select: {
+            id: true,
+            status: true,
+            items: {
+              select: {
+                quantity: true,
+                flashSaleId: true,
+                flashSaleDiscountPercent: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order || order.customerId !== customerId) {
+      throw new InternalServerErrorException(
+        FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE,
+      );
+    }
+
+    return this.aggregateDiscountedFlashSaleOrderItems(order.subOrders);
+  }
+
+  private assertFlashSaleCounterUpdate(updatedCount: number) {
+    if (updatedCount !== 1) {
+      throw new InternalServerErrorException(
+        FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE,
+      );
+    }
+  }
+
+  private async convertFlashSaleReservationsToSold(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    customerId: string,
+  ) {
+    if (!this.isFlashSaleGuardrailsEnabled()) {
+      return;
+    }
+
+    const groups = await this.getDiscountedFlashSaleOrderItemGroups(
+      tx,
+      orderId,
+      customerId,
+    );
+
+    for (const group of groups) {
+      const saleUpdated = await tx.flashSale.updateMany({
+        where: {
+          id: group.flashSaleId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+          soldUnits: { increment: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(saleUpdated.count);
+
+      const usageUpdated = await tx.flashSaleUserUsage.updateMany({
+        where: {
+          flashSaleId: group.flashSaleId,
+          userId: customerId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+          soldUnits: { increment: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(usageUpdated.count);
+    }
+  }
+
+  private async releaseFlashSaleReservations(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    customerId: string,
+    subOrderIds?: string[],
+  ) {
+    if (!this.isFlashSaleGuardrailsEnabled()) {
+      return;
+    }
+
+    const groups = await this.getDiscountedFlashSaleOrderItemGroups(
+      tx,
+      orderId,
+      customerId,
+      subOrderIds,
+    );
+
+    for (const group of groups) {
+      const saleUpdated = await tx.flashSale.updateMany({
+        where: {
+          id: group.flashSaleId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(saleUpdated.count);
+
+      const usageUpdated = await tx.flashSaleUserUsage.updateMany({
+        where: {
+          flashSaleId: group.flashSaleId,
+          userId: customerId,
+          reservedUnits: { gte: group.quantity },
+        },
+        data: {
+          reservedUnits: { decrement: group.quantity },
+        },
+      });
+      this.assertFlashSaleCounterUpdate(usageUpdated.count);
     }
   }
 
@@ -1413,6 +1899,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       id: string;
       items: Array<{ productId: string; quantity: number }>;
     }>,
+    flashSaleRelease?: { orderId: string; customerId: string },
   ) {
     for (const subOrder of subOrders) {
       const updated = await tx.subOrder.updateMany({
@@ -1425,8 +1912,26 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       if (updated.count === 1) {
         await this.restoreSubOrderStock(tx, subOrder.items);
+        if (flashSaleRelease) {
+          await this.releaseFlashSaleReservations(
+            tx,
+            flashSaleRelease.orderId,
+            flashSaleRelease.customerId,
+            [subOrder.id],
+          );
+        }
       }
     }
+  }
+
+  private shouldReleaseFlashSaleReservationsForOrder(
+    order: Pick<Order, 'paymentStatus'>,
+  ) {
+    return (
+      order.paymentStatus !== PaymentStatus.PAID &&
+      order.paymentStatus !== PaymentStatus.PARTIALLY_REFUNDED &&
+      order.paymentStatus !== PaymentStatus.REFUNDED
+    );
   }
 
   private resolveCancelledPaymentStatus(order: Order) {
@@ -1777,7 +2282,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       : null;
 
     return this.prisma.$transaction(async (tx) => {
-      await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders);
+      await this.cancelSubOrdersAndRestoreStock(
+        tx,
+        order.subOrders,
+        !refund && this.shouldReleaseFlashSaleReservationsForOrder(order)
+          ? { orderId, customerId: order.customerId }
+          : undefined,
+      );
 
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
@@ -1852,6 +2363,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
         if (cancelled.count === 1) {
           await this.restoreSubOrderStock(tx, subOrder.items);
+          if (
+            this.shouldReleaseFlashSaleReservationsForOrder(subOrder.order)
+          ) {
+            await this.releaseFlashSaleReservations(
+              tx,
+              subOrder.orderId,
+              subOrder.order.customerId,
+              [subOrderId],
+            );
+          }
         }
 
         await this.syncMasterOrderStatus(tx, subOrder.orderId);
@@ -1915,7 +2436,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     return this.prisma.$transaction(async (tx) => {
       if (status === OrderStatus.CANCELLED) {
-        await this.cancelSubOrdersAndRestoreStock(tx, updatableSubOrders);
+        await this.cancelSubOrdersAndRestoreStock(
+          tx,
+          updatableSubOrders,
+          this.shouldReleaseFlashSaleReservationsForOrder(order)
+            ? { orderId, customerId: order.customerId }
+            : undefined,
+        );
       } else {
         await tx.subOrder.updateMany({
           where: {
@@ -2020,14 +2547,59 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     tx: Prisma.TransactionClient,
     orderId: string,
   ) {
-    const updatedOrder = await tx.order.update({
-      where: { id: orderId },
+    if (!this.isFlashSaleGuardrailsEnabled()) {
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.PAID,
+          paymentStatus: PaymentStatus.PAID,
+          paymentExpiresAt: null,
+        },
+      });
+
+      await tx.subOrder.updateMany({
+        where: {
+          orderId,
+          status: { not: OrderStatus.CANCELLED },
+        },
+        data: { status: OrderStatus.PAID },
+      });
+
+      await this.postOrderLedger(tx, orderId);
+
+      return updatedOrder;
+    }
+
+    const transitioned = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        paymentStatus: PaymentStatus.UNPAID,
+        status: { not: OrderStatus.CANCELLED },
+      },
       data: {
         status: OrderStatus.PAID,
         paymentStatus: PaymentStatus.PAID,
         paymentExpiresAt: null,
       },
     });
+
+    const updatedOrder = await tx.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!updatedOrder) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (transitioned.count !== 1) {
+      return updatedOrder;
+    }
+
+    await this.convertFlashSaleReservationsToSold(
+      tx,
+      updatedOrder.id,
+      updatedOrder.customerId,
+    );
 
     await tx.subOrder.updateMany({
       where: {
@@ -2207,7 +2779,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     tx: Prisma.TransactionClient,
     order: OrderWithStockItems,
   ) {
-    await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders);
+    await this.cancelSubOrdersAndRestoreStock(tx, order.subOrders, {
+      orderId: order.id,
+      customerId: order.customerId,
+    });
 
     return tx.order.update({
       where: { id: order.id },
@@ -2361,6 +2936,36 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       order.paymentStatus === PaymentStatus.UNPAID
     ) {
       newPaymentStatus = PaymentStatus.UNPAID;
+    }
+
+    const shouldConvertCodReservation =
+      this.isFlashSaleGuardrailsEnabled() &&
+      order.paymentMethod === PaymentMethod.COD &&
+      order.paymentStatus !== PaymentStatus.PAID &&
+      newPaymentStatus === PaymentStatus.PAID;
+
+    if (shouldConvertCodReservation) {
+      const transitioned = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          paymentStatus: { not: PaymentStatus.PAID },
+        },
+        data: {
+          status: newMasterStatus,
+          paymentStatus: newPaymentStatus,
+        },
+      });
+
+      if (transitioned.count === 1) {
+        await this.convertFlashSaleReservationsToSold(
+          tx,
+          orderId,
+          order.customerId,
+        );
+        await this.postOrderLedger(tx, orderId);
+      }
+
+      return;
     }
 
     await tx.order.update({
