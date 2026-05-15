@@ -22,6 +22,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { EbayProductImportService } from './startup/ebay-product-import.service';
 import { SettingsModule } from './settings/settings.module';
 import { PaymentsModule } from './payments/payments.module';
+import { CommissionsModule } from './commissions/commissions.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { PaymentsModule } from './payments/payments.module';
     WishlistModule,
     SettingsModule,
     PaymentsModule,
+    CommissionsModule,
   ],
   controllers: [AppController],
   providers: [EbayProductImportService],

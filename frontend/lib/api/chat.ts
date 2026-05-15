@@ -52,15 +52,6 @@ export const chatApi = {
       data,
     ),
 
-  sendCustomOrderOffer: (
-    conversationId: string,
-    data: { customOrderId: string; message: string },
-  ) =>
-    apiClient.post<ChatMessage>(
-      `/chat/conversations/${conversationId}/messages/offer`,
-      data,
-    ),
-
   sendImageMessage: async (
     conversationId: string,
     file: File,

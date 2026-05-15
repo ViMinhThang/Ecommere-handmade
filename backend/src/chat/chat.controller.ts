@@ -17,7 +17,6 @@ import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { CursorQueryDto } from './dto/cursor-query.dto';
 import { SendTextMessageDto } from './dto/send-text-message.dto';
-import { SendCustomOrderOfferDto } from './dto/send-custom-order-offer.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 import { isAllowedImageMimeType } from '../common/utils/image-upload';
@@ -121,27 +120,6 @@ export class ChatController {
       return message;
     } catch (error) {
       this.logMessageSendFailed(req, conversationId, 'text', error);
-      throw error;
-    }
-  }
-
-  @Post('conversations/:conversationId/messages/offer')
-  async sendCustomOrderOffer(
-    @Request() req: AuthenticatedRequest,
-    @Param('conversationId') conversationId: string,
-    @Body() dto: SendCustomOrderOfferDto,
-  ) {
-    try {
-      const message = await this.chatService.sendCustomOrderOffer(
-        req.user.id,
-        conversationId,
-        dto,
-      );
-      this.chatGateway.emitMessageCreated(conversationId, message);
-      await this.chatGateway.emitConversationUpdated(conversationId);
-      return message;
-    } catch (error) {
-      this.logMessageSendFailed(req, conversationId, 'offer', error);
       throw error;
     }
   }

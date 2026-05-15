@@ -9,6 +9,7 @@ import { mediaApi } from "@/lib/api/media"
 import { 
   User as UserIcon, 
   CreditCard, 
+  ClipboardList,
   ShoppingBag, 
   Heart, 
   Settings,
@@ -28,6 +29,7 @@ export function ProfileSidebar() {
     { href: "/profile/settings", label: "Chi tiết hồ sơ", icon: UserIcon },
     { href: "/profile/payments", label: "Phương thức thanh toán", icon: CreditCard },
     { href: "/profile/orders", label: "Lịch sử đơn hàng", icon: ShoppingBag },
+    { href: "/profile/commissions", label: "Yêu cầu commission", icon: ClipboardList },
     { href: "/profile/custom-orders", label: "Đồ thiết kế riêng", icon: PenTool },
     { href: "/profile/wishlist", label: "Danh sách yêu thích", icon: Heart },
     { href: "/profile/account", label: "Cài đặt tài khoản", icon: Settings },

@@ -983,31 +983,6 @@ export function useSendTextMessage() {
   });
 }
 
-export function useSendCustomOrderOffer() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      conversationId,
-      customOrderId,
-      message,
-    }: {
-      conversationId: string;
-      customOrderId: string;
-      message: string;
-    }) =>
-      chatApi.sendCustomOrderOffer(conversationId, { customOrderId, message }),
-    onSuccess: (_message, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: [...chatKeys.all, "messages", variables.conversationId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...chatKeys.all, "conversations"],
-      });
-    },
-  });
-}
-
 export function useSendImageMessage() {
   const queryClient = useQueryClient();
 

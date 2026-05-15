@@ -1,9 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
-import { Loader2, PenTool } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/types";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { chatApi } from "@/lib/api/chat";
 import { formatMessageTime, getImagePayload, getTextPayload } from "../utils";
 
@@ -15,13 +14,6 @@ interface ChatMessageListProps {
   isLoadingMessages: boolean;
   onLoadOlderMessages: () => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
-}
-
-interface CustomOrderOfferPayload {
-  customOrderId?: string;
-  title?: string;
-  price?: number | string;
-  text?: string;
 }
 
 export function ChatMessageList({
@@ -52,38 +44,6 @@ export function ChatMessageList({
             </div>
           ) : null}
           {caption ? <p className="text-sm whitespace-pre-wrap">{caption}</p> : null}
-        </div>
-      );
-    }
-
-    if (message.type === "CUSTOM_ORDER_OFFER") {
-      const payload = message.payload as CustomOrderOfferPayload;
-      const customOrderId = payload.customOrderId || "";
-      return (
-        <div className="space-y-3 py-1">
-          <div className="flex items-start gap-2.5 text-foreground">
-            <div className="mt-0.5 rounded-full bg-primary/10 p-1.5 text-primary">
-              <PenTool className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-bold">Báo giá Tùy chỉnh</p>
-              <p className="text-[11px] text-muted-foreground uppercase font-bold tracking-tight">#{customOrderId.slice(0, 8)}</p>
-            </div>
-          </div>
-          
-          <div className="rounded-md bg-muted/50 p-3 border border-border/40 text-foreground">
-            <p className="text-sm font-medium mb-1">{payload.title}</p>
-            <p className="text-sm font-bold text-primary">{formatCurrency(Number(payload.price || 0))}</p>
-            {payload.text && (
-              <p className="text-xs text-muted-foreground mt-2 italic">&quot;{payload.text}&quot;</p>
-            )}
-          </div>
-
-          <Link href={`/custom-orders/${customOrderId}/review`}>
-            <Button size="sm" className="w-full h-8 text-[11px] font-bold uppercase tracking-widest">
-              Xem chi tiết & Thanh toán
-            </Button>
-          </Link>
         </div>
       );
     }
