@@ -1004,8 +1004,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         WHERE "id" = ${group.flashSaleId}
           AND "isActive" = true
           AND "saleState" = 'ACTIVE'::"FlashSaleState"
-          AND "startAt" <= NOW()
-          AND "endAt" >= NOW()
+          AND "startAt" <= (NOW() AT TIME ZONE 'UTC')
+          AND "endAt" >= (NOW() AT TIME ZONE 'UTC')
           AND (
             "maxUnits" IS NULL
             OR "soldUnits" + "reservedUnits" + ${group.quantity} <= "maxUnits"
@@ -1049,8 +1049,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           WHERE "id" = ${group.flashSaleId}
             AND "isActive" = true
             AND "saleState" = 'ACTIVE'::"FlashSaleState"
-            AND "startAt" <= NOW()
-            AND "endAt" >= NOW()
+            AND "startAt" <= (NOW() AT TIME ZONE 'UTC')
+            AND "endAt" >= (NOW() AT TIME ZONE 'UTC')
             AND (
               "perUserLimit" IS NULL
               OR ${group.quantity} <= "perUserLimit"
@@ -1067,8 +1067,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           WHERE "id" = ${group.flashSaleId}
             AND "isActive" = true
             AND "saleState" = 'ACTIVE'::"FlashSaleState"
-            AND "startAt" <= NOW()
-            AND "endAt" >= NOW()
+            AND "startAt" <= (NOW() AT TIME ZONE 'UTC')
+            AND "endAt" >= (NOW() AT TIME ZONE 'UTC')
             AND (
               "perUserLimit" IS NULL
               OR "FlashSaleUserUsage"."soldUnits"
