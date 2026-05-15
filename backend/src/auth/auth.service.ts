@@ -14,13 +14,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { MailerService } from './mailer/mailer.service';
 import { UserStatus } from '@prisma/client';
+import {
+  DEFAULT_ACCESS_TOKEN_EXPIRY,
+  DEFAULT_REFRESH_TOKEN_EXPIRY,
+  DEFAULT_REFRESH_TOKEN_EXPIRY_MS,
+  normalizeJwtExpiry,
+  parseDurationMs,
+} from './auth-token-expiry';
 
 const OTP_MIN = 100000;
 const OTP_MAX = 999999;
 const OTP_EXPIRATION_MS = 10 * 60 * 1000;
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
-const ACCESS_TOKEN_EXPIRY = '30d';
-const REFRESH_TOKEN_EXPIRY = '30d';
 
 interface JwtPayload {
   sub: string;
@@ -67,6 +72,30 @@ export class AuthService {
 
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private getAccessTokenExpiry() {
+    return normalizeJwtExpiry(
+      process.env.JWT_EXPIRES_IN,
+      DEFAULT_ACCESS_TOKEN_EXPIRY,
+    );
+  }
+
+  private getRefreshTokenExpiry() {
+    return normalizeJwtExpiry(
+      process.env.JWT_REFRESH_EXPIRES_IN,
+      DEFAULT_REFRESH_TOKEN_EXPIRY,
+    );
+  }
+
+  private getRefreshTokenExpiresAt() {
+    return new Date(
+      Date.now() +
+        parseDurationMs(
+          this.getRefreshTokenExpiry(),
+          DEFAULT_REFRESH_TOKEN_EXPIRY_MS,
+        ),
+    );
   }
 
   private getOtpExpiration(): Date {
@@ -126,20 +155,17 @@ export class AuthService {
       roles: user.roles,
     };
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: ACCESS_TOKEN_EXPIRY,
+      expiresIn: this.getAccessTokenExpiry(),
     });
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: REFRESH_TOKEN_EXPIRY,
+      expiresIn: this.getRefreshTokenExpiry(),
     });
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
 
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
         token: this.hashToken(refreshToken),
-        expiresAt,
+        expiresAt: this.getRefreshTokenExpiresAt(),
       },
     });
 
@@ -359,6 +385,10 @@ export class AuthService {
       otpCode: null,
       otpExpires: null,
     });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: user.id, revoked: false },
+      data: { revoked: true },
+    });
 
     return { message: 'Password reset successfully' };
   }
@@ -388,7 +418,7 @@ export class AuthService {
           email: user.email,
           roles: user.roles,
         },
-        { expiresIn: ACCESS_TOKEN_EXPIRY },
+        { expiresIn: this.getAccessTokenExpiry() },
       );
 
       const newRefreshToken = this.jwtService.sign(
@@ -397,11 +427,8 @@ export class AuthService {
           email: user.email,
           roles: user.roles,
         },
-        { expiresIn: REFRESH_TOKEN_EXPIRY },
+        { expiresIn: this.getRefreshTokenExpiry() },
       );
-
-      const newExpiresAt = new Date();
-      newExpiresAt.setDate(newExpiresAt.getDate() + 30);
 
       await this.prisma.refreshToken.update({
         where: { id: storedToken.id },
@@ -415,7 +442,7 @@ export class AuthService {
         data: {
           userId: payload.sub,
           token: this.hashToken(newRefreshToken),
-          expiresAt: newExpiresAt,
+          expiresAt: this.getRefreshTokenExpiresAt(),
         },
       });
 
@@ -429,6 +456,22 @@ export class AuthService {
       }
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
+  }
+
+  async logout(refreshToken?: string) {
+    if (!refreshToken) {
+      return { message: 'Logged out' };
+    }
+
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        token: this.hashToken(refreshToken),
+        revoked: false,
+      },
+      data: { revoked: true },
+    });
+
+    return { message: 'Logged out' };
   }
 
   async validateUser(userId: string) {

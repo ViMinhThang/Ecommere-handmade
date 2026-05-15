@@ -28,7 +28,7 @@ import { CheckCircle2, MapPin, Plus } from "lucide-react";
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
 const isStripeConfigured =
-  stripePublishableKey.startsWith("pk_test_") &&
+  stripePublishableKey.startsWith("pk_") &&
   !stripePublishableKey.includes("REPLACE_WITH_REAL");
 const stripePromise = isStripeConfigured
   ? loadStripe(stripePublishableKey)
@@ -229,9 +229,7 @@ export default function CheckoutPage() {
           city: formData.city,
           district: formData.district,
           ward: formData.ward,
-          street: formData.street,
           address: formData.street,
-          zipCode: formData.zipCode,
         },
         paymentMethod,
       });

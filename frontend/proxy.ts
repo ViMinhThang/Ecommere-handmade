@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getJwtMaxAgeSeconds } from "./lib/auth-token";
 
 const PROTECTED_ROUTES = [
   "/dashboard",
@@ -52,14 +53,14 @@ export async function proxy(request: NextRequest) {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
-            maxAge: 15 * 60,
+            maxAge: getJwtMaxAgeSeconds(newAccessToken, 30 * 24 * 60 * 60),
             path: "/",
           });
           response.cookies.set("auth_refresh_token", newRefreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60,
+            maxAge: getJwtMaxAgeSeconds(newRefreshToken, 30 * 24 * 60 * 60),
             path: "/",
           });
           return response;

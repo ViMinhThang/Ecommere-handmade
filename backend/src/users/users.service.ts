@@ -177,6 +177,67 @@ export class UsersService {
     };
   }
 
+  async findCustomersForSeller(
+    actorId: string,
+    roles: string[],
+    pagination?: PaginationDto,
+  ) {
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const isAdmin = roles.includes(Role.ROLE_ADMIN);
+
+    const where: Prisma.UserWhereInput = {
+      deletedAt: null,
+      status: UserStatus.ACTIVE,
+      roles: { has: Role.ROLE_USER },
+      NOT: [
+        { roles: { has: Role.ROLE_SELLER } },
+        { roles: { has: Role.ROLE_ADMIN } },
+      ],
+      ...(isAdmin
+        ? {}
+        : {
+            customerConversations: {
+              some: { sellerId: actorId },
+            },
+          }),
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          roles: true,
+          status: true,
+          avatar: true,
+          phone: true,
+          shopName: true,
+          isEmailVerified: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findOne(id: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
@@ -456,6 +517,10 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id },
       data: { password: await bcrypt.hash(dto.newPassword, 12) },
+    });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: id, revoked: false },
+      data: { revoked: true },
     });
 
     return { success: true };

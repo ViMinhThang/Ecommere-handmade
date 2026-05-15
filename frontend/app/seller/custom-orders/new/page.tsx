@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
-import { useUsers } from "@/lib/api/hooks";
-import { User, UserRole } from "@/types";
+import { usersApi } from "@/lib/api/users";
+import { User } from "@/types";
 import { SketchUpload } from "@/components/dashboard/sketch-upload";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -14,9 +14,9 @@ import { getErrorMessage } from "@/lib/utils";
 export default function NewCustomOrderPage() {
   const router = useRouter();
   
-  const { data: usersData, isLoading: isLoadingUsers } = useUsers({ 
-    role: "ROLE_USER" as UserRole,
-    limit: 100 
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ["sellerCustomers", { limit: 100 }],
+    queryFn: () => usersApi.getCustomers({ limit: 100 }),
   });
   
   const customers = usersData?.data || [];

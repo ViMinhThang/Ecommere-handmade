@@ -30,6 +30,9 @@ describe('UsersService', () => {
       updateMany: jest.fn(),
       delete: jest.fn(),
     },
+    refreshToken: {
+      updateMany: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -212,6 +215,10 @@ describe('UsersService', () => {
       await expect(
         bcrypt.compare(newPassword, updateCall?.data.password),
       ).resolves.toBe(true);
+      expect(mockPrismaService.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: '1', revoked: false },
+        data: { revoked: true },
+      });
     });
 
     it('rejects an invalid current password', async () => {
