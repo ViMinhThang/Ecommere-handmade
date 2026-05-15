@@ -1,6 +1,5 @@
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const DEFAULT_API_VERSION = "v1";
-const ACCESS_TOKEN_STORAGE_KEY = "auth_access_token_client";
 
 function trimTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, "");
@@ -19,18 +18,6 @@ export function getVersionedApiBaseUrl(baseUrl: string = RAW_API_URL): string {
 }
 
 export const API_BASE_URL = getVersionedApiBaseUrl();
-
-function getAccessTokenFromStorage(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    return localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
 
 export class ApiError extends Error {
   status: number;
@@ -52,9 +39,25 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async refreshSession() {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    try {
+      const response = await fetch("/api/auth/refresh", { method: "POST" });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    didRetry = false,
+  ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const accessToken = getAccessTokenFromStorage();
 
     const headers: Record<string, string> = {};
 
@@ -75,10 +78,6 @@ class ApiClient {
 
     const requestHeaders = new Headers(headers);
 
-    if (accessToken && !requestHeaders.has("Authorization")) {
-      requestHeaders.set("Authorization", `Bearer ${accessToken}`);
-    }
-
     const response = await fetch(url, {
       ...options,
       headers: requestHeaders,
@@ -86,6 +85,10 @@ class ApiClient {
     });
 
     if (response.status === 401) {
+      if (!didRetry && (await this.refreshSession())) {
+        return this.request<T>(endpoint, options, true);
+      }
+
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("auth:unauthorized"));
       }

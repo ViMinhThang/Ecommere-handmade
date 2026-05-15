@@ -7,14 +7,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api/client";
-
-interface ConfirmPaymentResponse {
-  success: boolean;
-  orderId: string;
-  paymentStatus: string;
-  orderStatus: string;
-}
+import { ordersApi } from "@/lib/api/orders";
 
 interface PaymentFormProps {
   orderId: string;
@@ -60,10 +53,7 @@ export function PaymentForm({
 
     if (paymentIntent && paymentIntent.status === "succeeded") {
       try {
-        const response = await apiClient.post<ConfirmPaymentResponse>(
-          "/orders/confirm-payment",
-          { paymentIntentId },
-        );
+        const response = await ordersApi.confirmPayment(paymentIntentId);
         toast.success("Thanh toán thành công! Đơn hàng đã được đặt.");
         const confirmedOrderId = response?.orderId || orderId;
         if (!confirmedOrderId) {

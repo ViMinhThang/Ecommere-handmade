@@ -8,15 +8,15 @@ import { useTheme } from "next-themes";
 import {
   AlertCircle,
   Loader2,
-  Moon,
-  Sun,
   ArrowRight,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
+import { getSafeRedirectPath } from "@/lib/safe-redirect";
 
 let isGoogleIdentityInitialized = false;
 let initializedGoogleClientId: string | null = null;
@@ -24,10 +24,15 @@ let initializedGoogleClientId: string | null = null;
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
   const { login, loginWithGoogle } = useAuth();
 
-  const redirectTo = searchParams.get("redirect") || "/";
+  const redirectTo = getSafeRedirectPath(searchParams.get("redirect"));
+  const demoAdminEmail = process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL;
+  const demoAdminPassword = process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD;
+  const showDemoCredentials =
+    process.env.NODE_ENV !== "production" &&
+    Boolean(demoAdminEmail && demoAdminPassword);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   const [email, setEmail] = useState("");
@@ -55,7 +60,7 @@ function LoginPageContent() {
     }
 
     setGoogleUnavailable(false);
-    googleButtonRef.current.innerHTML = "";
+    googleButtonRef.current.replaceChildren();
     if (
       !isGoogleIdentityInitialized ||
       initializedGoogleClientId !== clientId
@@ -140,21 +145,9 @@ function LoginPageContent() {
 
   return (
     <div className="flex min-h-screen w-full bg-background lg:h-screen lg:overflow-hidden">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed right-6 top-6 z-50 rounded-full hover:bg-primary/10"
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      >
-        {theme === "dark" ? (
-          <Sun className="h-5 w-5 text-primary" />
-        ) : (
-          <Moon className="h-5 w-5 text-primary" />
-        )}
-        <span className="sr-only">Chuyển đổi giao diện</span>
-      </Button>
+      <CustomerNavBar />
 
-      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-accent/30 p-16 lg:flex xl:p-24">
+      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-accent/30 p-16 pt-28 lg:flex xl:p-24 xl:pt-32">
         <div className="animate-pulse absolute -left-[10%] top-[-10%] h-[70%] w-[70%] rounded-full bg-primary/5 blur-[120px]" />
         <div className="absolute -right-[5%] bottom-[5%] h-[50%] w-[50%] rounded-full bg-primary/10 blur-[100px]" />
 
@@ -183,7 +176,7 @@ function LoginPageContent() {
         </div>
       </div>
 
-      <div className="relative flex w-full flex-col items-center justify-start overflow-y-auto bg-background p-8 sm:p-16 lg:w-[55%]">
+      <div className="relative flex w-full flex-col items-center justify-start overflow-y-auto bg-background px-8 pb-8 pt-24 sm:px-16 sm:pb-16 sm:pt-28 lg:w-[55%]">
         <div className="animate-in slide-in-from-right-4 fade-in duration-700 w-full max-w-[420px] py-8 lg:py-10">
           <div className="mb-12">
             <h1 className="mb-3 text-4xl font-serif font-bold text-foreground">
@@ -308,6 +301,7 @@ function LoginPageContent() {
             )}
           </div>
 
+          {showDemoCredentials && (
           <div className="group mt-10 space-y-4 rounded-xl border border-primary/10 bg-primary/5 p-6 shadow-sm transition-colors duration-300 hover:bg-primary/10">
             <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
               <AlertCircle className="h-3.5 w-3.5" />
@@ -319,7 +313,7 @@ function LoginPageContent() {
                   Email
                 </p>
                 <p className="font-serif font-semibold tracking-tight text-foreground">
-                  admin@ecommerce.com
+                  {demoAdminEmail}
                 </p>
               </div>
               <div>
@@ -327,7 +321,7 @@ function LoginPageContent() {
                   Mật khẩu
                 </p>
                 <p className="font-serif font-semibold tracking-tight text-foreground">
-                  admin123
+                  {demoAdminPassword}
                 </p>
               </div>
             </div>
@@ -336,13 +330,14 @@ function LoginPageContent() {
               size="sm"
               className="h-9 w-full border border-primary/20 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 hover:bg-primary hover:text-white"
               onClick={() => {
-                setEmail("admin@ecommerce.com");
-                setPassword("admin123");
+                setEmail(demoAdminEmail || "");
+                setPassword(demoAdminPassword || "");
               }}
             >
               Tự động điền thông tin
             </Button>
           </div>
+          )}
 
           <div className="mt-12 text-center font-serif text-lg italic text-muted-foreground">
             Bạn chưa có tài khoản?{" "}

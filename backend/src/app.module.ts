@@ -20,6 +20,8 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { ProductQuestionsModule } from './product-questions/product-questions.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { EbayProductImportService } from './startup/ebay-product-import.service';
+import { SettingsModule } from './settings/settings.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { EbayProductImportService } from './startup/ebay-product-import.service'
     ReviewsModule,
     ProductQuestionsModule,
     WishlistModule,
+    SettingsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [EbayProductImportService],

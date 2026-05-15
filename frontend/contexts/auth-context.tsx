@@ -24,7 +24,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USER_KEY = "auth_user";
-const ACCESS_TOKEN_KEY = "auth_access_token_client";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -35,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearAuthSession = useCallback(async () => {
     setUser(null);
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
@@ -53,13 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     refreshTimerRef.current = setTimeout(async () => {
       try {
-        const response = await authApi.refresh();
-        await fetch("/api/auth/cookies", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken: response.accessToken, refreshToken: response.refreshToken }),
-        });
-        localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+        const response = await fetch("/api/auth/refresh", { method: "POST" });
+        if (!response.ok) {
+          throw new Error("Unable to refresh session");
+        }
         scheduleNextRefresh();
       } catch {
         logout();
@@ -69,19 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const storedUser = localStorage.getItem(USER_KEY);
-    const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
 
-    if (storedUser && storedAccessToken) {
+    if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
         scheduleTokenRefresh();
       } catch {
         localStorage.removeItem(USER_KEY);
-        localStorage.removeItem(ACCESS_TOKEN_KEY);
       }
     } else {
       localStorage.removeItem(USER_KEY);
-      localStorage.removeItem(ACCESS_TOKEN_KEY);
     }
     setIsLoading(false);
   }, [scheduleTokenRefresh]);
@@ -104,7 +96,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ accessToken: response.accessToken, refreshToken: response.refreshToken }),
     });
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-    localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
     setUser(response.user);
     scheduleTokenRefresh();
   }, [scheduleTokenRefresh]);

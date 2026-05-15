@@ -14,6 +14,7 @@ import {
 import { CartService } from '../cart/cart.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
+import { SettingsService } from '../settings/settings.service';
 import { OrdersService } from './orders.service';
 
 type OrderFindUniqueArgs = {
@@ -110,6 +111,9 @@ describe('OrdersService', () => {
   };
   const previousFlashSaleGuardrailsFlag =
     process.env.FLASH_SALE_GUARDRAILS_ENABLED;
+  const mockSettings = {
+    getPlatformCommissionBps: jest.fn(() => 1000),
+  };
 
   const shippingAddress = {
     fullName: 'Customer',
@@ -375,6 +379,7 @@ describe('OrdersService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StripeService, useValue: mockStripe },
         { provide: CartService, useValue: mockCart },
+        { provide: SettingsService, useValue: mockSettings },
       ],
     }).compile();
 

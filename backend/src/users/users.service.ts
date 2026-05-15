@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma, ProductStatus, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import {
   SearchSellersQueryDto,
@@ -428,6 +430,35 @@ export class UsersService {
       },
       select: this.userSelect,
     });
+  }
+
+  async changePassword(id: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.password,
+    );
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const isSamePassword = await bcrypt.compare(dto.newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { password: await bcrypt.hash(dto.newPassword, 12) },
+    });
+
+    return { success: true };
   }
 
   async update(id: string, updateUserDto: AdminUpdateUserDto) {

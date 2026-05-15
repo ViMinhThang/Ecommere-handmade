@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PROTECTED_ROUTES = ["/dashboard", "/settings", "/chat"];
+const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/settings",
+  "/chat",
+  "/profile",
+  "/checkout",
+  "/seller",
+  "/custom-orders",
+];
 const AUTH_ROUTES = ["/login", "/register", "/verify-otp", "/forgot-password", "/reset-password"];
 const API_ROUTE = "/api";
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -81,6 +89,10 @@ export const config = {
     "/dashboard/:path*",
     "/chat",
     "/settings/:path*",
+    "/profile/:path*",
+    "/checkout/:path*",
+    "/seller/:path*",
+    "/custom-orders/:path*",
     "/login",
     "/register",
     "/verify-otp",
