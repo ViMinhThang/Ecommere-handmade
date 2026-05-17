@@ -14,7 +14,6 @@ describe('ChatController', () => {
     getConversationSummaryForUser: jest.fn(),
     getMessages: jest.fn(),
     sendTextMessage: jest.fn(),
-    sendCustomOrderOffer: jest.fn(),
     sendImageMessage: jest.fn(),
     markConversationRead: jest.fn(),
     getUnreadCount: jest.fn(),

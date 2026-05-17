@@ -109,7 +109,7 @@ export function CustomerFooter() {
               </li>
               <li>
                 <Link
-                  href="/seller/custom-orders/new"
+                  href="/profile/commissions/new"
                   className="text-sm tracking-wide text-muted-foreground transition-all hover:text-primary font-body"
                 >
                   Đặt hàng thiết kế riêng

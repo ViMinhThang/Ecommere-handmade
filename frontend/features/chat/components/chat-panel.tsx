@@ -17,7 +17,6 @@ import {
 } from "@/lib/api/hooks";
 import { ensureChatSocketConnected } from "@/lib/chat/socket";
 import type { ChatConversationSummary, ChatMessage } from "@/types";
-import { CustomOfferDialog } from "./custom-offer-dialog";
 import { 
   mergeUniqueMessages, 
   appendMessageToMap 
@@ -47,7 +46,6 @@ export function ChatPanel({
   const queryClient = useQueryClient();
 
   const [selectedConversationId, setSelectedConversationId] = useState("");
-  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
   const [draftText, setDraftText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
@@ -342,10 +340,8 @@ export function ChatPanel({
             <>
               <ChatHeader 
                 selectedConversation={selectedConversation}
-                user={user}
                 compact={compact}
                 onBackToList={() => setIsMobileListVisible(true)}
-                onOpenOfferDialog={() => setIsOfferDialogOpen(true)}
               />
 
               <ChatMessageList 
@@ -372,15 +368,6 @@ export function ChatPanel({
           )}
         </section>
       </div>
-      {selectedConversation && (
-        <CustomOfferDialog
-          isOpen={isOfferDialogOpen}
-          onOpenChange={setIsOfferDialogOpen}
-          conversationId={selectedConversation.id}
-          customerId={selectedConversation.customerId}
-          initialTitle={selectedConversation.contextProduct?.name}
-        />
-      )}
     </div>
   );
 }

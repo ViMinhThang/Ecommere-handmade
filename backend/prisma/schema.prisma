@@ -127,6 +127,20 @@ enum FlashSaleState {
   ENDED
 }
 
+enum CommissionPostStatus {
+  OPEN
+  ASSIGNED
+  CLOSED
+  CANCELLED
+}
+
+enum CommissionProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
 model User {
   id                    String                      @id @default(uuid())
   name                  String
@@ -179,6 +193,8 @@ model User {
   reportsResolved       Report[]                    @relation("ReportResolvedBy")
   sellerPayouts         SellerPayout[]              @relation("SellerPayoutSeller")
   flashSaleUsages       FlashSaleUserUsage[]
+  commissionPosts       CommissionPost[]            @relation("CommissionPostCustomer")
+  commissionProposals   CommissionProposal[]        @relation("CommissionProposalSeller")
 
   @@index([status])
 }
@@ -704,6 +720,49 @@ model CustomOrder {
   @@index([sellerId])
   @@index([paymentIntentId])
   @@index([quoteTemplateId])
+}
+
+model CommissionPost {
+  id                 String                 @id @default(uuid())
+  customerId         String
+  customer           User                   @relation("CommissionPostCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  selectedProposalId String?                @unique
+  selectedProposal   CommissionProposal?    @relation("SelectedCommissionProposal", fields: [selectedProposalId], references: [id], onDelete: SetNull)
+  customOrderId      String?
+  title              String
+  description        String                 @db.Text
+  budgetMin          Decimal?
+  budgetMax          Decimal?
+  desiredTimeline    String?
+  referenceImages    String[]               @default([])
+  status             CommissionPostStatus   @default(OPEN)
+  closedAt           DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  proposals          CommissionProposal[]   @relation("CommissionPostProposals")
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+}
+
+model CommissionProposal {
+  id             String                   @id @default(uuid())
+  commissionId   String
+  commission     CommissionPost           @relation("CommissionPostProposals", fields: [commissionId], references: [id], onDelete: Cascade)
+  sellerId       String
+  seller         User                     @relation("CommissionProposalSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  selectedFor    CommissionPost?          @relation("SelectedCommissionProposal")
+  message        String                   @db.Text
+  proposedPrice  Decimal
+  proposedLeadTime String
+  sketchImageUrl String?
+  status         CommissionProposalStatus @default(PENDING)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@unique([commissionId, sellerId])
+  @@index([sellerId, createdAt])
+  @@index([commissionId, status])
 }
 
 model PaymentWebhookEvent {

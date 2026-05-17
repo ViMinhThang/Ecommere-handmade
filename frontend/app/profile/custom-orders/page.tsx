@@ -25,7 +25,7 @@ export default function ProfileCustomOrdersPage() {
       <div className="bg-white rounded-lg p-12 text-center border border-slate-200">
          <PenTool className="w-12 h-12 text-slate-300 mx-auto mb-4" />
          <h3 className="font-serif text-2xl font-bold text-slate-800 mb-2">Chưa Có Đơn Hàng Nào</h3>
-         <p className="text-slate-500">Bạn chưa có đơn đặt hàng thiết kế riêng nào. Hãy liên hệ với người bán yêu thích của bạn qua tính năng Chat để lên ý tưởng.</p>
+         <p className="text-slate-500">Bạn chưa có đơn thiết kế riêng đang hoạt động. Hãy đăng một yêu cầu commission để người bán gửi đề xuất.</p>
       </div>
     );
   }

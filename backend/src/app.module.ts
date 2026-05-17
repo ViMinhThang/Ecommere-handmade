@@ -25,6 +25,7 @@ import { SettingsModule } from './settings/settings.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RewardsModule } from './rewards/rewards.module';
 import { ReportsModule } from './reports/reports.module';
+import { CommissionsModule } from './commissions/commissions.module';
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   if (!value) {
@@ -76,6 +77,7 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
     PaymentsModule,
     RewardsModule,
     ReportsModule,
+    CommissionsModule,
   ],
   controllers: [AppController],
   providers: [

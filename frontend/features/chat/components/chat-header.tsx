@@ -1,24 +1,19 @@
-import { ArrowLeft, PenTool } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatConversationSummary } from "@/types";
-import type { AuthUser } from "@/lib/api/auth";
 import { getInitials } from "../utils";
 
 interface ChatHeaderProps {
   selectedConversation: ChatConversationSummary;
-  user?: AuthUser | null;
   compact: boolean;
   onBackToList: () => void;
-  onOpenOfferDialog: () => void;
 }
 
 export function ChatHeader({
   selectedConversation,
-  user,
   compact,
   onBackToList,
-  onOpenOfferDialog,
 }: ChatHeaderProps) {
   return (
     <div className="flex items-center justify-between border-b border-border/60 px-3 py-3">
@@ -53,26 +48,13 @@ export function ChatHeader({
           ) : null}
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        {user?.roles.includes("ROLE_SELLER") && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-widest border-primary/30 text-primary hover:bg-primary/5"
-            onClick={onOpenOfferDialog}
-          >
-            <PenTool className="h-3.5 w-3.5" />
-            Tạo báo giá
-          </Button>
-        )}
-        {!compact ? (
-          <span className="text-xs text-muted-foreground">
-            {selectedConversation.unreadCount > 0
-              ? `${selectedConversation.unreadCount} chưa đọc`
-              : "Đã đọc"}
-          </span>
-        ) : null}
-      </div>
+      {!compact ? (
+        <span className="text-xs text-muted-foreground">
+          {selectedConversation.unreadCount > 0
+            ? `${selectedConversation.unreadCount} chưa đọc`
+            : "Đã đọc"}
+        </span>
+      ) : null}
     </div>
   );
 }

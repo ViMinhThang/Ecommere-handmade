@@ -44,6 +44,7 @@ export function Sidebar() {
     { href: "/dashboard/vouchers", label: "Mã giảm giá", icon: Ticket, show: isAdmin },
     { href: "/dashboard/flash-sales", label: "Flash Sales", icon: Zap, show: isAdmin },
     { href: "/dashboard/inventory", label: "Kho hàng", icon: ClipboardList, show: isSeller },
+    { href: "/seller/commissions", label: "Commission", icon: ClipboardList, show: isSeller },
     { href: "/seller/custom-orders", label: "Thiết kế riêng", icon: PenTool, show: isSeller },
     { href: "/dashboard/media", label: "Thư viện ảnh", icon: Image, show: true },
     { href: "/dashboard/settings", label: "Cài đặt", icon: Settings, show: true },
