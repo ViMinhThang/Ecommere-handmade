@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import {
   ClipboardList,
+  FileText,
   FilePlus2,
   Folder,
   Flag,
@@ -46,6 +47,7 @@ export function Sidebar() {
     { href: "/dashboard/inventory", label: "Kho hàng", icon: ClipboardList, show: isSeller },
     { href: "/seller/commissions", label: "Commission", icon: ClipboardList, show: isSeller },
     { href: "/seller/custom-orders", label: "Thiết kế riêng", icon: PenTool, show: isSeller },
+    { href: "/seller/quote-templates", label: "Mẫu báo giá", icon: FileText, show: isSeller },
     { href: "/dashboard/media", label: "Thư viện ảnh", icon: Image, show: true },
     { href: "/dashboard/settings", label: "Cài đặt", icon: Settings, show: true },
   ].filter((item) => item.show)

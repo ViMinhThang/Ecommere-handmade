@@ -20,6 +20,11 @@ import {
   customOrdersApi,
   CreateCustomOrderPayload,
 } from "./custom-orders";
+import {
+  customOrderQuoteTemplatesApi,
+  type CreateCustomOrderQuoteTemplateDto,
+  type UpdateCustomOrderQuoteTemplateDto,
+} from "./custom-order-quote-templates";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
 import { rewardsApi } from "./rewards";
@@ -1401,6 +1406,60 @@ export function useCancelCustomOrder() {
       queryClient.invalidateQueries({
         queryKey: customOrderKeys.adminLedger(id),
       });
+    },
+  });
+}
+
+// Custom order quote template hooks
+export const quoteTemplateKeys = {
+  all: ["customOrderQuoteTemplates"] as const,
+  details: () => [...quoteTemplateKeys.all, "detail"] as const,
+  detail: (id: string) => [...quoteTemplateKeys.details(), id] as const,
+};
+
+export function useQuoteTemplates() {
+  return useQuery({
+    queryKey: quoteTemplateKeys.all,
+    queryFn: () => customOrderQuoteTemplatesApi.getQuoteTemplates(),
+  });
+}
+
+export function useCreateQuoteTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateCustomOrderQuoteTemplateDto) =>
+      customOrderQuoteTemplatesApi.createQuoteTemplate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: quoteTemplateKeys.all });
+    },
+  });
+}
+
+export function useUpdateQuoteTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateCustomOrderQuoteTemplateDto;
+    }) => customOrderQuoteTemplatesApi.updateQuoteTemplate(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: quoteTemplateKeys.all });
+      queryClient.invalidateQueries({ queryKey: quoteTemplateKeys.detail(id) });
+    },
+  });
+}
+
+export function useDeleteQuoteTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      customOrderQuoteTemplatesApi.deleteQuoteTemplate(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: quoteTemplateKeys.all });
+      queryClient.invalidateQueries({ queryKey: quoteTemplateKeys.detail(id) });
     },
   });
 }
