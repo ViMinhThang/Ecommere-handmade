@@ -10,6 +10,8 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, AuthResponse, AuthUser, LoginData, RegisterData } from "@/lib/api/auth";
+import { usersApi } from "@/lib/api/users";
+import { getJwtMaxAgeSeconds } from "@/lib/auth-token";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -31,51 +33,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const clearAuthSession = useCallback(async () => {
+  const clearAuthSession = useCallback(async (revoke = false) => {
     setUser(null);
     localStorage.removeItem(USER_KEY);
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
-    await fetch("/api/auth/cookies", { method: "DELETE" });
+    await fetch(revoke ? "/api/auth/logout" : "/api/auth/cookies", {
+      method: revoke ? "POST" : "DELETE",
+    });
   }, []);
 
   const logout = useCallback(async () => {
-    await clearAuthSession();
+    await clearAuthSession(true);
     router.push("/login");
   }, [clearAuthSession, router]);
 
-  const scheduleTokenRefresh = useCallback(function scheduleNextRefresh() {
+  const scheduleTokenRefresh = useCallback(function scheduleNextRefresh(
+    accessToken?: string,
+  ) {
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
+    const maxAgeSeconds = getJwtMaxAgeSeconds(accessToken, 15 * 60);
+    const refreshInMs = Math.max(30, maxAgeSeconds - 60) * 1000;
+
     refreshTimerRef.current = setTimeout(async () => {
       try {
         const response = await fetch("/api/auth/refresh", { method: "POST" });
         if (!response.ok) {
           throw new Error("Unable to refresh session");
         }
-        scheduleNextRefresh();
+        const payload = (await response.json().catch(() => ({}))) as {
+          accessToken?: string;
+        };
+        scheduleNextRefresh(payload.accessToken);
       } catch {
-        logout();
+        await clearAuthSession();
       }
-    }, 20 * 24 * 60 * 60 * 1000); // Refresh after 20 days (safely within 32-bit limit)
-  }, [logout]);
+    }, refreshInMs);
+  }, [clearAuthSession]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_KEY);
+    let isMounted = true;
 
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-        scheduleTokenRefresh();
-      } catch {
-        localStorage.removeItem(USER_KEY);
+    const bootstrapSession = async () => {
+      const storedUser = localStorage.getItem(USER_KEY);
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          localStorage.removeItem(USER_KEY);
+        }
       }
-    } else {
-      localStorage.removeItem(USER_KEY);
-    }
-    setIsLoading(false);
+
+      try {
+        const refreshResponse = await fetch("/api/auth/refresh", {
+          method: "POST",
+        });
+        if (!refreshResponse.ok) {
+          throw new Error("Session refresh failed");
+        }
+
+        const payload = (await refreshResponse.json().catch(() => ({}))) as {
+          accessToken?: string;
+        };
+        const freshUser = await usersApi.getMe();
+
+        if (!isMounted) {
+          return;
+        }
+
+        localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+        setUser(freshUser);
+        scheduleTokenRefresh(payload.accessToken);
+      } catch {
+        if (isMounted) {
+          setUser(null);
+          localStorage.removeItem(USER_KEY);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void bootstrapSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [scheduleTokenRefresh]);
 
   useEffect(() => {
@@ -97,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
     setUser(response.user);
-    scheduleTokenRefresh();
+    scheduleTokenRefresh(response.accessToken);
   }, [scheduleTokenRefresh]);
 
   const login = useCallback(async (data: LoginData) => {

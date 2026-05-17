@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getJwtMaxAgeSeconds } from "@/lib/auth-token";
 
 const ACCESS_TOKEN_COOKIE = "auth_access_token";
 const REFRESH_TOKEN_COOKIE = "auth_refresh_token";
@@ -9,13 +10,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { accessToken, refreshToken } = body;
 
+    if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
+      return NextResponse.json({ error: "Tokens are required" }, { status: 400 });
+    }
+
     const response = NextResponse.json({ success: true });
 
     response.cookies.set(ACCESS_TOKEN_COOKIE, accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: COOKIE_MAX_AGE,
+      maxAge: getJwtMaxAgeSeconds(accessToken, COOKIE_MAX_AGE),
       path: "/",
     });
 
@@ -23,7 +28,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: COOKIE_MAX_AGE,
+      maxAge: getJwtMaxAgeSeconds(refreshToken, COOKIE_MAX_AGE),
       path: "/",
     });
 

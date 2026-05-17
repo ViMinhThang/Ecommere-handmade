@@ -128,7 +128,7 @@ export default function CartPage() {
   const { isAuthenticated } = useAuth();
   const { items, subtotal, total, isLoading, appliedVoucher, updateQuantity, removeItem } = useCartContext();
   const { data: suggestions } = useCartSuggestions(isAuthenticated && items.length > 0);
-  const { data: allVouchersData } = useVouchers({ limit: 100 });
+  const { data: allVouchersData } = useVouchers({ limit: 50 });
   const [voucherCode, setVoucherCode] = useState("");
   const applyVoucherMutation = useApplyVoucher();
   const removeVoucherMutation = useRemoveVoucher();

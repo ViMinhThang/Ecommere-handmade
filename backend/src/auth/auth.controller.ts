@@ -157,4 +157,15 @@ export class AuthController {
       throw error;
     }
   }
+
+  @Post('logout')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @Body('refreshToken') refreshToken: string | undefined,
+    @Req() req: ExpressRequest,
+  ) {
+    const cookieToken = extractCookieValue(req, REFRESH_TOKEN_COOKIE);
+    return this.authService.logout(refreshToken || cookieToken);
+  }
 }

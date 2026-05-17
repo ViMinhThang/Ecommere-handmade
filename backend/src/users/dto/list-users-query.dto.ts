@@ -9,4 +9,8 @@ export class ListUsersQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @IsString()
+  q?: string;
 }

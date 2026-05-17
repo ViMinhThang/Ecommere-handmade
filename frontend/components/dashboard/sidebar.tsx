@@ -8,6 +8,7 @@ import {
   ClipboardList,
   FilePlus2,
   Folder,
+  Flag,
   Image,
   LayoutDashboard,
   LogOut,
@@ -25,7 +26,7 @@ import {
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   const isAdmin = user?.roles?.includes("ROLE_ADMIN")
   const isSeller = user?.roles?.includes("ROLE_SELLER")
@@ -38,6 +39,7 @@ export function Sidebar() {
     { href: "/dashboard/orders", label: "Đơn hàng", icon: ShoppingCart, show: isAdmin || isSeller },
     { href: "/dashboard/payments", label: "Payment Reliability", icon: Wallet, show: isAdmin },
     { href: "/dashboard/users", label: "Người dùng", icon: Users, show: isAdmin },
+    { href: "/dashboard/reports", label: "Báo cáo", icon: Flag, show: isAdmin },
     { href: "/dashboard/categories", label: "Danh mục", icon: Folder, show: isAdmin },
     { href: "/dashboard/vouchers", label: "Mã giảm giá", icon: Ticket, show: isAdmin },
     { href: "/dashboard/flash-sales", label: "Flash Sales", icon: Zap, show: isAdmin },
@@ -93,13 +95,16 @@ export function Sidebar() {
           <FilePlus2 className="h-4 w-4" />
           Đăng sản phẩm mới
         </Link>
-        <Link
-          href="/login"
-          className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-150"
+        <button
+          type="button"
+          onClick={() => {
+            void logout()
+          }}
+          className="flex w-full items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-150"
         >
           <LogOut className="h-4 w-4" />
           Đăng xuất
-        </Link>
+        </button>
       </div>
     </aside>
   )

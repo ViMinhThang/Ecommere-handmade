@@ -35,6 +35,7 @@ import {
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
 import { SettingsService } from '../settings/settings.service';
+import { RewardsService } from '../rewards/rewards.service';
 
 const SHIPPING_FEE = 25000;
 const CURRENCY = 'vnd';
@@ -67,6 +68,7 @@ interface ExecuteCheckoutTransactionParams {
   paymentIntentId?: string | null;
   paymentExpiresAt?: Date | null;
   idempotencyKey?: string | null;
+  rewardRedemption: RewardRedemption;
 }
 
 interface CheckoutFingerprintContext {
@@ -74,6 +76,7 @@ interface CheckoutFingerprintContext {
   paymentMethod: PaymentMethod;
   cart: EnrichedCart;
   shippingAddress: Record<string, unknown>;
+  rewardRedemption: RewardRedemption;
 }
 
 interface CheckoutReuseValidationContext {
@@ -93,6 +96,11 @@ interface CheckoutFlashSalePricingSnapshot {
   discountPercent: number;
   flashSaleId: string | null;
   reserveStock: number;
+}
+
+interface RewardRedemption {
+  points: number;
+  discountAmount: number;
 }
 
 interface FlashSaleReservationGroup {
@@ -203,6 +211,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     private readonly stripeService: StripeService,
     private readonly cartService: CartService,
     private readonly settingsService: SettingsService,
+    private readonly rewardsService: RewardsService,
   ) {}
 
   onModuleInit() {
@@ -368,12 +377,24 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const cart = await this.cartService.getCart(userId);
     this.validateCart(cart);
 
+    const rewardPointsToRedeem = this.rewardsService.normalizePoints(
+      checkoutDto.rewardPointsToRedeem,
+    );
+    const rewardRedemption = this.rewardsService.calculateRedemption(
+      rewardPointsToRedeem,
+      cart.total + SHIPPING_FEE,
+    );
+    const checkoutCart = this.applyRewardDiscountToCart(
+      cart,
+      rewardRedemption.discountAmount,
+    );
     const sellerGroups = this.groupItemsBySeller(cart.items);
     const checkoutFingerprint = this.buildCheckoutFingerprint({
       userId,
       paymentMethod: normalizedPaymentMethod,
-      cart,
+      cart: checkoutCart,
       shippingAddress,
+      rewardRedemption,
     });
     const idempotencyKey =
       providedIdempotencyKey ??
@@ -400,12 +421,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       try {
         order = await this.executeCheckoutTransaction({
           userId,
-          cart,
+          cart: checkoutCart,
           sellerGroups,
           shippingAddress,
           paymentMethod: PaymentMethod.COD,
           paymentStatus: PaymentStatus.COD_PENDING,
           idempotencyKey,
+          rewardRedemption,
         });
       } catch (error) {
         const recovered = await this.recoverReusableCheckoutFromConflict(
@@ -430,19 +452,23 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       };
     }
 
-    const finalTotal = cart.total + SHIPPING_FEE;
+    const finalTotal = checkoutCart.total + SHIPPING_FEE;
 
     const paymentIntent = await this.stripeService.createPaymentIntent(
       finalTotal,
       'vnd',
-      { userId, voucherCode: cart.appliedVoucher?.code || '' },
+      {
+        userId,
+        voucherCode: checkoutCart.appliedVoucher?.code || '',
+        rewardPointsRedeemed: String(rewardRedemption.points),
+      },
     );
 
     let order: Order;
     try {
       order = await this.executeCheckoutTransaction({
         userId,
-        cart,
+        cart: checkoutCart,
         sellerGroups,
         shippingAddress,
         paymentMethod: PaymentMethod.STRIPE,
@@ -450,6 +476,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         paymentIntentId: paymentIntent.id,
         paymentExpiresAt: new Date(Date.now() + STRIPE_PAYMENT_EXPIRY_MS),
         idempotencyKey,
+        rewardRedemption,
       });
     } catch (error) {
       await this.stripeService.cancelPaymentIntent(paymentIntent.id);
@@ -469,7 +496,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     await this.stripeService.updatePaymentIntentMetadata(paymentIntent.id, {
       orderId: order.id,
       userId,
-      voucherCode: cart.appliedVoucher?.code || '',
+      voucherCode: checkoutCart.appliedVoucher?.code || '',
+      rewardPointsRedeemed: String(rewardRedemption.points),
     });
 
     return {
@@ -659,18 +687,35 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       voucherCode: context.cart.appliedVoucher?.code ?? null,
       orderTotal: this.toCheckoutMoney(context.cart.total + SHIPPING_FEE),
       discountAmount: this.toCheckoutMoney(context.cart.discountAmount),
+      ...(context.rewardRedemption.points > 0 ||
+      context.rewardRedemption.discountAmount > 0
+        ? {
+            rewardPointsRedeemed: context.rewardRedemption.points,
+            rewardDiscountAmount: this.toCheckoutMoney(
+              context.rewardRedemption.discountAmount,
+            ),
+          }
+        : {}),
       shippingAddressHash: this.hashCheckoutValue(context.shippingAddress),
       items: this.getCheckoutFingerprintItems(context.cart.items),
     });
   }
 
   private buildExistingOrderFingerprint(order: OrderWithCheckoutSnapshot) {
+    const rewardPointsRedeemed = order.rewardPointsRedeemed ?? 0;
+    const rewardDiscountAmount = this.toCheckoutMoney(
+      order.rewardDiscountAmount ?? 0,
+    );
+
     return this.hashCheckoutValue({
       userId: order.customerId,
       paymentMethod: order.paymentMethod,
       voucherCode: order.voucherCode ?? null,
       orderTotal: this.toCheckoutMoney(order.totalAmount),
       discountAmount: this.toCheckoutMoney(order.discountAmount),
+      ...(rewardPointsRedeemed > 0 || rewardDiscountAmount > 0
+        ? { rewardPointsRedeemed, rewardDiscountAmount }
+        : {}),
       shippingAddressHash: this.hashCheckoutValue(order.shippingAddress ?? null),
       items: this.getExistingOrderFingerprintItems(order),
     });
@@ -874,6 +919,23 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return groups;
   }
 
+  private applyRewardDiscountToCart(
+    cart: EnrichedCart,
+    rewardDiscountAmount: number,
+  ): EnrichedCart {
+    if (rewardDiscountAmount <= 0) {
+      return cart;
+    }
+
+    return {
+      ...cart,
+      discountAmount: this.roundMoney(
+        Number(cart.discountAmount) + rewardDiscountAmount,
+      ),
+      total: this.roundMoney(Math.max(0, Number(cart.total) - rewardDiscountAmount)),
+    };
+  }
+
   private async executeCheckoutTransaction(
     params: ExecuteCheckoutTransactionParams,
   ): Promise<Order> {
@@ -887,6 +949,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       paymentIntentId,
       paymentExpiresAt,
       idempotencyKey,
+      rewardRedemption,
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
@@ -910,6 +973,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           customerId: userId,
           totalAmount: cart.total + SHIPPING_FEE,
           discountAmount: cart.discountAmount,
+          rewardPointsRedeemed: rewardRedemption.points,
+          rewardDiscountAmount: rewardRedemption.discountAmount,
           voucherCode: cart.appliedVoucher?.code,
           paymentMethod,
           paymentStatus,
@@ -931,6 +996,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         sellerGroups,
         flashSaleSnapshots,
       );
+
+      await this.rewardsService.redeemForOrder(
+        tx,
+        userId,
+        order.id,
+        rewardRedemption.points,
+      );
+
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id },
       });
@@ -1464,14 +1537,15 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     tx: Prisma.TransactionClient,
     data: Prisma.MarketplaceLedgerEntryCreateInput,
   ) {
-    try {
-      return await tx.marketplaceLedgerEntry.create({ data });
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
-        return null;
-      }
-      throw error;
+    const existing = await tx.marketplaceLedgerEntry.findUnique({
+      where: { idempotencyKey: data.idempotencyKey },
+      select: { id: true },
+    });
+    if (existing) {
+      return null;
     }
+
+    return tx.marketplaceLedgerEntry.create({ data });
   }
 
   private async postOrderLedger(tx: Prisma.TransactionClient, orderId: string) {
@@ -2229,15 +2303,25 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         dto.subOrderId,
       );
 
+      const nextPaymentStatus = this.getOrderRefundPaymentStatus(
+        Number(order.totalAmount),
+        refundedAmount + amount,
+      );
+
       await tx.order.update({
         where: { id: order.id },
         data: {
-          paymentStatus: this.getOrderRefundPaymentStatus(
-            Number(order.totalAmount),
-            refundedAmount + amount,
-          ),
+          paymentStatus: nextPaymentStatus,
         },
       });
+
+      if (nextPaymentStatus === PaymentStatus.REFUNDED) {
+        await this.rewardsService.refundRedeemedPointsForOrder(
+          tx,
+          order.id,
+          'Order was fully refunded',
+        );
+      }
 
       return refund;
     });
@@ -2300,6 +2384,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         },
         include: this.orderDetailInclude,
       });
+
+      await this.rewardsService.refundRedeemedPointsForOrder(
+        tx,
+        orderId,
+        'Order was cancelled',
+      );
 
       return {
         ...this.attachFinancialSummary(updatedOrder),
@@ -2784,6 +2874,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       customerId: order.customerId,
     });
 
+    await this.rewardsService.refundRedeemedPointsForOrder(
+      tx,
+      order.id,
+      'Stripe payment was not completed',
+    );
+
     return tx.order.update({
       where: { id: order.id },
       data: {
@@ -2963,6 +3059,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           order.customerId,
         );
         await this.postOrderLedger(tx, orderId);
+        if (
+          newMasterStatus === OrderStatus.DELIVERED &&
+          newPaymentStatus === PaymentStatus.PAID
+        ) {
+          await this.rewardsService.awardOrderCompletionPoints(tx, orderId);
+        }
       }
 
       return;
@@ -2981,6 +3083,21 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       newPaymentStatus === PaymentStatus.PAID
     ) {
       await this.postOrderLedger(tx, orderId);
+    }
+
+    if (newMasterStatus === OrderStatus.CANCELLED) {
+      await this.rewardsService.refundRedeemedPointsForOrder(
+        tx,
+        orderId,
+        'Order was cancelled',
+      );
+    }
+
+    if (
+      newMasterStatus === OrderStatus.DELIVERED &&
+      newPaymentStatus === PaymentStatus.PAID
+    ) {
+      await this.rewardsService.awardOrderCompletionPoints(tx, orderId);
     }
   }
 }

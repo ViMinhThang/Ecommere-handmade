@@ -16,9 +16,18 @@ import type { AdminOrderFilters, OrderStatus as ApiOrderStatus } from "./orders"
 import { analyticsApi } from "./analytics";
 import { reviewsApi, type CreateReviewDto } from "./reviews";
 import { chatApi, CursorParams, StartConversationDto } from "./chat";
-import { customOrdersApi, CustomOrder } from "./custom-orders";
+import {
+  customOrdersApi,
+  CreateCustomOrderPayload,
+} from "./custom-orders";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
+import { rewardsApi } from "./rewards";
+import {
+  reportsApi,
+  type AdminReportsQuery,
+  type CreateReportPayload,
+} from "./reports";
 import {
   paymentReliabilityApi,
   type PaymentReliabilityAnomaliesQuery,
@@ -80,6 +89,8 @@ export const productKeys = {
     [...productKeys.all, "best-selling", limit ?? 10] as const,
   mostViewed: (limit?: number) =>
     [...productKeys.all, "most-viewed", limit ?? 10] as const,
+  recommendations: (limit?: number) =>
+    [...productKeys.all, "recommendations", limit ?? 10] as const,
   details: () => [...productKeys.all, "detail"] as const,
   detail: (id: string) => [...productKeys.details(), id] as const,
   stats: () => [...productKeys.all, "stats"] as const,
@@ -345,6 +356,14 @@ export function useMostViewedProducts(limit = 10, enabled = true) {
   return useQuery({
     queryKey: productKeys.mostViewed(limit),
     queryFn: () => productsApi.getMostViewedProducts(limit),
+    enabled,
+  });
+}
+
+export function useRecommendedProducts(limit = 10, enabled = true) {
+  return useQuery({
+    queryKey: productKeys.recommendations(limit),
+    queryFn: () => productsApi.getRecommendations(limit),
     enabled,
   });
 }
@@ -1052,6 +1071,21 @@ export const settingsKeys = {
   platform: () => [...settingsKeys.all, "platform"] as const,
 };
 
+export const rewardKeys = {
+  all: ["rewards"] as const,
+  balance: () => [...rewardKeys.all, "balance"] as const,
+  ledger: (params?: { page?: number; limit?: number }) =>
+    [...rewardKeys.all, "ledger", { ...params }] as const,
+};
+
+export const reportKeys = {
+  all: ["reports"] as const,
+  mine: (params?: { page?: number; limit?: number }) =>
+    [...reportKeys.all, "mine", { ...params }] as const,
+  admin: (params?: AdminReportsQuery) =>
+    [...reportKeys.all, "admin", { ...params }] as const,
+};
+
 export function usePaymentHistory() {
   return useQuery({
     queryKey: paymentKeys.history(),
@@ -1072,6 +1106,70 @@ export function useUpdatePlatformSettings() {
     mutationFn: settingsApi.updatePlatform,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.platform() });
+    },
+  });
+}
+
+export function useRewardBalance(enabled = true) {
+  return useQuery({
+    queryKey: rewardKeys.balance(),
+    queryFn: () => rewardsApi.getBalance(),
+    enabled,
+  });
+}
+
+export function useRewardLedger(
+  params?: { page?: number; limit?: number },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: rewardKeys.ledger(params),
+    queryFn: () => rewardsApi.getLedger(params),
+    enabled,
+  });
+}
+
+export function useCreateReport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateReportPayload) => reportsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: reportKeys.all });
+    },
+  });
+}
+
+export function useMyReports(
+  params?: { page?: number; limit?: number },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: reportKeys.mine(params),
+    queryFn: () => reportsApi.getMyReports(params),
+    enabled,
+  });
+}
+
+export function useAdminReports(params?: AdminReportsQuery, enabled = true) {
+  return useQuery({
+    queryKey: reportKeys.admin(params),
+    queryFn: () => reportsApi.getAdminReports(params),
+    enabled,
+  });
+}
+
+export function useUpdateAdminReportStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Parameters<typeof reportsApi.updateAdminStatus>[1];
+    }) => reportsApi.updateAdminStatus(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: reportKeys.all });
     },
   });
 }
@@ -1255,7 +1353,8 @@ export const customOrderKeys = {
 export function useCreateCustomOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<CustomOrder>) => customOrdersApi.create(data),
+    mutationFn: (data: CreateCustomOrderPayload) =>
+      customOrdersApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customOrderKeys.all });
     },

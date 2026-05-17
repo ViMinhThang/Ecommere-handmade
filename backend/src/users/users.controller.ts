@@ -74,6 +74,19 @@ export class UsersController {
     return this.usersService.findAll(query.role, query.status, query);
   }
 
+  @Get('customers')
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  findCustomersForSeller(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: ListUsersQueryDto,
+  ) {
+    return this.usersService.findCustomersForSeller(
+      req.user.id,
+      req.user.roles,
+      query,
+    );
+  }
+
   @Get('stats')
   @Roles('ROLE_ADMIN')
   getStats() {

@@ -7,12 +7,17 @@ import {
   useBestSellingProducts,
   useMostViewedProducts,
   useProducts,
+  useRecommendedProducts,
 } from "@/lib/api/hooks";
 import { productsApi } from "@/lib/api/products";
 import { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 
-type ProductsSectionMode = "latest" | "best-selling" | "most-viewed";
+type ProductsSectionMode =
+  | "latest"
+  | "best-selling"
+  | "most-viewed"
+  | "recommendations";
 
 interface ProductsSectionProps {
   title: string;
@@ -48,6 +53,10 @@ export function ProductsSection({
     resolvedLimit,
     mode === "most-viewed",
   );
+  const recommendedProductsQuery = useRecommendedProducts(
+    resolvedLimit,
+    mode === "recommendations",
+  );
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -59,7 +68,9 @@ export function ProductsSection({
       ? bestSellingProductsQuery.isLoading
       : mode === "most-viewed"
         ? mostViewedProductsQuery.isLoading
-        : latestProductsQuery.isLoading;
+        : mode === "recommendations"
+          ? recommendedProductsQuery.isLoading
+          : latestProductsQuery.isLoading;
 
   if (!mounted || isLoading) {
     return (
@@ -88,7 +99,9 @@ export function ProductsSection({
       ? bestSellingProductsQuery.data || []
       : mode === "most-viewed"
         ? mostViewedProductsQuery.data || []
-        : latestProductsQuery.data?.data || [];
+        : mode === "recommendations"
+          ? recommendedProductsQuery.data || []
+          : latestProductsQuery.data?.data || [];
 
   if (products.length === 0) {
     return (

@@ -32,6 +32,7 @@ import {
 import { useAuth } from '@/contexts/auth-context'
 import {
   useAdminOrders,
+  useCreateReport,
   useSellerOrders,
   useUpdateSubOrderStatus,
 } from '@/lib/api/hooks'
@@ -43,7 +44,7 @@ import type {
 } from '@/lib/api/orders'
 import type { Order, SubOrder } from '@/types'
 import { formatCurrency } from '@/lib/utils'
-import { AlertCircle, Eye, Loader2, Package, Search } from 'lucide-react'
+import { AlertCircle, Eye, Flag, Loader2, Package, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
@@ -142,6 +143,12 @@ export default function OrdersPage() {
   const [selectedSubOrder, setSelectedSubOrder] = useState<SubOrder | null>(null)
   const [nextStatus, setNextStatus] = useState<ApiOrderStatus>('PENDING')
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
+  const [reportCustomer, setReportCustomer] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+  const [reportReason, setReportReason] = useState('')
+  const [reportDescription, setReportDescription] = useState('')
 
   const adminFilters: AdminOrderFilters = {
     status: statusFilter === 'ALL' ? undefined : statusFilter,
@@ -156,6 +163,7 @@ export default function OrdersPage() {
   const adminOrdersQuery = useAdminOrders(adminFilters, Boolean(isAdmin))
   const sellerOrdersQuery = useSellerOrders(Boolean(isSeller && !isAdmin))
   const updateSubOrderStatus = useUpdateSubOrderStatus()
+  const createReport = useCreateReport()
 
   const adminOrders = useMemo(() => {
     const source = adminOrdersQuery.data || []
@@ -241,6 +249,47 @@ export default function OrdersPage() {
           ? mutationError.message
           : 'Khong the cap nhat trang thai'
       toast.error(message)
+    }
+  }
+
+  const openCustomerReportDialog = (subOrder: SubOrder) => {
+    const customer = subOrder.order?.customer
+    if (!customer?.id) {
+      toast.error('Khong tim thay thong tin khach hang')
+      return
+    }
+
+    setReportCustomer({
+      id: customer.id,
+      name: customer.name || customer.email || customer.id,
+    })
+    setReportReason('')
+    setReportDescription('')
+  }
+
+  const handleSubmitCustomerReport = async () => {
+    if (!reportCustomer) {
+      return
+    }
+
+    if (!reportReason.trim()) {
+      toast.error('Vui long nhap ly do bao cao')
+      return
+    }
+
+    try {
+      await createReport.mutateAsync({
+        type: 'CUSTOMER',
+        targetUserId: reportCustomer.id,
+        reason: reportReason,
+        description: reportDescription || undefined,
+      })
+      toast.success('Da gui bao cao khach hang')
+      setReportCustomer(null)
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Khong the gui bao cao',
+      )
     }
   }
 
@@ -559,6 +608,15 @@ export default function OrdersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => openCustomerReportDialog(subOrder)}
+                            disabled={subOrder.type === 'CUSTOM'}
+                          >
+                            <Flag className="mr-1 h-4 w-4" />
+                            Report
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openSellerStatusDialog(subOrder)}
                             disabled={subOrder.type === 'CUSTOM'}
                           >
@@ -630,6 +688,47 @@ export default function OrdersPage() {
               ) : (
                 'Save'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(reportCustomer)}
+        onOpenChange={(open) => {
+          if (!open) setReportCustomer(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report customer</DialogTitle>
+            <DialogDescription>
+              Gui bao cao ve {reportCustomer?.name || 'khach hang'} cho admin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              value={reportReason}
+              onChange={(event) => setReportReason(event.target.value)}
+              maxLength={120}
+              placeholder="Reason"
+            />
+            <Input
+              value={reportDescription}
+              onChange={(event) => setReportDescription(event.target.value)}
+              maxLength={2000}
+              placeholder="Additional detail"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportCustomer(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitCustomerReport}
+              disabled={createReport.isPending}
+            >
+              {createReport.isPending ? 'Sending...' : 'Send report'}
             </Button>
           </DialogFooter>
         </DialogContent>

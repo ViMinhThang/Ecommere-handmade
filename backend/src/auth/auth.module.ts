@@ -8,6 +8,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { MailerModule } from './mailer/mailer.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import {
+  DEFAULT_ACCESS_TOKEN_EXPIRY,
+  normalizeJwtExpiry,
+} from './auth-token-expiry';
 
 @Module({
   imports: [
@@ -17,7 +21,12 @@ import { PrismaModule } from '../prisma/prisma.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '30d' },
+        signOptions: {
+          expiresIn: normalizeJwtExpiry(
+            configService.get<string>('JWT_EXPIRES_IN'),
+            DEFAULT_ACCESS_TOKEN_EXPIRY,
+          ),
+        },
       }),
       inject: [ConfigService],
     }),

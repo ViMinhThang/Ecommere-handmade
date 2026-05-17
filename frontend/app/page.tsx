@@ -61,6 +61,13 @@ export default function Home() {
         </section>
 
         <ProductsSection
+          title="Gợi ý cho bạn"
+          subtitle="Được chọn theo hành vi mua sắm"
+          mode="recommendations"
+          limit={4}
+        />
+
+        <ProductsSection
           title="Sản phẩm mới"
           subtitle="Vừa ra mắt"
           mode="latest"

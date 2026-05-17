@@ -1,16 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getApiBaseUrlCandidates } from "@/lib/api-base-url";
+import { getJwtMaxAgeSeconds } from "@/lib/auth-token";
 
 const ACCESS_TOKEN_COOKIE = "auth_access_token";
 const REFRESH_TOKEN_COOKIE = "auth_refresh_token";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-function getVersionedApiBaseUrl(baseUrl: string) {
-  const normalized = baseUrl.replace(/\/+$/, "");
-  if (/\/v\d+($|\/)/i.test(normalized)) {
-    return normalized;
+function clearAuthCookies(response: NextResponse) {
+  response.cookies.set(ACCESS_TOKEN_COOKIE, "", { maxAge: 0, path: "/" });
+  response.cookies.set(REFRESH_TOKEN_COOKIE, "", { maxAge: 0, path: "/" });
+}
+
+async function requestBackendRefresh(refreshToken: string) {
+  let lastError: unknown;
+
+  for (const apiBaseUrl of getApiBaseUrlCandidates()) {
+    try {
+      return await fetch(`${apiBaseUrl}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+        cache: "no-store",
+      });
+    } catch (error) {
+      lastError = error;
+    }
   }
-  return `${normalized}/v1`;
+
+  throw lastError;
 }
 
 export async function POST(request: NextRequest) {
@@ -19,33 +36,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Refresh token is required" }, { status: 401 });
   }
 
-  const response = await fetch(`${getVersionedApiBaseUrl(RAW_API_URL)}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
-  });
+  let response: Response;
+  try {
+    response = await requestBackendRefresh(refreshToken);
+  } catch (error) {
+    console.error(
+      "[auth-refresh] Backend unavailable",
+      error instanceof Error ? error.message : "unknown error",
+    );
+    return NextResponse.json(
+      { error: "Authentication service unavailable" },
+      { status: 503 },
+    );
+  }
 
   if (!response.ok) {
-    const clearResponse = NextResponse.json({ error: "Session expired" }, { status: 401 });
-    clearResponse.cookies.set(ACCESS_TOKEN_COOKIE, "", { maxAge: 0, path: "/" });
-    clearResponse.cookies.set(REFRESH_TOKEN_COOKIE, "", { maxAge: 0, path: "/" });
+    const status = response.status === 401 || response.status === 403
+      ? 401
+      : response.status;
+    const clearResponse = NextResponse.json(
+      { error: status === 401 ? "Session expired" : "Authentication service unavailable" },
+      { status },
+    );
+    if (status === 401) {
+      clearAuthCookies(clearResponse);
+    }
     return clearResponse;
   }
 
   const { accessToken, refreshToken: nextRefreshToken } = await response.json();
-  const nextResponse = NextResponse.json({ success: true });
+  const nextResponse = NextResponse.json({ success: true, accessToken });
   nextResponse.cookies.set(ACCESS_TOKEN_COOKIE, accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: COOKIE_MAX_AGE,
+    maxAge: getJwtMaxAgeSeconds(accessToken, COOKIE_MAX_AGE),
     path: "/",
   });
   nextResponse.cookies.set(REFRESH_TOKEN_COOKIE, nextRefreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: COOKIE_MAX_AGE,
+    maxAge: getJwtMaxAgeSeconds(nextRefreshToken, COOKIE_MAX_AGE),
     path: "/",
   });
 

@@ -8,6 +8,7 @@ import { StripeWebhookController } from './stripe-webhook.controller';
 import { CustomOrdersModule } from '../custom-orders/custom-orders.module';
 import { SettingsModule } from '../settings/settings.module';
 import { PaymentReliabilityService } from './payment-reliability.service';
+import { RewardsModule } from '../rewards/rewards.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PaymentReliabilityService } from './payment-reliability.service';
     CartModule,
     CustomOrdersModule,
     SettingsModule,
+    RewardsModule,
   ],
   controllers: [OrdersController, StripeWebhookController],
   providers: [OrdersService, PaymentReliabilityService],

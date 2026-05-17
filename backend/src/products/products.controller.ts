@@ -158,6 +158,18 @@ export class ProductsController {
   }
 
   @UseGuards(OptionalJwtAuthGuard)
+  @Get('recommendations')
+  getRecommendations(
+    @Request() req: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+  ) {
+    return this.productsService.getRecommendations(
+      req.user?.id,
+      this.parseLimit(limit),
+    );
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
   findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.productsService.findOne(

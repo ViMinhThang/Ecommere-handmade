@@ -6,7 +6,8 @@ import { AuthService } from './auth.service';
 describe('AuthController', () => {
   const authService = {
     refreshToken: jest.fn(),
-  } as unknown as jest.Mocked<Pick<AuthService, 'refreshToken'>>;
+    logout: jest.fn(),
+  } as unknown as jest.Mocked<Pick<AuthService, 'refreshToken' | 'logout'>>;
   let controller: AuthController;
 
   beforeEach(() => {
@@ -42,5 +43,15 @@ describe('AuthController', () => {
     await expect(
       controller.refresh(undefined, { headers: {} } as Request),
     ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('logs out with the httpOnly refresh cookie token', async () => {
+    authService.logout.mockResolvedValue({ message: 'Logged out' });
+
+    await controller.logout(undefined, {
+      headers: { cookie: 'auth_refresh_token=cookie-token' },
+    } as Request);
+
+    expect(authService.logout).toHaveBeenCalledWith('cookie-token');
   });
 });

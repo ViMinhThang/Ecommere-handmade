@@ -35,8 +35,18 @@ export interface CustomOrder {
   };
 }
 
+export interface CreateCustomOrderPayload {
+  customerId: string;
+  title: string;
+  artisanNote?: string;
+  price: number;
+  leadTime?: string;
+  specifications?: string[];
+  sketchImageUrl?: string;
+}
+
 export const customOrdersApi = {
-  create: (data: Partial<CustomOrder>) => {
+  create: (data: CreateCustomOrderPayload) => {
     return apiClient.post<CustomOrder>('/custom-orders', data);
   },
   

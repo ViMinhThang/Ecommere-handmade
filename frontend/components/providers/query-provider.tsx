@@ -5,6 +5,14 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '@/lib/api/client';
 
+function shouldRetryQuery(failureCount: number, error: unknown) {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+    return false;
+  }
+
+  return failureCount < 1;
+}
+
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -12,8 +20,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         queryCache: new QueryCache({
           onError: (error) => {
             if (error instanceof ApiError) {
-              // Only toast if it's not a 401 (handled by client redirect)
-              if (error.status !== 401) {
+              if (error.status !== 401 && error.status !== 404) {
                 toast.error(error.message);
               }
             } else {
@@ -37,7 +44,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
             refetchOnMount: true,
-            retry: 1,
+            retry: shouldRetryQuery,
             throwOnError: false,
           },
         },

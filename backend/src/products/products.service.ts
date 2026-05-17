@@ -32,6 +32,10 @@ const FEATURED_PRODUCT_INCLUDE = {
   seller: { select: { id: true, name: true, shopName: true, avatar: true } },
 } satisfies Prisma.ProductInclude;
 
+type FeaturedProduct = Prisma.ProductGetPayload<{
+  include: typeof FEATURED_PRODUCT_INCLUDE;
+}>;
+
 const PRODUCT_SELLER_SELECT = {
   id: true,
   name: true,
@@ -755,6 +759,207 @@ export class ProductsService {
       take,
     });
 
+    return Promise.all(
+      products.map(async (product) => ({
+        ...product,
+        pricing: await this.flashSalesService.calculateEffectivePrice(
+          Number(product.price),
+          product.categoryId,
+        ),
+      })),
+    );
+  }
+
+  async getRecommendations(userId?: string, limit?: number) {
+    const take = this.normalizeFeaturedLimit(limit);
+    const selectedProductIds = new Set<string>();
+    const products: FeaturedProduct[] = [];
+
+    if (userId) {
+      const categoryIds = await this.findUserRecommendationCategoryIds(userId);
+      if (categoryIds.length > 0) {
+        const personalizedProducts = await this.prisma.product.findMany({
+          where: {
+            ...this.getPublicRecommendationProductWhere(),
+            categoryId: { in: categoryIds },
+          },
+          include: FEATURED_PRODUCT_INCLUDE,
+          orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+          take,
+        });
+
+        for (const product of personalizedProducts) {
+          selectedProductIds.add(product.id);
+          products.push(product);
+        }
+      }
+    }
+
+    if (products.length < take) {
+      const fallbackProducts = await this.getRecommendationFallbackProducts(
+        take - products.length,
+        Array.from(selectedProductIds),
+      );
+
+      products.push(...fallbackProducts);
+    }
+
+    return this.enrichFeaturedProducts(products.slice(0, take));
+  }
+
+  private async findUserRecommendationCategoryIds(userId: string) {
+    const [orderItems, wishlistItems, cartItems] = await Promise.all([
+      this.prisma.orderItem.findMany({
+        where: {
+          product: this.getPublicRecommendationProductWhere(),
+          subOrder: {
+            status: { not: OrderStatus.CANCELLED },
+            order: {
+              customerId: userId,
+              OR: [
+                {
+                  paymentMethod: PaymentMethod.COD,
+                  status: {
+                    in: [
+                      OrderStatus.PROCESSING,
+                      OrderStatus.SHIPPED,
+                      OrderStatus.DELIVERED,
+                    ],
+                  },
+                },
+                {
+                  paymentMethod: PaymentMethod.STRIPE,
+                  paymentStatus: PaymentStatus.PAID,
+                },
+              ],
+            },
+          },
+        },
+        select: { product: { select: { categoryId: true } } },
+        take: 50,
+      }),
+      this.prisma.wishlistItem.findMany({
+        where: {
+          userId,
+          product: this.getPublicRecommendationProductWhere(),
+        },
+        select: { product: { select: { categoryId: true } } },
+        take: 50,
+      }),
+      this.prisma.cartItem.findMany({
+        where: {
+          cart: { userId },
+          product: this.getPublicRecommendationProductWhere(),
+        },
+        select: { product: { select: { categoryId: true } } },
+        take: 50,
+      }),
+    ]);
+
+    return Array.from(
+      new Set(
+        [...orderItems, ...wishlistItems, ...cartItems]
+          .map((item) => item.product.categoryId)
+          .filter(Boolean),
+      ),
+    );
+  }
+
+  private async getRecommendationFallbackProducts(
+    take: number,
+    excludedProductIds: string[],
+  ) {
+    if (take <= 0) {
+      return [];
+    }
+
+    const productIdFilter =
+      excludedProductIds.length > 0
+        ? { id: { notIn: excludedProductIds } }
+        : {};
+    const sales = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        product: {
+          ...this.getPublicRecommendationProductWhere(),
+          ...productIdFilter,
+        },
+        subOrder: {
+          status: { not: OrderStatus.CANCELLED },
+          order: {
+            OR: [
+              {
+                paymentMethod: PaymentMethod.COD,
+                status: {
+                  in: [
+                    OrderStatus.PROCESSING,
+                    OrderStatus.SHIPPED,
+                    OrderStatus.DELIVERED,
+                  ],
+                },
+              },
+              {
+                paymentMethod: PaymentMethod.STRIPE,
+                paymentStatus: PaymentStatus.PAID,
+              },
+            ],
+          },
+        },
+      },
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take,
+    });
+
+    const rankedProductIds = sales.map((item) => item.productId);
+    const rankedProducts = rankedProductIds.length
+      ? await this.prisma.product.findMany({
+          where: {
+            ...this.getPublicRecommendationProductWhere(),
+            id: { in: rankedProductIds },
+          },
+          include: FEATURED_PRODUCT_INCLUDE,
+        })
+      : [];
+
+    const productMap = new Map(
+      rankedProducts.map((product) => [product.id, product]),
+    );
+    const products = rankedProductIds
+      .map((productId) => productMap.get(productId))
+      .filter((product): product is FeaturedProduct => Boolean(product));
+
+    if (products.length < take) {
+      const excludeIds = [
+        ...excludedProductIds,
+        ...products.map((product) => product.id),
+      ];
+      const latestProducts = await this.prisma.product.findMany({
+        where: {
+          ...this.getPublicRecommendationProductWhere(),
+          ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
+        },
+        include: FEATURED_PRODUCT_INCLUDE,
+        orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+        take: take - products.length,
+      });
+
+      products.push(...latestProducts);
+    }
+
+    return products;
+  }
+
+  private getPublicRecommendationProductWhere(): Prisma.ProductWhereInput {
+    return {
+      deletedAt: null,
+      status: ProductStatus.APPROVED,
+      stock: { gt: 0 },
+      category: { status: CategoryStatus.ACTIVE, deletedAt: null },
+    };
+  }
+
+  private enrichFeaturedProducts(products: FeaturedProduct[]) {
     return Promise.all(
       products.map(async (product) => ({
         ...product,

@@ -15,6 +15,7 @@ import { CartService } from '../cart/cart.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { SettingsService } from '../settings/settings.service';
+import { RewardsService } from '../rewards/rewards.service';
 import { OrdersService } from './orders.service';
 
 type OrderFindUniqueArgs = {
@@ -71,6 +72,7 @@ describe('OrdersService', () => {
     },
     marketplaceLedgerEntry: {
       create: jest.fn(),
+      findUnique: jest.fn(),
       findMany: jest.fn(),
     },
     refund: {
@@ -113,6 +115,13 @@ describe('OrdersService', () => {
     process.env.FLASH_SALE_GUARDRAILS_ENABLED;
   const mockSettings = {
     getPlatformCommissionBps: jest.fn(() => 1000),
+  };
+  const mockRewards = {
+    normalizePoints: jest.fn(() => 0),
+    calculateRedemption: jest.fn(() => ({ points: 0, discountAmount: 0 })),
+    redeemForOrder: jest.fn(),
+    refundRedeemedPointsForOrder: jest.fn(),
+    awardOrderCompletionPoints: jest.fn(),
   };
 
   const shippingAddress = {
@@ -358,6 +367,7 @@ describe('OrdersService', () => {
     mockPrisma.marketplaceLedgerEntry.create.mockResolvedValue({
       id: 'ledger_1',
     });
+    mockPrisma.marketplaceLedgerEntry.findUnique.mockResolvedValue(null);
     mockPrisma.marketplaceLedgerEntry.findMany.mockResolvedValue([]);
     mockPrisma.refund.findUnique.mockResolvedValue(null);
     mockStripe.createRefund.mockResolvedValue({
@@ -369,6 +379,14 @@ describe('OrdersService', () => {
     });
     mockStripe.updatePaymentIntentMetadata.mockResolvedValue(null);
     mockStripe.cancelPaymentIntent.mockResolvedValue(null);
+    mockRewards.normalizePoints.mockReturnValue(0);
+    mockRewards.calculateRedemption.mockReturnValue({
+      points: 0,
+      discountAmount: 0,
+    });
+    mockRewards.redeemForOrder.mockResolvedValue(null);
+    mockRewards.refundRedeemedPointsForOrder.mockResolvedValue(null);
+    mockRewards.awardOrderCompletionPoints.mockResolvedValue(null);
     mockPrisma.$transaction.mockImplementation(
       (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma),
     );
@@ -380,6 +398,7 @@ describe('OrdersService', () => {
         { provide: StripeService, useValue: mockStripe },
         { provide: CartService, useValue: mockCart },
         { provide: SettingsService, useValue: mockSettings },
+        { provide: RewardsService, useValue: mockRewards },
       ],
     }).compile();
 

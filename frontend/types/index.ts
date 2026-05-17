@@ -50,6 +50,7 @@ export interface User {
   sellerStat1Value?: string;
   sellerStat2Label?: string;
   sellerStat2Value?: string;
+  rewardPointsBalance?: number;
   ordersCount: number;
   totalSpent: number;
   products?: number;
@@ -255,6 +256,8 @@ export interface Order {
   products?: Product[];
   totalAmount: number;
   discountAmount?: number;
+  rewardPointsRedeemed?: number;
+  rewardDiscountAmount?: number;
   voucherCode?: string | null;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   paymentMethod?: "STRIPE" | "COD";
@@ -270,6 +273,85 @@ export interface Order {
   createdAt: Date;
   subOrders?: SubOrder[];
   financialSummary?: FinancialSummary;
+}
+
+export type RewardPointLedgerType =
+  | "EARN"
+  | "REDEEM"
+  | "REFUND"
+  | "ADJUSTMENT"
+  | "EXPIRE";
+
+export interface RewardBalance {
+  balance: number;
+  redeemVndPerPoint: number;
+  earnVndPerPoint: number;
+}
+
+export interface RewardLedgerEntry {
+  id: string;
+  userId: string;
+  orderId?: string | null;
+  type: RewardPointLedgerType;
+  points: number;
+  balanceAfter: number;
+  description?: string | null;
+  idempotencyKey: string;
+  createdAt: Date | string;
+}
+
+export interface RewardLedgerResponse {
+  data: RewardLedgerEntry[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export type ReportType = "SHOP" | "CUSTOMER" | "PRODUCT" | "ORDER";
+export type ReportStatus = "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
+
+export interface ReportSummaryUser {
+  id: string;
+  name: string;
+  email?: string;
+  shopName?: string | null;
+  avatar?: string | null;
+  roles?: UserRole[];
+}
+
+export interface Report {
+  id: string;
+  reporterId: string;
+  targetUserId?: string | null;
+  targetProductId?: string | null;
+  orderId?: string | null;
+  type: ReportType;
+  reason: string;
+  description?: string | null;
+  status: ReportStatus;
+  adminNote?: string | null;
+  resolvedById?: string | null;
+  resolvedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  reporter?: ReportSummaryUser;
+  targetUser?: ReportSummaryUser | null;
+  targetProduct?: Pick<Product, "id" | "name" | "sellerId"> | null;
+  order?: Pick<Order, "id" | "totalAmount" | "status" | "paymentStatus"> | null;
+  resolvedBy?: ReportSummaryUser | null;
+}
+
+export interface ReportListResponse {
+  data: Report[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface SubOrder {

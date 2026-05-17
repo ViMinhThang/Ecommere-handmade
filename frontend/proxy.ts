@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getApiBaseUrlCandidates } from "./lib/api-base-url";
+import { getJwtMaxAgeSeconds } from "./lib/auth-token";
 
 const PROTECTED_ROUTES = [
   "/dashboard",
@@ -11,14 +13,19 @@ const PROTECTED_ROUTES = [
 ];
 const AUTH_ROUTES = ["/login", "/register", "/verify-otp", "/forgot-password", "/reset-password"];
 const API_ROUTE = "/api";
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-function getVersionedApiBaseUrl(baseUrl: string): string {
-  const normalized = baseUrl.replace(/\/+$/, "");
-  if (/\/v\d+($|\/)/i.test(normalized)) {
-    return normalized;
-  }
-  return `${normalized}/v1`;
+function clearAuthCookies(response: NextResponse) {
+  response.cookies.set("auth_access_token", "", { maxAge: 0, path: "/" });
+  response.cookies.set("auth_refresh_token", "", { maxAge: 0, path: "/" });
+}
+
+function redirectToLogin(request: NextRequest) {
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set(
+    "redirect",
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+  return NextResponse.redirect(loginUrl);
 }
 
 export async function proxy(request: NextRequest) {
@@ -38,43 +45,52 @@ export async function proxy(request: NextRequest) {
   if (isProtectedRoute && !isAuthenticated) {
     if (refreshToken) {
       try {
-        const apiBaseUrl = getVersionedApiBaseUrl(RAW_API_URL);
-        const refreshResponse = await fetch(`${apiBaseUrl}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
+        let refreshResponse: Response | null = null;
+        for (const apiBaseUrl of getApiBaseUrlCandidates()) {
+          try {
+            refreshResponse = await fetch(`${apiBaseUrl}/auth/refresh`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refreshToken }),
+              cache: "no-store",
+            });
+            break;
+          } catch {
+            refreshResponse = null;
+          }
+        }
 
-        if (refreshResponse.ok) {
+        if (refreshResponse?.ok) {
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await refreshResponse.json();
           const response = NextResponse.next();
           response.cookies.set("auth_access_token", newAccessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
-            maxAge: 15 * 60,
+            maxAge: getJwtMaxAgeSeconds(newAccessToken, 30 * 24 * 60 * 60),
             path: "/",
           });
           response.cookies.set("auth_refresh_token", newRefreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60,
+            maxAge: getJwtMaxAgeSeconds(newRefreshToken, 30 * 24 * 60 * 60),
             path: "/",
           });
           return response;
         }
+
+        const response = redirectToLogin(request);
+        clearAuthCookies(response);
+        return response;
       } catch {
-        const response = NextResponse.redirect(new URL("/login", request.url));
-        response.cookies.set("auth_access_token", "", { maxAge: 0, path: "/" });
-        response.cookies.set("auth_refresh_token", "", { maxAge: 0, path: "/" });
+        const response = redirectToLogin(request);
+        clearAuthCookies(response);
         return response;
       }
     }
 
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", `${pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(loginUrl);
+    return redirectToLogin(request);
   }
 
   if (isAuthRoute && isAuthenticated) {

@@ -35,6 +35,16 @@ export const usersApi = {
     return apiClient.get<PaginatedResponse<User>>(`/users${query.toString() ? `?${query}` : ''}`);
   },
 
+  getCustomers: (params?: { q?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.q?.trim()) query.set('q', params.q.trim());
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiClient.get<PaginatedResponse<User>>(
+      `/users/customers${query.toString() ? `?${query}` : ''}`,
+    );
+  },
+
   getById: (id: string) => apiClient.get<User>(`/users/${id}`),
 
   getMe: () => apiClient.get<User>('/users/me'),

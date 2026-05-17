@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { authApi } from "@/lib/api/auth"
+import {
+  AUTH_PASSWORD_REQUIREMENT,
+  isStrongAuthPassword,
+} from "@/lib/password-policy"
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
@@ -26,6 +30,12 @@ function ResetPasswordContent() {
     e.preventDefault()
     setError("")
     setIsLoading(true)
+
+    if (!isStrongAuthPassword(newPassword)) {
+      setError(AUTH_PASSWORD_REQUIREMENT)
+      setIsLoading(false)
+      return
+    }
 
     try {
       await authApi.resetPassword({ email, otpCode, newPassword })
@@ -111,11 +121,12 @@ function ResetPasswordContent() {
                     <Input
                       id="newPassword"
                       type="password"
-                      placeholder="Tối thiểu 6 ký tự"
+                      placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
+                      title={AUTH_PASSWORD_REQUIREMENT}
                     />
                   </div>
 

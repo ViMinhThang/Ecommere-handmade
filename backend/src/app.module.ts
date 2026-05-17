@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -22,19 +23,39 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { EbayProductImportService } from './startup/ebay-product-import.service';
 import { SettingsModule } from './settings/settings.module';
 import { PaymentsModule } from './payments/payments.module';
+import { RewardsModule } from './rewards/rewards.module';
+import { ReportsModule } from './reports/reports.module';
 import { CommissionsModule } from './commissions/commissions.module';
+
+function parsePositiveInt(value: string | undefined, fallback: number) {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 10,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => [
+        {
+          ttl: parsePositiveInt(
+            configService.get<string>('THROTTLE_TTL_MS'),
+            60000,
+          ),
+          limit: parsePositiveInt(
+            configService.get<string>('THROTTLE_LIMIT'),
+            300,
+          ),
+        },
+      ],
+    }),
     PrismaModule,
     UsersModule,
     CategoriesModule,
@@ -54,9 +75,17 @@ import { CommissionsModule } from './commissions/commissions.module';
     WishlistModule,
     SettingsModule,
     PaymentsModule,
+    RewardsModule,
+    ReportsModule,
     CommissionsModule,
   ],
   controllers: [AppController],
-  providers: [EbayProductImportService],
+  providers: [
+    EbayProductImportService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

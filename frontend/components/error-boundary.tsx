@@ -13,6 +13,14 @@ interface State {
   error?: Error;
 }
 
+function isRecoverableDomMutationError(error: Error) {
+  return (
+    error.name === "NotFoundError" &&
+    error.message.includes("removeChild") &&
+    error.message.includes("not a child")
+  );
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -20,10 +28,19 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    if (isRecoverableDomMutationError(error)) {
+      return { hasError: false };
+    }
+
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    if (isRecoverableDomMutationError(error)) {
+      console.warn("Recoverable DOM mutation ignored by boundary:", error);
+      return;
+    }
+
     console.error("Error caught by boundary:", error, errorInfo);
   }
 
