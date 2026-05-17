@@ -166,6 +166,7 @@ model User {
   SubOrder              SubOrder[]
   customerCustomOrders  CustomOrder[]               @relation("CustomerCustomOrders")
   sellerCustomOrders    CustomOrder[]               @relation("SellerCustomOrders")
+  quoteTemplates        CustomOrderQuoteTemplate[]  @relation("SellerQuoteTemplates")
   reviews               Review[]
   productQuestions      ProductQuestion[]           @relation("ProductQuestionUser")
   answeredQuestions     ProductQuestion[]           @relation("ProductQuestionAnsweredBy")
@@ -641,15 +642,46 @@ model ProductQuestion {
   @@index([createdAt])
 }
 
+model CustomOrderQuoteTemplate {
+  id                String        @id @default(uuid())
+  sellerId          String
+  seller            User          @relation("SellerQuoteTemplates", fields: [sellerId], references: [id], onDelete: Cascade)
+  name              String
+  title             String
+  description       String        @db.Text
+  estimatedPrice    Decimal?
+  minPrice          Decimal?
+  maxPrice          Decimal?
+  materials         Json          @default("[]")
+  sizeOptions       Json          @default("[]")
+  estimatedLeadTime String?
+  revisionPolicy    String?       @db.Text
+  shippingNote      String?       @db.Text
+  termsNote         String?       @db.Text
+  isActive          Boolean       @default(true)
+  deletedAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  customOrders      CustomOrder[]
+
+  @@index([sellerId, isActive, updatedAt])
+  @@index([sellerId, deletedAt])
+}
+
 model CustomOrder {
-  id               String        @id @default(uuid())
+  id               String                    @id @default(uuid())
   customerId       String
-  customer         User          @relation("CustomerCustomOrders", fields: [customerId], references: [id])
+  customer         User                      @relation("CustomerCustomOrders", fields: [customerId], references: [id])
   sellerId         String
-  seller           User          @relation("SellerCustomOrders", fields: [sellerId], references: [id])
-  paymentIntentId  String?       @unique
-  paymentStatus    PaymentStatus @default(UNPAID)
+  seller           User                      @relation("SellerCustomOrders", fields: [sellerId], references: [id])
+  paymentIntentId  String?                   @unique
+  paymentStatus    PaymentStatus             @default(UNPAID)
   paymentExpiresAt DateTime?
+  quoteTemplateId  String?
+  quoteTemplate    CustomOrderQuoteTemplate? @relation(fields: [quoteTemplateId], references: [id], onDelete: SetNull)
+  quoteSnapshot    Json?
+  quoteSentAt      DateTime?
+  quoteAcceptedAt  DateTime?
 
   title          String
   artisanNote    String? @db.Text
@@ -671,6 +703,7 @@ model CustomOrder {
   @@index([customerId])
   @@index([sellerId])
   @@index([paymentIntentId])
+  @@index([quoteTemplateId])
 }
 
 model PaymentWebhookEvent {
