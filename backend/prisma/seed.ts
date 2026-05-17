@@ -1,9 +1,10 @@
 import { PrismaClient, Role, UserStatus } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 const DEFAULT_ADMIN_EMAIL = 'admin@ecommerce.com';
-const ADMIN_SEED_BCRYPT_ROUNDS = 12;
+const DEFAULT_ADMIN_NAME = 'System Admin';
+const LOCAL_ADMIN_PASSWORD_HASH =
+  '$2b$12$X8rFEi2HOdDt90rYjdzVa.NX5PhzFf.zXS.rtoTC2X4TTqV4ld.HK';
 
 async function main() {
   const categories = [
@@ -47,9 +48,6 @@ async function main() {
     });
   }
 
-  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD?.trim();
-  const seedAdminEmail =
-    process.env.SEED_ADMIN_EMAIL?.trim() || DEFAULT_ADMIN_EMAIL;
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction) {
@@ -57,37 +55,37 @@ async function main() {
     return;
   }
 
-  if (!seedAdminPassword) {
-    console.warn(
-      'Skip admin seeding because SEED_ADMIN_PASSWORD is not set in environment.',
-    );
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: DEFAULT_ADMIN_EMAIL },
+  });
+
+  if (existingAdmin) {
+    const admin = await prisma.user.update({
+      where: { email: DEFAULT_ADMIN_EMAIL },
+      data: {
+        password: LOCAL_ADMIN_PASSWORD_HASH,
+        roles: [Role.ROLE_ADMIN],
+        status: UserStatus.ACTIVE,
+        isEmailVerified: true,
+      },
+    });
+
+    console.log('Local admin already exists:', admin.email);
     return;
   }
 
-  const hashedPassword = await bcrypt.hash(
-    seedAdminPassword,
-    ADMIN_SEED_BCRYPT_ROUNDS,
-  );
-
-  const admin = await prisma.user.upsert({
-    where: { email: seedAdminEmail },
-    update: {
-      password: hashedPassword,
-      roles: [Role.ROLE_ADMIN],
-      status: UserStatus.ACTIVE,
-      isEmailVerified: true,
-    },
-    create: {
-      email: seedAdminEmail,
-      name: 'System Admin',
-      password: hashedPassword,
+  const admin = await prisma.user.create({
+    data: {
+      email: DEFAULT_ADMIN_EMAIL,
+      name: DEFAULT_ADMIN_NAME,
+      password: LOCAL_ADMIN_PASSWORD_HASH,
       roles: [Role.ROLE_ADMIN],
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
     },
   });
 
-  console.log('Seed completed successfully:', admin.email);
+  console.log('Local admin seeded:', admin.email);
 }
 
 main()

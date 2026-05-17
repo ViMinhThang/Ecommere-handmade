@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ROLES_KEY, RolesGuard } from '../auth/guards/roles.guard';
 import { ChatController } from './chat.controller';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
@@ -15,6 +16,7 @@ describe('ChatController', () => {
     getMessages: jest.fn(),
     sendTextMessage: jest.fn(),
     sendImageMessage: jest.fn(),
+    sendCustomOrderQuote: jest.fn(),
     markConversationRead: jest.fn(),
     getUnreadCount: jest.fn(),
   };
@@ -44,6 +46,8 @@ describe('ChatController', () => {
       ],
     })
       .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(RolesGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
 
@@ -86,5 +90,78 @@ describe('ChatController', () => {
       'conv-2',
     );
     expect(result).toEqual(conversation);
+  });
+
+  it('should send custom order quote and emit chat updates after service returns', async () => {
+    const request = createRequest('seller-1');
+    request.user.roles = ['ROLE_SELLER'];
+    const dto = {
+      title: 'Handmade vase',
+      price: 150000,
+      message: 'Here is the quote',
+    };
+    const message = {
+      id: 'msg-1',
+      conversationId: 'conv-1',
+      senderId: 'seller-1',
+      type: 'CUSTOM_ORDER_OFFER',
+      payload: {
+        text: 'Here is the quote',
+        customOrderId: 'order-1',
+        quoteSnapshot: { title: 'Handmade vase' },
+      },
+    };
+    mockChatService.sendCustomOrderQuote.mockResolvedValue(message);
+    mockChatGateway.emitConversationUpdated.mockResolvedValue(undefined);
+
+    const result = await controller.sendCustomOrderQuote(
+      request,
+      'conv-1',
+      dto,
+    );
+
+    expect(mockChatService.sendCustomOrderQuote).toHaveBeenCalledWith(
+      'seller-1',
+      'conv-1',
+      dto,
+    );
+    expect(mockChatGateway.emitMessageCreated).toHaveBeenCalledWith(
+      'conv-1',
+      message,
+    );
+    expect(mockChatGateway.emitConversationUpdated).toHaveBeenCalledWith(
+      'conv-1',
+    );
+    expect(result).toEqual(message);
+  });
+
+  it('should require seller role metadata on custom order quote endpoint', () => {
+    expect(
+      Reflect.getMetadata(ROLES_KEY, controller.sendCustomOrderQuote),
+    ).toEqual(['ROLE_SELLER']);
+  });
+
+  it('should keep text endpoint behavior unchanged', async () => {
+    const request = createRequest('user-1');
+    const dto = { text: 'Hello' };
+    const message = { id: 'msg-text-1', conversationId: 'conv-1' };
+    mockChatService.sendTextMessage.mockResolvedValue(message);
+    mockChatGateway.emitConversationUpdated.mockResolvedValue(undefined);
+
+    const result = await controller.sendTextMessage(request, 'conv-1', dto);
+
+    expect(mockChatService.sendTextMessage).toHaveBeenCalledWith(
+      'user-1',
+      'conv-1',
+      dto,
+    );
+    expect(mockChatGateway.emitMessageCreated).toHaveBeenCalledWith(
+      'conv-1',
+      message,
+    );
+    expect(mockChatGateway.emitConversationUpdated).toHaveBeenCalledWith(
+      'conv-1',
+    );
+    expect(result).toEqual(message);
   });
 });

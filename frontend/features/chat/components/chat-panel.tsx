@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { chatApi } from "@/lib/api/chat";
+import type { SendCustomOrderQuoteDto } from "@/lib/api/chat";
 import {
   chatKeys,
   useChatConversations,
@@ -12,6 +14,7 @@ import {
   useChatUnreadCount,
   useMarkConversationRead,
   useSendImageMessage,
+  useSendCustomOrderQuote,
   useSendTextMessage,
   useStartConversation,
 } from "@/lib/api/hooks";
@@ -26,6 +29,7 @@ import { ChatConversationList } from "./chat-conversation-list";
 import { ChatHeader } from "./chat-header";
 import { ChatMessageList } from "./chat-message-list";
 import { ChatInputArea } from "./chat-input-area";
+import { CustomOrderQuoteDialog } from "./custom-order-quote-dialog";
 
 interface ChatPanelProps {
   compact?: boolean;
@@ -49,6 +53,7 @@ export function ChatPanel({
   const [draftText, setDraftText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
   const [olderMessagesMap, setOlderMessagesMap] = useState<
     Record<string, ChatMessage[]>
@@ -86,6 +91,7 @@ export function ChatPanel({
   const startConversationMutation = useStartConversation();
   const sendTextMutation = useSendTextMessage();
   const sendImageMutation = useSendImageMessage();
+  const sendQuoteMutation = useSendCustomOrderQuote();
   const markReadMutation = useMarkConversationRead();
 
   const selectedConversation = useMemo(
@@ -227,6 +233,12 @@ export function ChatPanel({
   }, [activeConversationId, isAuthenticated]);
 
   const isSending = sendTextMutation.isPending || sendImageMutation.isPending;
+  const isSendingQuote = sendQuoteMutation.isPending;
+  const canSendQuote = Boolean(
+    user?.roles?.includes("ROLE_SELLER") &&
+      selectedConversation &&
+      selectedConversation.sellerId === user.id,
+  );
 
   const handleSelectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
@@ -310,6 +322,44 @@ export function ChatPanel({
     sendTextMutation,
   ]);
 
+  const handleSendQuote = useCallback(
+    async (data: SendCustomOrderQuoteDto) => {
+      if (!activeConversationId || !canSendQuote || isSendingQuote) {
+        return;
+      }
+
+      try {
+        const sentMessage = await sendQuoteMutation.mutateAsync({
+          conversationId: activeConversationId,
+          data,
+        });
+
+        setIncomingMessagesMap((previous) =>
+          appendMessageToMap(previous, activeConversationId, sentMessage),
+        );
+
+        await queryClient.invalidateQueries({
+          queryKey: [...chatKeys.all, "messages", activeConversationId],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: [...chatKeys.all, "conversations"],
+        });
+
+        toast.success("Đã gửi báo giá");
+        setIsQuoteDialogOpen(false);
+      } catch (error) {
+        toast.error(getErrorMessage(error, "Không thể gửi báo giá"));
+      }
+    },
+    [
+      activeConversationId,
+      canSendQuote,
+      isSendingQuote,
+      queryClient,
+      sendQuoteMutation,
+    ],
+  );
+
   const showConversationList = isMobileListVisible || !selectedConversationId;
 
   return (
@@ -360,9 +410,19 @@ export function ChatPanel({
                 selectedFile={selectedFile}
                 setSelectedFile={setSelectedFile}
                 isSending={isSending}
+                isSendingQuote={isSendingQuote}
+                canSendQuote={canSendQuote}
                 activeConversationId={activeConversationId}
                 onSendMessage={handleSendMessage}
+                onOpenQuoteDialog={() => setIsQuoteDialogOpen(true)}
                 fileInputRef={fileInputRef}
+              />
+
+              <CustomOrderQuoteDialog
+                open={isQuoteDialogOpen}
+                onOpenChange={setIsQuoteDialogOpen}
+                isSubmitting={isSendingQuote}
+                onSubmit={handleSendQuote}
               />
             </>
           )}

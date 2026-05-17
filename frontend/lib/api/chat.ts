@@ -1,5 +1,10 @@
 import { API_BASE_URL, apiClient } from './client';
-import type { ChatConversationSummary, ChatMessage, CursorResponse } from '@/types';
+import type {
+  ChatConversationSummary,
+  ChatMessage,
+  CursorResponse,
+  QuoteSnapshot,
+} from '@/types';
 
 export interface StartConversationDto {
   sellerId: string;
@@ -9,6 +14,22 @@ export interface StartConversationDto {
 export interface SendTextMessageDto {
   text: string;
 }
+
+export interface SendCustomOrderQuoteDto {
+  templateId?: string;
+  title?: string;
+  description?: string;
+  price: number;
+  leadTime?: string;
+  materials?: string[];
+  sizeOptions?: string[];
+  revisionPolicy?: string;
+  shippingNote?: string;
+  termsNote?: string;
+  message?: string;
+}
+
+export type { QuoteSnapshot };
 
 export interface CursorParams {
   cursor?: string;
@@ -73,6 +94,15 @@ export const chatApi = {
       formData,
     );
   },
+
+  sendCustomOrderQuote: (
+    conversationId: string,
+    data: SendCustomOrderQuoteDto,
+  ) =>
+    apiClient.post<ChatMessage>(
+      `/chat/conversations/${conversationId}/messages/custom-order-quote`,
+      data,
+    ),
 
   markConversationRead: (conversationId: string) =>
     apiClient.post<{ conversationId: string; lastReadAt: string }>(

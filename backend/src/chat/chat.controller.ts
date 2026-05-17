@@ -13,9 +13,11 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { CursorQueryDto } from './dto/cursor-query.dto';
+import { SendCustomOrderQuoteDto } from './dto/send-custom-order-quote.dto';
 import { SendTextMessageDto } from './dto/send-text-message.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
@@ -39,7 +41,7 @@ export class ChatController {
   private logMessageSendFailed(
     req: AuthenticatedRequest,
     conversationId: string,
-    messageType: 'text' | 'offer' | 'image',
+    messageType: 'text' | 'custom-order-quote' | 'image',
     error: unknown,
   ) {
     emitObservabilityEvent(this.logger, 'warn', 'chat_message_send_failed', {
@@ -154,6 +156,34 @@ export class ChatController {
       return message;
     } catch (error) {
       this.logMessageSendFailed(req, conversationId, 'image', error);
+      throw error;
+    }
+  }
+
+  @Post('conversations/:conversationId/messages/custom-order-quote')
+  @UseGuards(RolesGuard)
+  @Roles('ROLE_SELLER')
+  async sendCustomOrderQuote(
+    @Request() req: AuthenticatedRequest,
+    @Param('conversationId') conversationId: string,
+    @Body() dto: SendCustomOrderQuoteDto,
+  ) {
+    try {
+      const message = await this.chatService.sendCustomOrderQuote(
+        req.user.id,
+        conversationId,
+        dto,
+      );
+      this.chatGateway.emitMessageCreated(conversationId, message);
+      await this.chatGateway.emitConversationUpdated(conversationId);
+      return message;
+    } catch (error) {
+      this.logMessageSendFailed(
+        req,
+        conversationId,
+        'custom-order-quote',
+        error,
+      );
       throw error;
     }
   }

@@ -4,11 +4,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ChatMessageType, Prisma } from '@prisma/client';
+import {
+  ChatMessageType,
+  CustomOrderStatus,
+  PaymentStatus,
+  Prisma,
+  UserStatus,
+} from '@prisma/client';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { CursorQueryDto } from './dto/cursor-query.dto';
+import { SendCustomOrderQuoteDto } from './dto/send-custom-order-quote.dto';
 import { SendTextMessageDto } from './dto/send-text-message.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
 import {
@@ -28,12 +35,36 @@ const CHAT_PRODUCT_SELECT = {
   name: true,
 } as const;
 
+const QUOTE_TEMPLATE_SELECT = {
+  id: true,
+  sellerId: true,
+  name: true,
+  title: true,
+  description: true,
+  estimatedPrice: true,
+  minPrice: true,
+  maxPrice: true,
+  materials: true,
+  sizeOptions: true,
+  estimatedLeadTime: true,
+  revisionPolicy: true,
+  shippingNote: true,
+  termsNote: true,
+} as const;
+
+const QUOTE_CURRENCY = 'vnd';
+const MAX_STRUCTURED_JSON_LENGTH = 10_000;
+
 type ChatUserSummary = Prisma.UserGetPayload<{
   select: typeof CHAT_USER_SELECT;
 }>;
 type ChatProductSummary = Prisma.ProductGetPayload<{
   select: typeof CHAT_PRODUCT_SELECT;
 }>;
+type CustomOrderQuoteTemplateForSend =
+  Prisma.CustomOrderQuoteTemplateGetPayload<{
+    select: typeof QUOTE_TEMPLATE_SELECT;
+  }>;
 type ChatMessageWithSender = Prisma.ChatMessageGetPayload<{
   include: {
     sender: {
@@ -66,6 +97,16 @@ type ChatConversationForList = Prisma.ChatConversationGetPayload<{
     };
   };
 }>;
+
+interface NormalizedCustomOrderQuote {
+  title: string;
+  description: string;
+  price: number;
+  leadTime: string | null;
+  specifications: string[];
+  snapshot: Prisma.InputJsonObject;
+  messageText: string;
+}
 
 export interface ChatMessageDto {
   id: string;
@@ -364,6 +405,126 @@ export class ChatService {
     return this.mapMessage(result as ChatMessageWithSender);
   }
 
+  async sendCustomOrderQuote(
+    currentUserId: string,
+    conversationId: string,
+    dto: SendCustomOrderQuoteDto,
+  ): Promise<ChatMessageDto> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const conversation = await tx.chatConversation.findUnique({
+        where: { id: conversationId },
+        select: {
+          id: true,
+          customerId: true,
+          sellerId: true,
+        },
+      });
+
+      if (!conversation) {
+        throw new NotFoundException('Conversation not found');
+      }
+
+      if (conversation.sellerId !== currentUserId) {
+        throw new ForbiddenException(
+          'Only the seller can send custom order quotes',
+        );
+      }
+
+      const customer = await tx.user.findFirst({
+        where: {
+          id: conversation.customerId,
+          deletedAt: null,
+          status: UserStatus.ACTIVE,
+        },
+        select: { id: true },
+      });
+      if (!customer) {
+        throw new NotFoundException('Customer not found');
+      }
+
+      const template = dto.templateId
+        ? await tx.customOrderQuoteTemplate.findFirst({
+            where: {
+              id: dto.templateId,
+              sellerId: currentUserId,
+              deletedAt: null,
+              isActive: true,
+            },
+            select: QUOTE_TEMPLATE_SELECT,
+          })
+        : null;
+
+      if (dto.templateId && !template) {
+        throw new NotFoundException('Quote template not found');
+      }
+
+      const now = new Date();
+      const quote = this.buildQuoteSnapshot(dto, template, now);
+
+      const customOrder = await tx.customOrder.create({
+        data: {
+          customerId: conversation.customerId,
+          sellerId: currentUserId,
+          title: quote.title,
+          artisanNote: quote.description || null,
+          price: quote.price,
+          leadTime: quote.leadTime,
+          specifications: quote.specifications as Prisma.InputJsonValue,
+          quoteTemplateId: template?.id,
+          quoteSnapshot: quote.snapshot,
+          quoteSentAt: now,
+          status: CustomOrderStatus.PENDING_REVIEW,
+          paymentStatus: PaymentStatus.UNPAID,
+        },
+        select: { id: true },
+      });
+
+      const created = await tx.chatMessage.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: currentUserId,
+          type: ChatMessageType.CUSTOM_ORDER_OFFER,
+          payload: {
+            text: quote.messageText,
+            customOrderId: customOrder.id,
+            quoteSnapshot: quote.snapshot,
+          },
+        },
+        include: {
+          sender: {
+            select: CHAT_USER_SELECT,
+          },
+        },
+      });
+
+      await tx.chatConversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: created.createdAt },
+      });
+
+      await tx.chatConversationReadState.upsert({
+        where: {
+          conversationId_userId: {
+            conversationId: conversation.id,
+            userId: currentUserId,
+          },
+        },
+        update: {
+          lastReadAt: created.createdAt,
+        },
+        create: {
+          conversationId: conversation.id,
+          userId: currentUserId,
+          lastReadAt: created.createdAt,
+        },
+      });
+
+      return created;
+    });
+
+    return this.mapMessage(result);
+  }
+
   async markConversationRead(currentUserId: string, conversationId: string) {
     await this.getConversationForParticipant(conversationId, currentUserId);
     const now = new Date();
@@ -510,6 +671,167 @@ export class ChatService {
     }
 
     return [conversation.customerId, conversation.sellerId];
+  }
+
+  private buildQuoteSnapshot(
+    dto: SendCustomOrderQuoteDto,
+    template: CustomOrderQuoteTemplateForSend | null,
+    sentAt: Date,
+  ): NormalizedCustomOrderQuote {
+    if (!Number.isFinite(dto.price) || dto.price <= 0) {
+      throw new BadRequestException('Quote price must be greater than 0');
+    }
+
+    const title = this.trimOptional(dto.title) ?? template?.title.trim();
+    if (!title) {
+      throw new BadRequestException('Quote title is required');
+    }
+
+    const minPrice = this.decimalToNumber(template?.minPrice ?? null);
+    const maxPrice = this.decimalToNumber(template?.maxPrice ?? null);
+    if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
+      throw new BadRequestException(
+        'Template minimum price cannot exceed maximum price',
+      );
+    }
+
+    const description =
+      this.trimOptional(dto.description) ?? template?.description.trim() ?? '';
+    const leadTime =
+      this.trimOptional(dto.leadTime) ??
+      this.trimOptional(template?.estimatedLeadTime) ??
+      null;
+    const revisionPolicy =
+      this.trimOptional(dto.revisionPolicy) ??
+      this.trimOptional(template?.revisionPolicy) ??
+      null;
+    const shippingNote =
+      this.trimOptional(dto.shippingNote) ??
+      this.trimOptional(template?.shippingNote) ??
+      null;
+    const termsNote =
+      this.trimOptional(dto.termsNote) ??
+      this.trimOptional(template?.termsNote) ??
+      null;
+    const materials = this.normalizeStructuredValue(
+      dto.materials !== undefined ? dto.materials : template?.materials,
+      'materials',
+    );
+    const sizeOptions = this.normalizeStructuredValue(
+      dto.sizeOptions !== undefined ? dto.sizeOptions : template?.sizeOptions,
+      'sizeOptions',
+    );
+
+    const snapshot: Prisma.InputJsonObject = {
+      version: 1,
+      source: template ? 'template' : 'manual',
+      templateId: template?.id ?? null,
+      templateName: template?.name ?? null,
+      title,
+      description,
+      price: dto.price,
+      currency: QUOTE_CURRENCY,
+      priceRange: {
+        minPrice,
+        maxPrice,
+      },
+      materials,
+      sizeOptions,
+      estimatedLeadTime: leadTime,
+      revisionPolicy,
+      shippingNote,
+      termsNote,
+      sentAt: sentAt.toISOString(),
+    };
+
+    return {
+      title,
+      description,
+      price: dto.price,
+      leadTime,
+      specifications: this.buildQuoteSpecifications({
+        materials,
+        sizeOptions,
+        revisionPolicy,
+        shippingNote,
+        termsNote,
+      }),
+      snapshot,
+      messageText:
+        this.trimOptional(dto.message) ??
+        `Custom order quote: ${title} - ${dto.price} ${QUOTE_CURRENCY}`,
+    };
+  }
+
+  private buildQuoteSpecifications(data: {
+    materials: Prisma.InputJsonValue;
+    sizeOptions: Prisma.InputJsonValue;
+    revisionPolicy: string | null;
+    shippingNote: string | null;
+    termsNote: string | null;
+  }): string[] {
+    return [
+      this.formatStructuredSpecification('Materials', data.materials),
+      this.formatStructuredSpecification('Options', data.sizeOptions),
+      data.revisionPolicy ? `Revision policy: ${data.revisionPolicy}` : null,
+      data.shippingNote ? `Shipping note: ${data.shippingNote}` : null,
+      data.termsNote ? `Terms: ${data.termsNote}` : null,
+    ].filter((value): value is string => Boolean(value));
+  }
+
+  private formatStructuredSpecification(
+    label: string,
+    value: Prisma.InputJsonValue,
+  ): string | null {
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return null;
+      }
+
+      const joined = value
+        .map((item) => (typeof item === 'string' ? item : JSON.stringify(item)))
+        .join(', ');
+      return `${label}: ${joined}`;
+    }
+
+    if (this.isPlainObject(value) && Object.keys(value).length > 0) {
+      return `${label}: ${JSON.stringify(value)}`;
+    }
+
+    return null;
+  }
+
+  private normalizeStructuredValue(
+    value: unknown,
+    fieldName: string,
+  ): Prisma.InputJsonValue {
+    if (value === undefined || value === null) {
+      return [];
+    }
+
+    if (!Array.isArray(value) && !this.isPlainObject(value)) {
+      throw new BadRequestException(`${fieldName} must be an array or object`);
+    }
+
+    const serialized = JSON.stringify(value);
+    if (!serialized || serialized.length > MAX_STRUCTURED_JSON_LENGTH) {
+      throw new BadRequestException(`${fieldName} is too large`);
+    }
+
+    return value as Prisma.InputJsonValue;
+  }
+
+  private trimOptional(value?: string | null) {
+    const trimmed = value?.trim();
+    return trimmed || undefined;
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private decimalToNumber(value: Prisma.Decimal | null) {
+    return value === null ? null : Number(value);
   }
 
   private getConversationInclude(currentUserId: string) {

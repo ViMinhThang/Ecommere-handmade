@@ -41,7 +41,6 @@ Required backend variables in `backend/.env`:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `PLATFORM_COMMISSION_BPS`
-- `SEED_ADMIN_PASSWORD` (for local admin seed; do not use shared/static passwords)
 
 Initialize the database and run the seeder:
 ```bash
@@ -93,8 +92,9 @@ Secret groups that must be rotated if previously exposed:
 ---
 
 ## Local Admin Seed
-- The seed script no longer uses a built-in default admin password.
-- To seed a local admin account, set `SEED_ADMIN_PASSWORD` in `backend/.env` before running `npx prisma db seed`.
+- The seed script does not read admin credentials from env files.
+- In non-production environments, it creates or updates the local admin account directly in the database.
+- The seed keeps `admin@ecommerce.com` active, verified, and assigned `ROLE_ADMIN`.
 - In production environments, admin seeding is skipped by default.
 
 ---
