@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Loader2, Send, X } from "lucide-react";
+import { FileText, Image as ImageIcon, Loader2, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -8,8 +8,11 @@ interface ChatInputAreaProps {
   selectedFile: File | null;
   setSelectedFile: (file: File | null) => void;
   isSending: boolean;
+  isSendingQuote?: boolean;
+  canSendQuote?: boolean;
   activeConversationId: string;
   onSendMessage: () => void;
+  onOpenQuoteDialog?: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -19,8 +22,11 @@ export function ChatInputArea({
   selectedFile,
   setSelectedFile,
   isSending,
+  isSendingQuote = false,
+  canSendQuote = false,
   activeConversationId,
   onSendMessage,
+  onOpenQuoteDialog,
   fileInputRef,
 }: ChatInputAreaProps) {
   return (
@@ -77,6 +83,22 @@ export function ChatInputArea({
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
+        {canSendQuote ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            title="Gửi báo giá"
+            disabled={isSendingQuote || !activeConversationId}
+            onClick={onOpenQuoteDialog}
+          >
+            {isSendingQuote ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            )}
+          </Button>
+        ) : null}
         <Button
           type="button"
           size="icon"

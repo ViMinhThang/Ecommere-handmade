@@ -15,7 +15,12 @@ import { ordersApi } from "./orders";
 import type { AdminOrderFilters, OrderStatus as ApiOrderStatus } from "./orders";
 import { analyticsApi } from "./analytics";
 import { reviewsApi, type CreateReviewDto } from "./reviews";
-import { chatApi, CursorParams, StartConversationDto } from "./chat";
+import {
+  chatApi,
+  CursorParams,
+  StartConversationDto,
+  type SendCustomOrderQuoteDto,
+} from "./chat";
 import {
   customOrdersApi,
   CreateCustomOrderPayload,
@@ -1410,6 +1415,29 @@ export function useCancelCustomOrder() {
   });
 }
 
+export function useSendCustomOrderQuote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      data,
+    }: {
+      conversationId: string;
+      data: SendCustomOrderQuoteDto;
+    }) => chatApi.sendCustomOrderQuote(conversationId, data),
+    onSuccess: (_message, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [...chatKeys.all, "messages", variables.conversationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...chatKeys.all, "conversations"],
+      });
+      queryClient.invalidateQueries({ queryKey: chatKeys.unread() });
+    },
+  });
+}
+
 // Custom order quote template hooks
 export const quoteTemplateKeys = {
   all: ["customOrderQuoteTemplates"] as const,
@@ -1417,10 +1445,11 @@ export const quoteTemplateKeys = {
   detail: (id: string) => [...quoteTemplateKeys.details(), id] as const,
 };
 
-export function useQuoteTemplates() {
+export function useQuoteTemplates(enabled = true) {
   return useQuery({
     queryKey: quoteTemplateKeys.all,
     queryFn: () => customOrderQuoteTemplatesApi.getQuoteTemplates(),
+    enabled,
   });
 }
 

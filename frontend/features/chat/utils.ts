@@ -1,4 +1,4 @@
-import { ChatMessage } from "@/types";
+import { ChatMessage, QuoteSnapshot } from "@/types";
 
 export function formatMessageTime(value: Date | string) {
   return new Date(value).toLocaleTimeString("vi-VN", {
@@ -27,6 +27,33 @@ export function getImagePayload(message: ChatMessage) {
   return {
     imagePath: typeof imagePath === "string" ? imagePath : "",
     caption: typeof caption === "string" ? caption : "",
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function getCustomOrderOfferPayload(message: ChatMessage): {
+  text: string;
+  customOrderId: string;
+  quoteSnapshot: QuoteSnapshot;
+} | null {
+  if (message.type !== "CUSTOM_ORDER_OFFER") {
+    return null;
+  }
+
+  const customOrderId = message.payload["customOrderId"];
+  const quoteSnapshot = message.payload["quoteSnapshot"];
+
+  if (typeof customOrderId !== "string" || !isRecord(quoteSnapshot)) {
+    return null;
+  }
+
+  return {
+    text: getTextPayload(message),
+    customOrderId,
+    quoteSnapshot: quoteSnapshot as QuoteSnapshot,
   };
 }
 

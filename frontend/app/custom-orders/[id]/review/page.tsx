@@ -16,6 +16,7 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 import { loadStripe } from "@stripe/stripe-js";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import type { QuoteSnapshot } from "@/types";
 import {
   FinancialSummaryPanel,
   LedgerTable,
@@ -33,6 +34,164 @@ const stripePromise = isStripeConfigured
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function numberValue(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function structuredLines(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) =>
+        typeof item === "string" ? item.trim() : JSON.stringify(item),
+      )
+      .filter(Boolean);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>).map(
+      ([key, item]) => {
+        const printable =
+          typeof item === "string" || typeof item === "number"
+            ? String(item)
+            : JSON.stringify(item);
+        return `${key}: ${printable}`;
+      },
+    );
+  }
+
+  return [];
+}
+
+function formatQuotePrice(snapshot: QuoteSnapshot) {
+  const price = numberValue(snapshot.price);
+  if (price !== null) return formatCurrency(price);
+
+  const minPrice = numberValue(snapshot.priceRange?.minPrice);
+  const maxPrice = numberValue(snapshot.priceRange?.maxPrice);
+  if (minPrice !== null && maxPrice !== null) {
+    return `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
+  }
+  if (minPrice !== null) return `Từ ${formatCurrency(minPrice)}`;
+  if (maxPrice !== null) return `Đến ${formatCurrency(maxPrice)}`;
+  return "Chưa có giá";
+}
+
+function QuoteSnapshotPanel({ snapshot }: { snapshot: QuoteSnapshot }) {
+  const materials = structuredLines(snapshot.materials);
+  const sizeOptions = structuredLines(snapshot.sizeOptions);
+  const description = stringValue(snapshot.description);
+  const leadTime = stringValue(snapshot.estimatedLeadTime);
+  const revisionPolicy = stringValue(snapshot.revisionPolicy);
+  const shippingNote = stringValue(snapshot.shippingNote);
+  const termsNote = stringValue(snapshot.termsNote);
+  const sentAt = stringValue(snapshot.sentAt);
+  const sourceLabel =
+    snapshot.source === "template" ? "Từ mẫu báo giá" : "Báo giá thủ công";
+
+  return (
+    <section className="mb-10 rounded-xl border border-[#A35C3D]/20 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#A35C3D]">
+            Báo giá đã gửi
+          </p>
+          <h2 className="mt-2 font-serif text-2xl font-bold text-slate-900">
+            {stringValue(snapshot.title) || "Báo giá thiết kế riêng"}
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            {sourceLabel}
+            {snapshot.templateName ? `: ${snapshot.templateName}` : ""}
+            {sentAt ? ` • ${new Date(sentAt).toLocaleString("vi-VN")}` : ""}
+          </p>
+        </div>
+        <div className="text-left md:text-right">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            Giá báo giá
+          </p>
+          <p className="mt-1 font-serif text-2xl font-bold text-[#A35C3D]">
+            {formatQuotePrice(snapshot)}
+          </p>
+        </div>
+      </div>
+
+      {description ? (
+        <p className="mb-5 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+          {description}
+        </p>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {leadTime ? (
+          <div className="rounded-md bg-[#F2EEE6] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Thời gian dự kiến
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-800">
+              {leadTime}
+            </p>
+          </div>
+        ) : null}
+
+        {materials.length > 0 ? (
+          <div className="rounded-md bg-[#F2EEE6] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Vật liệu
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {materials.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {sizeOptions.length > 0 ? (
+        <div className="mt-4 rounded-md bg-[#F2EEE6] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            Kích thước / tùy chọn
+          </p>
+          <div className="mt-2 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+            {sizeOptions.map((item) => (
+              <p key={item}>- {item}</p>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {[revisionPolicy, shippingNote, termsNote].some(Boolean) ? (
+        <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 text-sm text-slate-600">
+          {revisionPolicy ? (
+            <p>
+              <strong>Chỉnh sửa:</strong> {revisionPolicy}
+            </p>
+          ) : null}
+          {shippingNote ? (
+            <p>
+              <strong>Vận chuyển:</strong> {shippingNote}
+            </p>
+          ) : null}
+          {termsNote ? (
+            <p>
+              <strong>Điều khoản:</strong> {termsNote}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function PaymentForm({ order, onSuccess }: { order: CustomOrder, onSuccess: () => void }) {
@@ -315,6 +474,10 @@ export default function CustomOrderReviewPage() {
                   </div>
               </div>
 
+              {order.quoteSnapshot ? (
+                <QuoteSnapshotPanel snapshot={order.quoteSnapshot} />
+              ) : null}
+
               <div className="space-y-8 mb-12">
                   <div className="flex justify-between items-end border-b border-slate-200 pb-4">
                       <div>
@@ -381,7 +544,7 @@ export default function CustomOrderReviewPage() {
                           disabled={approveSketch.isPending}
                           className="bg-[#A35C3D] w-full text-white py-5 rounded-md font-bold text-sm tracking-[0.2em] uppercase flex items-center justify-center space-x-3 shadow-lg shadow-[#A35C3D]/20 hover:opacity-90 transition-opacity"
                         >
-                            <span>{approveSketch.isPending ? "Đang chuẩn bị thanh toán bảo mật..." : "Duyệt thiết kế"}</span>
+                            <span>{approveSketch.isPending ? "Đang chuẩn bị thanh toán bảo mật..." : order.quoteSnapshot ? "Chấp nhận báo giá và thanh toán" : "Duyệt thiết kế"}</span>
                             <ArrowRight className="w-4 h-4" />
                         </button>
                         <button 

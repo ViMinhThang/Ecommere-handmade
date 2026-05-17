@@ -550,6 +550,28 @@ export interface Cart {
 
 export type ChatMessageType = 'TEXT' | 'IMAGE' | 'CUSTOM_ORDER_OFFER';
 
+export interface QuoteSnapshot {
+  version?: number;
+  source?: "template" | "manual" | string;
+  templateId?: string | null;
+  templateName?: string | null;
+  title?: string;
+  description?: string;
+  price?: number | string;
+  currency?: string;
+  priceRange?: {
+    minPrice?: number | string | null;
+    maxPrice?: number | string | null;
+  } | null;
+  materials?: unknown;
+  sizeOptions?: unknown;
+  estimatedLeadTime?: string | null;
+  revisionPolicy?: string | null;
+  shippingNote?: string | null;
+  termsNote?: string | null;
+  sentAt?: string;
+}
+
 export interface ChatParticipant {
   id: string;
   name: string;
