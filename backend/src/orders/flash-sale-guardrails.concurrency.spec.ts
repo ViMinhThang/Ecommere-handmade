@@ -18,7 +18,9 @@ const shouldRunConcurrencyTests =
   process.env.RUN_FLASH_SALE_CONCURRENCY_TESTS === 'true' &&
   Boolean(process.env.TEST_DATABASE_URL);
 
-const describeConcurrency = shouldRunConcurrencyTests ? describe : describe.skip;
+const describeConcurrency = shouldRunConcurrencyTests
+  ? describe
+  : describe.skip;
 
 type FakeIntent = StripePaymentIntent;
 
@@ -334,9 +336,7 @@ describeConcurrency('Flash sale guardrails concurrency (PostgreSQL)', () => {
       ),
     );
 
-    const fulfilled = results.filter(
-      (result) => result.status === 'fulfilled',
-    );
+    const fulfilled = results.filter((result) => result.status === 'fulfilled');
     const flashSale = await prisma.flashSale.findUniqueOrThrow({
       where: { id: scenario.flashSaleId },
     });
@@ -367,9 +367,7 @@ describeConcurrency('Flash sale guardrails concurrency (PostgreSQL)', () => {
       ),
     );
 
-    const fulfilled = results.filter(
-      (result) => result.status === 'fulfilled',
-    );
+    const fulfilled = results.filter((result) => result.status === 'fulfilled');
     const usage = await prisma.flashSaleUserUsage.findUniqueOrThrow({
       where: {
         flashSaleId_userId: {
@@ -438,9 +436,9 @@ describeConcurrency('Flash sale guardrails concurrency (PostgreSQL)', () => {
         where: { id: scenario.flashSaleId },
       }),
     ]);
-    const activeIntents = Array.from(scenario.fakeStripe.intents.values()).filter(
-      (intent) => intent.status !== 'canceled',
-    );
+    const activeIntents = Array.from(
+      scenario.fakeStripe.intents.values(),
+    ).filter((intent) => intent.status !== 'canceled');
 
     expect(orders).toHaveLength(1);
     expect(flashSale.reservedUnits).toBe(1);

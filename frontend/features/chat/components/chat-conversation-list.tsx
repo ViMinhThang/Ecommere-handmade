@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatConversationSummary } from "@/types";
 import { cn } from "@/lib/utils";
+import { mediaApi } from "@/lib/api/media";
 import Link from "next/link";
 import { formatMessageTime, getInitials, getTextPayload } from "../utils";
 
@@ -85,7 +86,7 @@ export function ChatConversationList({
                 <div className="flex items-start gap-2.5">
                   <Avatar className="h-9 w-9">
                     <AvatarImage
-                      src={conversation.otherParticipant.avatar || ""}
+                      src={conversation.otherParticipant.avatar ? mediaApi.getImageUrl(conversation.otherParticipant.avatar) : ""}
                       alt={conversation.otherParticipant.name}
                     />
                     <AvatarFallback className="text-[10px]">

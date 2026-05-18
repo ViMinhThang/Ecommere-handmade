@@ -1,4 +1,5 @@
-import { API_BASE_URL, apiClient } from './client';
+import { apiClient } from './client';
+import { getMediaUrl } from './media';
 import type {
   ChatConversationSummary,
   ChatMessage,
@@ -105,23 +106,16 @@ export const chatApi = {
     ),
 
   markConversationRead: (conversationId: string) =>
-    apiClient.post<{ conversationId: string; lastReadAt: string }>(
+    apiClient.post<{
+      conversationId: string;
+      lastReadAt: string | null;
+      changed: boolean;
+    }>(
       `/chat/conversations/${conversationId}/read`,
       {},
     ),
 
   getUnreadCount: () => apiClient.get<{ unreadCount: number }>('/chat/unread-count'),
 
-  getUploadUrl: (uploadPath: string) => {
-    if (!uploadPath) {
-      return '';
-    }
-    if (uploadPath.startsWith('http') || uploadPath.startsWith('data:')) {
-      return uploadPath;
-    }
-
-    const normalizedPath = uploadPath.replace(/^\/+/, '');
-    const baseUrl = API_BASE_URL.replace(/\/v\d+$/, '');
-    return `${baseUrl}/uploads/${normalizedPath}`;
-  },
+  getUploadUrl: getMediaUrl,
 };

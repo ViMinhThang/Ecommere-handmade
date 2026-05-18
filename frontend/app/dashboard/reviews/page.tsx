@@ -13,6 +13,7 @@ import { Star, MessageSquare, Loader2, Package, CheckCircle2, MessageCircle } fr
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { toast } from "sonner"
+import { mediaApi } from "@/lib/api/media"
 
 export default function SellerReviewsPage() {
   const { data: user, isLoading: isUserLoading } = useMe()
@@ -136,7 +137,7 @@ export default function SellerReviewsPage() {
                     <div className="flex flex-wrap gap-3">
                       {review.images.map((img, idx) => (
                         <div key={idx} className="w-20 h-20 rounded-lg overflow-hidden border border-border/20 relative group/img">
-                          <img src={img} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+                          <img src={mediaApi.getImageUrl(img)} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
                         </div>
                       ))}
                     </div>

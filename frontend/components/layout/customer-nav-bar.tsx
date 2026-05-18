@@ -72,7 +72,7 @@ export function CustomerNavBar() {
                   : "text-muted-foreground hover:text-primary"
               }`}
             >
-              Discover
+              Khám phá
             </Link>
             <Link
               href="/sellers"

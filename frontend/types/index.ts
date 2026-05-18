@@ -249,6 +249,24 @@ export interface RefundRequest {
   reason: string;
 }
 
+export type RefundStatus = "PENDING" | "SUCCEEDED" | "FAILED";
+
+export interface Refund {
+  id: string;
+  orderId?: string | null;
+  subOrderId?: string | null;
+  customOrderId?: string | null;
+  paymentIntentId: string;
+  providerRefundId?: string | null;
+  amount: number | string;
+  currency: string;
+  reason: string;
+  status: RefundStatus;
+  idempotencyKey: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 export interface Order {
   id: string;
   customer: Customer;
@@ -511,6 +529,14 @@ export interface FlashSale {
   startAt: Date | string;
   endAt: Date | string;
   isActive: boolean;
+  saleState?: "ACTIVE" | "PAUSED" | "ENDED";
+  pausedReason?: string | null;
+  maxUnits?: number | null;
+  perUserLimit?: number | null;
+  reserveStock?: number;
+  autoPauseThreshold?: number | null;
+  soldUnits?: number;
+  reservedUnits?: number;
   categories: FlashSaleCategory[];
   ranges: FlashSaleRange[];
   createdAt: Date;
@@ -543,9 +569,9 @@ export interface Cart {
     code: string;
     discountAmount: number;
     discountPercent: number;
-  };
-  createdAt: Date;
-  updatedAt: Date;
+  } | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export type ChatMessageType = 'TEXT' | 'IMAGE' | 'CUSTOM_ORDER_OFFER';

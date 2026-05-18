@@ -19,7 +19,11 @@ import { UpdateReportStatusDto } from './dto/update-report-status.dto';
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(reporterId: string, reporterRoles: string[], dto: CreateReportDto) {
+  async create(
+    reporterId: string,
+    reporterRoles: string[],
+    dto: CreateReportDto,
+  ) {
     const reason = dto.reason.trim();
     const description = dto.description?.trim() || undefined;
     if (!reason) {
@@ -207,7 +211,9 @@ export class ReportsService {
       !reporterRoles.includes(Role.ROLE_SELLER) &&
       !reporterRoles.includes(Role.ROLE_ADMIN)
     ) {
-      throw new ForbiddenException('Only sellers or admins can report customers');
+      throw new ForbiddenException(
+        'Only sellers or admins can report customers',
+      );
     }
 
     const customer = await this.prisma.user.findFirst({

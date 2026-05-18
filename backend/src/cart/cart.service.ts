@@ -187,16 +187,24 @@ export class CartService {
     ranges: VoucherRange[],
     eligibleSubtotal: number,
   ) {
+    const now = new Date();
     return ranges.find(
       (range) =>
+        !range.deletedAt &&
+        new Date(range.endDate) > now &&
         eligibleSubtotal >= Number(range.minPrice) &&
         eligibleSubtotal < Number(range.maxPrice),
     );
   }
 
   private isVoucherValid(voucher: Voucher, matchedRange?: VoucherRange) {
+    const now = new Date();
     return (
-      matchedRange && voucher.isActive && new Date(voucher.endDate) > new Date()
+      matchedRange &&
+      !matchedRange.deletedAt &&
+      voucher.isActive &&
+      new Date(voucher.endDate) > now &&
+      new Date(matchedRange.endDate) > now
     );
   }
 
@@ -353,6 +361,21 @@ export class CartService {
       throw new BadRequestException(
         `Voucher này chỉ áp dụng cho các sản phẩm thuộc danh mục: ${voucher.category?.name || 'Không xác định'}`,
       );
+    }
+
+    const eligibleSubtotal = cartWithItems.items
+      .filter((item) => item.product.categoryId === voucher.categoryId)
+      .reduce(
+        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+        0,
+      );
+    const matchedRange = this.findMatchingVoucherRange(
+      voucher.ranges,
+      eligibleSubtotal,
+    );
+
+    if (!this.isVoucherValid(voucher, matchedRange)) {
+      throw new BadRequestException('Voucher cannot be applied to this cart');
     }
 
     await this.prisma.cart.update({

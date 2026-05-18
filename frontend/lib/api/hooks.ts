@@ -671,7 +671,10 @@ export function useUpdateStock() {
 
 export const voucherKeys = {
   all: ["vouchers"] as const,
-  lists: () => [...voucherKeys.all, "list"] as const,
+  lists: (params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "list", params ?? {}] as const,
+  adminLists: (params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "admin-list", params ?? {}] as const,
   details: () => [...voucherKeys.all, "detail"] as const,
   detail: (id: string) => [...voucherKeys.details(), id] as const,
   byCode: (code: string) => [...voucherKeys.all, "code", code] as const,
@@ -679,8 +682,15 @@ export const voucherKeys = {
 
 export function useVouchers(params?: { page?: number; limit?: number }) {
   return useQuery({
-    queryKey: voucherKeys.lists(),
+    queryKey: voucherKeys.lists(params),
     queryFn: () => vouchersApi.getAll(params),
+  });
+}
+
+export function useAdminVouchers(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: voucherKeys.adminLists(params),
+    queryFn: () => vouchersApi.getAdminAll(params),
   });
 }
 
@@ -734,6 +744,7 @@ export function useDeleteVoucher() {
 export const flashSaleKeys = {
   all: ["flash-sales"] as const,
   lists: () => [...flashSaleKeys.all, "list"] as const,
+  adminLists: () => [...flashSaleKeys.all, "admin-list"] as const,
   active: () => [...flashSaleKeys.all, "active"] as const,
   details: () => [...flashSaleKeys.all, "detail"] as const,
   detail: (id: string) => [...flashSaleKeys.details(), id] as const,
@@ -743,6 +754,13 @@ export function useFlashSales() {
   return useQuery({
     queryKey: flashSaleKeys.lists(),
     queryFn: () => flashSalesApi.getAll(),
+  });
+}
+
+export function useAdminFlashSales() {
+  return useQuery({
+    queryKey: flashSaleKeys.adminLists(),
+    queryFn: () => flashSalesApi.getAdminAll(),
   });
 }
 
@@ -1043,14 +1061,30 @@ export function useMarkConversationRead() {
   return useMutation({
     mutationFn: (conversationId: string) =>
       chatApi.markConversationRead(conversationId),
-    onSuccess: (_, conversationId) => {
-      queryClient.invalidateQueries({
-        queryKey: [...chatKeys.all, "messages", conversationId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...chatKeys.all, "conversations"],
-      });
-      queryClient.invalidateQueries({ queryKey: chatKeys.unread() });
+    onSuccess: (readState, conversationId) => {
+      queryClient.setQueriesData<{
+        data: ChatConversationSummary[];
+        nextCursor: string | null;
+      }>(
+        { queryKey: [...chatKeys.all, "conversations"] },
+        (previous) => {
+          if (!previous) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            data: previous.data.map((conversation) =>
+              conversation.id === conversationId
+                ? { ...conversation, unreadCount: 0 }
+                : conversation,
+            ),
+          };
+        },
+      );
+      if (readState.changed) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.unread() });
+      }
     },
   });
 }

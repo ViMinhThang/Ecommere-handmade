@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
+import { mediaApi } from "@/lib/api/media"
 
 export function Header() {
   const router = useRouter()
@@ -68,7 +69,7 @@ export function Header() {
 
         <div className="ml-2 pl-3 border-l border-border/60 flex items-center gap-2.5">
           <Avatar className="h-8 w-8 ring-1 ring-border/50">
-            <AvatarImage src={user?.avatar || ""} />
+            <AvatarImage src={user?.avatar ? mediaApi.getImageUrl(user.avatar) : ""} />
             <AvatarFallback className="text-xs bg-muted text-muted-foreground">
               {user?.name ? getInitials(user.name) : <User className="h-4 w-4" />}
             </AvatarFallback>

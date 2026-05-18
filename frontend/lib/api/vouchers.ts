@@ -49,6 +49,13 @@ export const vouchersApi = {
     return apiClient.get<PaginatedResponse<Voucher>>(`/vouchers${query.toString() ? `?${query}` : ''}`);
   },
 
+  getAdminAll: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiClient.get<PaginatedResponse<Voucher>>(`/vouchers/admin/all${query.toString() ? `?${query}` : ''}`);
+  },
+
   getById: (id: string) => apiClient.get<Voucher>(`/vouchers/${id}`),
 
   getByCode: (code: string) => apiClient.get<Voucher>(`/vouchers/code/${code}`),

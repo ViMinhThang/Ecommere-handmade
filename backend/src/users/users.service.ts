@@ -193,11 +193,14 @@ export class UsersService {
     };
   }
 
-  private getSellerKnownCustomerFilter(sellerId: string): Prisma.UserWhereInput {
+  private getSellerKnownCustomerFilter(
+    sellerId: string,
+  ): Prisma.UserWhereInput {
     return {
       OR: [
         { customerConversations: { some: { sellerId } } },
         { customerCustomOrders: { some: { sellerId } } },
+        { Order: { some: { subOrders: { some: { sellerId } } } } },
       ],
     };
   }
@@ -213,7 +216,7 @@ export class UsersService {
     const isAdmin = roles.includes(Role.ROLE_ADMIN);
     const searchFilter = this.getCustomerSearchFilter(pagination?.q);
 
-    const where: Prisma.UserWhereInput = {
+    const baseWhere: Prisma.UserWhereInput = {
       deletedAt: null,
       status: UserStatus.ACTIVE,
       roles: { has: Role.ROLE_USER },
@@ -221,11 +224,15 @@ export class UsersService {
         { roles: { has: Role.ROLE_SELLER } },
         { roles: { has: Role.ROLE_ADMIN } },
       ],
-      ...(searchFilter ?? {}),
-      ...(isAdmin || searchFilter
-        ? {}
-        : this.getSellerKnownCustomerFilter(actorId)),
     };
+    const scopedFilters = [
+      ...(searchFilter ? [searchFilter] : []),
+      ...(!isAdmin ? [this.getSellerKnownCustomerFilter(actorId)] : []),
+    ];
+    const where: Prisma.UserWhereInput =
+      scopedFilters.length > 0
+        ? { ...baseWhere, AND: scopedFilters }
+        : baseWhere;
 
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({

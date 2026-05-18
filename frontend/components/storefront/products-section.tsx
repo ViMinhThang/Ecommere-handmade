@@ -12,6 +12,7 @@ import {
 import { productsApi } from "@/lib/api/products";
 import { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import { mediaApi } from "@/lib/api/media";
 
 type ProductsSectionMode =
   | "latest"
@@ -173,11 +174,7 @@ function ProductCard({
 }) {
   const mainImage =
     product.images?.find((img) => img.isMain) || product.images?.[0];
-  const imageUrl = mainImage?.url
-    ? mainImage.url.startsWith("http")
-      ? mainImage.url
-      : `http://localhost:3001/uploads/${mainImage.url}`
-    : null;
+  const imageUrl = mainImage?.url ? mediaApi.getImageUrl(mainImage.url) : null;
   const isFlashSale = product.pricing && product.pricing.discountPercent > 0;
   const metricLabel =
     mode === "best-selling"

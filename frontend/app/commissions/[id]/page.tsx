@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { SketchUpload } from "@/components/dashboard/sketch-upload";
 import { commissionsApi, CommissionProposal } from "@/lib/api/commissions";
 import { formatCurrency, formatDate, getErrorMessage } from "@/lib/utils";
+import { mediaApi } from "@/lib/api/media";
 import { useState } from "react";
 
 function ProposalForm({ commissionId }: { commissionId: string }) {
@@ -114,7 +115,7 @@ function ProposalCard({
       <p className="mt-4 whitespace-pre-wrap text-sm text-muted-foreground">{proposal.message}</p>
       {proposal.sketchImageUrl ? (
         <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-md border md:max-w-xs">
-          <Image src={proposal.sketchImageUrl} alt="Proposal sketch" fill className="object-cover" />
+          <Image src={mediaApi.getImageUrl(proposal.sketchImageUrl)} alt="Proposal sketch" fill className="object-cover" />
         </div>
       ) : null}
       <div className="mt-5 flex flex-col gap-2 text-sm md:flex-row md:items-center md:justify-between">
@@ -231,7 +232,7 @@ export default function CommissionDetailPage() {
             <div className="mt-6 flex flex-wrap gap-3">
               {post.referenceImages.map((image) => (
                 <div key={image} className="relative h-28 w-28 overflow-hidden rounded-md border">
-                  <Image src={image} alt="Reference" fill className="object-cover" />
+                  <Image src={mediaApi.getImageUrl(image)} alt="Reference" fill className="object-cover" />
                 </div>
               ))}
             </div>

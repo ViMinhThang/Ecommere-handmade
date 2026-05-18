@@ -6,8 +6,10 @@ import {
   IsArray,
   IsInt,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ProductImageDto } from './create-product.dto';
 
 export class UpdateProductDto {
   @IsOptional()
@@ -25,7 +27,9 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsArray()
-  images?: { url: string; isMain: boolean }[];
+  @ValidateNested({ each: true })
+  @Type(() => ProductImageDto)
+  images?: ProductImageDto[];
 
   @IsOptional()
   @Type(() => Number)

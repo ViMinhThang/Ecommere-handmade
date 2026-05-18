@@ -41,7 +41,11 @@ export class ReportsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.reportsService.findMine(req.user.id, Number(page), Number(limit));
+    return this.reportsService.findMine(
+      req.user.id,
+      Number(page),
+      Number(limit),
+    );
   }
 }
 

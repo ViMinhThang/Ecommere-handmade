@@ -5,10 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CategoryStatus,
   ChatMessageType,
   CustomOrderStatus,
   PaymentStatus,
   Prisma,
+  ProductStatus,
   UserStatus,
 } from '@prisma/client';
 import { promises as fs } from 'fs';
@@ -148,6 +150,12 @@ export interface ChatConversationSummaryDto {
 export interface CursorListResponse<T> {
   data: T[];
   nextCursor: string | null;
+}
+
+export interface ChatReadStateDto {
+  conversationId: string;
+  lastReadAt: Date | null;
+  changed: boolean;
 }
 
 @Injectable()
@@ -296,6 +304,8 @@ export class ChatService {
       conversationId,
       currentUserId,
     );
+    await this.assertConversationCanReceiveMessage(conversation);
+
     const text = dto.text.trim();
     if (!text) {
       throw new BadRequestException('Message text is required');
@@ -354,6 +364,7 @@ export class ChatService {
       conversationId,
       currentUserId,
     );
+    await this.assertConversationCanReceiveMessage(conversation);
 
     const trimmedCaption = caption?.trim();
     const filePath = await this.persistImageFile(conversation.id, file);
@@ -417,6 +428,7 @@ export class ChatService {
           id: true,
           customerId: true,
           sellerId: true,
+          contextProductId: true,
         },
       });
 
@@ -429,6 +441,8 @@ export class ChatService {
           'Only the seller can send custom order quotes',
         );
       }
+
+      await this.assertConversationCanReceiveMessage(conversation, tx);
 
       const customer = await tx.user.findFirst({
         where: {
@@ -525,9 +539,59 @@ export class ChatService {
     return this.mapMessage(result);
   }
 
-  async markConversationRead(currentUserId: string, conversationId: string) {
-    await this.getConversationForParticipant(conversationId, currentUserId);
-    const now = new Date();
+  async markConversationRead(
+    currentUserId: string,
+    conversationId: string,
+  ): Promise<ChatReadStateDto> {
+    const conversation = await this.prisma.chatConversation.findUnique({
+      where: { id: conversationId },
+      select: {
+        id: true,
+        customerId: true,
+        sellerId: true,
+        messages: {
+          where: {
+            senderId: {
+              not: currentUserId,
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { createdAt: true },
+        },
+        readStates: {
+          where: { userId: currentUserId },
+          select: { lastReadAt: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException('Conversation not found');
+    }
+
+    if (
+      conversation.customerId !== currentUserId &&
+      conversation.sellerId !== currentUserId
+    ) {
+      throw new ForbiddenException('You cannot access this conversation');
+    }
+
+    const latestIncomingMessageAt = conversation.messages[0]?.createdAt ?? null;
+    const currentLastReadAt = conversation.readStates[0]?.lastReadAt ?? null;
+
+    if (
+      !latestIncomingMessageAt ||
+      (currentLastReadAt &&
+        currentLastReadAt.getTime() >= latestIncomingMessageAt.getTime())
+    ) {
+      return {
+        conversationId,
+        lastReadAt: currentLastReadAt,
+        changed: false,
+      };
+    }
 
     const readState = await this.prisma.chatConversationReadState.upsert({
       where: {
@@ -537,18 +601,19 @@ export class ChatService {
         },
       },
       update: {
-        lastReadAt: now,
+        lastReadAt: latestIncomingMessageAt,
       },
       create: {
         conversationId,
         userId: currentUserId,
-        lastReadAt: now,
+        lastReadAt: latestIncomingMessageAt,
       },
     });
 
     return {
       conversationId,
       lastReadAt: readState.lastReadAt,
+      changed: true,
     };
   }
 
@@ -638,6 +703,7 @@ export class ChatService {
         id: true,
         customerId: true,
         sellerId: true,
+        contextProductId: true,
       },
     });
 
@@ -887,17 +953,21 @@ export class ChatService {
     return parsed;
   }
 
-  private async validateSeller(sellerId: string) {
-    const seller = await this.prisma.user.findUnique({
+  private async validateSeller(
+    sellerId: string,
+    tx: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const seller = await tx.user.findUnique({
       where: { id: sellerId },
       select: {
         id: true,
         roles: true,
+        status: true,
         deletedAt: true,
       },
     });
 
-    if (!seller || seller.deletedAt) {
+    if (!seller || seller.deletedAt || seller.status !== UserStatus.ACTIVE) {
       throw new NotFoundException('Seller not found');
     }
 
@@ -906,12 +976,21 @@ export class ChatService {
     }
   }
 
-  private async validateProductContext(productId: string, sellerId: string) {
-    const product = await this.prisma.product.findFirst({
+  private async validateProductContext(
+    productId: string,
+    sellerId: string,
+    tx: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const product = await tx.product.findFirst({
       where: {
         id: productId,
         sellerId,
         deletedAt: null,
+        status: ProductStatus.APPROVED,
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
       },
       select: {
         id: true,
@@ -925,6 +1004,21 @@ export class ChatService {
     }
 
     return product.id;
+  }
+
+  private async assertConversationCanReceiveMessage(
+    conversation: { sellerId: string; contextProductId?: string | null },
+    tx: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    await this.validateSeller(conversation.sellerId, tx);
+
+    if (conversation.contextProductId) {
+      await this.validateProductContext(
+        conversation.contextProductId,
+        conversation.sellerId,
+        tx,
+      );
+    }
   }
 
   private async ensureReadState(conversationId: string, userId: string) {

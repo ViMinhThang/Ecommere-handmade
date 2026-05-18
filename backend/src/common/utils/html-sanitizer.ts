@@ -27,7 +27,9 @@ const TAG_PATTERN = /<\/?([a-zA-Z0-9-]+)(?:\s[^>]*)?>/g;
 
 function stripUnsafeUrlAttributes(value: string) {
   return value.replace(UNSAFE_URL_ATTRIBUTES, (_match, name, rawValue) => {
-    const unquoted = String(rawValue).replace(/^['"]|['"]$/g, '').trim();
+    const unquoted = String(rawValue)
+      .replace(/^['"]|['"]$/g, '')
+      .trim();
     return /^(javascript|data|vbscript):/i.test(unquoted)
       ? ''
       : ` ${name}="${unquoted.replace(/"/g, '&quot;')}"`;

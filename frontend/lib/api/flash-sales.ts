@@ -8,6 +8,12 @@ export interface CreateFlashSaleDto {
   startAt: string;
   endAt: string;
   isActive?: boolean;
+  saleState?: "ACTIVE" | "PAUSED" | "ENDED";
+  pausedReason?: string;
+  maxUnits?: number;
+  perUserLimit?: number;
+  reserveStock?: number;
+  autoPauseThreshold?: number;
   categoryIds: string[];
   ranges: {
     minPrice: number;
@@ -24,6 +30,12 @@ export interface UpdateFlashSaleDto {
   startAt?: string;
   endAt?: string;
   isActive?: boolean;
+  saleState?: "ACTIVE" | "PAUSED" | "ENDED";
+  pausedReason?: string;
+  maxUnits?: number;
+  perUserLimit?: number;
+  reserveStock?: number;
+  autoPauseThreshold?: number;
   categoryIds?: string[];
   ranges?: {
     minPrice: number;
@@ -45,6 +57,8 @@ export interface PaginatedResponse<T> {
 
 export const flashSalesApi = {
   getAll: () => apiClient.get<FlashSale[]>("/flash-sales"),
+
+  getAdminAll: () => apiClient.get<FlashSale[]>("/flash-sales/admin/all"),
 
   getActive: () => apiClient.get<FlashSale[]>("/flash-sales/active"),
 

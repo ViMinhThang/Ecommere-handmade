@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { FlashSaleState } from '@prisma/client';
+import { CategoryStatus, FlashSaleState, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFlashSaleDto } from './dto/create-flash-sale.dto';
 import { UpdateFlashSaleDto } from './dto/update-flash-sale.dto';
@@ -15,9 +15,65 @@ interface FlashSaleGuardrailValues {
   autoPauseThreshold?: number | null;
 }
 
+interface FlashSaleVisibilityOptions {
+  includeInactive?: boolean;
+}
+
 @Injectable()
 export class FlashSalesService {
   constructor(private prisma: PrismaService) {}
+
+  private getActiveFlashSaleWhere(
+    now = new Date(),
+  ): Prisma.FlashSaleWhereInput {
+    return {
+      deletedAt: null,
+      isActive: true,
+      saleState: FlashSaleState.ACTIVE,
+      startAt: { lte: now },
+      endAt: { gte: now },
+      categories: {
+        some: {
+          deletedAt: null,
+          category: {
+            deletedAt: null,
+            status: CategoryStatus.ACTIVE,
+          },
+        },
+      },
+      ranges: {
+        some: {
+          deletedAt: null,
+          endDate: { gt: now },
+        },
+      },
+    };
+  }
+
+  private getFlashSaleInclude(includeInactive = false, now = new Date()) {
+    return {
+      categories: includeInactive
+        ? { include: { category: true } }
+        : {
+            where: {
+              deletedAt: null,
+              category: {
+                deletedAt: null,
+                status: CategoryStatus.ACTIVE,
+              },
+            },
+            include: { category: true },
+          },
+      ranges: includeInactive
+        ? true
+        : {
+            where: {
+              deletedAt: null,
+              endDate: { gt: now },
+            },
+          },
+    };
+  }
 
   async create(createFlashSaleDto: CreateFlashSaleDto) {
     this.validateTimeframe(
@@ -73,12 +129,14 @@ export class FlashSalesService {
     });
   }
 
-  async findAll() {
+  async findAll(options: FlashSaleVisibilityOptions = {}) {
+    const now = new Date();
+    const includeInactive = options.includeInactive ?? false;
     return this.prisma.flashSale.findMany({
-      include: {
-        categories: { include: { category: true } },
-        ranges: true,
-      },
+      where: includeInactive
+        ? { deletedAt: null }
+        : this.getActiveFlashSaleWhere(now),
+      include: this.getFlashSaleInclude(includeInactive, now),
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -86,16 +144,8 @@ export class FlashSalesService {
   async findActive() {
     const now = new Date();
     return this.prisma.flashSale.findMany({
-      where: {
-        isActive: true,
-        saleState: FlashSaleState.ACTIVE,
-        startAt: { lte: now },
-        endAt: { gte: now },
-      },
-      include: {
-        categories: { include: { category: true } },
-        ranges: true,
-      },
+      where: this.getActiveFlashSaleWhere(now),
+      include: this.getFlashSaleInclude(false, now),
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -104,16 +154,25 @@ export class FlashSalesService {
     const now = new Date();
     return this.prisma.flashSale.findFirst({
       where: {
-        isActive: true,
-        saleState: FlashSaleState.ACTIVE,
-        startAt: { lte: now },
-        endAt: { gte: now },
+        ...this.getActiveFlashSaleWhere(now),
         categories: {
-          some: { categoryId },
+          some: {
+            categoryId,
+            deletedAt: null,
+            category: {
+              deletedAt: null,
+              status: CategoryStatus.ACTIVE,
+            },
+          },
         },
       },
       include: {
-        ranges: true,
+        ranges: {
+          where: {
+            deletedAt: null,
+            endDate: { gt: now },
+          },
+        },
       },
     });
   }
@@ -131,7 +190,10 @@ export class FlashSalesService {
 
     const matchedRange = flashSale.ranges.find(
       (range) =>
-        price >= Number(range.minPrice) && price <= Number(range.maxPrice),
+        !range.deletedAt &&
+        new Date(range.endDate) > new Date() &&
+        price >= Number(range.minPrice) &&
+        price <= Number(range.maxPrice),
     );
 
     if (!matchedRange) {
@@ -154,13 +216,17 @@ export class FlashSalesService {
     };
   }
 
-  async findOne(id: string) {
-    const flashSale = await this.prisma.flashSale.findUnique({
-      where: { id },
-      include: {
-        categories: { include: { category: true } },
-        ranges: true,
+  async findOne(id: string, options: FlashSaleVisibilityOptions = {}) {
+    const now = new Date();
+    const includeInactive = options.includeInactive ?? false;
+    const flashSale = await this.prisma.flashSale.findFirst({
+      where: {
+        id,
+        ...(includeInactive
+          ? { deletedAt: null }
+          : this.getActiveFlashSaleWhere(now)),
       },
+      include: this.getFlashSaleInclude(includeInactive, now),
     });
     if (!flashSale) {
       throw new NotFoundException(`Flash sale with ID ${id} not found`);

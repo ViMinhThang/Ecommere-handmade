@@ -8,6 +8,7 @@ import { CustomerFooter } from "@/components/layout/customer-footer";
 import { useProducts, useCategories } from "@/lib/api/hooks";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
+import { mediaApi } from "@/lib/api/media";
 
 export default function DiscoveryPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,6 +17,7 @@ export default function DiscoveryPage() {
 
   const categories = categoriesData?.data || [];
   const products = productsData?.data || [];
+  const getImageUrl = (url?: string) => (url ? mediaApi.getImageUrl(url) : "");
 
   return (
     <div className="min-h-screen bg-background text-foreground font-body selection:bg-primary/20 selection:text-primary">
@@ -93,11 +95,7 @@ export default function DiscoveryPage() {
                       <div className="aspect-[16/10] bg-muted rounded-none mb-6 shadow-sm group-hover:shadow-xl transition-all relative overflow-hidden ring-1 ring-border/10">
                         {products[0].images?.[0] && (
                           <Image
-                            src={
-                              products[0].images?.[0].url.startsWith("http")
-                                ? products[0].images?.[0].url
-                                : `http://localhost:3001/uploads/${products[0].images?.[0].url}`
-                            }
+                            src={getImageUrl(products[0].images?.[0].url)}
                             alt={products[0].name}
                             fill
                             className="object-cover transition-transform duration-1000 group-hover:scale-105"
@@ -143,11 +141,7 @@ export default function DiscoveryPage() {
                           >
                             {product.images?.[0] && (
                               <Image
-                                src={
-                                  product.images?.[0].url.startsWith("http")
-                                    ? product.images?.[0].url
-                                    : `http://localhost:3001/uploads/${product.images?.[0].url}`
-                                }
+                                src={getImageUrl(product.images?.[0].url)}
                                 alt={product.name}
                                 fill
                                 className="object-cover transition-transform duration-1000 group-hover:scale-105"

@@ -34,6 +34,8 @@ const statusClasses: Record<string, string> = {
   CRAFTING: 'bg-green-100 text-green-800',
   FINISHING: 'bg-teal-100 text-teal-800',
   SHIPPED: 'bg-purple-100 text-purple-800',
+  DELIVERED: 'bg-green-100 text-green-800',
+  CANCELLED: 'bg-slate-100 text-slate-800',
 };
 
 const statusLabels: Record<string, string> = {
@@ -43,7 +45,9 @@ const statusLabels: Record<string, string> = {
   AWAITING_PAYMENT: 'Chờ thanh toán',
   CRAFTING: 'Đang chế tác',
   FINISHING: 'Đang hoàn thiện',
-  SHIPPED: 'Đã giao hàng',
+  SHIPPED: 'Đang giao',
+  DELIVERED: 'Đã giao',
+  CANCELLED: 'Đã hủy',
 };
 
 export default function SellerCustomOrdersPage() {
@@ -54,7 +58,7 @@ export default function SellerCustomOrdersPage() {
   const [sketchUrl, setSketchUrl] = useState("");
   const [responseNote, setResponseNote] = useState("");
 
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading, error } = useQuery({
     queryKey: ["customOrders", "seller"],
     queryFn: () => customOrdersApi.getSellerOrders()
   });
@@ -98,6 +102,7 @@ export default function SellerCustomOrdersPage() {
     let nextStatus: CustomOrder['status'] | null = null;
     if (order.status === 'CRAFTING') nextStatus = 'FINISHING';
     else if (order.status === 'FINISHING') nextStatus = 'SHIPPED';
+    else if (order.status === 'SHIPPED') nextStatus = 'DELIVERED';
     
     if (nextStatus) {
       updateStatus.mutate({ id: order.id, status: nextStatus });
@@ -162,7 +167,7 @@ export default function SellerCustomOrdersPage() {
           <CardContent className='p-4'>
             <p className='text-sm text-muted-foreground'>Đã bàn giao</p>
             <p className='text-2xl font-bold'>
-              {orders?.filter(o => o.status === 'SHIPPED').length || 0}
+              {orders?.filter(o => o.status === 'DELIVERED').length || 0}
             </p>
           </CardContent>
         </Card>
@@ -188,6 +193,10 @@ export default function SellerCustomOrdersPage() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-12 text-muted-foreground">Đang tải...</div>
+          ) : error ? (
+            <div className="text-center py-12 text-muted-foreground">
+              Không thể tải đơn thiết kế riêng. Vui lòng kiểm tra kết nối API và thử lại.
+            </div>
           ) : filteredOrders.length === 0 ? (
             <div className='text-center py-12 text-muted-foreground'>
               <Package className='h-12 w-12 mx-auto mb-4 opacity-50' />
@@ -265,6 +274,18 @@ export default function SellerCustomOrdersPage() {
                            >
                              <Truck className="h-3 w-3" />
                              Giao hàng
+                           </Button>
+                         )}
+                         {order.status === 'SHIPPED' && (
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             className="h-8 gap-1 border-green-200 text-green-700 hover:bg-green-50"
+                             onClick={() => handleNextStatus(order)}
+                             disabled={updateStatus.isPending}
+                           >
+                             <CheckCircle className="h-3 w-3" />
+                             Xác nhận đã giao
                            </Button>
                          )}
                         <Link href={`/custom-orders/${order.id}/review`}>

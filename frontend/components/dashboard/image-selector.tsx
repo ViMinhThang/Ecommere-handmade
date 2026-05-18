@@ -236,7 +236,7 @@ export function ImageSelector({ userId, selectedImages, onSelectionChange, mode 
               >
                 <div className="w-16 h-16">
                   <img
-                    src={image.url}
+                    src={mediaApi.getImageUrl(image.path || image.url)}
                     alt={image.displayName}
                     className="w-full h-full object-cover"
                   />

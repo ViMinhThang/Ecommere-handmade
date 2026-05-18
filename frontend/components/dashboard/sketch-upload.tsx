@@ -13,11 +13,12 @@ interface SketchUploadProps {
   label?: string
 }
 
-export function SketchUpload({ value, onChange, label = "Tải bản phác thảo" }: SketchUploadProps) {
+export function SketchUpload({ value: rawValue, onChange, label = "Tải bản phác thảo" }: SketchUploadProps) {
   const inputId = useId()
   const { data: user } = useMe()
   const { data: folders, isLoading: isLoadingFolders } = useFolders(user?.id || '')
   const [isUploading, setIsUploading] = useState(false)
+  const value = rawValue ? mediaApi.getImageUrl(rawValue) : ''
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -38,8 +39,7 @@ export function SketchUpload({ value, onChange, label = "Tải bản phác thả
       }
 
       const result = await mediaApi.uploadImage(folderId, file, file.name)
-      const imageUrl = mediaApi.getImageUrl(result.path)
-      onChange(imageUrl)
+      onChange(result.path)
       toast.success('Đã tải bản phác thảo lên thành công')
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Lỗi khi tải bản phác thảo'))

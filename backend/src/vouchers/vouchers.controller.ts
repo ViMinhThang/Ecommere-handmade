@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
@@ -15,6 +16,7 @@ import { UpdateVoucherDto } from './dto/update-voucher.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 @Controller('vouchers')
 export class VouchersController {
@@ -25,6 +27,13 @@ export class VouchersController {
     return this.vouchersService.findAll(pagination);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('admin/all')
+  @Roles('ROLE_ADMIN')
+  findAllAdmin(@Query() pagination?: PaginationDto) {
+    return this.vouchersService.findAll(pagination, { includeInactive: true });
+  }
+
   @Get('code/:code')
   findByCode(@Param('code') code: string) {
     return this.vouchersService.findByCode(code);
@@ -32,8 +41,10 @@ export class VouchersController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.vouchersService.findOne(id);
+  findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.vouchersService.findOne(id, {
+      includeInactive: req.user.roles.includes('ROLE_ADMIN'),
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

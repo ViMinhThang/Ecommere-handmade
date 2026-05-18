@@ -403,7 +403,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       expectedFingerprint: checkoutFingerprint,
       shippingAddressHash: this.hashCheckoutValue(shippingAddress),
       currentCartItems:
-        currentCartItemsForProvidedKey ?? this.getCartComparisonItems(cart.items),
+        currentCartItemsForProvidedKey ??
+        this.getCartComparisonItems(cart.items),
     };
 
     const reusableCheckout = await this.findReusableCheckoutResponse(
@@ -716,7 +717,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       ...(rewardPointsRedeemed > 0 || rewardDiscountAmount > 0
         ? { rewardPointsRedeemed, rewardDiscountAmount }
         : {}),
-      shippingAddressHash: this.hashCheckoutValue(order.shippingAddress ?? null),
+      shippingAddressHash: this.hashCheckoutValue(
+        order.shippingAddress ?? null,
+      ),
       items: this.getExistingOrderFingerprintItems(order),
     });
   }
@@ -932,7 +935,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       discountAmount: this.roundMoney(
         Number(cart.discountAmount) + rewardDiscountAmount,
       ),
-      total: this.roundMoney(Math.max(0, Number(cart.total) - rewardDiscountAmount)),
+      total: this.roundMoney(
+        Math.max(0, Number(cart.total) - rewardDiscountAmount),
+      ),
     };
   }
 
@@ -2453,9 +2458,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
         if (cancelled.count === 1) {
           await this.restoreSubOrderStock(tx, subOrder.items);
-          if (
-            this.shouldReleaseFlashSaleReservationsForOrder(subOrder.order)
-          ) {
+          if (this.shouldReleaseFlashSaleReservationsForOrder(subOrder.order)) {
             await this.releaseFlashSaleReservations(
               tx,
               subOrder.orderId,

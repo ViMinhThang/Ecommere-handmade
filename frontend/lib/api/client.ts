@@ -15,6 +15,28 @@ export class ApiError extends Error {
   }
 }
 
+export function getApiErrorMessage(data: unknown, fallbackMessage: string) {
+  if (typeof data === "string" && data.trim()) {
+    return data;
+  }
+
+  if (typeof data !== "object" || data === null) {
+    return fallbackMessage;
+  }
+
+  const rawMessage = (data as { message?: unknown }).message;
+  if (typeof rawMessage === "string" && rawMessage.trim()) {
+    return rawMessage;
+  }
+
+  if (Array.isArray(rawMessage)) {
+    const messages = rawMessage.map((item) => String(item)).filter(Boolean);
+    return messages.length > 0 ? messages.join(", ") : fallbackMessage;
+  }
+
+  return fallbackMessage;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -46,13 +68,7 @@ class ApiClient {
     const data = (await response
       .json()
       .catch(() => ({ message: fallbackMessage }))) as Record<string, unknown>;
-    const rawMessage = data.message;
-    const message =
-      typeof rawMessage === "string"
-        ? rawMessage
-        : Array.isArray(rawMessage)
-          ? rawMessage.join(", ")
-          : fallbackMessage;
+    const message = getApiErrorMessage(data, fallbackMessage);
 
     return { data, message };
   }

@@ -5,9 +5,10 @@ import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
 import Link from "next/link";
 import { PenTool, ArrowRight, Clock, Box } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { mediaApi } from "@/lib/api/media";
 
 export default function ProfileCustomOrdersPage() {
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading, error } = useQuery({
     queryKey: ["customOrders", "my"],
     queryFn: async () => {
       // apiClient.get returns the resolved JSON (e.g. the array directly)
@@ -18,6 +19,16 @@ export default function ProfileCustomOrdersPage() {
 
   if (isLoading) {
     return <div className="text-center p-12 text-slate-500 font-serif">Đang tải đơn hàng thiết kế riêng của bạn...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg p-12 text-center border border-slate-200">
+        <PenTool className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+        <h3 className="font-serif text-2xl font-bold text-slate-800 mb-2">Không thể tải đơn thiết kế</h3>
+        <p className="text-slate-500">Vui lòng kiểm tra kết nối API và thử lại sau.</p>
+      </div>
+    );
   }
 
   if (!orders || (Array.isArray(orders) && orders.length === 0)) {
@@ -41,7 +52,9 @@ export default function ProfileCustomOrdersPage() {
       case 'AWAITING_PAYMENT': return { label: 'Chờ Thanh Toán', className: 'bg-blue-100 text-blue-800' };
       case 'CRAFTING': return { label: 'Đang Chế Tác', className: 'bg-green-100 text-green-800' };
       case 'FINISHING': return { label: 'Đang Hoàn Thiện', className: 'bg-teal-100 text-teal-800' };
-      case 'SHIPPED': return { label: 'Đã Giao Hàng', className: 'bg-purple-100 text-purple-800' };
+      case 'SHIPPED': return { label: 'Đang Giao', className: 'bg-purple-100 text-purple-800' };
+      case 'DELIVERED': return { label: 'Đã Giao', className: 'bg-green-100 text-green-800' };
+      case 'CANCELLED': return { label: 'Đã Hủy', className: 'bg-slate-100 text-slate-600' };
       default: return { label: status, className: 'bg-slate-100 text-slate-600' };
     }
   }
@@ -60,7 +73,7 @@ export default function ProfileCustomOrdersPage() {
             <div key={order.id} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-center">
               <div className="w-24 h-24 bg-slate-100 flex-shrink-0 rounded-md overflow-hidden flex items-center justify-center">
                 {order.sketchImageUrl ? (
-                   <img src={order.sketchImageUrl} className="w-full h-full object-cover" alt="Sketch" />
+                   <img src={mediaApi.getImageUrl(order.sketchImageUrl)} className="w-full h-full object-cover" alt="Sketch" />
                 ) : (
                    <Box className="w-8 h-8 text-slate-300" />
                 )}

@@ -197,7 +197,9 @@ export class PaymentReliabilityService {
       new Date(),
     )
       .filter((row) => (query.type ? row.type === query.type : true))
-      .filter((row) => (query.severity ? row.severity === query.severity : true))
+      .filter((row) =>
+        query.severity ? row.severity === query.severity : true,
+      )
       .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
 
     return this.toPaginatedResponse(anomalies, pagination);
@@ -215,7 +217,9 @@ export class PaymentReliabilityService {
       await this.loadReliabilityDataset(window),
       new Date(),
     )
-      .filter((row) => (query.entityType ? row.entityType === query.entityType : true))
+      .filter((row) =>
+        query.entityType ? row.entityType === query.entityType : true,
+      )
       .filter((row) => (query.status ? row.status === query.status : true))
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
@@ -298,9 +302,9 @@ export class PaymentReliabilityService {
               : null
           : null,
         entityId: event.paymentIntentId
-          ? orderMap.get(event.paymentIntentId) ??
+          ? (orderMap.get(event.paymentIntentId) ??
             customOrderMap.get(event.paymentIntentId) ??
-            null
+            null)
           : null,
       })),
       meta: {
@@ -371,7 +375,10 @@ export class PaymentReliabilityService {
       throw new BadRequestException('from must be earlier than to');
     }
 
-    if (resolvedTo.getTime() - resolvedFrom.getTime() > MAX_WINDOW_DAYS * DAY_IN_MS) {
+    if (
+      resolvedTo.getTime() - resolvedFrom.getTime() >
+      MAX_WINDOW_DAYS * DAY_IN_MS
+    ) {
       throw new BadRequestException(
         `Date window must not exceed ${MAX_WINDOW_DAYS} days`,
       );
@@ -533,9 +540,9 @@ export class PaymentReliabilityService {
               type: true,
             },
           })
-        : Promise.resolve<Array<{ paymentIntentId: string | null; type: string }>>(
-            [],
-          ),
+        : Promise.resolve<
+            Array<{ paymentIntentId: string | null; type: string }>
+          >([]),
     ]);
 
     const capturedOrderIds = new Set(
@@ -571,7 +578,13 @@ export class PaymentReliabilityService {
     const anomalies: PaymentReliabilityAnomalyRow[] = [];
 
     for (const order of dataset.orders) {
-      if (this.isExpiredUnpaidOrder(order.paymentStatus, order.paymentExpiresAt, now)) {
+      if (
+        this.isExpiredUnpaidOrder(
+          order.paymentStatus,
+          order.paymentExpiresAt,
+          now,
+        )
+      ) {
         anomalies.push({
           id: `STRIPE_ORDER_UNPAID_EXPIRED:ORDER:${order.id}`,
           type: 'STRIPE_ORDER_UNPAID_EXPIRED',
@@ -674,7 +687,8 @@ export class PaymentReliabilityService {
           paymentStatus: customOrder.paymentStatus,
           occurredAt: customOrder.paymentExpiresAt ?? customOrder.updatedAt,
           details: {
-            paymentExpiresAt: customOrder.paymentExpiresAt?.toISOString() ?? null,
+            paymentExpiresAt:
+              customOrder.paymentExpiresAt?.toISOString() ?? null,
           },
         });
       }
@@ -716,7 +730,9 @@ export class PaymentReliabilityService {
             occurredAt: customOrder.updatedAt,
             details: {
               orderTotal: customOrder.price,
-              refundedAmount: this.getSucceededRefundAmount(customOrder.refunds),
+              refundedAmount: this.getSucceededRefundAmount(
+                customOrder.refunds,
+              ),
             },
           });
         }
@@ -780,7 +796,10 @@ export class PaymentReliabilityService {
         currency: order.currency || CURRENCY,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
-        status: this.mapIssuesToReconciliationStatus(issues, order.paymentStatus),
+        status: this.mapIssuesToReconciliationStatus(
+          issues,
+          order.paymentStatus,
+        ),
         issues: this.mapIssuesToAnomalyTypes(issues, 'ORDER'),
       });
     }

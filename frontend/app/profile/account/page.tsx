@@ -152,7 +152,7 @@ export default function AccountPage() {
             <div className="mb-4 flex items-center gap-3">
               <Coins className="h-5 w-5 text-primary" />
               <h3 className="font-serif text-xl font-bold text-primary">
-                Diem thuong
+                Điểm thưởng
               </h3>
             </div>
             <p className="text-3xl font-bold text-primary">
@@ -161,7 +161,7 @@ export default function AccountPage() {
                 : rewardBalanceQuery.data?.balance || 0}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Diem co the dung de giam gia khi thanh toan.
+              Điểm có thể dùng để giảm giá khi thanh toán.
             </p>
             <div className="mt-5 space-y-3">
               {(rewardLedgerQuery.data?.data || []).map((entry) => (
@@ -190,7 +190,7 @@ export default function AccountPage() {
               {!rewardLedgerQuery.isLoading &&
                 (rewardLedgerQuery.data?.data || []).length === 0 && (
                   <p className="border-t border-primary/10 pt-3 text-xs text-muted-foreground">
-                    Chua co giao dich diem.
+                    Chưa có giao dịch điểm.
                   </p>
                 )}
             </div>

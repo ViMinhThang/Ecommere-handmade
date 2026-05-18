@@ -616,8 +616,7 @@ export class ProductsService {
         page: normalizedPage,
         limit: normalizedLimit,
         total,
-        totalPages:
-          total === 0 ? 0 : Math.ceil(total / normalizedLimit),
+        totalPages: total === 0 ? 0 : Math.ceil(total / normalizedLimit),
       },
     };
   }

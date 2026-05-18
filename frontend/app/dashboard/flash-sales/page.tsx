@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { FlashSaleDialog } from '@/components/dashboard/flash-sale-dialog'
-import { useFlashSales, useCreateFlashSale, useUpdateFlashSale, useDeleteFlashSale, useCategories } from '@/lib/api/hooks'
+import { useAdminFlashSales, useCreateFlashSale, useUpdateFlashSale, useDeleteFlashSale, useCategories } from '@/lib/api/hooks'
 import { FlashSale } from '@/types'
 import { Search, Plus, Pencil, Trash2, Clock } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
@@ -24,7 +24,7 @@ export default function FlashSalesPage() {
   const [limit, setLimit] = useState(10)
   const { user } = useAuth()
 
-  const { data: flashSalesData, isLoading: flashSalesLoading } = useFlashSales()
+  const { data: flashSalesData, isLoading: flashSalesLoading } = useAdminFlashSales()
   const { data: categoriesData } = useCategories()
   const createFlashSale = useCreateFlashSale()
   const updateFlashSale = useUpdateFlashSale()
@@ -128,7 +128,7 @@ export default function FlashSalesPage() {
     <div className="space-y-7">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="artisan-title text-4xl">Flash Sales</h1>
+          <h1 className="artisan-title text-4xl">Flash sale</h1>
           <p className="text-muted-foreground">Quản lý các chương trình flash sale.</p>
         </div>
         <Button onClick={() => { setSelectedFlashSale(null); setEditDialogOpen(true) }}>
@@ -140,7 +140,7 @@ export default function FlashSalesPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Tổng flash sales</p>
+            <p className="text-sm text-muted-foreground">Tổng flash sale</p>
             <p className="text-2xl font-bold">{totalFlashSales}</p>
           </CardContent>
         </Card>
@@ -161,7 +161,7 @@ export default function FlashSalesPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Tất cả flash sales</CardTitle>
+            <CardTitle>Tất cả flash sale</CardTitle>
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input

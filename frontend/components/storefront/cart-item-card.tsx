@@ -5,6 +5,7 @@ import { X, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import type { Product, ProductImage } from "@/types";
+import { mediaApi } from "@/lib/api/media";
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -12,16 +13,13 @@ function getProductImageUrl(product: Product): string {
   const imageUrl = mainImage?.url || firstImage?.url || "";
 
   if (!imageUrl) return "";
-  if (imageUrl.startsWith("http")) return imageUrl;
-
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, "");
-  return `${apiBase}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+  return mediaApi.getImageUrl(imageUrl);
 }
 
 interface CartItemCardProps {
-  item: { 
-    productId: string; 
-    product: Product; 
+  item: {
+    productId: string;
+    product: Product;
     quantity: number;
     pricing: {
       originalPrice: number;

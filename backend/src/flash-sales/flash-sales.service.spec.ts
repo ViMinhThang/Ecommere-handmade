@@ -187,7 +187,9 @@ describe('FlashSalesService', () => {
         where: expect.objectContaining({
           isActive: true,
           saleState: FlashSaleState.ACTIVE,
-          categories: { some: { categoryId: 'cat-1' } },
+          categories: {
+            some: expect.objectContaining({ categoryId: 'cat-1' }),
+          },
         }),
       }),
     );
@@ -199,6 +201,30 @@ describe('FlashSalesService', () => {
     });
   });
 
+  it('does not apply a discount from an expired sale range', async () => {
+    prisma.flashSale.findFirst.mockResolvedValue({
+      id: 'flash-sale-1',
+      ranges: [
+        {
+          minPrice: 100,
+          maxPrice: 1000,
+          discountPercent: 10,
+          endDate: new Date('2020-01-01T00:00:00.000Z'),
+          deletedAt: null,
+        },
+      ],
+    });
+
+    const result = await service.calculateEffectivePrice(500, 'cat-1');
+
+    expect(result).toEqual({
+      originalPrice: 500,
+      discountedPrice: 500,
+      discountPercent: 0,
+      flashSaleId: 'flash-sale-1',
+    });
+  });
+
   it('excludes ended sales from active sale listing by querying ACTIVE state only', async () => {
     await service.findActive();
 
@@ -207,6 +233,27 @@ describe('FlashSalesService', () => {
         where: expect.objectContaining({
           isActive: true,
           saleState: FlashSaleState.ACTIVE,
+        }),
+      }),
+    );
+  });
+
+  it('uses active visibility for the public flash sale list', async () => {
+    await service.findAll();
+
+    expect(prisma.flashSale.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          saleState: FlashSaleState.ACTIVE,
+          startAt: { lte: expect.any(Date) },
+          endAt: { gte: expect.any(Date) },
+          ranges: {
+            some: expect.objectContaining({
+              deletedAt: null,
+              endDate: { gt: expect.any(Date) },
+            }),
+          },
         }),
       }),
     );

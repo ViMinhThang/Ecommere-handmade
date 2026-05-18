@@ -107,9 +107,7 @@ describe('observability.util', () => {
 
     const serialized = logger.warn.mock.calls[0][0] as string;
     const payload = JSON.parse(serialized) as Record<string, unknown>;
-    expect(payload.reason).toBe(
-      'Authorization failed with Bearer [REDACTED]',
-    );
+    expect(payload.reason).toBe('Authorization failed with Bearer [REDACTED]');
   });
 
   it('does not throw on circular metadata', () => {
@@ -122,7 +120,12 @@ describe('observability.util', () => {
     metadata.self = metadata;
 
     expect(() =>
-      emitObservabilityEvent(logger, 'warn', 'payment_webhook_failed', metadata),
+      emitObservabilityEvent(
+        logger,
+        'warn',
+        'payment_webhook_failed',
+        metadata,
+      ),
     ).not.toThrow();
 
     const serialized = logger.warn.mock.calls[0][0] as string;

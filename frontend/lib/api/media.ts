@@ -1,4 +1,4 @@
-import { apiClient, API_BASE_URL } from './client';
+import { apiClient, API_BASE_URL, getApiErrorMessage } from './client';
 import type { ImageFolder, Image } from '@/types';
 
 export interface CreateFolderDto {
@@ -18,6 +18,23 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+export function getMediaUrl(path: string) {
+  if (!path) return "";
+  if (/^[a-z][a-z0-9+.-]*:/i.test(path)) {
+    return path;
+  }
+
+  const normalizedPath = path.replace(/^\/+/, "");
+  const baseUrl = API_BASE_URL.replace(/\/v\d+$/, "");
+  if (normalizedPath.startsWith("uploads/")) {
+    return `${baseUrl}/${normalizedPath}`;
+  }
+
+  return `${baseUrl}/uploads/${normalizedPath}`;
+}
+
+export const getImageUrl = getMediaUrl;
 
 export const mediaApi = {
   getFolders: (userId: string) => apiClient.get<ImageFolder[]>(`/media/folders?userId=${userId}`),
@@ -46,7 +63,7 @@ export const mediaApi = {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: "Failed to upload image" }));
-      throw new Error(error.message);
+      throw new Error(getApiErrorMessage(error, "Failed to upload image"));
     }
 
     return response.json();
@@ -56,13 +73,6 @@ export const mediaApi = {
 
   deleteImage: (imageId: string) => apiClient.delete<void>(`/media/images/${imageId}`),
 
-  getImageUrl: (path: string) => {
-    if (!path) return "";
-    if (path.startsWith("http") || path.startsWith("data:")) {
-      return path;
-    }
-    const normalizedPath = path.replace(/^\/+/, "");
-    const baseUrl = API_BASE_URL.replace(/\/v\d+$/, "");
-    return `${baseUrl}/uploads/${normalizedPath}`;
-  },
+  getMediaUrl,
+  getImageUrl,
 };

@@ -1,145 +1,262 @@
-# E-commerce Handmade Platform
+# HandCraft Market
 
-A full-stack, modern E-commerce platform designed for handmade products. Built with a powerful NestJS backend and a high-performance Next.js frontend, this project is managed using the **Antigravity Kit** AI Agent framework.
+Web thương mại điện tử bán đồ handmade, phục vụ demo/local MVP cho đồ án. Hệ thống có 3 nhóm người dùng chính: customer, seller và admin.
 
-## 🏗️ Architecture
+Mục tiêu hiện tại là chạy local ổn định, demo được các flow mua hàng, bán hàng và vận hành marketplace. Đây chưa phải cấu hình production.
 
-- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS v4, TanStack Query, Shadcn UI.
-- **Backend:** NestJS 11, Prisma ORM, PostgreSQL, JWT Authentication.
-- **Payments:** Stripe SDK & `@stripe/react-stripe-js` (Synchronous Intent Flow).
-- **AI Infrastructure:** Antigravity Kit (20 specialist agents, 36 skills).
+## Tech Stack
 
----
+- Frontend: Next.js 16, React 19, Tailwind CSS, TanStack Query
+- Backend: NestJS 11, Prisma ORM, PostgreSQL, JWT auth
+- Realtime: Socket.IO chat
+- Payment: COD chạy local mặc định, Stripe là optional
+- Tooling: npm, Prisma migrate/seed, Jest
 
-## 🚀 Quick Start
+## Local Ports
 
-### 1. Prerequisites
-- **Node.js:** v18 or higher
-- **PostgreSQL:** Running instance
-- **npm** or **yarn**
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:3001/v1 |
+| Swagger | http://localhost:3001/api |
+| PostgreSQL | localhost:5432 |
 
-### 2. Backend Setup
-Navigate to the backend directory and install dependencies:
+## Prerequisites
+
+- Node.js 18+ hoặc 20+
+- npm
+- PostgreSQL local
+- Git
+
+## PostgreSQL Local Setup
+
+Tạo database local tên `ecommerce_handmade`.
+
+Ví dụ nếu dùng `psql`:
+
+```bash
+createdb ecommerce_handmade
+```
+
+Hoặc tạo bằng pgAdmin với:
+
+- Database: `ecommerce_handmade`
+- Host: `localhost`
+- Port: `5432`
+
+Sau đó cập nhật `DATABASE_URL` trong `backend/.env`.
+
+Ví dụ:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ecommerce_handmade?schema=public"
+```
+
+## Backend Setup
+
 ```bash
 cd backend
 npm install
 ```
 
-Configure environment variables:
+Tạo file env:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Hoặc trên bash:
+
 ```bash
 cp .env.example .env
 ```
-Required backend variables in `backend/.env`:
-- `DATABASE_URL`
-- `JWT_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USER`
-- `SMTP_PASS`
-- `SMTP_FROM`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `PLATFORM_COMMISSION_BPS`
 
-Initialize the database and run the seeder:
-```bash
-npx prisma migrate dev --name init
-npx prisma db seed
+Cập nhật tối thiểu:
+
+```env
+DATABASE_URL="postgresql://YOUR_DB_USER:YOUR_DB_PASSWORD@localhost:5432/ecommerce_handmade?schema=public"
+JWT_SECRET="replace-with-long-random-jwt-secret"
+PORT=3001
+FRONTEND_URL="http://localhost:3000"
 ```
 
-Start the backend server:
+Chạy migration và seed:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+Chạy backend dev server:
+
 ```bash
 npm run start:dev
 ```
-The API will be available at `http://localhost:3001`.
 
-### 3. Frontend Setup
-Navigate to the frontend directory and install dependencies:
+`start:dev` chỉ chạy NestJS watch mode, không reset database.
+
+Nếu muốn reset toàn bộ database local để demo lại từ đầu:
+
 ```bash
-cd ../frontend
+npm run db:reset
+```
+
+Lệnh `db:reset` dùng `prisma migrate reset --force`, sẽ xóa database local, apply migrations và chạy seed lại.
+
+## Frontend Setup
+
+Mở terminal khác:
+
+```bash
+cd frontend
 npm install
 ```
 
-Configure environment variables:
+Tạo file env:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Hoặc trên bash:
+
 ```bash
 cp .env.example .env
 ```
 
-Required frontend variables in `frontend/.env`:
-- `NEXT_PUBLIC_API_URL`
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+Giữ cấu hình local mặc định:
 
-Start the development server:
+```env
+NEXT_PUBLIC_API_URL="http://localhost:3001/v1"
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=""
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=""
+```
+
+Chạy frontend:
+
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser. 
 
-### Environment Security
-- Never commit real `.env` files.
-- Keep only template files (`.env.example`) in Git.
-- If any secret has been committed before, rotate it immediately.
+Mở http://localhost:3000.
 
-Secret groups that must be rotated if previously exposed:
-- Database credentials
-- JWT signing secret
-- SMTP credentials
-- Stripe API secrets (including webhook signing secret)
-- OAuth client identifiers/secrets (Google, eBay)
+## Environment Variables
 
----
+Backend bắt buộc:
 
-## Local Admin Seed
-- The seed script does not read admin credentials from env files.
-- In non-production environments, it creates or updates the local admin account directly in the database.
-- The seed keeps `admin@ecommerce.com` active, verified, and assigned `ROLE_ADMIN`.
-- In production environments, admin seeding is skipped by default.
+| Variable | Required | Ghi chú |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL local |
+| `JWT_SECRET` | Yes | Dùng chuỗi dài, không commit secret thật |
+| `PORT` | Yes | Mặc định `3001` |
+| `FRONTEND_URL` | Yes | Mặc định `http://localhost:3000` |
 
----
+Backend optional local:
 
-## ✨ Features & Architecture Highlights
+| Variable | Required | Ghi chú |
+| --- | --- | --- |
+| `SMTP_USER`, `SMTP_PASS` | No | Nếu trống, OTP được log ra terminal backend |
+| `STRIPE_SECRET_KEY` | No | Chỉ cần khi test Stripe payment |
+| `STRIPE_WEBHOOK_SECRET` | No | Chỉ cần khi test Stripe webhook |
+| `GOOGLE_CLIENT_ID` | No | Chỉ cần khi test Google login |
+| `AUTO_IMPORT_PRODUCTS_ON_BOOT` | No | Mặc định false để seed demo ổn định |
 
-### 🎨 The Artisanal "Discovery" Experience
-The platform features a highly curated, fully Vietnamese-localized `Discovery` component designed around a premium "paper engineer" aesthetic. It emphasizes vibrant photography, a sharp 0-radius micro-layout (`--radius: 0rem`), and a bespoke commission flow intended to bridge the digital experience with physical craftsmanship.
+Frontend optional local:
 
-### 💳 Stripe & Multi-Seller Architecture
-Operating under a "Master/Sub" order paradigm, a unified Shopping Cart handles checkout using **Stripe Elements** (`PaymentIntent`). 
-Upon checkout:
-1. Inventory logic prevents overselling by safely deducting stock immediately upon checkout initiation.
-2. The transaction branches into multi-vendor `SubOrder` records—keeping platform metrics cohesive while enabling easy payouts for individual sellers.
-3. The platform uses a highly secure, webhook-free **Synchronous Polling Gateway**, performing direct backend-to-backend queries to Stripe to verify successful intents before sealing the order state to `PAID`.
+| Variable | Required | Ghi chú |
+| --- | --- | --- |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No | Chỉ cần khi test Stripe |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | No | Chỉ cần khi test Google login |
+| `NEXT_PUBLIC_DEMO_ADMIN_EMAIL` | No | Shortcut login demo |
+| `NEXT_PUBLIC_DEMO_ADMIN_PASSWORD` | No | Shortcut login demo |
 
----
+## Demo Accounts
 
-## 🤖 AI Agent Framework (Antigravity Kit)
+Các account này chỉ dành cho local/dev seed. Tất cả dùng chung password:
 
-This repository includes a sophisticated AI governance layer in the `.agents/` directory.
-
-### Key Commands
-- **Check Project Status:** `python .agent/scripts/checklist.py .`
-- **Full Verification:** `python .agent/scripts/verify_all.py .`
-
-### Available Agents
-- `@orchestrator`: Multi-agent coordination.
-- `@frontend-specialist`: UI/UX and React performance.
-- `@backend-specialist`: API and business logic.
-- `@database-architect`: Prisma and Schema optimization.
-- ...and 16 others.
-
----
-
-## 📂 Project Structure
-```plaintext
-├── .agents/          # AI Agent personas and specialized skills
-├── backend/          # NestJS server and Prisma schema
-├── frontend/         # Next.js application
-└── design/           # UI/UX reference assets
+```txt
+Password: admin123
 ```
 
-## 🛠️ Tech Stack Highlights
-- **Backend:** NestJS 11, Prisma 5.22, Passport JWT, Swagger.
-- **Frontend:** Next.js 16, Lucide Icons, Recharts, Tiptap, Sonner.
-- **Testing:** Jest, Playwright (E2E).
+| Role | Email | Mục đích demo |
+| --- | --- | --- |
+| Admin | `admin@ecommerce.com` | Duyệt sản phẩm, xem users/orders/reports/settings |
+| Seller 1 | `seller@ecommerce.com` | Shop gốm/trang sức/gỗ, có order và custom order |
+| Seller 2 | `seller2@ecommerce.com` | Shop quà tặng/vải/nến/crochet, có order và custom order |
+| Customer 1 | `customer@ecommerce.com` | Browse/cart/checkout COD/review/chat |
+| Customer 2 | `customer2@ecommerce.com` | Order pending/shipped, question, report |
+| Customer 3 | `customer3@ecommerce.com` | Order cancelled/delivered, commission request |
 
+Seed tạo 8 category handmade, khoảng 25 sản phẩm demo có ảnh local, sản phẩm approved/pending/rejected/hết hàng, voucher `HANDMADE10`, voucher expired/inactive, cart, wishlist, order COD nhiều trạng thái, review, question, report, chat, custom order, quote template, commission và flash sale demo.
+
+## Main Demo Flow
+
+1. Admin login và kiểm tra dashboard.
+2. Seller login, xem sản phẩm và đơn hàng.
+3. Customer login, duyệt sản phẩm, thêm giỏ hàng.
+4. Customer checkout bằng COD.
+5. Seller cập nhật trạng thái đơn.
+6. Customer xem đơn hàng và review khi đơn đã delivered.
+7. Admin xem reports/orders/settings.
+
+## Documentation
+
+- [Demo script](docs/DEMO_SCRIPT.md)
+- [Smoke checklist](docs/SMOKE_TEST.md)
+- [Security smoke checklist](docs/SECURITY_SMOKE_TEST.md)
+- [Testing guide](docs/TESTING.md)
+- [API contract notes](docs/API_CONTRACT_NOTES.md)
+- [Architecture overview](docs/ARCHITECTURE_OVERVIEW.md)
+- [Known limitations](docs/KNOWN_LIMITATIONS.md)
+
+Chi tiết từng bước demo theo role nằm trong `docs/DEMO_SCRIPT.md`.
+Chi tiết checklist nằm ở [docs/SMOKE_TEST.md](docs/SMOKE_TEST.md).
+Hướng dẫn test/build nằm ở [docs/TESTING.md](docs/TESTING.md).
+
+## Troubleshooting
+
+### Backend báo thiếu `DATABASE_URL` hoặc không kết nối database
+
+- Kiểm tra PostgreSQL đã chạy.
+- Kiểm tra database `ecommerce_handmade` đã tồn tại.
+- Kiểm tra username/password trong `DATABASE_URL`.
+
+### Không nhận được email OTP khi register/forgot password
+
+Trong local, SMTP là optional. Nếu không cấu hình SMTP, OTP sẽ xuất hiện trong terminal backend:
+
+```txt
+[DEV MAIL] register OTP for user@email.com: 123456
+```
+
+### Checkout Stripe không chạy
+
+Local MVP dùng COD mặc định. Muốn test Stripe cần cấu hình cả:
+
+- `backend/.env`: `STRIPE_SECRET_KEY`
+- `frontend/.env`: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- webhook nếu test webhook: `STRIPE_WEBHOOK_SECRET`
+
+### Ảnh demo không hiển thị
+
+Chạy lại:
+
+```bash
+cd backend
+npm run db:seed
+```
+
+Seed sẽ tạo ảnh demo trong `backend/uploads/products`.
+
+### CORS hoặc API không gọi được
+
+- Backend phải chạy ở `http://localhost:3001`.
+- Frontend `.env` phải có `NEXT_PUBLIC_API_URL="http://localhost:3001/v1"`.
+- Backend `.env` phải có `FRONTEND_URL="http://localhost:3000"`.
+
+## Notes
+
+- Không commit file `.env`.
+- Không đưa secret thật vào `.env.example`.
+- `db:reset` chỉ dùng local vì sẽ xóa dữ liệu database, apply migrations và seed lại từ đầu.
+- Những phần chưa thuộc phạm vi local MVP được ghi rõ trong [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).

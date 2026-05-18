@@ -14,6 +14,7 @@ import { useUsers, useUserStats, useCreateUser, useUpdateUser, useDeleteUser } f
 import { User, UserRole } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Search, Plus, Pencil, Trash2, Eye } from 'lucide-react'
+import { mediaApi } from '@/lib/api/media'
 
 type UsersResponse = {
   data?: User[]
@@ -227,7 +228,7 @@ export default function UsersPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={user.avatar} />
+                          <AvatarImage src={user.avatar ? mediaApi.getImageUrl(user.avatar) : ''} />
                           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>

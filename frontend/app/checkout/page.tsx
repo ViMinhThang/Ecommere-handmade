@@ -603,13 +603,20 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                   </label>
-                  <label className="flex items-start gap-4 border border-stone-200 rounded-sm p-4 cursor-pointer bg-white/70">
+                  <label
+                    className={`flex items-start gap-4 border border-stone-200 rounded-sm p-4 bg-white/70 ${
+                      isStripeConfigured
+                        ? "cursor-pointer"
+                        : "cursor-not-allowed opacity-70"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="STRIPE"
                       checked={paymentMethod === "STRIPE"}
                       onChange={() => setPaymentMethod("STRIPE")}
+                      disabled={!isStripeConfigured}
                       className="mt-1"
                     />
                     <div>
@@ -617,7 +624,9 @@ export default function CheckoutPage() {
                         Thanh toán thẻ trực tuyến (Stripe)
                       </p>
                       <p className="text-xs text-stone-500 mt-1">
-                        Thanh toán trực tuyến qua biểu mẫu Stripe bảo mật.
+                        {isStripeConfigured
+                          ? "Thanh toán trực tuyến qua biểu mẫu Stripe bảo mật."
+                          : "Chưa cấu hình Stripe local, demo sẽ dùng COD."}
                       </p>
                     </div>
                   </label>
@@ -760,12 +769,12 @@ export default function CheckoutPage() {
                 <div className="space-y-3 rounded-sm border border-[#8B4513]/15 bg-white/70 p-4">
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-stone-500 font-medium">
-                      Diem thuong
+                      Điểm thưởng
                     </span>
                     <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[#8B4513]">
                       {rewardBalanceQuery.isLoading
-                        ? "Dang tai..."
-                        : `${rewardBalance?.balance || 0} diem`}
+                        ? "Đang tải..."
+                        : `${rewardBalance?.balance || 0} điểm`}
                     </span>
                   </div>
                   <Input
@@ -782,10 +791,10 @@ export default function CheckoutPage() {
                         Math.max(0, Math.floor(Number(event.target.value) || 0)),
                       )
                     }
-                    placeholder="Nhap so diem muon dung"
+                    placeholder="Nhập số điểm muốn dùng"
                   />
                   <div className="flex items-center justify-between gap-4 text-xs text-stone-500">
-                    <span>Dung toi da {maxRedeemPoints} diem</span>
+                    <span>Dùng tối đa {maxRedeemPoints} điểm</span>
                     {rewardDiscountAmount > 0 && (
                       <span className="font-semibold text-[#8B4513]">
                         -{formatCurrency(rewardDiscountAmount)}
@@ -794,8 +803,8 @@ export default function CheckoutPage() {
                   </div>
                   {estimatedEarnPoints > 0 && (
                     <p className="text-xs text-stone-500">
-                      Du kien nhan {estimatedEarnPoints} diem sau khi don hang
-                      hoan tat.
+                      Dự kiến nhận {estimatedEarnPoints} điểm sau khi đơn hàng
+                      hoàn tất.
                     </p>
                   )}
                 </div>

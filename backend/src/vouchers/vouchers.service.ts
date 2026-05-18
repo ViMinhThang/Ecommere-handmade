@@ -3,14 +3,51 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { CategoryStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
+interface VoucherVisibilityOptions {
+  includeInactive?: boolean;
+}
+
 @Injectable()
 export class VouchersService {
   constructor(private prisma: PrismaService) {}
+
+  private getPublicVoucherWhere(now = new Date()): Prisma.VoucherWhereInput {
+    return {
+      deletedAt: null,
+      isActive: true,
+      endDate: { gt: now },
+      category: {
+        deletedAt: null,
+        status: CategoryStatus.ACTIVE,
+      },
+      ranges: {
+        some: {
+          deletedAt: null,
+          endDate: { gt: now },
+        },
+      },
+    };
+  }
+
+  private getVoucherInclude(includeInactive = false, now = new Date()) {
+    return {
+      category: true,
+      ranges: includeInactive
+        ? true
+        : {
+            where: {
+              deletedAt: null,
+              endDate: { gt: now },
+            },
+          },
+    };
+  }
 
   async create(createVoucherDto: CreateVoucherDto) {
     const category = await this.prisma.category.findUnique({
@@ -48,22 +85,28 @@ export class VouchersService {
     });
   }
 
-  async findAll(pagination?: PaginationDto) {
+  async findAll(
+    pagination?: PaginationDto,
+    options: VoucherVisibilityOptions = {},
+  ) {
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 20;
     const skip = (page - 1) * limit;
+    const now = new Date();
+    const includeInactive = options.includeInactive ?? false;
+    const where = includeInactive
+      ? { deletedAt: null }
+      : this.getPublicVoucherWhere(now);
 
     const [data, total] = await Promise.all([
       this.prisma.voucher.findMany({
-        include: {
-          category: true,
-          ranges: true,
-        },
+        where,
+        include: this.getVoucherInclude(includeInactive, now),
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.voucher.count(),
+      this.prisma.voucher.count({ where }),
     ]);
 
     return {
@@ -77,13 +120,17 @@ export class VouchersService {
     };
   }
 
-  async findOne(id: string) {
-    const voucher = await this.prisma.voucher.findUnique({
-      where: { id },
-      include: {
-        category: true,
-        ranges: true,
+  async findOne(id: string, options: VoucherVisibilityOptions = {}) {
+    const now = new Date();
+    const includeInactive = options.includeInactive ?? false;
+    const voucher = await this.prisma.voucher.findFirst({
+      where: {
+        id,
+        ...(includeInactive
+          ? { deletedAt: null }
+          : this.getPublicVoucherWhere(now)),
       },
+      include: this.getVoucherInclude(includeInactive, now),
     });
     if (!voucher) {
       throw new NotFoundException(`Voucher with ID ${id} not found`);
@@ -91,13 +138,17 @@ export class VouchersService {
     return voucher;
   }
 
-  async findByCode(code: string) {
-    const voucher = await this.prisma.voucher.findUnique({
-      where: { code },
-      include: {
-        category: true,
-        ranges: true,
+  async findByCode(code: string, options: VoucherVisibilityOptions = {}) {
+    const now = new Date();
+    const includeInactive = options.includeInactive ?? false;
+    const voucher = await this.prisma.voucher.findFirst({
+      where: {
+        code,
+        ...(includeInactive
+          ? { deletedAt: null }
+          : this.getPublicVoucherWhere(now)),
       },
+      include: this.getVoucherInclude(includeInactive, now),
     });
     if (!voucher) {
       throw new NotFoundException(`Voucher with code ${code} not found`);

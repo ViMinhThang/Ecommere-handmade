@@ -24,6 +24,15 @@ const PRISMA_BAD_REQUEST_CODES = new Set([
   'P2019',
 ]);
 
+const HTTP_STATUS = {
+  BAD_REQUEST: Number(HttpStatus.BAD_REQUEST),
+  CONFLICT: Number(HttpStatus.CONFLICT),
+  FORBIDDEN: Number(HttpStatus.FORBIDDEN),
+  INTERNAL_SERVER_ERROR: Number(HttpStatus.INTERNAL_SERVER_ERROR),
+  NOT_FOUND: Number(HttpStatus.NOT_FOUND),
+  UNAUTHORIZED: Number(HttpStatus.UNAUTHORIZED),
+} as const;
+
 interface ErrorResponseBody {
   statusCode: number;
   message: string;
@@ -127,7 +136,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // Prevent accidental leakage from server-side 5xx exceptions.
-    if (statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (statusCode >= HTTP_STATUS.INTERNAL_SERVER_ERROR) {
       return {
         statusCode,
         message: 'Internal server error',
@@ -185,7 +194,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const requestIdSuffix = payload.requestId ? ` [${payload.requestId}]` : '';
     const baseMessage = `${request.method} ${request.url} ${payload.statusCode}${requestIdSuffix} - ${payload.message}`;
 
-    if (payload.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (payload.statusCode >= HTTP_STATUS.INTERNAL_SERVER_ERROR) {
       this.logger.error(
         baseMessage,
         exception instanceof Error ? exception.stack : undefined,
@@ -223,23 +232,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private getDefaultMessage(statusCode: number): string {
-    if (statusCode === HttpStatus.NOT_FOUND) {
+    if (statusCode === HTTP_STATUS.NOT_FOUND) {
       return 'Resource not found';
     }
 
-    if (statusCode === HttpStatus.CONFLICT) {
+    if (statusCode === HTTP_STATUS.CONFLICT) {
       return 'Conflict';
     }
 
-    if (statusCode === HttpStatus.BAD_REQUEST) {
+    if (statusCode === HTTP_STATUS.BAD_REQUEST) {
       return 'Bad request';
     }
 
-    if (statusCode === HttpStatus.UNAUTHORIZED) {
+    if (statusCode === HTTP_STATUS.UNAUTHORIZED) {
       return 'Unauthorized';
     }
 
-    if (statusCode === HttpStatus.FORBIDDEN) {
+    if (statusCode === HTTP_STATUS.FORBIDDEN) {
       return 'Forbidden';
     }
 
@@ -247,23 +256,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private getDefaultErrorLabel(statusCode: number): string {
-    if (statusCode === HttpStatus.BAD_REQUEST) {
+    if (statusCode === HTTP_STATUS.BAD_REQUEST) {
       return 'Bad Request';
     }
 
-    if (statusCode === HttpStatus.UNAUTHORIZED) {
+    if (statusCode === HTTP_STATUS.UNAUTHORIZED) {
       return 'Unauthorized';
     }
 
-    if (statusCode === HttpStatus.FORBIDDEN) {
+    if (statusCode === HTTP_STATUS.FORBIDDEN) {
       return 'Forbidden';
     }
 
-    if (statusCode === HttpStatus.NOT_FOUND) {
+    if (statusCode === HTTP_STATUS.NOT_FOUND) {
       return 'Not Found';
     }
 
-    if (statusCode === HttpStatus.CONFLICT) {
+    if (statusCode === HTTP_STATUS.CONFLICT) {
       return 'Conflict';
     }
 

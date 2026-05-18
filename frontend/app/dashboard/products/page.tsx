@@ -13,7 +13,7 @@ import { ProductDialog } from '@/components/dashboard/product-dialog'
 import { useProducts, useCategories, useProductStats, useCreateProduct, useUpdateProduct, useDeleteProduct, useApproveProduct, useRejectProduct } from '@/lib/api/hooks'
 import { useAuth } from '@/contexts/auth-context'
 import { Product } from '@/types'
-import { Search, Plus, Pencil, Trash2, Eye, Check, X } from 'lucide-react'
+import { AlertCircle, Search, Plus, Pencil, Trash2, Eye, Check, X } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { mediaApi } from '@/lib/api/media'
 
@@ -31,7 +31,7 @@ export default function ProductsPage() {
   const isAdmin = user?.roles?.includes('ROLE_ADMIN')
   const isSeller = user?.roles?.includes('ROLE_SELLER')
 
-  const { data: productsData, isLoading } = useProducts({
+  const { data: productsData, isLoading, error } = useProducts({
     status: statusFilter === 'all' ? undefined : statusFilter,
     categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
     sellerId: isSeller && !isAdmin ? user?.id : undefined,
@@ -204,6 +204,11 @@ export default function ProductsPage() {
         <CardContent>
           {isLoading ? (
             <div className='text-center py-4'>Đang tải...</div>
+          ) : error ? (
+            <div className='flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground'>
+              <AlertCircle className='h-10 w-10 text-red-500/60' />
+              <p>Không thể tải danh sách sản phẩm. Vui lòng kiểm tra kết nối API và thử lại.</p>
+            </div>
           ) : filteredProducts.length === 0 ? (
             <div className='text-center py-8 text-muted-foreground'>
               <p>Không tìm thấy sản phẩm</p>
