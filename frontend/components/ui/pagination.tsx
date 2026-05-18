@@ -1,40 +1,53 @@
-'use client'
+"use client";
 
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { Button } from './button'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
+import { Button } from "./button";
 
 interface PaginationProps {
-  page: number
-  limit: number
-  total: number
-  onPageChange: (page: number) => void
-  onLimitChange?: (limit: number) => void
+  page: number;
+  limit: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
 }
 
-export function Pagination({ page, limit, total, onPageChange, onLimitChange }: PaginationProps) {
-  const totalPages = Math.ceil(total / limit)
-  const start = (page - 1) * limit + 1
-  const end = Math.min(page * limit, total)
+export function Pagination({
+  page,
+  limit,
+  total,
+  onPageChange,
+  onLimitChange,
+}: PaginationProps) {
+  const totalPages = Math.ceil(total / limit);
+  const start = (page - 1) * limit + 1;
+  const end = Math.min(page * limit, total);
 
-  if (totalPages <= 1) return null
+  if (totalPages <= 1) return null;
 
   const getPageNumbers = () => {
-    const pages = []
-    const maxVisiblePages = 5
-    
+    const pages = [];
+    const maxVisiblePages = 5;
+
     if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
+      for (let i = 1; i <= totalPages; i += 1) pages.push(i);
     } else {
-      let startPage = Math.max(1, page - 2)
-      let endPage = Math.min(totalPages, page + 2)
-      
-      if (startPage === 1) endPage = maxVisiblePages
-      if (endPage === totalPages) startPage = totalPages - maxVisiblePages + 1
-      
-      for (let i = startPage; i <= endPage; i++) pages.push(i)
+      let startPage = Math.max(1, page - 2);
+      let endPage = Math.min(totalPages, page + 2);
+
+      if (startPage === 1) endPage = maxVisiblePages;
+      if (endPage === totalPages) {
+        startPage = totalPages - maxVisiblePages + 1;
+      }
+
+      for (let i = startPage; i <= endPage; i += 1) pages.push(i);
     }
-    return pages
-  }
+    return pages;
+  };
 
   return (
     <div className="flex items-center justify-between px-2 py-4">
@@ -42,19 +55,21 @@ export function Pagination({ page, limit, total, onPageChange, onLimitChange }: 
         <span className="hidden sm:inline">
           Hiển thị {start}-{end} trên {total}
         </span>
-        {onLimitChange && (
+        {onLimitChange ? (
           <select
             id="pagination-limit"
             name="pagination-limit"
             value={limit}
-            onChange={(e) => onLimitChange(Number(e.target.value))}
+            onChange={(event) => onLimitChange(Number(event.target.value))}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-primary"
           >
-            {[10, 20, 50, 100].map(val => (
-              <option key={val} value={val}>{val} / trang</option>
+            {[10, 20, 50, 100].map((value) => (
+              <option key={value} value={value}>
+                {value} / trang
+              </option>
             ))}
           </select>
-        )}
+        ) : null}
       </div>
       <div className="flex items-center gap-1">
         <Button
@@ -75,17 +90,17 @@ export function Pagination({ page, limit, total, onPageChange, onLimitChange }: 
         >
           <ChevronLeft className="size-4" />
         </Button>
-        
-        <div className="flex items-center gap-1 mx-1">
-          {getPageNumbers().map(p => (
+
+        <div className="mx-1 flex items-center gap-1">
+          {getPageNumbers().map((pageNumber) => (
             <Button
-              key={p}
-              variant={page === p ? "default" : "ghost"}
+              key={pageNumber}
+              variant={page === pageNumber ? "default" : "ghost"}
               size="icon"
               className="h-8 w-8"
-              onClick={() => onPageChange(p)}
+              onClick={() => onPageChange(pageNumber)}
             >
-              {p}
+              {pageNumber}
             </Button>
           ))}
         </div>
@@ -110,5 +125,5 @@ export function Pagination({ page, limit, total, onPageChange, onLimitChange }: 
         </Button>
       </div>
     </div>
-  )
+  );
 }

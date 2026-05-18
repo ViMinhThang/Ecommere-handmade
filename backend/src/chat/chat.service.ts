@@ -3,11 +3,13 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   CategoryStatus,
   ChatMessageType,
   CustomOrderStatus,
+  NotificationType,
   PaymentStatus,
   Prisma,
   ProductStatus,
@@ -24,6 +26,7 @@ import {
   createImageFileName,
   validateImageFile,
 } from '../common/utils/image-upload';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const CHAT_USER_SELECT = {
   id: true,
@@ -160,7 +163,11 @@ export interface ChatReadStateDto {
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
+  ) {}
 
   async startConversation(
     currentUserId: string,
@@ -421,6 +428,14 @@ export class ChatService {
     conversationId: string,
     dto: SendCustomOrderQuoteDto,
   ): Promise<ChatMessageDto> {
+    let quoteNotification: {
+      customerId: string;
+      sellerId: string;
+      conversationId: string;
+      customOrderId: string;
+      title: string;
+    } | null = null;
+
     const result = await this.prisma.$transaction(async (tx) => {
       const conversation = await tx.chatConversation.findUnique({
         where: { id: conversationId },
@@ -492,6 +507,13 @@ export class ChatService {
         },
         select: { id: true },
       });
+      quoteNotification = {
+        customerId: conversation.customerId,
+        sellerId: currentUserId,
+        conversationId: conversation.id,
+        customOrderId: customOrder.id,
+        title: quote.title,
+      };
 
       const created = await tx.chatMessage.create({
         data: {
@@ -536,7 +558,33 @@ export class ChatService {
       return created;
     });
 
+    if (quoteNotification) {
+      await this.notifyCustomQuoteSent(quoteNotification);
+    }
+
     return this.mapMessage(result);
+  }
+
+  private async notifyCustomQuoteSent(params: {
+    customerId: string;
+    sellerId: string;
+    conversationId: string;
+    customOrderId: string;
+    title: string;
+  }) {
+    await this.notificationsService?.safeCreateForUser({
+      userId: params.customerId,
+      type: NotificationType.CUSTOM_QUOTE_SENT,
+      title: 'Bạn nhận được báo giá mới',
+      message: `Seller đã gửi báo giá cho "${params.title}".`,
+      link: `/custom-orders/${params.customOrderId}/review`,
+      metadata: {
+        customOrderId: params.customOrderId,
+        conversationId: params.conversationId,
+        sellerId: params.sellerId,
+      },
+      dedupeKey: `custom-order:${params.customOrderId}:quote-sent:customer:${params.customerId}`,
+    });
   }
 
   async markConversationRead(

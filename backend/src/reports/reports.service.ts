@@ -3,8 +3,10 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
+  NotificationType,
   ProductStatus,
   ReportStatus,
   ReportType,
@@ -14,10 +16,15 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportStatusDto } from './dto/update-report-status.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
+  ) {}
 
   async create(
     reporterId: string,
@@ -32,7 +39,7 @@ export class ReportsService {
 
     await this.assertValidTarget(reporterId, reporterRoles, dto);
 
-    return this.prisma.report.create({
+    const report = await this.prisma.report.create({
       data: {
         reporterId,
         type: dto.type,
@@ -44,6 +51,10 @@ export class ReportsService {
       },
       include: this.reportInclude,
     });
+
+    await this.notifyReportCreated(report);
+
+    return report;
   }
 
   async findMine(userId: string, page = 1, limit = 20) {
@@ -120,7 +131,12 @@ export class ReportsService {
   ) {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
-      select: { id: true },
+      select: {
+        id: true,
+        reporterId: true,
+        type: true,
+        orderId: true,
+      },
     });
 
     if (!report) {
@@ -131,7 +147,7 @@ export class ReportsService {
       dto.status === ReportStatus.RESOLVED ||
       dto.status === ReportStatus.REJECTED;
 
-    return this.prisma.report.update({
+    const updatedReport = await this.prisma.report.update({
       where: { id: reportId },
       data: {
         status: dto.status,
@@ -141,6 +157,87 @@ export class ReportsService {
       },
       include: this.reportInclude,
     });
+
+    await this.notifyReportStatusUpdated({
+      id: report.id,
+      reporterId: report.reporterId,
+      type: report.type,
+      orderId: report.orderId,
+      status: dto.status,
+    });
+
+    return updatedReport;
+  }
+
+  private async notifyReportCreated(report: {
+    id: string;
+    reporterId: string;
+    type: ReportType;
+    reason: string;
+    targetUserId?: string | null;
+    targetProductId?: string | null;
+    orderId?: string | null;
+  }) {
+    await this.notificationsService?.safeCreateForAdmins({
+      type: NotificationType.REPORT_CREATED,
+      title: 'Có báo cáo mới',
+      message: `Có báo cáo mới cần xem xét: ${report.reason}.`,
+      link: '/dashboard/reports',
+      metadata: {
+        reportId: report.id,
+        type: report.type,
+        reporterId: report.reporterId,
+        targetUserId: report.targetUserId ?? null,
+        targetProductId: report.targetProductId ?? null,
+        orderId: report.orderId ?? null,
+      },
+      dedupeKey: (adminId) => `report:${report.id}:created:admin:${adminId}`,
+    });
+  }
+
+  private async notifyReportStatusUpdated(report: {
+    id: string;
+    reporterId: string;
+    type: ReportType;
+    orderId: string | null;
+    status: ReportStatus;
+  }) {
+    await this.notificationsService?.safeCreateForUser({
+      userId: report.reporterId,
+      type: NotificationType.REPORT_STATUS_UPDATED,
+      title: 'Báo cáo đã được xử lý',
+      message: `Báo cáo ${this.getReportTypeLabel(report.type)} của bạn hiện là "${this.getReportStatusLabel(report.status)}".`,
+      link: report.orderId ? `/profile/orders/${report.orderId}` : null,
+      metadata: {
+        reportId: report.id,
+        type: report.type,
+        status: report.status,
+        orderId: report.orderId,
+      },
+      dedupeKey: `report:${report.id}:status:${report.status}:reporter:${report.reporterId}`,
+    });
+  }
+
+  private getReportTypeLabel(type: ReportType) {
+    const labels: Record<ReportType, string> = {
+      SHOP: 'gian hàng',
+      CUSTOMER: 'khách hàng',
+      PRODUCT: 'sản phẩm',
+      ORDER: 'đơn hàng',
+    };
+
+    return labels[type] ?? type;
+  }
+
+  private getReportStatusLabel(status: ReportStatus) {
+    const labels: Record<ReportStatus, string> = {
+      PENDING: 'Chờ xử lý',
+      REVIEWING: 'Đang xem xét',
+      RESOLVED: 'Đã xử lý',
+      REJECTED: 'Từ chối',
+    };
+
+    return labels[status] ?? status;
   }
 
   private async assertValidTarget(

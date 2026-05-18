@@ -116,3 +116,20 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Ảnh demo tồn tại trong `backend/uploads/products` và media library của seller có ảnh để chọn.
 - [ ] Feature chưa hoàn chỉnh không xuất hiện trong menu chính demo.
 - [ ] Security smoke trong `docs/SECURITY_SMOKE_TEST.md` vẫn pass sau seed mới.
+
+## Notification MVP Smoke
+
+- [ ] Login customer `customer@ecommerce.com`; header hiển thị chuông thông báo và unread badge nếu còn thông báo chưa đọc.
+- [ ] Mở dropdown chuông; thấy tối đa 5 thông báo mới nhất, có loading/empty/error state rõ ràng.
+- [ ] Click một notification chưa đọc; notification được đánh dấu đã đọc và điều hướng tới link nếu có.
+- [ ] Mở `/notifications`; filter `Tất cả` và `Chưa đọc` hoạt động, pagination không vỡ layout.
+- [ ] Bấm `Đánh dấu tất cả đã đọc`; unread count giảm về 0 cho đúng user hiện tại.
+- [ ] Login seller `seller@ecommerce.com`; thấy notification đơn hàng mới hoặc duyệt sản phẩm theo seed.
+- [ ] Login admin `admin@ecommerce.com`; thấy notification sản phẩm chờ duyệt hoặc báo cáo mới theo seed.
+- [ ] Checkout COD bằng customer tạo notification `ORDER_CREATED` cho customer và seller liên quan.
+- [ ] Seller/admin cập nhật trạng thái đơn hàng; customer nhận notification `ORDER_STATUS_UPDATED` hoặc `ORDER_CANCELLED`.
+- [ ] Seller tạo product pending; admin nhận notification `PRODUCT_SUBMITTED`.
+- [ ] Admin approve/reject product; seller owner nhận notification `PRODUCT_APPROVED` hoặc `PRODUCT_REJECTED`.
+- [ ] Tạo report; admin nhận notification `REPORT_CREATED`, reporter nhận `REPORT_STATUS_UPDATED` khi admin xử lý.
+- [ ] Anonymous không thấy chuông notification.
+- [ ] Dùng token/user khác không mark read/delete được notification không thuộc mình; API trả 404/401 thay vì update nhầm.

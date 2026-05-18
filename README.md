@@ -9,6 +9,7 @@ Mục tiêu hiện tại là chạy local ổn định, demo được các flow 
 - Frontend: Next.js 16, React 19, Tailwind CSS, TanStack Query
 - Backend: NestJS 11, Prisma ORM, PostgreSQL, JWT auth
 - Realtime: Socket.IO chat
+- Notification: in-app notification bằng database + polling, chưa dùng realtime/push/email
 - Payment: COD chạy local mặc định, Stripe là optional
 - Tooling: npm, Prisma migrate/seed, Jest
 
@@ -197,7 +198,8 @@ Seed tạo 8 category handmade, khoảng 25 sản phẩm demo có ảnh local, s
 4. Customer checkout bằng COD.
 5. Seller cập nhật trạng thái đơn.
 6. Customer xem đơn hàng và review khi đơn đã delivered.
-7. Admin xem reports/orders/settings.
+7. Customer/seller/admin mở chuông thông báo để xem unread count và notification mới.
+8. Admin xem reports/orders/settings.
 
 ## Documentation
 
@@ -259,4 +261,5 @@ Seed sẽ tạo ảnh demo trong `backend/uploads/products`.
 - Không commit file `.env`.
 - Không đưa secret thật vào `.env.example`.
 - `db:reset` chỉ dùng local vì sẽ xóa dữ liệu database, apply migrations và seed lại từ đầu.
+- Notification MVP chỉ là in-app notification có lưu DB và polling 30 giây; realtime WebSocket, push, email, preferences và admin broadcast để sau MVP.
 - Những phần chưa thuộc phạm vi local MVP được ghi rõ trong [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).

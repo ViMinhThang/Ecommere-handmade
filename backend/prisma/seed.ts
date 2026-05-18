@@ -8,9 +8,11 @@ import {
   CommissionProposalStatus,
   CustomOrderStatus,
   FlashSaleState,
+  NotificationType,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  Prisma,
   PrismaClient,
   ProductQuestionStatus,
   ProductStatus,
@@ -678,6 +680,45 @@ async function ensureReport(input: {
     data: {
       reporterId: input.reporterId,
       ...data,
+    },
+  });
+}
+
+async function ensureNotification(input: {
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link?: string | null;
+  metadata?: Prisma.InputJsonValue;
+  dedupeKey: string;
+  readAt?: Date | null;
+}) {
+  return prisma.notification.upsert({
+    where: {
+      userId_dedupeKey: {
+        userId: input.userId,
+        dedupeKey: input.dedupeKey,
+      },
+    },
+    update: {
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      link: input.link ?? null,
+      metadata: input.metadata ?? undefined,
+      readAt: input.readAt ?? null,
+      deletedAt: null,
+    },
+    create: {
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      link: input.link ?? null,
+      metadata: input.metadata ?? undefined,
+      dedupeKey: input.dedupeKey,
+      readAt: input.readAt ?? null,
     },
   });
 }
@@ -1655,7 +1696,7 @@ async function main() {
     answer: 'Có thể giặt tay nhẹ với nước lạnh và phơi nơi thoáng mát.',
   });
 
-  await ensureReport({
+  const pendingProductReport = await ensureReport({
     reporterId: customer.id,
     targetProductId: mug.id,
     type: ReportType.PRODUCT,
@@ -1663,7 +1704,7 @@ async function main() {
     description: 'Báo cáo mẫu để admin có dữ liệu kiểm thử.',
     status: ReportStatus.PENDING,
   });
-  await ensureReport({
+  const reviewingCustomerReport = await ensureReport({
     reporterId: seller.id,
     targetUserId: customer2.id,
     orderId: pendingOrder.id,
@@ -1672,7 +1713,7 @@ async function main() {
     description: 'Báo cáo demo để seller gửi admin xem xét hành vi khách hàng.',
     status: ReportStatus.REVIEWING,
   });
-  await ensureReport({
+  const resolvedShopReport = await ensureReport({
     reporterId: customer3.id,
     targetUserId: seller2.id,
     type: ReportType.SHOP,
@@ -1711,7 +1752,7 @@ async function main() {
     estimatedLeadTime: '10-14 ngày',
   });
 
-  await ensureCustomOrder({
+  const craftingCustomOrder = await ensureCustomOrder({
     customerId: customer.id,
     sellerId: seller.id,
     quoteTemplateId: quoteTemplate.id,
@@ -1723,7 +1764,7 @@ async function main() {
     sketchImageUrl: demoImages.ceramic,
     status: CustomOrderStatus.CRAFTING,
   });
-  await ensureCustomOrder({
+  const shippedCustomOrder = await ensureCustomOrder({
     customerId: customer2.id,
     sellerId: seller2.id,
     title: 'Hộp quà nến thơm cưới',
@@ -1775,6 +1816,115 @@ async function main() {
     categoryIds: [categoryIds['paper-art']],
     discountPercent: '10',
   });
+
+  await Promise.all([
+    ensureNotification({
+      userId: admin.id,
+      type: NotificationType.PRODUCT_SUBMITTED,
+      title: 'Sản phẩm chờ duyệt',
+      message: `Sản phẩm "${products.crochetBearPending.name}" đang chờ admin duyệt.`,
+      link: '/dashboard/products?status=PENDING',
+      metadata: {
+        productId: products.crochetBearPending.id,
+        sellerId: products.crochetBearPending.sellerId,
+      },
+      dedupeKey: `seed:notification:admin:${admin.id}:product-pending`,
+    }),
+    ensureNotification({
+      userId: admin.id,
+      type: NotificationType.REPORT_CREATED,
+      title: 'Có báo cáo mới',
+      message: `Báo cáo "${pendingProductReport.reason}" đang chờ xử lý.`,
+      link: '/dashboard/reports',
+      metadata: {
+        reportId: pendingProductReport.id,
+        type: pendingProductReport.type,
+      },
+      dedupeKey: `seed:notification:admin:${admin.id}:report-pending`,
+    }),
+    ensureNotification({
+      userId: seller.id,
+      type: NotificationType.ORDER_CREATED,
+      title: 'Có đơn hàng mới',
+      message: `Shop có kiện hàng mới từ đơn #${pendingOrder.id.slice(0, 8).toUpperCase()}.`,
+      link: '/dashboard/orders',
+      metadata: {
+        orderId: pendingOrder.id,
+        subOrderId: pendingOrder.subOrders[0]?.id,
+      },
+      dedupeKey: `seed:notification:seller:${seller.id}:new-order`,
+    }),
+    ensureNotification({
+      userId: seller.id,
+      type: NotificationType.PRODUCT_APPROVED,
+      title: 'Sản phẩm đã được duyệt',
+      message: `Sản phẩm "${mug.name}" đang hiển thị cho khách hàng.`,
+      link: '/dashboard/products',
+      metadata: {
+        productId: mug.id,
+      },
+      dedupeKey: `seed:notification:seller:${seller.id}:product-approved`,
+      readAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+    }),
+    ensureNotification({
+      userId: seller2.id,
+      type: NotificationType.CUSTOM_ORDER_STATUS_UPDATED,
+      title: 'Đơn thiết kế riêng đang giao',
+      message: `Đơn "${shippedCustomOrder.title}" đang ở trạng thái đang giao.`,
+      link: '/seller/custom-orders',
+      metadata: {
+        customOrderId: shippedCustomOrder.id,
+      },
+      dedupeKey: `seed:notification:seller:${seller2.id}:custom-order-shipped`,
+    }),
+    ensureNotification({
+      userId: customer.id,
+      type: NotificationType.ORDER_STATUS_UPDATED,
+      title: 'Đơn hàng đã giao',
+      message: `Đơn #${deliveredOrder.id.slice(0, 8).toUpperCase()} đã được giao thành công.`,
+      link: `/profile/orders/${deliveredOrder.id}`,
+      metadata: {
+        orderId: deliveredOrder.id,
+      },
+      dedupeKey: `seed:notification:customer:${customer.id}:order-delivered`,
+    }),
+    ensureNotification({
+      userId: customer.id,
+      type: NotificationType.CUSTOM_QUOTE_SENT,
+      title: 'Bạn nhận được báo giá mới',
+      message: `Báo giá "${craftingCustomOrder.title}" đã sẵn sàng để xem lại.`,
+      link: `/custom-orders/${craftingCustomOrder.id}/review`,
+      metadata: {
+        customOrderId: craftingCustomOrder.id,
+      },
+      dedupeKey: `seed:notification:customer:${customer.id}:custom-quote`,
+      readAt: new Date(now.getTime() - 90 * 60 * 1000),
+    }),
+    ensureNotification({
+      userId: customer3.id,
+      type: NotificationType.REPORT_STATUS_UPDATED,
+      title: 'Báo cáo đã được xử lý',
+      message: `Báo cáo "${resolvedShopReport.reason}" đã được admin xử lý.`,
+      link: null,
+      metadata: {
+        reportId: resolvedShopReport.id,
+      },
+      dedupeKey: `seed:notification:customer:${customer3.id}:report-resolved`,
+      readAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+    }),
+    ensureNotification({
+      userId: seller.id,
+      type: NotificationType.REPORT_CREATED,
+      title: 'Báo cáo đang được xem xét',
+      message: `Báo cáo "${reviewingCustomerReport.reason}" đang được admin xem xét.`,
+      link: '/dashboard/reports',
+      metadata: {
+        reportId: reviewingCustomerReport.id,
+      },
+      dedupeKey: `seed:notification:seller:${seller.id}:report-reviewing`,
+      readAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+    }),
+  ]);
 
   for (const categoryId of Object.values(categoryIds)) {
     const productsCount = await prisma.product.count({

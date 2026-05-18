@@ -3,9 +3,11 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Optional,
 } from '@nestjs/common';
 import {
   CategoryStatus,
+  NotificationType,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
@@ -25,6 +27,7 @@ import {
   validateImageFile,
 } from '../common/utils/image-upload';
 import { sanitizeRichTextHtml } from '../common/utils/html-sanitizer';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const FEATURED_PRODUCT_INCLUDE = {
   images: true,
@@ -70,6 +73,8 @@ export class ProductsService {
   constructor(
     private prisma: PrismaService,
     private flashSalesService: FlashSalesService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   private normalizeFeaturedLimit(limit?: number) {
@@ -210,7 +215,7 @@ export class ProductsService {
       : ProductStatus.PENDING;
     const sanitizedDescription = sanitizeRichTextHtml(productData.description);
 
-    return this.prisma.$transaction(async (tx) => {
+    const product = await this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
           ...productData,
@@ -233,6 +238,12 @@ export class ProductsService {
 
       return product;
     });
+
+    if (product.status === ProductStatus.PENDING) {
+      await this.notifyProductSubmitted(product);
+    }
+
+    return product;
   }
 
   async findAll(
@@ -378,7 +389,7 @@ export class ProductsService {
         : ProductStatus.PENDING,
     };
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedProduct = await this.prisma.$transaction(async (tx) => {
       // If images are provided, replace them
       if (images) {
         await tx.productImage.deleteMany({
@@ -409,6 +420,68 @@ export class ProductsService {
           images: true,
         },
       });
+    });
+
+    if (updatedProduct) {
+      if (
+        userRoles.includes('ROLE_ADMIN') &&
+        product.status !== updatedProduct.status &&
+        (updatedProduct.status === ProductStatus.APPROVED ||
+          updatedProduct.status === ProductStatus.REJECTED)
+      ) {
+        await this.notifyProductModerated(updatedProduct);
+      } else if (
+        !userRoles.includes('ROLE_ADMIN') &&
+        updatedProduct.status === ProductStatus.PENDING
+      ) {
+        await this.notifyProductSubmitted(updatedProduct);
+      }
+    }
+
+    return updatedProduct;
+  }
+
+  private async notifyProductSubmitted(product: {
+    id: string;
+    name: string;
+    sellerId: string;
+  }) {
+    await this.notificationsService?.safeCreateForAdmins({
+      type: NotificationType.PRODUCT_SUBMITTED,
+      title: 'Sản phẩm chờ duyệt',
+      message: `Sản phẩm "${product.name}" vừa được gửi lên và đang chờ duyệt.`,
+      link: '/dashboard/products?status=PENDING',
+      metadata: {
+        productId: product.id,
+        sellerId: product.sellerId,
+      },
+      dedupeKey: (adminId) =>
+        `product:${product.id}:submitted:admin:${adminId}`,
+    });
+  }
+
+  private async notifyProductModerated(product: {
+    id: string;
+    name: string;
+    sellerId: string;
+    status: ProductStatus;
+  }) {
+    const approved = product.status === ProductStatus.APPROVED;
+    await this.notificationsService?.safeCreateForUser({
+      userId: product.sellerId,
+      type: approved
+        ? NotificationType.PRODUCT_APPROVED
+        : NotificationType.PRODUCT_REJECTED,
+      title: approved ? 'Sản phẩm đã được duyệt' : 'Sản phẩm bị từ chối',
+      message: approved
+        ? `Sản phẩm "${product.name}" đã được duyệt và có thể hiển thị cho khách hàng.`
+        : `Sản phẩm "${product.name}" đã bị từ chối. Vui lòng kiểm tra lại nội dung trước khi gửi duyệt lại.`,
+      link: '/dashboard/products',
+      metadata: {
+        productId: product.id,
+        status: product.status,
+      },
+      dedupeKey: `product:${product.id}:status:${product.status}:seller:${product.sellerId}`,
     });
   }
 

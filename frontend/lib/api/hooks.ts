@@ -39,6 +39,10 @@ import {
   type CreateReportPayload,
 } from "./reports";
 import {
+  notificationsApi,
+  type NotificationsQuery,
+} from "./notifications";
+import {
   paymentReliabilityApi,
   type PaymentReliabilityAnomaliesQuery,
   type PaymentReliabilityDateRangeQuery,
@@ -1214,6 +1218,66 @@ export function useUpdateAdminReportStatus() {
     }) => reportsApi.updateAdminStatus(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reportKeys.all });
+    },
+  });
+}
+
+export const notificationKeys = {
+  all: ["notifications"] as const,
+  lists: () => [...notificationKeys.all, "list"] as const,
+  list: (params?: NotificationsQuery) =>
+    [...notificationKeys.lists(), { ...params }] as const,
+  unread: () => [...notificationKeys.all, "unread"] as const,
+};
+
+export function useNotifications(
+  params?: NotificationsQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: notificationKeys.list(params),
+    queryFn: () => notificationsApi.getNotifications(params),
+    enabled,
+    staleTime: 5000,
+  });
+}
+
+export function useUnreadNotificationCount(enabled = true) {
+  return useQuery({
+    queryKey: notificationKeys.unread(),
+    queryFn: () => notificationsApi.getUnreadCount(),
+    enabled,
+    staleTime: 10000,
+    refetchInterval: enabled ? 30000 : false,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => notificationsApi.markNotificationRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => notificationsApi.markAllNotificationsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => notificationsApi.deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 }
