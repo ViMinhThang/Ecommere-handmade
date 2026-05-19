@@ -1,33 +1,14 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
-import { Moon, ShoppingBag, Sun, User } from "lucide-react";
+import { ChevronDown, Moon, ShoppingBag, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { useCartContext } from "@/contexts/cart-context";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useCategories } from "@/lib/api/hooks";
-
-const HIDDEN_HEADER_CATEGORY_NAMES = new Set([
-  "Tốt nghiệp",
-  "Chia buồn",
-  "Cảm ơn",
-  "Kỷ niệm",
-  "Kỉ niệm",
-  "Kỹ niệm",
-  "Đám cưới",
-  "Sinh nhật",
-]);
-const HIDDEN_HEADER_CATEGORY_SLUGS = new Set([
-  "graduation",
-  "sympathy",
-  "thank-you",
-  "anniversary",
-  "wedding",
-  "birthday",
-]);
 
 export function CustomerNavBar() {
   const { isAuthenticated } = useAuth();
@@ -42,15 +23,9 @@ export function CustomerNavBar() {
     () => false,
   );
 
-  const displayedCategories = mounted
-    ? categories
-        .filter(
-          (category) =>
-            !HIDDEN_HEADER_CATEGORY_NAMES.has(category.name) &&
-            !HIDDEN_HEADER_CATEGORY_SLUGS.has(category.slug || ""),
-        )
-        .slice(0, 4)
-    : [];
+  const headerCategories = mounted ? categories : [];
+
+  // const featuredCategories = headerCategories.slice(0, 4);
   const profileHref = mounted && isAuthenticated ? "/profile/settings" : "/login";
   const displayedItemCount = mounted ? itemCount : 0;
   const isDarkMode = mounted && theme === "dark";
@@ -83,7 +58,47 @@ export function CustomerNavBar() {
             >
               Gian hàng
             </Link>
-            {displayedCategories.map((category) => {
+
+            <div className="relative group">
+              <Link
+                href="/categories"
+                className={`flex items-center gap-2 font-medium transition-colors duration-300 font-headline italic tracking-tight ${
+                  pathname === "/categories" || pathname.startsWith("/categories/")
+                    ? "border-b-2 border-primary pb-1 text-primary"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+                aria-haspopup="menu"
+                aria-label="Danh mục sản phẩm"
+              >
+                Danh mục
+                <ChevronDown className="h-4 w-4 opacity-70 transition-transform duration-200 group-hover:rotate-180" />
+              </Link>
+              <div className="invisible absolute left-0 top-full z-50 mt-3 max-h-[70vh] w-80 overflow-y-auto rounded-none border border-border/60 bg-background/95 p-3 shadow-[0_30px_60px_rgba(84,67,60,0.12)] backdrop-blur-xl opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                <div className="grid grid-cols-1 gap-1">
+                  {headerCategories.map((category) => {
+                    const categoryPath = `/categories/${category.slug || category.id}`;
+                    const isActive = pathname === categoryPath;
+                    return (
+                      <Link
+                        key={category.id}
+                        href={categoryPath}
+                        className={`rounded-none px-3 py-2 text-sm font-medium transition-colors ${
+                          isActive
+                            ? "bg-primary/10 text-primary"
+                            : "text-foreground hover:bg-primary/10 hover:text-primary"
+                        }`}
+                        role="menuitem"
+                      >
+                        {category.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Featured categories in heading (commented out to hide)
+            {featuredCategories.map((category) => {
               const categoryPath = `/categories/${category.slug || category.id}`;
               const isActive = pathname === categoryPath;
               return (
@@ -100,6 +115,7 @@ export function CustomerNavBar() {
                 </Link>
               );
             })}
+            */}
           </div>
         </div>
         <div className="flex items-center gap-5">
@@ -140,3 +156,4 @@ export function CustomerNavBar() {
     </nav>
   );
 }
+
