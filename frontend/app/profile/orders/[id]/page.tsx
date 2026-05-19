@@ -140,18 +140,18 @@ export default function OrderDetailPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DELIVERED":
-        return "bg-green-100 text-green-700 border-green-200";
+        return "bg-emerald-500/15 text-emerald-700 border-emerald-500/25 dark:text-emerald-200";
       case "SHIPPED":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-sky-500/15 text-sky-700 border-sky-500/25 dark:text-sky-200";
       case "PROCESSING":
-        return "bg-stone-200 text-brand border-stone-300";
+        return "bg-primary/15 text-primary border-primary/25";
       case "PAID":
       case "PENDING":
-        return "bg-amber-100 text-amber-700 border-amber-200";
+        return "bg-amber-500/15 text-amber-700 border-amber-500/25 dark:text-amber-200";
       case "CANCELLED":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "bg-destructive/15 text-destructive border-destructive/25";
       default:
-        return "bg-stone-100 text-stone-600 border-stone-200";
+        return "bg-muted text-muted-foreground border-border/60";
     }
   };
 
@@ -208,8 +208,8 @@ export default function OrderDetailPage() {
 
   if (error || !subOrder) {
     return (
-      <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-border/40">
-        <AlertCircle className="w-16 h-16 text-red-200 mx-auto mb-6" />
+      <div className="text-center py-20 bg-card rounded-2xl shadow-sm border border-border/60 text-card-foreground">
+        <AlertCircle className="w-16 h-16 text-destructive/35 mx-auto mb-6" />
         <h2 className="font-serif text-3xl text-primary mb-2">
           Không tìm thấy thông tin
         </h2>
@@ -259,7 +259,7 @@ export default function OrderDetailPage() {
       </button>
 
       {/* Hero Header */}
-      <div className="bg-white rounded-2xl p-10 border border-border/40 shadow-[0_20px_40px_-20px_rgba(84,67,60,0.1)] mb-10 overflow-hidden relative">
+      <div className="bg-card rounded-2xl p-10 border border-border/60 text-card-foreground shadow-[0_20px_40px_-20px_rgba(84,67,60,0.16)] mb-10 overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl z-0"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -326,7 +326,7 @@ export default function OrderDetailPage() {
         <div className="lg:col-span-2 space-y-10">
           {/* Order Status Timeline */}
           {subOrder.status !== "CANCELLED" && (
-            <div className="bg-white rounded-2xl p-10 border border-border/40 shadow-sm relative">
+            <div className="bg-card rounded-2xl p-10 border border-border/60 text-card-foreground shadow-sm relative">
               <h3 className="font-serif italic text-2xl text-primary mb-10">
                 Hành trình đơn hàng
               </h3>
@@ -355,7 +355,7 @@ export default function OrderDetailPage() {
                         className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500 mb-4 ${
                           isCompleted
                             ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110"
-                            : "bg-white border-muted text-muted-foreground"
+                            : "bg-background border-border text-muted-foreground"
                         } ${isCurrent ? "ring-4 ring-primary/10" : ""}`}
                       >
                         <Icon className="w-5 h-5" />
@@ -375,7 +375,7 @@ export default function OrderDetailPage() {
           )}
 
           {/* Items Detail */}
-          <div className="bg-white rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border/60 text-card-foreground shadow-sm overflow-hidden">
             <div className="p-8 border-b border-border/20 bg-muted/10">
               <h3 className="font-serif italic text-2xl text-primary">
                 Danh sách sản phẩm
@@ -451,7 +451,7 @@ export default function OrderDetailPage() {
                         {subOrder.status === "DELIVERED" && (
                           <div className="pt-2">
                             {item.review ? (
-                              <div className="flex items-center gap-2 px-4 py-2 bg-stone-50 rounded-full border border-stone-100">
+                              <div className="flex items-center gap-2 px-4 py-2 bg-accent/45 rounded-full border border-border/60">
                                 <span className="text-[10px] uppercase font-bold tracking-widest text-primary/60">
                                   Quý khách đã đánh giá:
                                 </span>
@@ -459,7 +459,7 @@ export default function OrderDetailPage() {
                                   {Array.from({ length: 5 }).map((_, i) => (
                                     <Star
                                       key={i}
-                                      className={`w-3 h-3 ${i < (item.review?.rating ?? 0) ? "fill-brand text-brand" : "text-stone-200"}`}
+                                      className={`w-3 h-3 ${i < (item.review?.rating ?? 0) ? "fill-brand text-brand" : "text-muted-foreground/30"}`}
                                     />
                                   ))}
                                 </div>
@@ -499,7 +499,7 @@ export default function OrderDetailPage() {
                 <span className="text-muted-foreground italic">
                   Phí giao nhận:
                 </span>
-                <span className="text-green-600 font-medium">Miễn phí</span>
+                <span className="text-emerald-600 dark:text-emerald-300 font-medium">Miễn phí</span>
               </div>
               <div className="h-px w-64 bg-border/40 my-2"></div>
               <div className="flex justify-between w-64 items-baseline">
@@ -520,7 +520,7 @@ export default function OrderDetailPage() {
         {/* Sidebar Info */}
         <div className="space-y-10">
           {/* Seller Profile */}
-          <div className="bg-white rounded-2xl p-8 border border-border/40 shadow-sm relative overflow-hidden group">
+          <div className="bg-card rounded-2xl p-8 border border-border/60 text-card-foreground shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
               <Package className="w-16 h-16 text-primary fill-primary" />
             </div>
@@ -571,7 +571,7 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Delivery Info */}
-          <div className="bg-white rounded-2xl p-8 border border-border/40 shadow-sm">
+          <div className="bg-card rounded-2xl p-8 border border-border/60 text-card-foreground shadow-sm">
             <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5" />
               Địa chỉ Nhận sản phẩm
@@ -603,13 +603,13 @@ export default function OrderDetailPage() {
 
       {/* RATING MODAL */}
       <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
-        <DialogContent className="sm:max-w-[500px] border-none shadow-2xl p-0 overflow-hidden bg-white">
+        <DialogContent className="sm:max-w-[500px] border border-border/60 shadow-2xl p-0 overflow-hidden bg-card text-card-foreground">
           <div className="p-8 bg-primary/5 border-b border-primary/10">
             <DialogHeader>
               <DialogTitle className="font-serif text-3xl text-primary">
                 Đánh giá sản phẩm
               </DialogTitle>
-              <DialogDescription className="italic text-stone-500 mt-2 leading-relaxed">
+              <DialogDescription className="italic text-muted-foreground mt-2 leading-relaxed">
                 Chia sẻ ý kiến của quý khách về tâm huyết của Người bán và chất
                 lượng của sản phẩm #{selectedItem?.id.slice(0, 5)}.
               </DialogDescription>
@@ -630,7 +630,7 @@ export default function OrderDetailPage() {
                     className="p-1 hover:scale-125 transition-transform"
                   >
                     <Star
-                      className={`w-10 h-10 ${star <= rating ? "fill-brand text-brand" : "text-stone-200"}`}
+                      className={`w-10 h-10 ${star <= rating ? "fill-brand text-brand" : "text-muted-foreground/30"}`}
                     />
                   </button>
                 ))}
@@ -655,7 +655,7 @@ export default function OrderDetailPage() {
               </label>
               <Textarea
                 placeholder="Lời nhắn cho Người bán..."
-                className="min-h-[120px] resize-none bg-stone-50/50 border-stone-200"
+                className="min-h-[120px] resize-none bg-background/80 border-border/70 text-foreground placeholder:text-muted-foreground/70"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
               />
@@ -670,14 +670,14 @@ export default function OrderDetailPage() {
                 {images.map((img, idx) => (
                   <div
                     key={idx}
-                    className="w-20 h-20 rounded-lg overflow-hidden relative border border-stone-200 shadow-sm"
+                    className="w-20 h-20 rounded-lg overflow-hidden relative border border-border/60 shadow-sm"
                   >
                     <SafeImage src={mediaApi.getImageUrl(img)} alt="" fill className="object-cover" />
                   </div>
                 ))}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-20 h-20 rounded-lg border-2 border-dashed border-stone-300 flex flex-col items-center justify-center gap-1 text-stone-400 hover:border-brand hover:text-brand hover:bg-brand/5 transition-all"
+                  className="w-20 h-20 rounded-lg border-2 border-dashed border-border/70 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
                 >
                   <Camera className="w-5 h-5" />
                   <span className="text-[10px] font-bold">Thêm ảnh</span>
@@ -694,7 +694,7 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          <DialogFooter className="p-8 bg-stone-50 border-t border-stone-100">
+          <DialogFooter className="p-8 bg-accent/35 border-t border-border/60">
             <Button
               variant="ghost"
               onClick={() => setIsReviewModalOpen(false)}

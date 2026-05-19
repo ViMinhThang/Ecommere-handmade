@@ -33,16 +33,16 @@ export const SidebarNav = memo(function SidebarNav({ sections }: SidebarNavProps
             <button
               key={section.id}
               onClick={() => scrollToSection(section.id)}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-primary hover:bg-[#dac1b8]/10 transition-all font-medium flex items-center gap-2 group"
+              className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-primary hover:bg-[#dac1b8]/10 transition-all font-medium flex items-center gap-2 group dark:hover:bg-primary/10"
             >
-              <div className="h-1.5 w-1.5 rounded-full bg-[#dac1b8] group-hover:bg-primary transition-colors" />
+              <div className="h-1.5 w-1.5 rounded-full bg-[#dac1b8] group-hover:bg-primary transition-colors dark:bg-primary/40" />
               {section.label}
             </button>
           ))}
         </div>
         
-        <div className="p-4 rounded-2xl bg-[#dac1b8]/5 border border-[#dac1b8]/10">
-          <p className="text-xs font-semibold text-[#853724] mb-2 flex items-center gap-1.5">
+        <div className="p-4 rounded-2xl bg-[#dac1b8]/5 border border-[#dac1b8]/10 dark:bg-card dark:border-border/70">
+          <p className="text-xs font-semibold text-[#853724] mb-2 flex items-center gap-1.5 dark:text-primary">
             <HelpCircle className="h-3.5 w-3.5" />
             Mẹo nhỏ
           </p>

@@ -27,14 +27,14 @@ export const ProductFormHeader = memo(function ProductFormHeader({
   const router = useRouter()
   
   return (
-    <header className="sticky top-[-1.75rem] -mx-6 lg:-mx-8 px-6 lg:px-8 py-4 mb-8 z-30 border-b border-[#dac1b8]/20 bg-[#fdf9f3]/90 backdrop-blur-md">
+    <header className="sticky top-[-1.75rem] -mx-6 lg:-mx-8 px-6 lg:px-8 py-4 mb-8 z-30 border-b border-[#dac1b8]/20 bg-[#fdf9f3]/90 backdrop-blur-md dark:border-border/70 dark:bg-background/90">
       <div className="mx-auto max-w-5xl flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => router.push('/dashboard/products')}
-            className="rounded-full h-9 w-9 hover:bg-[#dac1b8]/20"
+            className="rounded-full h-9 w-9 hover:bg-[#dac1b8]/20 dark:hover:bg-accent"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -43,14 +43,14 @@ export const ProductFormHeader = memo(function ProductFormHeader({
               {productId ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm mới'}
             </h2>
             <div className="flex items-center gap-2 mt-0.5">
-               <Badge variant="outline" className="text-[10px] py-0 h-4 uppercase tracking-tighter border-[#dac1b8]/40">
+               <Badge variant="outline" className="text-[10px] py-0 h-4 uppercase tracking-tighter border-[#dac1b8]/40 dark:border-border">
                 {categoryId ? categories.find(c => c.id === categoryId)?.name : 'Bản nháp'}
                </Badge>
                {productId && (
                 <span className={`text-[10px] font-bold uppercase tracking-widest ${
-                  status === 'APPROVED' ? 'text-green-600' :
-                  status === 'REJECTED' ? 'text-red-600' :
-                  'text-yellow-600'
+                  status === 'APPROVED' ? 'text-green-600 dark:text-green-300' :
+                  status === 'REJECTED' ? 'text-red-600 dark:text-red-300' :
+                  'text-yellow-600 dark:text-yellow-300'
                 }`}>
                   • {status === 'APPROVED' ? 'Đã duyệt' :
                      status === 'REJECTED' ? 'Từ chối' : 'Đang chờ'}
@@ -64,14 +64,14 @@ export const ProductFormHeader = memo(function ProductFormHeader({
           <Button
             variant="outline"
             onClick={() => router.push('/dashboard/products')}
-            className="hidden sm:flex border-[#dac1b8]/40 hover:bg-[#dac1b8]/10"
+            className="hidden sm:flex border-[#dac1b8]/40 hover:bg-[#dac1b8]/10 dark:border-border dark:hover:bg-accent"
           >
             Hủy bỏ
           </Button>
           <Button 
             onClick={onSubmit} 
             disabled={isSubmitting}
-            className="bg-[#853724] hover:bg-[#6b2c1d] shadow-lg shadow-[#853724]/10 px-6 h-10"
+            className="bg-[#853724] hover:bg-[#6b2c1d] shadow-lg shadow-[#853724]/10 px-6 h-10 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

@@ -141,13 +141,13 @@ export default function VouchersPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Đang hoạt động</p>
-            <p className="text-2xl font-bold text-green-600">{activeVouchers}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-300">{activeVouchers}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Hết hạn</p>
-            <p className="text-2xl font-bold text-red-600">{expiredVouchers}</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-300">{expiredVouchers}</p>
           </CardContent>
         </Card>
       </div>
@@ -224,7 +224,7 @@ export default function VouchersPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={isExpired(voucher) ? 'text-red-600' : ''}>
+                      <span className={isExpired(voucher) ? 'text-red-600 dark:text-red-300' : ''}>
                         {new Date(voucher.endDate).toLocaleDateString('vi-VN')}
                       </span>
                     </TableCell>

@@ -190,9 +190,9 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="artisan-title text-5xl">Bảng điều khiển {user?.shopName}</h1>
-          <p className="artisan-subtitle mt-2 italic text-stone-500">Giám sát hoạt động kinh doanh và hành trình của các sản phẩm.</p>
+          <p className="artisan-subtitle mt-2 italic text-stone-500 dark:text-muted-foreground">Giám sát hoạt động kinh doanh và hành trình của các sản phẩm.</p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-border/40 shadow-sm">
+        <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-border/40 shadow-sm dark:bg-card">
           <Calendar className="w-4 h-4 text-primary/50" />
           <span className="text-xs font-bold uppercase tracking-widest text-primary/70">Hôm nay, {format(new Date(), "dd/MM/yyyy")}</span>
         </div>
@@ -201,7 +201,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {isOrdersLoading ? (
           Array(4).fill(0).map((_, i) => (
-            <div key={i} className="h-32 bg-white rounded-xl border border-border/40 animate-pulse" />
+            <div key={i} className="h-32 bg-white rounded-xl border border-border/40 animate-pulse dark:bg-card" />
           ))
         ) : (
           stats.map((stat) => (
@@ -216,7 +216,7 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
             <div>
               <CardTitle className="font-serif italic text-2xl text-primary">Biểu đồ Doanh thu</CardTitle>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-stone-400 mt-1">Thống kê theo dòng chảy thời gian</p>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-stone-400 mt-1 dark:text-muted-foreground">Thống kê theo dòng chảy thời gian</p>
             </div>
             <Select onValueChange={handlePresetChange} defaultValue="30days">
               <SelectTrigger className="w-[180px] h-9 text-xs font-bold uppercase tracking-widest border-border/50">

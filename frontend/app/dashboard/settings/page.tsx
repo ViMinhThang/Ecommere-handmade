@@ -59,7 +59,7 @@ function PlatformSettingsForm({
 
   return (
     <>
-      <Card className="bg-[#ffffffd9]">
+      <Card className="bg-[#ffffffd9] dark:bg-card">
         <CardHeader>
           <CardTitle>Thông tin nền tảng</CardTitle>
           <CardDescription>Cập nhật tên và mô tả marketplace</CardDescription>
@@ -94,7 +94,7 @@ function PlatformSettingsForm({
         </CardContent>
       </Card>
 
-      <Card className="bg-[#f7f3ed]">
+      <Card className="bg-[#f7f3ed] dark:bg-card">
         <CardHeader>
           <CardTitle>Cài đặt hoa hồng</CardTitle>
           <CardDescription>
@@ -164,7 +164,7 @@ function SettingsContent() {
           platformSettings={platformSettings}
         />
 
-        <Card className="bg-[#ebe8e2]">
+        <Card className="bg-[#ebe8e2] dark:bg-card">
           <CardHeader>
             <CardTitle>Giao diện</CardTitle>
             <CardDescription>Tùy chỉnh giao diện bảng điều khiển</CardDescription>
@@ -187,7 +187,7 @@ function SettingsContent() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#ffffffd9]">
+        <Card className="bg-[#ffffffd9] dark:bg-card">
           <CardHeader>
             <CardTitle>Danh mục đang hoạt động</CardTitle>
             <CardDescription>Dữ liệu lấy từ API danh mục thật</CardDescription>

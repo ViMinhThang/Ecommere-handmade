@@ -49,7 +49,7 @@ function ProposalForm({ commissionId }: { commissionId: string }) {
         event.preventDefault();
         submitProposal.mutate();
       }}
-      className="rounded-lg border bg-white p-5 shadow-sm"
+      className="rounded-lg border border-border/60 bg-card p-5 text-card-foreground shadow-sm"
     >
       <h2 className="font-serif text-xl font-bold">Gửi đề xuất</h2>
       <div className="mt-4 space-y-4">
@@ -58,7 +58,7 @@ function ProposalForm({ commissionId }: { commissionId: string }) {
           rows={5}
           value={form.message}
           onChange={(event) => setForm({ ...form, message: event.target.value })}
-          className="w-full resize-none rounded-md border px-3 py-2 outline-none focus:border-primary"
+          className="w-full resize-none rounded-md border border-input/85 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground outline-none focus:border-primary dark:bg-card"
           placeholder="Giải thích cách bạn sẽ làm, chất liệu, các lưu ý..."
         />
         <div className="grid gap-4 md:grid-cols-2">
@@ -68,14 +68,14 @@ function ProposalForm({ commissionId }: { commissionId: string }) {
             min="1"
             value={form.proposedPrice}
             onChange={(event) => setForm({ ...form, proposedPrice: event.target.value })}
-            className="w-full rounded-md border px-3 py-2 outline-none focus:border-primary"
+            className="w-full rounded-md border border-input/85 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground outline-none focus:border-primary dark:bg-card"
             placeholder="Giá đề xuất"
           />
           <input
             required
             value={form.proposedLeadTime}
             onChange={(event) => setForm({ ...form, proposedLeadTime: event.target.value })}
-            className="w-full rounded-md border px-3 py-2 outline-none focus:border-primary"
+            className="w-full rounded-md border border-input/85 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground outline-none focus:border-primary dark:bg-card"
             placeholder="Thời gian hoàn thiện"
           />
         </div>
@@ -100,7 +100,7 @@ function ProposalCard({
   isChoosing: boolean;
 }) {
   return (
-    <div className="rounded-lg border bg-white p-5 shadow-sm">
+    <div className="rounded-lg border border-border/60 bg-card p-5 text-card-foreground shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h3 className="font-serif text-lg font-bold">
@@ -110,7 +110,7 @@ function ProposalCard({
             {formatDate(proposal.createdAt)}
           </p>
         </div>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">{proposal.status}</span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{proposal.status}</span>
       </div>
       <p className="mt-4 whitespace-pre-wrap text-sm text-muted-foreground">{proposal.message}</p>
       {proposal.sketchImageUrl ? (
@@ -184,7 +184,7 @@ export default function CommissionDetailPage() {
           Quay lại
         </Link>
 
-        <section className="rounded-lg border bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-border/60 bg-card p-6 text-card-foreground shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
@@ -243,7 +243,7 @@ export default function CommissionDetailPage() {
           <section className="space-y-4">
             <h2 className="font-serif text-2xl font-bold">Đề xuất từ người bán</h2>
             {post.proposals.length === 0 ? (
-              <div className="rounded-lg border border-dashed bg-white p-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
                 Chưa có đề xuất nào.
               </div>
             ) : (

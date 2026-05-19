@@ -44,10 +44,10 @@ const REPORT_STATUSES: ReportStatus[] = [
 const REPORT_TYPES: ReportType[] = ['SHOP', 'CUSTOMER', 'PRODUCT', 'ORDER']
 
 const statusClasses: Record<ReportStatus, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  REVIEWING: 'bg-blue-100 text-blue-800',
-  RESOLVED: 'bg-green-100 text-green-800',
-  REJECTED: 'bg-red-100 text-red-800',
+  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200',
+  REVIEWING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-200',
+  RESOLVED: 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200',
+  REJECTED: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200',
 }
 
 const statusLabels: Record<ReportStatus, string> = {

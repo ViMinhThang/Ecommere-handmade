@@ -232,7 +232,7 @@ function NewListingContent() {
 
 export default function NewListingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">Đang tải...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center dark:bg-background">Đang tải...</div>}>
       <NewListingContent />
     </Suspense>
   )

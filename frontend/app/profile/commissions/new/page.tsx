@@ -47,7 +47,7 @@ export default function NewCommissionPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl rounded-lg border bg-white p-8 shadow-sm">
+    <div className="mx-auto max-w-3xl rounded-lg border border-border/60 bg-card p-8 text-card-foreground shadow-sm">
       <h1 className="font-serif text-3xl font-bold text-primary">Đăng yêu cầu commission</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Mô tả món đồ bạn muốn đặt làm để người bán gửi đề xuất phù hợp.
@@ -62,7 +62,7 @@ export default function NewCommissionPage() {
             required
             value={form.title}
             onChange={(event) => setForm({ ...form, title: event.target.value })}
-            className="w-full rounded-md border px-3 py-2 outline-none focus:border-primary"
+            className="w-full rounded-md border border-border/70 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary"
             placeholder="Ví dụ: Túi da khắc tên làm quà sinh nhật"
           />
         </div>
@@ -76,7 +76,7 @@ export default function NewCommissionPage() {
             rows={7}
             value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
-            className="w-full resize-none rounded-md border px-3 py-2 outline-none focus:border-primary"
+            className="w-full resize-none rounded-md border border-border/70 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary"
             placeholder="Chất liệu, kích thước, màu sắc, phong cách, dịp sử dụng..."
           />
         </div>
@@ -91,7 +91,7 @@ export default function NewCommissionPage() {
               min="0"
               value={form.budgetMin}
               onChange={(event) => setForm({ ...form, budgetMin: event.target.value })}
-              className="w-full rounded-md border px-3 py-2 outline-none focus:border-primary"
+              className="w-full rounded-md border border-border/70 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary"
             />
           </div>
           <div>
@@ -103,7 +103,7 @@ export default function NewCommissionPage() {
               min="0"
               value={form.budgetMax}
               onChange={(event) => setForm({ ...form, budgetMax: event.target.value })}
-              className="w-full rounded-md border px-3 py-2 outline-none focus:border-primary"
+              className="w-full rounded-md border border-border/70 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary"
             />
           </div>
           <div>
@@ -113,7 +113,7 @@ export default function NewCommissionPage() {
             <input
               value={form.desiredTimeline}
               onChange={(event) => setForm({ ...form, desiredTimeline: event.target.value })}
-              className="w-full rounded-md border px-3 py-2 outline-none focus:border-primary"
+              className="w-full rounded-md border border-border/70 bg-background/80 px-3 py-2 text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary"
               placeholder="Ví dụ: 2-3 tuần"
             />
           </div>

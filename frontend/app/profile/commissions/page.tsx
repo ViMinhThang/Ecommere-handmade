@@ -45,7 +45,7 @@ export default function ProfileCommissionsPage() {
       </div>
 
       {posts.length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-white p-12 text-center">
+        <div className="rounded-lg border border-dashed border-border/60 bg-card p-12 text-center text-card-foreground shadow-sm">
           <ClipboardList className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
           <h2 className="font-serif text-xl font-bold">Chưa có yêu cầu nào</h2>
           <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
@@ -58,7 +58,7 @@ export default function ProfileCommissionsPage() {
             <Link
               key={post.id}
               href={`/commissions/${post.id}`}
-              className="block rounded-lg border bg-white p-5 shadow-sm transition hover:border-primary/40"
+              className="block rounded-lg border border-border/60 bg-card p-5 text-card-foreground shadow-sm transition hover:border-primary/40 hover:bg-accent/25"
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">

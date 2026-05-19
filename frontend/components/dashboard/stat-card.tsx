@@ -12,14 +12,14 @@ interface StatCardProps {
 
 export function StatCard({ title, value, change, icon: Icon, iconColor = 'text-primary' }: StatCardProps) {
   return (
-    <Card className="bg-[#fdf9f3]/95">
+    <Card className="bg-[#fdf9f3]/95 dark:bg-card">
       <CardContent className='p-5'>
         <div className='flex items-start justify-between gap-3'>
           <div>
             <p className='text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground'>{title}</p>
             <p className='text-[1.75rem] font-semibold leading-tight mt-2'>{value}</p>
             {change !== undefined && (
-              <p className={cn('text-xs mt-2 font-semibold', change >= 0 ? 'text-[#576957]' : 'text-destructive')}>
+              <p className={cn('text-xs mt-2 font-semibold', change >= 0 ? 'text-[#576957] dark:text-green-300' : 'text-destructive')}>
                 {change >= 0 ? '+' : ''}{change}% so với tháng trước
               </p>
             )}

@@ -29,7 +29,7 @@ export default function PaymentsPage() {
         <h1 className="text-3xl font-serif font-bold text-primary mb-2">
           Phương thức thanh toán
         </h1>
-        <p className="text-muted-foreground italic">
+        <p className="text-foreground/70 italic">
           Lịch sử thanh toán và hoàn tiền. Nền tảng không lưu thông tin thẻ của
           quý khách.
         </p>
@@ -42,7 +42,7 @@ export default function PaymentsPage() {
             <h2 className="font-serif text-xl font-bold text-primary">
               Thanh toán an toàn qua Stripe
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-foreground/70">
               Dữ liệu thẻ được xử lý bởi Stripe. HandCraft Market chỉ lưu trạng
               thái thanh toán, mã giao dịch và lịch sử hoàn tiền.
             </p>
@@ -55,15 +55,15 @@ export default function PaymentsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border/50 bg-muted/20 p-12 text-center">
+        <div className="rounded-lg border border-dashed border-border/60 bg-card p-12 text-center">
           <ReceiptText className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
           <p className="font-serif text-lg italic text-muted-foreground">
             Chưa có giao dịch thanh toán nào.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border/40 bg-white">
-          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] gap-4 border-b border-border/40 bg-muted/30 px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <div className="overflow-hidden rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm">
+          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] gap-4 border-b border-border/50 bg-accent/45 px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-foreground/70">
             <span>Giao dịch</span>
             <span>Phương thức</span>
             <span>Trạng thái</span>
@@ -79,7 +79,7 @@ export default function PaymentsPage() {
               <Link
                 key={item.id}
                 href={href}
-                className="grid grid-cols-1 gap-3 border-b border-border/20 px-6 py-5 transition-colors last:border-b-0 hover:bg-muted/20 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:gap-4"
+                className="grid grid-cols-1 gap-3 border-b border-border/30 px-6 py-5 transition-colors last:border-b-0 hover:bg-accent/35 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:gap-4"
               >
                 <div>
                   <p className="font-serif text-lg font-bold text-foreground">

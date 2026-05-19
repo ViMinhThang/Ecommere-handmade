@@ -142,7 +142,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="ml-4 rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary transition-all text-[10px] uppercase font-bold tracking-widest disabled:opacity-50"
+                className="ml-4 rounded-full border-primary/25 bg-card text-foreground hover:bg-primary/10 hover:text-primary dark:border-primary/45 dark:bg-accent dark:text-foreground dark:hover:bg-primary/20 dark:hover:text-primary transition-all text-[10px] uppercase font-bold tracking-widest disabled:opacity-50"
                 onClick={() => handleOpenDialog()}
                 disabled={addresses && addresses.length >= 5}
               />
@@ -169,7 +169,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
                     value={formData.fullName}
                     onChange={e => setFormData({ ...formData, fullName: e.target.value })}
                     required 
-                    className="rounded-lg border-muted-foreground/20 focus-visible:ring-primary h-11"
+                    className="rounded-lg border-border/70 bg-background/80 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary h-11"
                   />
                 </div>
                 <div className="space-y-2">
@@ -179,7 +179,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
                     value={formData.phone}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     required 
-                    className="rounded-lg border-muted-foreground/20 focus-visible:ring-primary h-11"
+                    className="rounded-lg border-border/70 bg-background/80 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary h-11"
                   />
                 </div>
               </div>
@@ -192,7 +192,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
                     value={formData.city}
                     onChange={e => setFormData({ ...formData, city: e.target.value })}
                     required 
-                    className="rounded-lg border-muted-foreground/20 focus-visible:ring-primary h-11"
+                    className="rounded-lg border-border/70 bg-background/80 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary h-11"
                   />
                 </div>
                 <div className="space-y-2">
@@ -202,7 +202,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
                     value={formData.district}
                     onChange={e => setFormData({ ...formData, district: e.target.value })}
                     required 
-                    className="rounded-lg border-muted-foreground/20 focus-visible:ring-primary h-11"
+                    className="rounded-lg border-border/70 bg-background/80 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary h-11"
                   />
                 </div>
               </div>
@@ -214,7 +214,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
                   value={formData.ward}
                   onChange={e => setFormData({ ...formData, ward: e.target.value })}
                   required 
-                  className="rounded-lg border-muted-foreground/20 focus-visible:ring-primary h-11"
+                  className="rounded-lg border-border/70 bg-background/80 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary h-11"
                 />
               </div>
 
@@ -225,7 +225,7 @@ export function AddressSection({ userId }: AddressSectionProps) {
                   value={formData.address}
                   onChange={e => setFormData({ ...formData, address: e.target.value })}
                   required 
-                  className="rounded-lg border-muted-foreground/20 focus-visible:ring-primary h-11"
+                  className="rounded-lg border-border/70 bg-background/80 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary h-11"
                 />
               </div>
 
@@ -273,8 +273,8 @@ export function AddressSection({ userId }: AddressSectionProps) {
               className={cn(
                 "group relative p-6 rounded-2xl border transition-all duration-300",
                 address.isDefault 
-                  ? "bg-primary/[0.03] border-primary/30 shadow-[0_10px_30px_-10px_rgba(240,78,48,0.1)]" 
-                  : "bg-white border-border/40 hover:border-primary/20 hover:shadow-lg"
+                  ? "bg-primary/[0.04] border-primary/35 shadow-[0_10px_30px_-10px_rgba(133,57,45,0.18)]" 
+                  : "bg-card border-border/60 hover:border-primary/30 hover:shadow-lg"
               )}
             >
               {address.isDefault && (

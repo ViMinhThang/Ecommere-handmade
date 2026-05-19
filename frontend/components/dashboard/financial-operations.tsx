@@ -49,9 +49,9 @@ const ledgerTypeLabels: Record<MarketplaceLedgerEntry["type"], string> = {
 }
 
 const ledgerStatusClasses: Record<MarketplaceLedgerEntry["status"], string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  POSTED: "bg-green-100 text-green-800",
-  VOIDED: "bg-slate-100 text-slate-700",
+  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200",
+  POSTED: "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200",
+  VOIDED: "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
 }
 
 function toMoney(value?: number | string | null) {
@@ -326,7 +326,7 @@ export function RefundDialog({
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-300">{error}</p>}
 
           <DialogFooter>
             <Button

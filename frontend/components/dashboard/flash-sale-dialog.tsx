@@ -377,7 +377,7 @@ export function FlashSaleDialog({ open, onOpenChange, flashSale, categories, use
                 ))}
               </div>
               {selectedCategoryIds.length === 0 && (
-                <p className="text-xs text-muted-foreground italic text-yellow-600">Nhấp chọn các danh mục áp dụng</p>
+                <p className="text-xs text-muted-foreground italic text-yellow-600 dark:text-yellow-300">Nhấp chọn các danh mục áp dụng</p>
               )}
             </div>
 
