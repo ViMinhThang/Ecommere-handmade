@@ -17,14 +17,17 @@ import type {
 import { SafeImage } from "@/components/ui/safe-image";
 
 const PAGE_SIZE = 9;
+const SUGGESTION_LIMIT = 5;
 
 function SellersSearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [draftQuery, setDraftQuery] = useState(searchParams.get("q") || "");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const page = Math.max(Number(searchParams.get("page") || "1"), 1);
   const sortBy =
     (searchParams.get("sortBy") as SellerSearchSortBy | null) || "relevance";
+  const normalizedDraftQuery = draftQuery.trim();
 
   useEffect(() => {
     setDraftQuery(searchParams.get("q") || "");
@@ -42,6 +45,17 @@ function SellersSearchPageContent() {
   );
 
   const { data, isLoading, isError, error } = useSearchSellers(queryParams);
+  const { data: suggestionData, isFetching: isLoadingSuggestions } =
+    useSearchSellers(
+      {
+        q: normalizedDraftQuery,
+        page: 1,
+        limit: SUGGESTION_LIMIT,
+        sortBy: "relevance",
+        sortOrder: "desc",
+      },
+      normalizedDraftQuery.length > 0,
+    );
 
   const updateSearchParams = (updates: Record<string, string | null>) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -62,8 +76,9 @@ function SellersSearchPageContent() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSearchFocused(false);
     updateSearchParams({
-      q: draftQuery.trim() || null,
+      q: normalizedDraftQuery || null,
       page: "1",
     });
   };
@@ -77,6 +92,8 @@ function SellersSearchPageContent() {
 
   const pagination = data?.pagination;
   const sellers = data?.data || [];
+  const suggestions = suggestionData?.data || [];
+  const showSuggestions = isSearchFocused && normalizedDraftQuery.length > 0;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -111,10 +128,42 @@ function SellersSearchPageContent() {
                   <input
                     id="seller-search"
                     value={draftQuery}
-                    onChange={(event) => setDraftQuery(event.target.value)}
+                    onChange={(event) => {
+                      setDraftQuery(event.target.value);
+                      setIsSearchFocused(true);
+                    }}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
                     placeholder="Tìm kiếm gian hàng..."
+                    autoComplete="off"
                     className="h-12 w-full rounded-2xl border border-border bg-background pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   />
+                  {showSuggestions ? (
+                    <div
+                      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-border/70 bg-background shadow-xl"
+                      onMouseDown={(event) => event.preventDefault()}
+                    >
+                      {isLoadingSuggestions ? (
+                        <div className="px-4 py-3 text-sm text-muted-foreground">
+                          Đang tải gợi ý...
+                        </div>
+                      ) : suggestions.length > 0 ? (
+                        <div className="max-h-80 overflow-y-auto py-2">
+                          {suggestions.map((seller) => (
+                            <SellerSuggestion
+                              key={seller.id}
+                              seller={seller}
+                              onSelect={() => setIsSearchFocused(false)}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-3 text-sm text-muted-foreground">
+                          Không có gợi ý phù hợp.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
                 <button
                   type="submit"
@@ -245,6 +294,58 @@ function SellersSearchPageContent() {
 
       <CustomerFooter />
     </div>
+  );
+}
+
+function SellerSuggestion({
+  seller,
+  onSelect,
+}: {
+  seller: SellerSearchResult;
+  onSelect: () => void;
+}) {
+  const studioName = seller.shopName || seller.name;
+  const initials = studioName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return (
+    <Link
+      href={seller.linkTarget}
+      onClick={onSelect}
+      className="flex items-center gap-3 px-4 py-3 transition hover:bg-accent/55 focus:bg-accent/55 focus:outline-none"
+    >
+      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-primary/10">
+        {seller.avatar ? (
+          <SafeImage
+            src={mediaApi.getImageUrl(seller.avatar)}
+            alt={studioName}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center font-headline text-lg italic text-primary">
+            {initials || "GH"}
+          </span>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">
+          {studioName}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          {seller.shopName ? `Bởi ${seller.name}` : seller.sellerTitle || "Gian hàng thủ công"}
+        </p>
+      </div>
+
+      <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+        {seller.productCount} SP
+      </span>
+    </Link>
   );
 }
 
