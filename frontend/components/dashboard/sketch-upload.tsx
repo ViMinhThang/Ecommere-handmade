@@ -62,14 +62,14 @@ export function SketchUpload({ value: rawValue, onChange, label = "Tải bản p
           </button>
         </div>
       ) : (
-        <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50">
+        <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer bg-slate-50/50 transition-colors hover:bg-slate-50 dark:border-border dark:bg-card dark:hover:bg-accent/60">
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
             {isUploading ? (
-              <Loader2 className="h-10 w-10 text-[#A35C3D] animate-spin" />
+              <Loader2 className="h-10 w-10 text-[#A35C3D] animate-spin dark:text-primary" />
             ) : (
-              <Upload className="h-10 w-10 text-slate-400 mb-2" />
+              <Upload className="h-10 w-10 text-slate-400 mb-2 dark:text-muted-foreground" />
             )}
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2 dark:text-muted-foreground">
               {isUploading ? 'Đang thực hiện tải lên...' : label}
             </p>
           </div>

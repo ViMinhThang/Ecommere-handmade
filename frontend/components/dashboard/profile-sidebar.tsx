@@ -45,7 +45,7 @@ export function ProfileSidebar() {
       : 2023
 
   return (
-    <aside className="w-full md:w-72 flex-shrink-0 bg-muted/30 min-h-[600px] rounded-lg overflow-hidden border border-border/40">
+    <aside className="w-full md:w-72 flex-shrink-0 bg-card min-h-[600px] rounded-lg overflow-hidden border border-border/60 shadow-[0_18px_40px_-30px_rgba(84,67,60,0.45)]">
       <div className="p-8 pt-10">
         <div className="mb-10">
           <div className="w-20 h-20 bg-accent rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-border/50 shadow-sm relative">
@@ -83,8 +83,8 @@ export function ProfileSidebar() {
                 className={cn(
                   "flex items-center px-8 py-3.5 text-sm font-medium transition-all duration-300 border-l-4",
                   isActive
-                    ? "text-primary bg-white/60 border-primary shadow-[inset_0_0_20px_rgba(133,57,45,0.03)]"
-                    : "text-muted-foreground border-transparent hover:bg-white/30 hover:text-foreground"
+                    ? "text-primary bg-accent/65 border-primary shadow-[inset_0_0_20px_rgba(133,57,45,0.05)]"
+                    : "text-muted-foreground border-transparent hover:bg-accent/45 hover:text-foreground"
                 )}
               >
                 <item.icon className={cn("w-4.5 h-4.5 mr-3.5 transition-colors", isActive ? "text-primary" : "text-muted-foreground/60")} />

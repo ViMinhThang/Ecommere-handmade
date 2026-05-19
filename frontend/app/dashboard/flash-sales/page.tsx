@@ -147,13 +147,13 @@ export default function FlashSalesPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Đang diễn ra</p>
-            <p className="text-2xl font-bold text-green-600">{activeFlashSales}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-300">{activeFlashSales}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Sắp diễn ra</p>
-            <p className="text-2xl font-bold text-blue-600">{upcomingFlashSales}</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">{upcomingFlashSales}</p>
           </CardContent>
         </Card>
       </div>

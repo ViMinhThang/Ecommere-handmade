@@ -64,9 +64,9 @@ export default function ProductsPage() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      APPROVED: 'bg-green-100 text-green-800',
-      REJECTED: 'bg-red-100 text-red-800',
+      PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200',
+      APPROVED: 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200',
+      REJECTED: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200',
     }
     const labels: Record<string, string> = {
       PENDING: 'Chờ duyệt',
@@ -262,10 +262,10 @@ export default function ProductsPage() {
                         )}
                         {isAdmin && product.status === 'PENDING' && (
                           <>
-                            <Button variant='ghost' size='icon' className='text-green-600' onClick={() => handleApproveProduct(product.id)}>
+                            <Button variant='ghost' size='icon' className='text-green-600 dark:text-green-300' onClick={() => handleApproveProduct(product.id)}>
                               <Check className='h-4 w-4' />
                             </Button>
-                            <Button variant='ghost' size='icon' className='text-red-600' onClick={() => handleRejectProduct(product.id)}>
+                            <Button variant='ghost' size='icon' className='text-red-600 dark:text-red-300' onClick={() => handleRejectProduct(product.id)}>
                               <X className='h-4 w-4' />
                             </Button>
                           </>

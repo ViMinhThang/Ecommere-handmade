@@ -183,7 +183,7 @@
 
 @layer components {
   .input-minimal {
-    @apply w-full bg-transparent border-0 border-b border-border px-0 py-2 text-foreground font-serif focus:ring-0 focus:border-primary transition-colors duration-200 outline-none;
+    @apply w-full bg-background/70 border-0 border-b border-border/80 px-0 py-2 text-foreground placeholder:text-muted-foreground/70 font-serif focus:ring-0 focus:border-primary transition-colors duration-200 outline-none disabled:text-muted-foreground;
   }
 
   .btn-artisanal {

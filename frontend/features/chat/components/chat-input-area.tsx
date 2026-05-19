@@ -30,10 +30,10 @@ export function ChatInputArea({
   fileInputRef,
 }: ChatInputAreaProps) {
   return (
-    <div className="border-t border-border/60 px-3 py-3">
+    <div className="border-t border-border/60 bg-card/70 px-3 py-3">
       {selectedFile ? (
-        <div className="mb-2 flex items-center justify-between rounded-md border border-border/60 bg-muted/40 px-2 py-1.5">
-          <p className="truncate text-xs text-muted-foreground">
+        <div className="mb-2 flex items-center justify-between rounded-md border border-border/70 bg-accent/45 px-2 py-1.5 text-foreground">
+          <p className="truncate text-xs text-foreground/75">
             {selectedFile.name}
           </p>
           <Button
@@ -79,7 +79,9 @@ export function ChatInputArea({
           type="button"
           variant="outline"
           size="icon"
+          className="border-border/70 bg-card text-foreground hover:border-primary/45 hover:bg-primary/10 hover:text-primary dark:bg-accent dark:hover:bg-primary/20"
           onClick={() => fileInputRef.current?.click()}
+          title="Gửi ảnh"
         >
           <ImageIcon className="h-4 w-4" />
         </Button>

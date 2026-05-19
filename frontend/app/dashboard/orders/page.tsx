@@ -67,12 +67,12 @@ const PAYMENT_STATUS_OPTIONS: PaymentStatus[] = [
 ]
 
 const statusClasses: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  PAID: 'bg-amber-100 text-amber-800',
-  PROCESSING: 'bg-blue-100 text-blue-800',
-  SHIPPED: 'bg-indigo-100 text-indigo-800',
-  DELIVERED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-red-100 text-red-800',
+  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200',
+  PAID: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200',
+  PROCESSING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-200',
+  SHIPPED: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-200',
+  DELIVERED: 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200',
+  CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200',
 }
 
 const statusLabels: Record<string, string> = {
@@ -352,7 +352,7 @@ export default function OrdersPage() {
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
               Chờ xử lý
             </p>
-            <p className="mt-2 text-3xl font-bold text-amber-600">
+            <p className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-300">
               {stats.pending}
             </p>
           </CardContent>
@@ -362,7 +362,7 @@ export default function OrdersPage() {
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
               Đang xử lý
             </p>
-            <p className="mt-2 text-3xl font-bold text-blue-600">
+            <p className="mt-2 text-3xl font-bold text-blue-600 dark:text-blue-300">
               {stats.processing}
             </p>
           </CardContent>
@@ -372,7 +372,7 @@ export default function OrdersPage() {
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
               Đã giao
             </p>
-            <p className="mt-2 text-3xl font-bold text-green-600">
+            <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-300">
               {stats.delivered}
             </p>
           </CardContent>

@@ -75,7 +75,7 @@ export default function SellerReviewsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="artisan-title text-4xl">Đánh giá từ khách hàng</h1>
-          <p className="artisan-subtitle mt-2 text-stone-500">Người bán luôn trân trọng từng lời góp ý để hoàn thiện sản phẩm.</p>
+          <p className="artisan-subtitle mt-2 text-stone-500 dark:text-muted-foreground">Người bán luôn trân trọng từng lời góp ý để hoàn thiện sản phẩm.</p>
         </div>
       </div>
 
@@ -96,7 +96,7 @@ export default function SellerReviewsPage() {
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 block">Tác phẩm</label>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded bg-white border border-border/30 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded bg-white border border-border/30 flex items-center justify-center shrink-0 dark:bg-card">
                           <Package className="w-5 h-5 text-primary/30" />
                         </div>
                         <span className="text-sm font-bold line-clamp-2 leading-tight">
@@ -121,7 +121,7 @@ export default function SellerReviewsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-4 h-4 ${i < review.rating ? "fill-brand text-brand" : "text-stone-200"}`} />
+                        <Star key={i} className={`w-4 h-4 ${i < review.rating ? "fill-brand text-brand" : "text-stone-200 dark:text-muted"}`} />
                       ))}
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -129,7 +129,7 @@ export default function SellerReviewsPage() {
                     </span>
                   </div>
 
-                  <p className="text-stone-700 italic font-body text-lg leading-relaxed">
+                  <p className="text-stone-700 italic font-body text-lg leading-relaxed dark:text-foreground">
                     "{review.comment}"
                   </p>
 
@@ -151,7 +151,7 @@ export default function SellerReviewsPage() {
                           <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Phản hồi của Người bán</span>
                         </div>
-                        <p className="text-stone-600 italic text-sm leading-relaxed">
+                        <p className="text-stone-600 italic text-sm leading-relaxed dark:text-muted-foreground">
                           {review.sellerReply}
                         </p>
                       </div>
@@ -159,12 +159,12 @@ export default function SellerReviewsPage() {
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <MessageCircle className="w-4 h-4 text-primary/50" />
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Gửi phản hồi cho khách hàng</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-muted-foreground">Gửi phản hồi cho khách hàng</span>
                         </div>
                         <div className="relative">
                           <Textarea 
                             placeholder="Nhập nội dung phản hồi cho khách hàng..."
-                            className="bg-transparent border-stone-200 min-h-[100px] pb-12 resize-none italic"
+                            className="bg-transparent border-stone-200 min-h-[100px] pb-12 resize-none italic dark:border-border"
                             value={replyText[review.id] || ""}
                             onChange={(e) => handleReplyChange(review.id, e.target.value)}
                           />

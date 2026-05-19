@@ -67,13 +67,13 @@ export default function AccountPage() {
         <h1 className="text-3xl font-serif font-bold text-primary mb-2">
           Cài đặt tài khoản
         </h1>
-        <p className="text-muted-foreground italic">
+        <p className="text-foreground/70 italic">
           Quản lý bảo mật đăng nhập và thông tin định danh của tài khoản.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
-        <section className="rounded-lg border border-border/40 bg-white p-8 shadow-[0_20px_40px_-24px_rgba(84,67,60,0.2)]">
+        <section className="rounded-lg border border-border/60 bg-card p-8 text-card-foreground shadow-[0_20px_40px_-24px_rgba(84,67,60,0.24)]">
           <div className="mb-8 flex items-center gap-3">
             <KeyRound className="h-5 w-5 text-primary" />
             <h2 className="font-serif text-2xl font-bold text-primary">
@@ -178,8 +178,8 @@ export default function AccountPage() {
                   <span
                     className={
                       entry.points >= 0
-                        ? "font-bold text-green-700"
-                        : "font-bold text-red-700"
+                        ? "font-bold text-emerald-600 dark:text-emerald-300"
+                        : "font-bold text-destructive"
                     }
                   >
                     {entry.points >= 0 ? "+" : ""}
@@ -196,7 +196,7 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border/40 bg-muted/30 p-6">
+          <div className="rounded-lg border border-border/60 bg-card p-6 text-card-foreground shadow-sm">
             <div className="mb-4 flex items-center gap-3">
               <Mail className="h-5 w-5 text-primary" />
               <h3 className="font-serif text-xl font-bold text-primary">

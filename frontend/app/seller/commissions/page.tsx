@@ -26,7 +26,7 @@ export default function SellerCommissionsPage() {
       </div>
 
       {posts.length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-white p-12 text-center">
+        <div className="rounded-lg border border-dashed border-border/60 bg-card p-12 text-center text-card-foreground shadow-sm">
           <ClipboardList className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
           <h2 className="font-serif text-xl font-bold">Chưa có commission đang mở</h2>
           <p className="mt-2 text-sm text-muted-foreground">Các yêu cầu mới từ khách hàng sẽ xuất hiện ở đây.</p>
@@ -37,7 +37,7 @@ export default function SellerCommissionsPage() {
             <Link
               key={post.id}
               href={`/commissions/${post.id}`}
-              className="rounded-lg border bg-white p-5 shadow-sm transition hover:border-primary/40"
+              className="rounded-lg border border-border/60 bg-card p-5 text-card-foreground shadow-sm transition hover:border-primary/40 hover:bg-accent/25"
             >
               <div className="mb-3 flex items-center justify-between gap-4">
                 <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">

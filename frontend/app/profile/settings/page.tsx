@@ -118,12 +118,12 @@ export default function ProfilePage() {
     <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="mb-10">
         <h1 className="text-3xl font-serif font-bold text-primary mb-2">Chi tiết Hồ sơ</h1>
-        <p className="text-muted-foreground italic">Quản lý thông tin cá nhân và thông tin người bán của quý khách.</p>
+        <p className="text-foreground/70 italic">Quản lý thông tin cá nhân và thông tin người bán của quý khách.</p>
       </div>
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-12">
         {/* Profile Header / Avatar Section */}
-        <section className="bg-white rounded-xl p-8 shadow-[0_20px_40px_-20px_rgba(84,67,60,0.1)] border border-border/30">
+        <section className="bg-card text-card-foreground rounded-xl p-8 shadow-[0_20px_40px_-20px_rgba(84,67,60,0.16)] border border-border/60">
           <div className="flex flex-col md:flex-row gap-8 items-start">
             <div className="relative group">
               <div className="w-32 h-32 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-primary/10 shadow-inner relative">
@@ -166,7 +166,7 @@ export default function ProfilePage() {
             <div className="flex-1 space-y-6 w-full">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Họ và Tên</Label>
+                  <Label htmlFor="name" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Họ và Tên</Label>
                   <input
                     id="name"
                     autoComplete="name"
@@ -179,7 +179,7 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Địa chỉ Email</Label>
+                  <Label htmlFor="email" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Địa chỉ Email</Label>
                   <input
                     id="email"
                     name="email"
@@ -188,7 +188,7 @@ export default function ProfilePage() {
                     disabled
                     className="input-minimal opacity-60 cursor-not-allowed"
                   />
-                  <p className="text-[10px] text-muted-foreground italic">Email không thể thay đổi để bảo mật tài khoản.</p>
+                  <p className="text-[10px] text-foreground/60 italic">Email không thể thay đổi để bảo mật tài khoản.</p>
                 </div>
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
               <div className="space-y-2">
-                <Label htmlFor="shopName" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Tên Cửa hàng</Label>
+                <Label htmlFor="shopName" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Tên Cửa hàng</Label>
                 <input
                   id="shopName"
                   autoComplete="organization"
@@ -219,7 +219,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Số điện thoại Liên hệ</Label>
+                <Label htmlFor="phone" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Số điện thoại Liên hệ</Label>
                 <input
                   id="phone"
                   autoComplete="tel"
@@ -229,7 +229,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="sellerTitle" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Tiêu đề Nghề nghiệp</Label>
+                <Label htmlFor="sellerTitle" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Tiêu đề Nghề nghiệp</Label>
                 <input
                   id="sellerTitle"
                   {...form.register("sellerTitle")}
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="sellerBio" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Tiểu sử Ngắn</Label>
+                <Label htmlFor="sellerBio" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Tiểu sử Ngắn</Label>
                 <input
                   id="sellerBio"
                   {...form.register("sellerBio")}
@@ -247,12 +247,12 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="sellerAbout" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Giới thiệu Chi tiết</Label>
+                <Label htmlFor="sellerAbout" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Giới thiệu Chi tiết</Label>
                 <textarea
                   id="sellerAbout"
                   {...form.register("sellerAbout")}
                   rows={5}
-                  className="w-full bg-transparent border border-border/40 rounded-lg px-4 py-3 text-foreground focus:ring-1 focus:ring-primary focus:border-primary transition-all duration-300 outline-none resize-none"
+                  className="w-full bg-background/80 border border-border/70 rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-primary focus:border-primary transition-all duration-300 outline-none resize-none"
                   placeholder="Chia sẻ câu chuyện và đam mê sáng tạo của quý khách với cộng đồng..."
                 />
               </div>

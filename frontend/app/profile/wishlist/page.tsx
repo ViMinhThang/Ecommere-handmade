@@ -37,7 +37,7 @@ function WishlistSkeleton() {
       {[1, 2, 3, 4].map((item) => (
         <div
           key={item}
-          className="overflow-hidden rounded-xl border border-border/30 bg-white shadow-sm"
+          className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm"
         >
           <div className="aspect-[4/3] animate-pulse bg-border/20" />
           <div className="space-y-4 p-5">
@@ -69,7 +69,7 @@ function WishlistCard({
   const isFlashSale = Boolean(product.pricing?.discountPercent);
 
   return (
-    <article className="group overflow-hidden rounded-xl border border-border/30 bg-white shadow-[0_15px_30px_-18px_rgba(84,67,60,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_22px_42px_-24px_rgba(84,67,60,0.24)]">
+    <article className="group overflow-hidden rounded-xl border border-border/60 bg-card text-card-foreground shadow-[0_15px_30px_-18px_rgba(84,67,60,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_22px_42px_-24px_rgba(84,67,60,0.24)]">
       <div className="relative aspect-[4/3] overflow-hidden bg-accent">
         {imageUrl ? (
           <SafeImage
@@ -90,7 +90,7 @@ function WishlistCard({
           onClick={() => onRemove(product.id)}
           disabled={isRemoving}
           aria-label="Bỏ khỏi danh sách yêu thích"
-          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/90 text-primary shadow-sm backdrop-blur transition-all hover:bg-primary hover:text-primary-foreground disabled:opacity-60"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card/90 text-primary shadow-sm backdrop-blur transition-all hover:bg-primary hover:text-primary-foreground disabled:opacity-60"
         >
           {isRemoving ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -197,7 +197,7 @@ export default function ProfileWishlistPage() {
 
   if (!isAuthLoading && !isAuthenticated) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-white p-12 text-center shadow-sm">
+      <div className="rounded-xl border border-dashed border-border/60 bg-card p-12 text-center text-card-foreground shadow-sm">
         <Heart className="mx-auto mb-5 h-14 w-14 text-primary/30" />
         <h1 className="font-serif text-3xl font-bold text-primary">
           Đăng nhập để lưu sản phẩm yêu thích
@@ -247,7 +247,7 @@ export default function ProfileWishlistPage() {
       {isAuthLoading || isLoading ? (
         <WishlistSkeleton />
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-white p-12 text-center shadow-sm">
+        <div className="rounded-xl border border-dashed border-border/60 bg-card p-12 text-center text-card-foreground shadow-sm">
           <PackageSearch className="mx-auto mb-5 h-16 w-16 text-muted-foreground/25" />
           <h2 className="font-serif text-3xl font-bold text-primary">
             Chưa có sản phẩm yêu thích
@@ -302,7 +302,7 @@ export default function ProfileWishlistPage() {
                   {favoriteCategories.map((category) => (
                     <span
                       key={category}
-                      className="rounded-full bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary shadow-sm"
+                      className="rounded-full bg-card px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary shadow-sm border border-border/50"
                     >
                       {category}
                     </span>
@@ -313,7 +313,7 @@ export default function ProfileWishlistPage() {
 
             <Link
               href="/discovery"
-              className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-md border border-primary/30 bg-white px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-[0.98]"
+              className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-md border border-primary/30 bg-card px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-[0.98]"
             >
               Tiếp tục khám phá
               <ArrowUpRight className="h-4 w-4" />

@@ -84,9 +84,9 @@ export default function InventoryPage() {
   const getStockStatus = (product: Product) => {
     const stock = Number(product.stock) || 0
     const threshold = Number(product.lowStockThreshold) || 0
-    if (stock === 0) return { label: 'Hết hàng', className: 'bg-red-100 text-red-800' }
-    if (stock <= threshold) return { label: 'Sắp hết', className: 'bg-yellow-100 text-yellow-800' }
-    return { label: 'Còn hàng', className: 'bg-green-100 text-green-800' }
+    if (stock === 0) return { label: 'Hết hàng', className: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200' }
+    if (stock <= threshold) return { label: 'Sắp hết', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200' }
+    return { label: 'Còn hàng', className: 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200' }
   }
 
   const getReasonLabel = (reason: string) => {
@@ -120,13 +120,13 @@ export default function InventoryPage() {
         <Card>
           <CardContent className='p-4'>
             <p className='text-sm text-muted-foreground'>Sắp hết hàng</p>
-            <p className='text-2xl font-bold text-yellow-600'>{lowStockCount}</p>
+            <p className='text-2xl font-bold text-yellow-600 dark:text-yellow-300'>{lowStockCount}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className='p-4'>
             <p className='text-sm text-muted-foreground'>Hết hàng</p>
-            <p className='text-2xl font-bold text-red-600'>{outOfStockCount}</p>
+            <p className='text-2xl font-bold text-red-600 dark:text-red-300'>{outOfStockCount}</p>
           </CardContent>
         </Card>
       </div>

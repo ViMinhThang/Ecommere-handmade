@@ -81,19 +81,19 @@ const ENTITY_TYPE_OPTIONS: Array<"ALL" | "ORDER" | "CUSTOM_ORDER"> = [
 ];
 
 const severityClassMap: Record<PaymentReliabilitySeverity, string> = {
-  HIGH: "bg-red-100 text-red-800",
-  MEDIUM: "bg-yellow-100 text-yellow-800",
-  LOW: "bg-blue-100 text-blue-800",
+  HIGH: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200",
+  MEDIUM: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200",
+  LOW: "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-200",
 };
 
 const reconciliationClassMap: Record<PaymentReliabilityReconciliationStatus, string> =
   {
-    RECONCILED: "bg-green-100 text-green-800",
-    PENDING_PAYMENT: "bg-amber-100 text-amber-800",
-    UNPAID_EXPIRED: "bg-red-100 text-red-800",
-    MISSING_CAPTURE_LEDGER: "bg-orange-100 text-orange-800",
-    REFUND_STATUS_MISMATCH: "bg-yellow-100 text-yellow-800",
-    PAID_WITHOUT_WEBHOOK: "bg-blue-100 text-blue-800",
+    RECONCILED: "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200",
+    PENDING_PAYMENT: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200",
+    UNPAID_EXPIRED: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200",
+    MISSING_CAPTURE_LEDGER: "bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-200",
+    REFUND_STATUS_MISMATCH: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200",
+    PAID_WITHOUT_WEBHOOK: "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-200",
   };
 
 function toDateInputValue(value: Date) {
@@ -324,7 +324,7 @@ export default function PaymentReliabilityPage() {
               </Button>
             </div>
           </div>
-          {dateError && <p className="text-sm text-red-600">{dateError}</p>}
+          {dateError && <p className="text-sm text-red-600 dark:text-red-300">{dateError}</p>}
         </CardContent>
       </Card>
 
@@ -634,7 +634,7 @@ export default function PaymentReliabilityPage() {
                         </TableCell>
                         <TableCell>
                           {item.issues.length === 0 ? (
-                            <span className="text-xs text-green-700">No issues</span>
+                            <span className="text-xs text-green-700 dark:text-green-300">No issues</span>
                           ) : (
                             <div className="space-y-1">
                               {item.issues.slice(0, 2).map((issue) => (

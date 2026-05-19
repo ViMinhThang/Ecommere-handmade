@@ -54,24 +54,24 @@ export default function OrdersPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DELIVERED":
-        return "bg-green-100 text-green-700";
+        return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-200";
       case "SHIPPED":
       case "FINISHING":
-        return "bg-blue-100 text-blue-700";
+        return "bg-sky-500/15 text-sky-700 dark:text-sky-200";
       case "PROCESSING":
       case "CRAFTING":
-        return "bg-stone-200 text-brand";
+        return "bg-primary/15 text-primary";
       case "PENDING":
       case "PAID":
       case "PENDING_REVIEW":
       case "AWAITING_PAYMENT":
-        return "bg-amber-100 text-amber-700";
+        return "bg-amber-500/15 text-amber-700 dark:text-amber-200";
       case "REVISION_REQUESTED":
-        return "bg-purple-100 text-purple-700";
+        return "bg-primary/15 text-primary";
       case "CANCELLED":
-        return "bg-red-100 text-red-700";
+        return "bg-destructive/15 text-destructive";
       default:
-        return "bg-stone-100 text-stone-600";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -135,8 +135,8 @@ export default function OrdersPage() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl p-12 shadow-[0_15px_30px_-15px_rgba(84,67,60,0.08)] border border-dashed border-border flex flex-col items-center text-center">
-        <XCircle className="w-16 h-16 text-red-200 mb-6" />
+      <div className="bg-card rounded-xl p-12 shadow-[0_15px_30px_-15px_rgba(84,67,60,0.14)] border border-dashed border-border/60 flex flex-col items-center text-center text-card-foreground">
+        <XCircle className="w-16 h-16 text-destructive/35 mb-6" />
         <h3 className="font-serif text-2xl text-primary mb-2">
           Không thể tải đơn hàng
         </h3>
@@ -163,7 +163,7 @@ export default function OrdersPage() {
         {/* Orders List */}
         <div className="lg:col-span-2 space-y-8">
           {!subOrders || subOrders.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 shadow-[0_15px_30px_-15px_rgba(84,67,60,0.08)] border border-dashed border-border flex flex-col items-center text-center">
+            <div className="bg-card rounded-xl p-12 shadow-[0_15px_30px_-15px_rgba(84,67,60,0.14)] border border-dashed border-border/60 flex flex-col items-center text-center text-card-foreground">
               <ShoppingBag className="w-16 h-16 text-muted-foreground/20 mb-6" />
               <h3 className="font-serif text-2xl text-primary mb-2">
                 Chưa có sản phẩm nào
@@ -182,7 +182,7 @@ export default function OrdersPage() {
             (subOrders as CustomerSubOrder[]).map((subOrder) => (
               <div
                 key={subOrder.id}
-                className="bg-white rounded-xl p-8 shadow-[0_15px_30px_-15px_rgba(84,67,60,0.08)] border border-border/30 transition-all hover:shadow-[0_20px_40px_-20px_rgba(84,67,60,0.12)] group"
+                className="bg-card rounded-xl p-8 shadow-[0_15px_30px_-15px_rgba(84,67,60,0.14)] border border-border/60 text-card-foreground transition-all hover:border-primary/25 hover:shadow-[0_20px_40px_-20px_rgba(84,67,60,0.2)] group"
               >
                 {/* Order Header */}
                 <div className="flex justify-between items-start mb-6">
@@ -201,7 +201,7 @@ export default function OrdersPage() {
                       )}
                       {subOrder.type !== "CUSTOM" &&
                         subOrder.order?.paymentMethod && (
-                          <span className="px-2 py-0.5 bg-stone-100 text-stone-700 text-[9px] font-bold uppercase tracking-wider rounded border border-stone-200">
+                          <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[9px] font-bold uppercase tracking-wider rounded border border-border/60">
                             {subOrder.order.paymentMethod}
                           </span>
                         )}
@@ -296,7 +296,7 @@ export default function OrdersPage() {
                       )}
                       <Link
                         href={`/profile/orders/${subOrder.id}`}
-                        className="flex items-center gap-1.5 bg-white text-muted-foreground px-6 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md border border-border/50 hover:bg-muted/30 transition-all active:scale-95 shadow-sm"
+                        className="flex items-center gap-1.5 bg-card text-foreground/75 px-6 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md border border-border/60 hover:bg-accent/45 hover:text-foreground transition-all active:scale-95 shadow-sm"
                       >
                         Xem Chi tiết
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -312,7 +312,7 @@ export default function OrdersPage() {
         {/* Sidebar Widgets */}
         <div className="space-y-8">
           {/* Stats Widget */}
-          <div className="bg-white p-8 rounded-xl shadow-[0_15px_30px_-15_rgba(84,67,60,0.08)] border-l-4 border-primary border">
+          <div className="bg-card p-8 rounded-xl shadow-[0_15px_30px_-15px_rgba(84,67,60,0.14)] border-l-4 border-primary border border-border/60 text-card-foreground">
             <h3 className="font-serif italic text-2xl text-primary mb-8 tracking-tight">
               Thống kê mua hàng
             </h3>

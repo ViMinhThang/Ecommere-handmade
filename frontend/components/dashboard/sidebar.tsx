@@ -53,6 +53,14 @@ export function Sidebar() {
     { href: "/dashboard/settings", label: "Cài đặt", icon: Settings, show: true },
   ].filter((item) => item.show)
 
+  const isNavItemActive = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === href
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
   return (
     <aside className="w-[17rem] min-h-screen border-r border-sidebar-border/80 bg-sidebar flex flex-col shadow-[20px_0_35px_-30px_rgba(84,67,60,0.35)]">
       <div className="p-6 pb-5">
@@ -71,7 +79,7 @@ export function Sidebar() {
 
       <nav className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto">
         {navItems.map((navItem) => {
-          const isActive = pathname === navItem.href || pathname.startsWith(`${navItem.href}/`)
+          const isActive = isNavItemActive(navItem.href)
           return (
             <Link
               key={navItem.href}
@@ -79,8 +87,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-white text-primary shadow-[0_10px_20px_-16px_rgba(84,67,60,0.5)]"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  ? "bg-sidebar-accent text-sidebar-primary shadow-[0_10px_20px_-16px_rgba(84,67,60,0.5)] dark:bg-sidebar-primary/14 dark:text-sidebar-primary dark:shadow-none"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground dark:hover:bg-sidebar-accent/70"
               )}
             >
               <navItem.icon className="h-4 w-4 shrink-0" />
