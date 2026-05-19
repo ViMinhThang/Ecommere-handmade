@@ -142,19 +142,29 @@ describe('UsersService', () => {
         limit: 10,
       });
 
-      const findManyCall = mockPrismaService.user.findMany.mock.calls.at(-1)?.[0];
+      const findManyCall =
+        mockPrismaService.user.findMany.mock.calls.at(-1)?.[0];
       expect(findManyCall?.where).toMatchObject({
         deletedAt: null,
         status: 'ACTIVE',
         roles: { has: 'ROLE_USER' },
-        OR: [
-          { customerConversations: { some: { sellerId: 'seller-id' } } },
-          { customerCustomOrders: { some: { sellerId: 'seller-id' } } },
+        AND: [
+          {
+            OR: [
+              { customerConversations: { some: { sellerId: 'seller-id' } } },
+              { customerCustomOrders: { some: { sellerId: 'seller-id' } } },
+              {
+                Order: {
+                  some: { subOrders: { some: { sellerId: 'seller-id' } } },
+                },
+              },
+            ],
+          },
         ],
       });
     });
 
-    it('allows a seller to search active customers by name, email, or phone', async () => {
+    it('keeps seller customer search scoped to customers they already know', async () => {
       mockPrismaService.user.findMany.mockResolvedValue([]);
       mockPrismaService.user.count.mockResolvedValue(0);
 
@@ -162,15 +172,50 @@ describe('UsersService', () => {
         q: 'linh',
       });
 
-      const findManyCall = mockPrismaService.user.findMany.mock.calls.at(-1)?.[0];
-      expect(findManyCall?.where.OR).toEqual([
-        { name: { contains: 'linh', mode: 'insensitive' } },
-        { email: { contains: 'linh', mode: 'insensitive' } },
-        { phone: { contains: 'linh', mode: 'insensitive' } },
+      const findManyCall =
+        mockPrismaService.user.findMany.mock.calls.at(-1)?.[0];
+      expect(findManyCall?.where.AND).toEqual([
+        {
+          OR: [
+            { name: { contains: 'linh', mode: 'insensitive' } },
+            { email: { contains: 'linh', mode: 'insensitive' } },
+            { phone: { contains: 'linh', mode: 'insensitive' } },
+          ],
+        },
+        {
+          OR: [
+            { customerConversations: { some: { sellerId: 'seller-id' } } },
+            { customerCustomOrders: { some: { sellerId: 'seller-id' } } },
+            {
+              Order: {
+                some: { subOrders: { some: { sellerId: 'seller-id' } } },
+              },
+            },
+          ],
+        },
       ]);
-      expect(JSON.stringify(findManyCall?.where)).not.toContain(
-        'customerConversations',
-      );
+    });
+
+    it('lets admins search all active customers without seller scoping', async () => {
+      mockPrismaService.user.findMany.mockResolvedValue([]);
+      mockPrismaService.user.count.mockResolvedValue(0);
+
+      await service.findCustomersForSeller('admin-id', ['ROLE_ADMIN'], {
+        q: 'linh',
+      });
+
+      const findManyCall =
+        mockPrismaService.user.findMany.mock.calls.at(-1)?.[0];
+      expect(findManyCall?.where.AND).toEqual([
+        {
+          OR: [
+            { name: { contains: 'linh', mode: 'insensitive' } },
+            { email: { contains: 'linh', mode: 'insensitive' } },
+            { phone: { contains: 'linh', mode: 'insensitive' } },
+          ],
+        },
+      ]);
+      expect(JSON.stringify(findManyCall?.where)).not.toContain('seller-id');
     });
   });
 

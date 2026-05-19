@@ -51,5 +51,10 @@ export function getErrorMessage(error: unknown, fallback: string) {
     maybeResponse.data?.message ??
     maybeResponse.message;
 
+  if (Array.isArray(message)) {
+    const messages = message.map((item) => String(item)).filter(Boolean);
+    return messages.length > 0 ? messages.join(", ") : fallback;
+  }
+
   return typeof message === "string" && message.trim() ? message : fallback;
 }

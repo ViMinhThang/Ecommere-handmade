@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { X, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import type { Product, ProductImage } from "@/types";
+import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -12,16 +13,13 @@ function getProductImageUrl(product: Product): string {
   const imageUrl = mainImage?.url || firstImage?.url || "";
 
   if (!imageUrl) return "";
-  if (imageUrl.startsWith("http")) return imageUrl;
-
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, "");
-  return `${apiBase}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+  return mediaApi.getImageUrl(imageUrl);
 }
 
 interface CartItemCardProps {
-  item: { 
-    productId: string; 
-    product: Product; 
+  item: {
+    productId: string;
+    product: Product;
     quantity: number;
     pricing: {
       originalPrice: number;
@@ -58,7 +56,7 @@ export function CartItemCard({
     <div className="flex flex-col md:flex-row gap-8 bg-muted/50 p-6 rounded-xl transition-all duration-300 hover:shadow-[0_20px_40px_rgba(84,67,60,0.04)]">
       <div className="w-full md:w-48 h-64 md:h-48 overflow-hidden rounded-lg bg-accent flex-shrink-0 relative">
         {imageUrl ? (
-          <Image
+          <SafeImage
             src={imageUrl}
             alt={item.product.name}
             fill

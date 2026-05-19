@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsEnum,
   IsInt,
+  IsBoolean,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -15,6 +16,7 @@ export class ProductImageDto {
   url: string;
 
   @IsOptional()
+  @IsBoolean()
   isMain?: boolean;
 }
 

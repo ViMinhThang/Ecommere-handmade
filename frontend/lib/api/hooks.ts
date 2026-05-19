@@ -39,6 +39,10 @@ import {
   type CreateReportPayload,
 } from "./reports";
 import {
+  notificationsApi,
+  type NotificationsQuery,
+} from "./notifications";
+import {
   paymentReliabilityApi,
   type PaymentReliabilityAnomaliesQuery,
   type PaymentReliabilityDateRangeQuery,
@@ -671,7 +675,10 @@ export function useUpdateStock() {
 
 export const voucherKeys = {
   all: ["vouchers"] as const,
-  lists: () => [...voucherKeys.all, "list"] as const,
+  lists: (params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "list", params ?? {}] as const,
+  adminLists: (params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "admin-list", params ?? {}] as const,
   details: () => [...voucherKeys.all, "detail"] as const,
   detail: (id: string) => [...voucherKeys.details(), id] as const,
   byCode: (code: string) => [...voucherKeys.all, "code", code] as const,
@@ -679,8 +686,15 @@ export const voucherKeys = {
 
 export function useVouchers(params?: { page?: number; limit?: number }) {
   return useQuery({
-    queryKey: voucherKeys.lists(),
+    queryKey: voucherKeys.lists(params),
     queryFn: () => vouchersApi.getAll(params),
+  });
+}
+
+export function useAdminVouchers(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: voucherKeys.adminLists(params),
+    queryFn: () => vouchersApi.getAdminAll(params),
   });
 }
 
@@ -734,6 +748,7 @@ export function useDeleteVoucher() {
 export const flashSaleKeys = {
   all: ["flash-sales"] as const,
   lists: () => [...flashSaleKeys.all, "list"] as const,
+  adminLists: () => [...flashSaleKeys.all, "admin-list"] as const,
   active: () => [...flashSaleKeys.all, "active"] as const,
   details: () => [...flashSaleKeys.all, "detail"] as const,
   detail: (id: string) => [...flashSaleKeys.details(), id] as const,
@@ -743,6 +758,13 @@ export function useFlashSales() {
   return useQuery({
     queryKey: flashSaleKeys.lists(),
     queryFn: () => flashSalesApi.getAll(),
+  });
+}
+
+export function useAdminFlashSales() {
+  return useQuery({
+    queryKey: flashSaleKeys.adminLists(),
+    queryFn: () => flashSalesApi.getAdminAll(),
   });
 }
 
@@ -1043,14 +1065,30 @@ export function useMarkConversationRead() {
   return useMutation({
     mutationFn: (conversationId: string) =>
       chatApi.markConversationRead(conversationId),
-    onSuccess: (_, conversationId) => {
-      queryClient.invalidateQueries({
-        queryKey: [...chatKeys.all, "messages", conversationId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...chatKeys.all, "conversations"],
-      });
-      queryClient.invalidateQueries({ queryKey: chatKeys.unread() });
+    onSuccess: (readState, conversationId) => {
+      queryClient.setQueriesData<{
+        data: ChatConversationSummary[];
+        nextCursor: string | null;
+      }>(
+        { queryKey: [...chatKeys.all, "conversations"] },
+        (previous) => {
+          if (!previous) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            data: previous.data.map((conversation) =>
+              conversation.id === conversationId
+                ? { ...conversation, unreadCount: 0 }
+                : conversation,
+            ),
+          };
+        },
+      );
+      if (readState.changed) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.unread() });
+      }
     },
   });
 }
@@ -1180,6 +1218,66 @@ export function useUpdateAdminReportStatus() {
     }) => reportsApi.updateAdminStatus(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reportKeys.all });
+    },
+  });
+}
+
+export const notificationKeys = {
+  all: ["notifications"] as const,
+  lists: () => [...notificationKeys.all, "list"] as const,
+  list: (params?: NotificationsQuery) =>
+    [...notificationKeys.lists(), { ...params }] as const,
+  unread: () => [...notificationKeys.all, "unread"] as const,
+};
+
+export function useNotifications(
+  params?: NotificationsQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: notificationKeys.list(params),
+    queryFn: () => notificationsApi.getNotifications(params),
+    enabled,
+    staleTime: 5000,
+  });
+}
+
+export function useUnreadNotificationCount(enabled = true) {
+  return useQuery({
+    queryKey: notificationKeys.unread(),
+    queryFn: () => notificationsApi.getUnreadCount(),
+    enabled,
+    staleTime: 10000,
+    refetchInterval: enabled ? 30000 : false,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => notificationsApi.markNotificationRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => notificationsApi.markAllNotificationsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => notificationsApi.deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 }

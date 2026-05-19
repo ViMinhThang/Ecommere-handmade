@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { formatCurrency } from "@/lib/utils";
+import { mediaApi } from "@/lib/api/media";
 import { Button } from "@/components/ui/button";
 import type { QuoteSnapshot } from "@/types";
 import {
@@ -343,9 +344,9 @@ export default function CustomOrderReviewPage() {
 
     try {
       await refundAdminCustomOrder.mutateAsync({ id: order.id, data });
-      toast.success("Refund created");
+      toast.success("Đã tạo yêu cầu hoàn tiền");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Could not create refund");
+      toast.error(err instanceof Error ? err.message : "Không thể tạo yêu cầu hoàn tiền");
       throw err;
     }
   };
@@ -355,16 +356,16 @@ export default function CustomOrderReviewPage() {
       return;
     }
 
-    const confirmed = window.confirm("Cancel this custom order?");
+    const confirmed = window.confirm("Bạn muốn hủy đơn thiết kế riêng này?");
     if (!confirmed) {
       return;
     }
 
     try {
       await cancelCustomOrder.mutateAsync(order.id);
-      toast.success("Custom order cancelled");
+      toast.success("Đã hủy đơn thiết kế riêng");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Could not cancel order");
+      toast.error(err instanceof Error ? err.message : "Không thể hủy đơn");
     }
   };
 
@@ -379,7 +380,8 @@ export default function CustomOrderReviewPage() {
       case 'AWAITING_PAYMENT': return 2;
       case 'CRAFTING': return 3;
       case 'FINISHING': return 4;
-      case 'SHIPPED': return 5;
+      case 'SHIPPED':
+      case 'DELIVERED': return 5;
       default: return 1;
     }
   };
@@ -445,7 +447,7 @@ export default function CustomOrderReviewPage() {
           <div className="aspect-[4/5] bg-[#EBE9E4] rounded-sm flex items-center justify-center relative shadow-inner overflow-hidden">
               <div className="absolute inset-0 border-[20px] border-white/10 pointer-events-none z-10"></div>
               {order.sketchImageUrl ? (
-                <img src={order.sketchImageUrl} className="w-full h-full object-cover" alt="Bản phác thảo" />
+                <img src={mediaApi.getImageUrl(order.sketchImageUrl)} className="w-full h-full object-cover" alt="Sketch" />
               ) : (
                 <div className="w-full h-full opacity-50 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.02)_100%)]"></div>
               )}
@@ -500,7 +502,7 @@ export default function CustomOrderReviewPage() {
               {isAdmin && (
                 <div className="mb-10 space-y-4">
                   <FinancialSummaryPanel
-                    title="Custom order financial summary"
+                    title="Tổng quan tài chính đơn thiết kế"
                     summary={order.financialSummary}
                     remainingRefundable={remainingRefundable}
                   />
@@ -512,7 +514,7 @@ export default function CustomOrderReviewPage() {
                         disabled={refundAdminCustomOrder.isPending}
                       >
                         <RotateCcw className="h-4 w-4" />
-                        Refund
+                        Hoàn tiền
                       </Button>
                     )}
                     {canAdminCancel && (
@@ -523,12 +525,12 @@ export default function CustomOrderReviewPage() {
                         disabled={cancelCustomOrder.isPending}
                       >
                         <XCircle className="h-4 w-4" />
-                        Cancel order
+                        Hủy đơn
                       </Button>
                     )}
                   </div>
                   <LedgerTable
-                    title="Custom order ledger"
+                    title="Sổ giao dịch đơn thiết kế"
                     entries={adminLedgerQuery.data}
                     isLoading={adminLedgerQuery.isLoading}
                   />
@@ -607,7 +609,7 @@ export default function CustomOrderReviewPage() {
                 </button>
               )}
 
-              {['CRAFTING', 'FINISHING', 'SHIPPED'].includes(order.status) && (
+              {['CRAFTING', 'FINISHING', 'SHIPPED', 'DELIVERED'].includes(order.status) && (
                 <div className="p-8 bg-[#E6F0E9] text-[#4A7255] rounded-xl text-center border border-[#4A7255]/20">
                   <h3 className="font-serif text-2xl font-bold mb-2">Đơn hàng đang sản xuất</h3>
                   <p>Tác phẩm của bạn đang được chăm chút qua từng công đoạn nghệ thuật. Trạng thái hiện tại: <strong>{order.status}</strong></p>

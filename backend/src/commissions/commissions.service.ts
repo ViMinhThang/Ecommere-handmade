@@ -21,12 +21,16 @@ const POST_INCLUDE = {
   customer: { select: { id: true, name: true, avatar: true } },
   selectedProposal: {
     include: {
-      seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+      seller: {
+        select: { id: true, name: true, shopName: true, avatar: true },
+      },
     },
   },
   proposals: {
     include: {
-      seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+      seller: {
+        select: { id: true, name: true, shopName: true, avatar: true },
+      },
     },
     orderBy: { createdAt: 'desc' as const },
   },
@@ -44,7 +48,9 @@ export class CommissionsService {
     return roles.includes(Role.ROLE_SELLER) || this.isAdmin(roles);
   }
 
-  private mapPost(post: Prisma.CommissionPostGetPayload<{ include: typeof POST_INCLUDE }>) {
+  private mapPost(
+    post: Prisma.CommissionPostGetPayload<{ include: typeof POST_INCLUDE }>,
+  ) {
     return {
       ...post,
       budgetMin: post.budgetMin?.toString() ?? null,
@@ -68,7 +74,9 @@ export class CommissionsService {
       dto.budgetMax !== undefined &&
       dto.budgetMin > dto.budgetMax
     ) {
-      throw new BadRequestException('Minimum budget cannot exceed maximum budget');
+      throw new BadRequestException(
+        'Minimum budget cannot exceed maximum budget',
+      );
     }
 
     const post = await this.prisma.commissionPost.create({
@@ -109,7 +117,9 @@ export class CommissionsService {
     const proposals = await this.prisma.commissionProposal.findMany({
       where: { sellerId },
       include: {
-        seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+        seller: {
+          select: { id: true, name: true, shopName: true, avatar: true },
+        },
         commission: {
           include: {
             customer: { select: { id: true, name: true, avatar: true } },
@@ -137,7 +147,8 @@ export class CommissionsService {
     });
     if (!post) throw new NotFoundException('Commission post not found');
 
-    const canSeeAllProposals = post.customerId === userId || this.isAdmin(roles);
+    const canSeeAllProposals =
+      post.customerId === userId || this.isAdmin(roles);
     const mapped = this.mapPost(post);
     if (canSeeAllProposals) return mapped;
 
@@ -171,7 +182,8 @@ export class CommissionsService {
         roles: { has: Role.ROLE_SELLER },
       },
     });
-    if (!seller) throw new ForbiddenException('Only active sellers can propose');
+    if (!seller)
+      throw new ForbiddenException('Only active sellers can propose');
 
     const post = await this.prisma.commissionPost.findUnique({
       where: { id: commissionId },
@@ -194,7 +206,9 @@ export class CommissionsService {
         sketchImageUrl: dto.sketchImageUrl,
       },
       include: {
-        seller: { select: { id: true, name: true, shopName: true, avatar: true } },
+        seller: {
+          select: { id: true, name: true, shopName: true, avatar: true },
+        },
       },
     });
   }
@@ -243,14 +257,20 @@ export class CommissionsService {
     return proposal;
   }
 
-  async chooseProposal(commissionId: string, proposalId: string, customerId: string) {
+  async chooseProposal(
+    commissionId: string,
+    proposalId: string,
+    customerId: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const post = await tx.commissionPost.findUnique({
         where: { id: commissionId },
       });
       if (!post) throw new NotFoundException('Commission post not found');
       if (post.customerId !== customerId) {
-        throw new ForbiddenException('Cannot choose proposal for this commission');
+        throw new ForbiddenException(
+          'Cannot choose proposal for this commission',
+        );
       }
       if (post.status !== CommissionPostStatus.OPEN) {
         throw new BadRequestException('Commission is no longer open');

@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface ProductImage {
   url: string;
@@ -38,7 +38,7 @@ export function ProductGallery({
     <div className="lg:col-span-7 grid grid-cols-2 gap-4 h-max">
       <div className="col-span-2 overflow-hidden rounded-xl bg-surface-container-low shadow-sm group">
         <div className="w-full h-[600px] relative">
-          <Image
+          <SafeImage
             src={resolveImageUrl(mainImage.url)}
             alt={`${productName} - Main View`}
             fill
@@ -53,7 +53,7 @@ export function ProductGallery({
           key={idx}
           className="rounded-xl overflow-hidden h-64 relative group bg-surface-container-low"
         >
-          <Image
+          <SafeImage
             src={resolveImageUrl(img.url)}
             alt={`${productName} - Detail ${idx + 1}`}
             fill

@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -31,11 +32,13 @@ import {
   MarketplaceLedgerEntryType,
   RefundStatus,
   FlashSaleState,
+  NotificationType,
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
 import { SettingsService } from '../settings/settings.service';
 import { RewardsService } from '../rewards/rewards.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const SHIPPING_FEE = 25000;
 const CURRENCY = 'vnd';
@@ -212,6 +215,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     private readonly cartService: CartService,
     private readonly settingsService: SettingsService,
     private readonly rewardsService: RewardsService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   onModuleInit() {
@@ -403,7 +408,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       expectedFingerprint: checkoutFingerprint,
       shippingAddressHash: this.hashCheckoutValue(shippingAddress),
       currentCartItems:
-        currentCartItemsForProvidedKey ?? this.getCartComparisonItems(cart.items),
+        currentCartItemsForProvidedKey ??
+        this.getCartComparisonItems(cart.items),
     };
 
     const reusableCheckout = await this.findReusableCheckoutResponse(
@@ -442,6 +448,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         }
         throw error;
       }
+
+      await this.notifyOrderCreated(order.id);
 
       return {
         orderId: order.id,
@@ -499,6 +507,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       voucherCode: checkoutCart.appliedVoucher?.code || '',
       rewardPointsRedeemed: String(rewardRedemption.points),
     });
+
+    await this.notifyOrderCreated(order.id);
 
     return {
       clientSecret: paymentIntent.client_secret as string,
@@ -716,7 +726,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       ...(rewardPointsRedeemed > 0 || rewardDiscountAmount > 0
         ? { rewardPointsRedeemed, rewardDiscountAmount }
         : {}),
-      shippingAddressHash: this.hashCheckoutValue(order.shippingAddress ?? null),
+      shippingAddressHash: this.hashCheckoutValue(
+        order.shippingAddress ?? null,
+      ),
       items: this.getExistingOrderFingerprintItems(order),
     });
   }
@@ -932,7 +944,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       discountAmount: this.roundMoney(
         Number(cart.discountAmount) + rewardDiscountAmount,
       ),
-      total: this.roundMoney(Math.max(0, Number(cart.total) - rewardDiscountAmount)),
+      total: this.roundMoney(
+        Math.max(0, Number(cart.total) - rewardDiscountAmount),
+      ),
     };
   }
 
@@ -1365,6 +1379,163 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         }),
       });
     }
+  }
+
+  private async notifyOrderCreated(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        customerId: true,
+        totalAmount: true,
+        subOrders: {
+          select: {
+            id: true,
+            sellerId: true,
+            subTotal: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return;
+    }
+
+    if (!this.notificationsService) {
+      return;
+    }
+    const notificationsService = this.notificationsService;
+
+    await notificationsService.safeCreateForUser({
+      userId: order.customerId,
+      type: NotificationType.ORDER_CREATED,
+      title: 'Đặt hàng thành công',
+      message: `Đơn hàng #${order.id.slice(0, 8).toUpperCase()} đã được tạo thành công.`,
+      link: `/profile/orders/${order.id}`,
+      metadata: {
+        orderId: order.id,
+        totalAmount: Number(order.totalAmount),
+      },
+      dedupeKey: `order:${order.id}:created:customer:${order.customerId}`,
+    });
+
+    await Promise.all(
+      order.subOrders.map((subOrder) =>
+        notificationsService.safeCreateForUser({
+          userId: subOrder.sellerId,
+          type: NotificationType.ORDER_CREATED,
+          title: 'Có đơn hàng mới',
+          message: `Shop của bạn có kiện hàng mới từ đơn #${order.id.slice(0, 8).toUpperCase()}.`,
+          link: '/dashboard/orders',
+          metadata: {
+            orderId: order.id,
+            subOrderId: subOrder.id,
+            subTotal: Number(subOrder.subTotal),
+          },
+          dedupeKey: `suborder:${subOrder.id}:created:seller:${subOrder.sellerId}`,
+        }),
+      ),
+    );
+  }
+
+  private async notifySubOrderStatusChanged(params: {
+    orderId: string;
+    subOrderId: string;
+    sellerId: string;
+    customerId: string;
+    status: OrderStatus;
+    notifySeller?: boolean;
+  }) {
+    if (!this.notificationsService) {
+      return;
+    }
+    const notificationsService = this.notificationsService;
+
+    const type =
+      params.status === OrderStatus.CANCELLED
+        ? NotificationType.ORDER_CANCELLED
+        : NotificationType.ORDER_STATUS_UPDATED;
+    const orderCode = params.orderId.slice(0, 8).toUpperCase();
+    const statusLabel = this.getOrderStatusLabel(params.status);
+
+    await notificationsService.safeCreateForUser({
+      userId: params.customerId,
+      type,
+      title:
+        params.status === OrderStatus.CANCELLED
+          ? 'Đơn hàng đã bị hủy'
+          : 'Đơn hàng đã cập nhật trạng thái',
+      message: `Kiện hàng trong đơn #${orderCode} hiện là "${statusLabel}".`,
+      link: `/profile/orders/${params.orderId}`,
+      metadata: {
+        orderId: params.orderId,
+        subOrderId: params.subOrderId,
+        status: params.status,
+      },
+      dedupeKey: `suborder:${params.subOrderId}:status:${params.status}:user:${params.customerId}`,
+    });
+
+    if (params.notifySeller) {
+      await notificationsService.safeCreateForUser({
+        userId: params.sellerId,
+        type,
+        title:
+          params.status === OrderStatus.CANCELLED
+            ? 'Kiện hàng đã bị hủy'
+            : 'Kiện hàng đã cập nhật trạng thái',
+        message: `Kiện hàng #${params.subOrderId.slice(0, 8).toUpperCase()} trong đơn #${orderCode} hiện là "${statusLabel}".`,
+        link: '/dashboard/orders',
+        metadata: {
+          orderId: params.orderId,
+          subOrderId: params.subOrderId,
+          status: params.status,
+        },
+        dedupeKey: `suborder:${params.subOrderId}:status:${params.status}:user:${params.sellerId}`,
+      });
+    }
+  }
+
+  private async notifyOrderCancelledByCustomer(order: {
+    id: string;
+    customerId: string;
+    subOrders: Array<{ id: string; sellerId: string }>;
+  }) {
+    if (!this.notificationsService) {
+      return;
+    }
+    const notificationsService = this.notificationsService;
+
+    await Promise.all(
+      order.subOrders.map((subOrder) =>
+        notificationsService.safeCreateForUser({
+          userId: subOrder.sellerId,
+          type: NotificationType.ORDER_CANCELLED,
+          title: 'Khách đã hủy đơn hàng',
+          message: `Đơn #${order.id.slice(0, 8).toUpperCase()} có kiện hàng của shop đã bị khách hủy.`,
+          link: '/dashboard/orders',
+          metadata: {
+            orderId: order.id,
+            subOrderId: subOrder.id,
+            customerId: order.customerId,
+          },
+          dedupeKey: `suborder:${subOrder.id}:cancelled:seller:${subOrder.sellerId}`,
+        }),
+      ),
+    );
+  }
+
+  private getOrderStatusLabel(status: OrderStatus) {
+    const labels: Record<OrderStatus, string> = {
+      PENDING: 'Chờ xác nhận',
+      PAID: 'Đã thanh toán',
+      PROCESSING: 'Đang xử lý',
+      SHIPPED: 'Đang giao',
+      DELIVERED: 'Đã giao',
+      CANCELLED: 'Đã hủy',
+    };
+
+    return labels[status] ?? status;
   }
 
   private isDiscountedFlashSaleSnapshot(
@@ -2365,7 +2536,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       ? await this.refundOrder(orderId, { reason: 'Customer cancellation' })
       : null;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await this.cancelSubOrdersAndRestoreStock(
         tx,
         order.subOrders,
@@ -2397,6 +2568,17 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         refundRequired: false,
       };
     });
+
+    await this.notifyOrderCancelledByCustomer({
+      id: order.id,
+      customerId: order.customerId,
+      subOrders: order.subOrders.map((subOrder) => ({
+        id: subOrder.id,
+        sellerId: subOrder.sellerId,
+      })),
+    });
+
+    return result;
   }
 
   async updateSubOrderStatus(
@@ -2441,7 +2623,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedSubOrder = await this.prisma.$transaction(async (tx) => {
       if (status === OrderStatus.CANCELLED) {
         const cancelled = await tx.subOrder.updateMany({
           where: {
@@ -2453,9 +2635,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
         if (cancelled.count === 1) {
           await this.restoreSubOrderStock(tx, subOrder.items);
-          if (
-            this.shouldReleaseFlashSaleReservationsForOrder(subOrder.order)
-          ) {
+          if (this.shouldReleaseFlashSaleReservationsForOrder(subOrder.order)) {
             await this.releaseFlashSaleReservations(
               tx,
               subOrder.orderId,
@@ -2480,6 +2660,17 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       await this.syncMasterOrderStatus(tx, subOrder.orderId);
       return updated;
     });
+
+    await this.notifySubOrderStatusChanged({
+      orderId: subOrder.orderId,
+      subOrderId: subOrder.id,
+      sellerId: subOrder.sellerId,
+      customerId: subOrder.order.customerId,
+      status,
+      notifySeller: this.isAdmin(roles) && subOrder.sellerId !== actorId,
+    });
+
+    return updatedSubOrder;
   }
 
   async updateAdminOrderStatus(orderId: string, status: OrderStatus) {
@@ -2524,7 +2715,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       await this.refundOrder(orderId, { reason: 'Admin cancellation' });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       if (status === OrderStatus.CANCELLED) {
         await this.cancelSubOrdersAndRestoreStock(
           tx,
@@ -2552,6 +2743,21 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       return updatedOrder ? this.attachFinancialSummary(updatedOrder) : null;
     });
+
+    await Promise.all(
+      updatableSubOrders.map((subOrder) =>
+        this.notifySubOrderStatusChanged({
+          orderId,
+          subOrderId: subOrder.id,
+          sellerId: subOrder.sellerId,
+          customerId: order.customerId,
+          status,
+          notifySeller: true,
+        }),
+      ),
+    );
+
+    return result;
   }
 
   async confirmPayment(userId: string, paymentIntentId: string) {

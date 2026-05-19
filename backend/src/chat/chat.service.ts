@@ -3,12 +3,16 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
+  CategoryStatus,
   ChatMessageType,
   CustomOrderStatus,
+  NotificationType,
   PaymentStatus,
   Prisma,
+  ProductStatus,
   UserStatus,
 } from '@prisma/client';
 import { promises as fs } from 'fs';
@@ -22,6 +26,7 @@ import {
   createImageFileName,
   validateImageFile,
 } from '../common/utils/image-upload';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const CHAT_USER_SELECT = {
   id: true,
@@ -150,9 +155,19 @@ export interface CursorListResponse<T> {
   nextCursor: string | null;
 }
 
+export interface ChatReadStateDto {
+  conversationId: string;
+  lastReadAt: Date | null;
+  changed: boolean;
+}
+
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
+  ) {}
 
   async startConversation(
     currentUserId: string,
@@ -296,6 +311,8 @@ export class ChatService {
       conversationId,
       currentUserId,
     );
+    await this.assertConversationCanReceiveMessage(conversation);
+
     const text = dto.text.trim();
     if (!text) {
       throw new BadRequestException('Message text is required');
@@ -354,6 +371,7 @@ export class ChatService {
       conversationId,
       currentUserId,
     );
+    await this.assertConversationCanReceiveMessage(conversation);
 
     const trimmedCaption = caption?.trim();
     const filePath = await this.persistImageFile(conversation.id, file);
@@ -410,6 +428,14 @@ export class ChatService {
     conversationId: string,
     dto: SendCustomOrderQuoteDto,
   ): Promise<ChatMessageDto> {
+    let quoteNotification: {
+      customerId: string;
+      sellerId: string;
+      conversationId: string;
+      customOrderId: string;
+      title: string;
+    } | null = null;
+
     const result = await this.prisma.$transaction(async (tx) => {
       const conversation = await tx.chatConversation.findUnique({
         where: { id: conversationId },
@@ -417,6 +443,7 @@ export class ChatService {
           id: true,
           customerId: true,
           sellerId: true,
+          contextProductId: true,
         },
       });
 
@@ -429,6 +456,8 @@ export class ChatService {
           'Only the seller can send custom order quotes',
         );
       }
+
+      await this.assertConversationCanReceiveMessage(conversation, tx);
 
       const customer = await tx.user.findFirst({
         where: {
@@ -478,6 +507,13 @@ export class ChatService {
         },
         select: { id: true },
       });
+      quoteNotification = {
+        customerId: conversation.customerId,
+        sellerId: currentUserId,
+        conversationId: conversation.id,
+        customOrderId: customOrder.id,
+        title: quote.title,
+      };
 
       const created = await tx.chatMessage.create({
         data: {
@@ -522,12 +558,88 @@ export class ChatService {
       return created;
     });
 
+    if (quoteNotification) {
+      await this.notifyCustomQuoteSent(quoteNotification);
+    }
+
     return this.mapMessage(result);
   }
 
-  async markConversationRead(currentUserId: string, conversationId: string) {
-    await this.getConversationForParticipant(conversationId, currentUserId);
-    const now = new Date();
+  private async notifyCustomQuoteSent(params: {
+    customerId: string;
+    sellerId: string;
+    conversationId: string;
+    customOrderId: string;
+    title: string;
+  }) {
+    await this.notificationsService?.safeCreateForUser({
+      userId: params.customerId,
+      type: NotificationType.CUSTOM_QUOTE_SENT,
+      title: 'Bạn nhận được báo giá mới',
+      message: `Seller đã gửi báo giá cho "${params.title}".`,
+      link: `/custom-orders/${params.customOrderId}/review`,
+      metadata: {
+        customOrderId: params.customOrderId,
+        conversationId: params.conversationId,
+        sellerId: params.sellerId,
+      },
+      dedupeKey: `custom-order:${params.customOrderId}:quote-sent:customer:${params.customerId}`,
+    });
+  }
+
+  async markConversationRead(
+    currentUserId: string,
+    conversationId: string,
+  ): Promise<ChatReadStateDto> {
+    const conversation = await this.prisma.chatConversation.findUnique({
+      where: { id: conversationId },
+      select: {
+        id: true,
+        customerId: true,
+        sellerId: true,
+        messages: {
+          where: {
+            senderId: {
+              not: currentUserId,
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { createdAt: true },
+        },
+        readStates: {
+          where: { userId: currentUserId },
+          select: { lastReadAt: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException('Conversation not found');
+    }
+
+    if (
+      conversation.customerId !== currentUserId &&
+      conversation.sellerId !== currentUserId
+    ) {
+      throw new ForbiddenException('You cannot access this conversation');
+    }
+
+    const latestIncomingMessageAt = conversation.messages[0]?.createdAt ?? null;
+    const currentLastReadAt = conversation.readStates[0]?.lastReadAt ?? null;
+
+    if (
+      !latestIncomingMessageAt ||
+      (currentLastReadAt &&
+        currentLastReadAt.getTime() >= latestIncomingMessageAt.getTime())
+    ) {
+      return {
+        conversationId,
+        lastReadAt: currentLastReadAt,
+        changed: false,
+      };
+    }
 
     const readState = await this.prisma.chatConversationReadState.upsert({
       where: {
@@ -537,18 +649,19 @@ export class ChatService {
         },
       },
       update: {
-        lastReadAt: now,
+        lastReadAt: latestIncomingMessageAt,
       },
       create: {
         conversationId,
         userId: currentUserId,
-        lastReadAt: now,
+        lastReadAt: latestIncomingMessageAt,
       },
     });
 
     return {
       conversationId,
       lastReadAt: readState.lastReadAt,
+      changed: true,
     };
   }
 
@@ -638,6 +751,7 @@ export class ChatService {
         id: true,
         customerId: true,
         sellerId: true,
+        contextProductId: true,
       },
     });
 
@@ -887,17 +1001,21 @@ export class ChatService {
     return parsed;
   }
 
-  private async validateSeller(sellerId: string) {
-    const seller = await this.prisma.user.findUnique({
+  private async validateSeller(
+    sellerId: string,
+    tx: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const seller = await tx.user.findUnique({
       where: { id: sellerId },
       select: {
         id: true,
         roles: true,
+        status: true,
         deletedAt: true,
       },
     });
 
-    if (!seller || seller.deletedAt) {
+    if (!seller || seller.deletedAt || seller.status !== UserStatus.ACTIVE) {
       throw new NotFoundException('Seller not found');
     }
 
@@ -906,12 +1024,21 @@ export class ChatService {
     }
   }
 
-  private async validateProductContext(productId: string, sellerId: string) {
-    const product = await this.prisma.product.findFirst({
+  private async validateProductContext(
+    productId: string,
+    sellerId: string,
+    tx: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const product = await tx.product.findFirst({
       where: {
         id: productId,
         sellerId,
         deletedAt: null,
+        status: ProductStatus.APPROVED,
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
       },
       select: {
         id: true,
@@ -925,6 +1052,21 @@ export class ChatService {
     }
 
     return product.id;
+  }
+
+  private async assertConversationCanReceiveMessage(
+    conversation: { sellerId: string; contextProductId?: string | null },
+    tx: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    await this.validateSeller(conversation.sellerId, tx);
+
+    if (conversation.contextProductId) {
+      await this.validateProductContext(
+        conversation.contextProductId,
+        conversation.sellerId,
+        tx,
+      );
+    }
   }
 
   private async ensureReadState(conversationId: string, userId: string) {

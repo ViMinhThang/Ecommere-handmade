@@ -150,7 +150,9 @@ describe('UsersController', () => {
     it('should deny non-admin user from fetching another user profile', async () => {
       const request = createRequest('1');
 
-      expect(() => controller.findOne(request, '2')).toThrow(ForbiddenException);
+      expect(() => controller.findOne(request, '2')).toThrow(
+        ForbiddenException,
+      );
       expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });
 

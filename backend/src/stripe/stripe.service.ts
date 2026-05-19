@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   InternalServerErrorException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -68,24 +69,47 @@ type StripeClient = {
 
 @Injectable()
 export class StripeService {
-  private stripe: StripeClient;
+  private stripe?: StripeClient;
   private readonly logger = new Logger(StripeService.name);
 
   constructor(private configService: ConfigService) {
-    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    const secretKey = this.configService
+      .get<string>('STRIPE_SECRET_KEY')
+      ?.trim();
 
-    if (!secretKey || secretKey === '') {
-      this.logger.error(
-        'STRIPE_SECRET_KEY is missing. Stripe will not function correctly.',
+    if (!this.hasUsableStripeSecret(secretKey)) {
+      this.logger.warn(
+        'Stripe is not configured. COD checkout remains available locally.',
       );
-      throw new InternalServerErrorException(
-        'STRIPE_SECRET_KEY configuration is missing',
-      );
+      return;
     }
 
     this.stripe = new Stripe(secretKey, {
       apiVersion: '2026-03-25.dahlia',
     }) as unknown as StripeClient;
+  }
+
+  private hasUsableStripeSecret(secretKey?: string): secretKey is string {
+    if (!secretKey) {
+      return false;
+    }
+
+    const normalized = secretKey.toLowerCase();
+    return (
+      !normalized.includes('replace') &&
+      !normalized.includes('your_') &&
+      !normalized.includes('your-')
+    );
+  }
+
+  private getStripeClient() {
+    if (!this.stripe) {
+      throw new ServiceUnavailableException(
+        'Stripe is not configured. Use COD checkout or set STRIPE_SECRET_KEY.',
+      );
+    }
+
+    return this.stripe;
   }
 
   private getErrorMessage(error: unknown) {
@@ -98,7 +122,7 @@ export class StripeService {
     metadata?: Record<string, string>,
   ) {
     try {
-      const paymentIntent = await this.stripe.paymentIntents.create({
+      const paymentIntent = await this.getStripeClient().paymentIntents.create({
         amount,
         currency,
         metadata,
@@ -120,9 +144,12 @@ export class StripeService {
     metadata: Record<string, string>,
   ) {
     try {
-      return await this.stripe.paymentIntents.update(paymentIntentId, {
-        metadata,
-      });
+      return await this.getStripeClient().paymentIntents.update(
+        paymentIntentId,
+        {
+          metadata,
+        },
+      );
     } catch (error: unknown) {
       this.logger.error(
         `Error updating PaymentIntent metadata: ${this.getErrorMessage(error)}`,
@@ -137,7 +164,9 @@ export class StripeService {
     paymentIntentId: string,
   ): Promise<StripePaymentIntent> {
     try {
-      return await this.stripe.paymentIntents.retrieve(paymentIntentId);
+      return await this.getStripeClient().paymentIntents.retrieve(
+        paymentIntentId,
+      );
     } catch (error: unknown) {
       this.logger.error(
         `Error retrieving PaymentIntent: ${this.getErrorMessage(error)}`,
@@ -147,6 +176,13 @@ export class StripeService {
   }
 
   async cancelPaymentIntent(paymentIntentId: string) {
+    if (!this.stripe) {
+      this.logger.warn(
+        'Skip cancelling PaymentIntent because Stripe is not configured.',
+      );
+      return null;
+    }
+
     try {
       const intent = await this.retrievePaymentIntent(paymentIntentId);
       if (['canceled', 'succeeded'].includes(intent.status)) {
@@ -169,7 +205,7 @@ export class StripeService {
     idempotencyKey?: string,
   ) {
     try {
-      return await this.stripe.refunds.create(
+      return await this.getStripeClient().refunds.create(
         {
           payment_intent: paymentIntentId,
           amount,
@@ -201,19 +237,16 @@ export class StripeService {
     payload: Buffer,
     signature: string,
   ): StripeWebhookEvent {
+    const stripe = this.getStripeClient();
     const webhookSecret = this.configService.get<string>(
       'STRIPE_WEBHOOK_SECRET',
     );
     if (!webhookSecret) {
-      throw new InternalServerErrorException(
+      throw new ServiceUnavailableException(
         'STRIPE_WEBHOOK_SECRET configuration is missing',
       );
     }
 
-    return this.stripe.webhooks.constructEvent(
-      payload,
-      signature,
-      webhookSecret,
-    );
+    return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   }
 }

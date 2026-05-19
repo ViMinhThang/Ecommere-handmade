@@ -55,10 +55,7 @@ export class AuthController {
 
   @Post('register')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  async register(
-    @Body() registerDto: RegisterDto,
-    @Req() req: ExpressRequest,
-  ) {
+  async register(@Body() registerDto: RegisterDto, @Req() req: ExpressRequest) {
     try {
       return await this.authService.register(registerDto);
     } catch (error) {

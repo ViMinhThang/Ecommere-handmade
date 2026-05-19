@@ -45,8 +45,7 @@ export class SettingsService implements OnModuleInit {
       },
       create: {
         id: PLATFORM_SETTINGS_ID,
-        platformName:
-          data.platformName?.trim() || DEFAULT_PLATFORM_NAME,
+        platformName: data.platformName?.trim() || DEFAULT_PLATFORM_NAME,
         platformDescription:
           data.platformDescription?.trim() || DEFAULT_PLATFORM_DESCRIPTION,
         commissionBps: data.commissionBps ?? this.getEnvCommissionBps(),

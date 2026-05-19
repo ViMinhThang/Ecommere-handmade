@@ -68,6 +68,7 @@ export function ChatPanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const startedConversationKeyRef = useRef<string | null>(null);
+  const markReadRequestKeyRef = useRef<string | null>(null);
 
   const listParams = useMemo(() => ({ limit: 20 }), []);
   const { data: conversationsResponse, isLoading: isLoadingConversations } =
@@ -93,6 +94,10 @@ export function ChatPanel({
   const sendImageMutation = useSendImageMessage();
   const sendQuoteMutation = useSendCustomOrderQuote();
   const markReadMutation = useMarkConversationRead();
+  const {
+    mutate: markConversationRead,
+    isPending: isMarkingConversationRead,
+  } = markReadMutation;
 
   const selectedConversation = useMemo(
     () =>
@@ -154,13 +159,36 @@ export function ChatPanel({
     user,
   ]);
 
+  const activeUnreadCount = selectedConversation?.unreadCount ?? 0;
+  const activeLastMessageId = selectedConversation?.lastMessage?.id ?? "";
+
   useEffect(() => {
-    if (!activeConversationId) {
+    if (
+      !activeConversationId ||
+      activeUnreadCount <= 0 ||
+      isMarkingConversationRead
+    ) {
       return;
     }
 
-    markReadMutation.mutate(activeConversationId);
-  }, [activeConversationId, markReadMutation]);
+    const requestKey = `${activeConversationId}:${activeUnreadCount}:${activeLastMessageId}`;
+    if (markReadRequestKeyRef.current === requestKey) {
+      return;
+    }
+
+    markReadRequestKeyRef.current = requestKey;
+    markConversationRead(activeConversationId, {
+      onError: () => {
+        markReadRequestKeyRef.current = null;
+      },
+    });
+  }, [
+    activeConversationId,
+    activeLastMessageId,
+    activeUnreadCount,
+    isMarkingConversationRead,
+    markConversationRead,
+  ]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

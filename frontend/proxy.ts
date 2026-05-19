@@ -14,6 +14,38 @@ const PROTECTED_ROUTES = [
 const AUTH_ROUTES = ["/login", "/register", "/verify-otp", "/forgot-password", "/reset-password"];
 const API_ROUTE = "/api";
 
+function decodeJwtPayload(token: string | undefined) {
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) {
+      return null;
+    }
+
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    return JSON.parse(atob(padded)) as { roles?: unknown };
+  } catch {
+    return null;
+  }
+}
+
+function getAuthenticatedLandingPath(accessToken: string | undefined) {
+  const roles = decodeJwtPayload(accessToken)?.roles;
+  const roleList = Array.isArray(roles)
+    ? roles.filter((role): role is string => typeof role === "string")
+    : [];
+
+  if (roleList.includes("ROLE_ADMIN") || roleList.includes("ROLE_SELLER")) {
+    return "/dashboard";
+  }
+
+  return "/profile/settings";
+}
+
 function clearAuthCookies(response: NextResponse) {
   response.cookies.set("auth_access_token", "", { maxAge: 0, path: "/" });
   response.cookies.set("auth_refresh_token", "", { maxAge: 0, path: "/" });
@@ -94,7 +126,9 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(
+      new URL(getAuthenticatedLandingPath(accessToken), request.url),
+    );
   }
 
   return NextResponse.next();

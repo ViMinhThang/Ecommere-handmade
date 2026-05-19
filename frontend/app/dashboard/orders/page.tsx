@@ -76,12 +76,12 @@ const statusClasses: Record<string, string> = {
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: 'Cho xac nhan',
-  PAID: 'Da thanh toan',
-  PROCESSING: 'Dang xu ly',
-  SHIPPED: 'Dang giao',
-  DELIVERED: 'Da giao',
-  CANCELLED: 'Da huy',
+  PENDING: 'Chờ xác nhận',
+  PAID: 'Đã thanh toán',
+  PROCESSING: 'Đang xử lý',
+  SHIPPED: 'Đang giao',
+  DELIVERED: 'Đã giao',
+  CANCELLED: 'Đã hủy',
 }
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
@@ -90,16 +90,16 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
 }
 
 const paymentStatusLabels: Record<PaymentStatus, string> = {
-  COD_PENDING: 'COD pending',
-  UNPAID: 'Unpaid',
-  PAID: 'Paid',
-  FAILED: 'Failed',
-  PARTIALLY_REFUNDED: 'Partially refunded',
-  REFUNDED: 'Refunded',
+  COD_PENDING: 'Chờ thanh toán COD',
+  UNPAID: 'Chưa thanh toán',
+  PAID: 'Đã thanh toán',
+  FAILED: 'Thanh toán lỗi',
+  PARTIALLY_REFUNDED: 'Đã hoàn tiền một phần',
+  REFUNDED: 'Đã hoàn tiền',
 }
 
 function getCustomerName(order: Order) {
-  return order.customer?.name || 'Unknown customer'
+  return order.customer?.name || 'Khách hàng chưa rõ'
 }
 
 function getCustomerEmail(order: Order) {
@@ -241,13 +241,13 @@ export default function OrdersPage() {
         id: selectedSubOrder.id,
         status: nextStatus,
       })
-      toast.success('Cap nhat trang thai thanh cong')
+      toast.success('Cập nhật trạng thái thành công')
       setIsStatusDialogOpen(false)
     } catch (mutationError: unknown) {
       const message =
         mutationError instanceof Error
           ? mutationError.message
-          : 'Khong the cap nhat trang thai'
+          : 'Không thể cập nhật trạng thái'
       toast.error(message)
     }
   }
@@ -255,7 +255,7 @@ export default function OrdersPage() {
   const openCustomerReportDialog = (subOrder: SubOrder) => {
     const customer = subOrder.order?.customer
     if (!customer?.id) {
-      toast.error('Khong tim thay thong tin khach hang')
+      toast.error('Không tìm thấy thông tin khách hàng')
       return
     }
 
@@ -273,7 +273,7 @@ export default function OrdersPage() {
     }
 
     if (!reportReason.trim()) {
-      toast.error('Vui long nhap ly do bao cao')
+      toast.error('Vui lòng nhập lý do báo cáo')
       return
     }
 
@@ -284,11 +284,11 @@ export default function OrdersPage() {
         reason: reportReason,
         description: reportDescription || undefined,
       })
-      toast.success('Da gui bao cao khach hang')
+      toast.success('Đã gửi báo cáo khách hàng')
       setReportCustomer(null)
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Khong the gui bao cao',
+        error instanceof Error ? error.message : 'Không thể gửi báo cáo',
       )
     }
   }
@@ -297,7 +297,7 @@ export default function OrdersPage() {
     return (
       <div className="flex min-h-[320px] items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Ban khong co quyen truy cap trang quan ly don hang.
+          Bạn không có quyền truy cập trang quản lý đơn hàng.
         </p>
       </div>
     )
@@ -307,7 +307,7 @@ export default function OrdersPage() {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
-        <p className="text-sm text-muted-foreground">Dang tai du lieu don hang...</p>
+        <p className="text-sm text-muted-foreground">Đang tải dữ liệu đơn hàng...</p>
       </div>
     )
   }
@@ -316,11 +316,11 @@ export default function OrdersPage() {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
         <AlertCircle className="h-12 w-12 text-red-500/60" />
-        <h3 className="text-xl font-semibold">Khong the tai don hang</h3>
+        <h3 className="text-xl font-semibold">Không thể tải đơn hàng</h3>
         <p className="text-sm text-muted-foreground">
-          Vui long thu lai sau khi kiem tra quyen truy cap va ket noi API.
+          Vui lòng thử lại sau khi kiểm tra quyền truy cập và kết nối API.
         </p>
-        <Button onClick={() => window.location.reload()}>Thu lai</Button>
+        <Button onClick={() => window.location.reload()}>Thử lại</Button>
       </div>
     )
   }
@@ -329,12 +329,12 @@ export default function OrdersPage() {
     <div className="space-y-7">
       <div className="space-y-2">
         <h1 className="text-4xl font-semibold text-primary">
-          {isAdmin ? 'Admin orders' : 'Seller orders'}
+          {isAdmin ? 'Quản lý đơn hàng' : 'Đơn hàng của shop'}
         </h1>
         <p className="text-sm text-muted-foreground">
           {isAdmin
-            ? 'Xem, loc va kiem tra toan bo don hang he thong.'
-            : 'Theo doi cac sub-order thuoc shop cua ban.'}
+            ? 'Xem, lọc và kiểm tra toàn bộ đơn hàng hệ thống.'
+            : 'Theo dõi các kiện hàng thuộc shop của bạn.'}
         </p>
       </div>
 
@@ -342,7 +342,7 @@ export default function OrdersPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              Tong don
+              Tổng đơn
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">{stats.total}</p>
           </CardContent>
@@ -350,7 +350,7 @@ export default function OrdersPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              Pending
+              Chờ xử lý
             </p>
             <p className="mt-2 text-3xl font-bold text-amber-600">
               {stats.pending}
@@ -360,7 +360,7 @@ export default function OrdersPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              Processing
+              Đang xử lý
             </p>
             <p className="mt-2 text-3xl font-bold text-blue-600">
               {stats.processing}
@@ -370,7 +370,7 @@ export default function OrdersPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              Delivered
+              Đã giao
             </p>
             <p className="mt-2 text-3xl font-bold text-green-600">
               {stats.delivered}
@@ -382,13 +382,13 @@ export default function OrdersPage() {
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>{isAdmin ? 'Order list' : 'Sub-order list'}</CardTitle>
+            <CardTitle>{isAdmin ? 'Danh sách đơn hàng' : 'Danh sách kiện hàng'}</CardTitle>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={isAdmin ? 'Search order id...' : 'Search sub-order or customer...'}
+                placeholder={isAdmin ? 'Tìm mã đơn hàng...' : 'Tìm mã kiện hàng hoặc khách...'}
                 className="pl-9"
               />
             </div>
@@ -399,12 +399,12 @@ export default function OrdersPage() {
               <Input
                 value={customerFilter}
                 onChange={(event) => setCustomerFilter(event.target.value)}
-                placeholder="Filter customer"
+                placeholder="Lọc khách hàng"
               />
               <Input
                 value={sellerFilter}
                 onChange={(event) => setSellerFilter(event.target.value)}
-                placeholder="Filter seller"
+                placeholder="Lọc người bán"
               />
               <Select
                 value={statusFilter}
@@ -416,7 +416,7 @@ export default function OrdersPage() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All status</SelectItem>
+                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                   {ORDER_STATUS_OPTIONS.map((status) => (
                     <SelectItem key={status} value={status}>
                       {statusLabels[status]}
@@ -434,7 +434,7 @@ export default function OrdersPage() {
                   <SelectValue placeholder="Payment method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All methods</SelectItem>
+                  <SelectItem value="ALL">Tất cả phương thức</SelectItem>
                   {PAYMENT_METHOD_OPTIONS.map((paymentMethod) => (
                     <SelectItem key={paymentMethod} value={paymentMethod}>
                       {paymentMethodLabels[paymentMethod]}
@@ -452,7 +452,7 @@ export default function OrdersPage() {
                   <SelectValue placeholder="Payment status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All payment status</SelectItem>
+                  <SelectItem value="ALL">Tất cả trạng thái thanh toán</SelectItem>
                   {PAYMENT_STATUS_OPTIONS.map((paymentStatus) => (
                     <SelectItem key={paymentStatus} value={paymentStatus}>
                       {paymentStatusLabels[paymentStatus]}
@@ -468,22 +468,22 @@ export default function OrdersPage() {
             adminOrders.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground">
                 <Package className="mx-auto mb-4 h-14 w-14 opacity-20" />
-                <p>No orders match the current filters.</p>
+                <p>Không có đơn hàng khớp với bộ lọc hiện tại.</p>
               </div>
             ) : (
               <div className="overflow-hidden rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Sellers</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Payment</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
+                      <TableHead>Đơn hàng</TableHead>
+                      <TableHead>Khách hàng</TableHead>
+                      <TableHead>Người bán</TableHead>
+                      <TableHead>Số món</TableHead>
+                      <TableHead>Tổng tiền</TableHead>
+                      <TableHead>Thanh toán</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>Ngày tạo</TableHead>
+                      <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -545,20 +545,20 @@ export default function OrdersPage() {
           ) : sellerOrders.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
               <Package className="mx-auto mb-4 h-14 w-14 opacity-20" />
-              <p>Chua co sub-order nao cho shop cua ban.</p>
+              <p>Chưa có kiện hàng nào cho shop của bạn.</p>
             </div>
           ) : (
             <div className="overflow-hidden rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sub-order</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead>Kiện hàng</TableHead>
+                    <TableHead>Khách hàng</TableHead>
+                    <TableHead>Thanh toán</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Giá trị</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                    <TableHead className="text-right">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -570,7 +570,7 @@ export default function OrdersPage() {
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium">
-                            {subOrder.order?.customer?.name || 'Unknown'}
+                            {subOrder.order?.customer?.name || 'Khách hàng chưa rõ'}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {subOrder.order?.customer?.email || '-'}
@@ -612,7 +612,7 @@ export default function OrdersPage() {
                             disabled={subOrder.type === 'CUSTOM'}
                           >
                             <Flag className="mr-1 h-4 w-4" />
-                            Report
+                            Báo cáo
                           </Button>
                           <Button
                             variant="ghost"
@@ -620,7 +620,7 @@ export default function OrdersPage() {
                             onClick={() => openSellerStatusDialog(subOrder)}
                             disabled={subOrder.type === 'CUSTOM'}
                           >
-                            Update
+                            Cập nhật
                           </Button>
                           <Link
                             href={
@@ -647,9 +647,9 @@ export default function OrdersPage() {
       <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Update sub-order status</DialogTitle>
+            <DialogTitle>Cập nhật trạng thái kiện hàng</DialogTitle>
             <DialogDescription>
-              Seller chi duoc cap nhat sub-order thuoc shop cua minh.
+              Người bán chỉ được cập nhật kiện hàng thuộc shop của mình.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -658,7 +658,7 @@ export default function OrdersPage() {
               onValueChange={(value) => setNextStatus(value as ApiOrderStatus)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select status" />
+                <SelectValue placeholder="Chọn trạng thái" />
               </SelectTrigger>
               <SelectContent>
                 {ORDER_STATUS_OPTIONS.map((status) => (
@@ -674,7 +674,7 @@ export default function OrdersPage() {
               variant="outline"
               onClick={() => setIsStatusDialogOpen(false)}
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleSellerStatusUpdate}
@@ -683,10 +683,10 @@ export default function OrdersPage() {
               {updateSubOrderStatus.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving
+                  Đang lưu
                 </>
               ) : (
-                'Save'
+                'Lưu'
               )}
             </Button>
           </DialogFooter>
@@ -701,9 +701,9 @@ export default function OrdersPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Report customer</DialogTitle>
+            <DialogTitle>Báo cáo khách hàng</DialogTitle>
             <DialogDescription>
-              Gui bao cao ve {reportCustomer?.name || 'khach hang'} cho admin.
+              Gửi báo cáo về {reportCustomer?.name || 'khách hàng'} cho admin.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -711,24 +711,24 @@ export default function OrdersPage() {
               value={reportReason}
               onChange={(event) => setReportReason(event.target.value)}
               maxLength={120}
-              placeholder="Reason"
+              placeholder="Lý do"
             />
             <Input
               value={reportDescription}
               onChange={(event) => setReportDescription(event.target.value)}
               maxLength={2000}
-              placeholder="Additional detail"
+              placeholder="Mô tả thêm"
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReportCustomer(null)}>
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleSubmitCustomerReport}
               disabled={createReport.isPending}
             >
-              {createReport.isPending ? 'Sending...' : 'Send report'}
+              {createReport.isPending ? 'Đang gửi...' : 'Gửi báo cáo'}
             </Button>
           </DialogFooter>
         </DialogContent>

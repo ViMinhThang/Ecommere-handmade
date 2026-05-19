@@ -34,7 +34,8 @@ export function emitObservabilityEvent(
       const fallbackPayload: ObservabilityEventPayload = {
         event,
         timestamp: new Date().toISOString(),
-        ...(typeof details.requestId === 'string' && details.requestId.length > 0
+        ...(typeof details.requestId === 'string' &&
+        details.requestId.length > 0
           ? { requestId: details.requestId }
           : {}),
       };
@@ -115,7 +116,7 @@ function sanitizeString(value: string): string {
 }
 
 function serializeObservabilityPayload(value: unknown): string {
-  return JSON.stringify(value, (_key, itemValue) =>
+  return JSON.stringify(value, (_key, itemValue: unknown) =>
     typeof itemValue === 'bigint' ? itemValue.toString() : itemValue,
   );
 }

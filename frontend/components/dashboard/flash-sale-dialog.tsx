@@ -320,7 +320,7 @@ export function FlashSaleDialog({ open, onOpenChange, flashSale, categories, use
                   {selectedBanner && (
                     <div className="relative inline-block w-full">
                       <img
-                        src={selectedBanner.url}
+                        src={mediaApi.getImageUrl(selectedBanner.path || selectedBanner.url)}
                         alt={selectedBanner.displayName}
                         className="w-full max-h-40 object-cover rounded-lg border"
                       />

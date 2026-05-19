@@ -63,12 +63,21 @@ const statusClasses: Record<string, string> = {
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: 'Cho xac nhan',
-  PAID: 'Da thanh toan',
-  PROCESSING: 'Dang xu ly',
-  SHIPPED: 'Dang giao',
-  DELIVERED: 'Da giao',
-  CANCELLED: 'Da huy',
+  PENDING: 'Chờ xác nhận',
+  PAID: 'Đã thanh toán',
+  PROCESSING: 'Đang xử lý',
+  SHIPPED: 'Đang giao',
+  DELIVERED: 'Đã giao',
+  CANCELLED: 'Đã hủy',
+}
+
+const paymentStatusLabels: Record<PaymentStatus, string> = {
+  COD_PENDING: 'Chờ thanh toán COD',
+  UNPAID: 'Chưa thanh toán',
+  PAID: 'Đã thanh toán',
+  FAILED: 'Thanh toán lỗi',
+  PARTIALLY_REFUNDED: 'Đã hoàn tiền một phần',
+  REFUNDED: 'Đã hoàn tiền',
 }
 
 const refundablePaymentStatuses: PaymentStatus[] = [
@@ -154,6 +163,7 @@ export default function DashboardOrderDetailPage() {
     remainingRefundable > 0
   const selectedOrderStatus = nextOrderStatus ?? order?.status ?? 'PENDING'
   const selectedSubOrderStatus = nextSubOrderStatus ?? subOrder?.status ?? 'PENDING'
+  const activePaymentStatus = order?.paymentStatus || subOrder?.order?.paymentStatus
 
   const isLoading = isAdmin ? adminOrderQuery.isLoading : sellerSubOrderQuery.isLoading
   const error = isAdmin ? adminOrderQuery.error : sellerSubOrderQuery.error
@@ -168,12 +178,12 @@ export default function DashboardOrderDetailPage() {
         id: order.id,
         status: selectedOrderStatus,
       })
-      toast.success('Order status updated')
+      toast.success('Đã cập nhật trạng thái đơn hàng')
     } catch (mutationError: unknown) {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : 'Could not update order status',
+          : 'Không thể cập nhật trạng thái đơn hàng',
       )
     }
   }
@@ -188,12 +198,12 @@ export default function DashboardOrderDetailPage() {
         id: subOrder.id,
         status: selectedSubOrderStatus,
       })
-      toast.success('Sub-order status updated')
+      toast.success('Đã cập nhật trạng thái kiện hàng')
     } catch (mutationError: unknown) {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : 'Could not update sub-order status',
+          : 'Không thể cập nhật trạng thái kiện hàng',
       )
     }
   }
@@ -209,12 +219,12 @@ export default function DashboardOrderDetailPage() {
 
     try {
       await refundAdminOrder.mutateAsync({ id: order.id, data })
-      toast.success('Refund created')
+      toast.success('Đã tạo yêu cầu hoàn tiền')
     } catch (mutationError: unknown) {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : 'Could not create refund',
+          : 'Không thể tạo yêu cầu hoàn tiền',
       )
       throw mutationError
     }
@@ -224,7 +234,7 @@ export default function DashboardOrderDetailPage() {
     return (
       <div className="flex min-h-[320px] items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Ban khong co quyen truy cap trang nay.
+          Bạn không có quyền truy cập trang này.
         </p>
       </div>
     )
@@ -234,7 +244,7 @@ export default function DashboardOrderDetailPage() {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
-        <p className="text-sm text-muted-foreground">Dang tai chi tiet don hang...</p>
+        <p className="text-sm text-muted-foreground">Đang tải chi tiết đơn hàng...</p>
       </div>
     )
   }
@@ -243,11 +253,11 @@ export default function DashboardOrderDetailPage() {
     return (
       <div className="flex min-h-[360px] flex-col items-center justify-center gap-4 text-center">
         <AlertCircle className="h-12 w-12 text-red-500/60" />
-        <h2 className="text-xl font-semibold">Khong tim thay du lieu don hang</h2>
+        <h2 className="text-xl font-semibold">Không tìm thấy dữ liệu đơn hàng</h2>
         <p className="text-sm text-muted-foreground">
-          Kiem tra lai role dang nhap va ID don hang.
+          Kiểm tra lại role đăng nhập và mã đơn hàng.
         </p>
-        <Button onClick={() => router.push('/dashboard/orders')}>Quay lai</Button>
+        <Button onClick={() => router.push('/dashboard/orders')}>Quay lại</Button>
       </div>
     )
   }
@@ -256,14 +266,14 @@ export default function DashboardOrderDetailPage() {
     <div className="space-y-6">
       <Button variant="ghost" onClick={() => router.back()} className="gap-2">
         <ArrowLeft className="h-4 w-4" />
-        Back
+        Quay lại
       </Button>
 
       <Card>
         <CardHeader className="space-y-2">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <CardTitle>
-              {isAdmin ? `Order #${order?.id.slice(0, 8)}` : `Sub-order #${subOrder?.id.slice(0, 8)}`}
+              {isAdmin ? `Đơn hàng #${order?.id.slice(0, 8)}` : `Kiện hàng #${subOrder?.id.slice(0, 8)}`}
             </CardTitle>
             {canRefundOrder && (
               <Button
@@ -272,28 +282,31 @@ export default function DashboardOrderDetailPage() {
                 disabled={refundAdminOrder.isPending}
               >
                 <RotateCcw className="h-4 w-4" />
-                Refund
+                Hoàn tiền
               </Button>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <StatusBadge status={activeStatus} />
             <span>
-              Payment: {order?.paymentMethod || subOrder?.order?.paymentMethod || '-'}
+              Thanh toán: {order?.paymentMethod || subOrder?.order?.paymentMethod || '-'}
             </span>
             <span>
-              Payment status:{' '}
-              {order?.paymentStatus || subOrder?.order?.paymentStatus || '-'}
+              Trạng thái thanh toán:{' '}
+              {activePaymentStatus
+                ? paymentStatusLabels[activePaymentStatus as PaymentStatus] ||
+                  activePaymentStatus
+                : '-'}
             </span>
           </div>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Customer
+              Khách hàng
             </h3>
             <p className="font-medium">
-              {order?.customer?.name || subOrder?.order?.customer?.name || 'Unknown'}
+              {order?.customer?.name || subOrder?.order?.customer?.name || 'Khách hàng chưa rõ'}
             </p>
             <p className="text-sm text-muted-foreground">
               {order?.customer?.email || subOrder?.order?.customer?.email || '-'}
@@ -302,7 +315,7 @@ export default function DashboardOrderDetailPage() {
 
           <div className="space-y-2">
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Shipping
+              Giao hàng
             </h3>
             <p className="text-sm">
               {shippingAddress?.street || shippingAddress?.address || '-'}
@@ -328,7 +341,7 @@ export default function DashboardOrderDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Status update</CardTitle>
+            <CardTitle>Cập nhật trạng thái</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 md:flex-row md:items-center">
           <Select
@@ -343,7 +356,7 @@ export default function DashboardOrderDetailPage() {
             }}
           >
             <SelectTrigger className="md:w-72">
-              <SelectValue placeholder="Select status" />
+              <SelectValue placeholder="Chọn trạng thái" />
             </SelectTrigger>
             <SelectContent>
               {ORDER_STATUS_OPTIONS.map((status) => (
@@ -359,14 +372,14 @@ export default function DashboardOrderDetailPage() {
               onClick={handleAdminStatusUpdate}
               disabled={updateAdminOrderStatus.isPending}
             >
-              {updateAdminOrderStatus.isPending ? 'Saving...' : 'Update order'}
+              {updateAdminOrderStatus.isPending ? 'Đang lưu...' : 'Cập nhật đơn hàng'}
             </Button>
           ) : (
             <Button
               onClick={handleSellerStatusUpdate}
               disabled={updateSubOrderStatus.isPending}
             >
-              {updateSubOrderStatus.isPending ? 'Saving...' : 'Update sub-order'}
+              {updateSubOrderStatus.isPending ? 'Đang lưu...' : 'Cập nhật kiện hàng'}
             </Button>
           )}
         </CardContent>
@@ -375,7 +388,7 @@ export default function DashboardOrderDetailPage() {
       {isAdmin && order && (
         <Card>
           <CardHeader>
-            <CardTitle>Sub-orders</CardTitle>
+            <CardTitle>Kiện hàng</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-hidden rounded-md border">
@@ -383,10 +396,10 @@ export default function DashboardOrderDetailPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Seller</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Items</TableHead>
+                    <TableHead>Người bán</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Giá trị</TableHead>
+                    <TableHead>Số món</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -426,7 +439,7 @@ export default function DashboardOrderDetailPage() {
       {!isAdmin && subOrder && (
         <Card>
           <CardHeader>
-            <CardTitle>Items</CardTitle>
+            <CardTitle>Sản phẩm</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -438,7 +451,7 @@ export default function DashboardOrderDetailPage() {
                   <div>
                     <p className="font-medium">{item.product.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Qty: {item.quantity}
+                      Số lượng: {item.quantity}
                     </p>
                   </div>
                   <div className="text-right">
@@ -449,7 +462,7 @@ export default function DashboardOrderDetailPage() {
                       href={`/products/${item.product.id}`}
                       className="text-xs text-primary hover:underline"
                     >
-                      View product
+                      Xem sản phẩm
                     </Link>
                   </div>
                 </div>
@@ -467,7 +480,7 @@ export default function DashboardOrderDetailPage() {
           maxAmount={remainingRefundable}
           isSubmitting={refundAdminOrder.isPending}
           subOrders={order.subOrders}
-          title="Refund standard order"
+          title="Hoàn tiền đơn hàng thường"
         />
       )}
     </div>

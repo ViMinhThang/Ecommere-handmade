@@ -1,20 +1,35 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { X, ArrowRight, Leaf, ShoppingBag, LogIn, Tag, Ticket } from "lucide-react";
+import {
+  X,
+  ArrowRight,
+  Leaf,
+  ShoppingBag,
+  LogIn,
+  Tag,
+  Ticket,
+} from "lucide-react";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CartItemCard } from "@/components/storefront/cart-item-card";
 import { useCartContext } from "@/contexts/cart-context";
 import { useAuth } from "@/contexts/auth-context";
-import { useCartSuggestions, useAddToCart, useApplyVoucher, useRemoveVoucher, useVouchers } from "@/lib/api/hooks";
+import {
+  useCartSuggestions,
+  useAddToCart,
+  useApplyVoucher,
+  useRemoveVoucher,
+  useVouchers,
+} from "@/lib/api/hooks";
 import type { Product, ProductImage, Voucher } from "@/types";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { formatCurrency } from "@/lib/utils";
+import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -22,10 +37,7 @@ function getProductImageUrl(product: Product): string {
   const imageUrl = mainImage?.url || firstImage?.url || "";
 
   if (!imageUrl) return "";
-  if (imageUrl.startsWith("http")) return imageUrl;
-
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, "");
-  return `${apiBase}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+  return mediaApi.getImageUrl(imageUrl);
 }
 
 function SuggestionCard({ product }: { product: Product }) {
@@ -48,7 +60,7 @@ function SuggestionCard({ product }: { product: Product }) {
       <Link href={`/products/${product.id}`}>
         <div className="aspect-square mb-4 overflow-hidden rounded-md bg-accent">
           {imageUrl ? (
-            <Image
+            <SafeImage
               src={imageUrl}
               alt={product.name}
               width={300}
@@ -62,9 +74,13 @@ function SuggestionCard({ product }: { product: Product }) {
           )}
         </div>
       </Link>
-      <p className="font-sans text-sm font-semibold text-foreground truncate">{product.name}</p>
+      <p className="font-sans text-sm font-semibold text-foreground truncate">
+        {product.name}
+      </p>
       <div className="flex items-center justify-between mt-1">
-        <p className="font-sans text-xs text-primary">{formatCurrency(Number(product.price))}</p>
+        <p className="font-sans text-xs text-primary">
+          {formatCurrency(Number(product.price))}
+        </p>
         <button
           onClick={handleAdd}
           disabled={addToCart.isPending || added}
@@ -87,7 +103,8 @@ function EmptyCart() {
         Giỏ hàng của bạn đang trống
       </h2>
       <p className="text-muted-foreground max-w-md mb-10 font-body">
-        Có vẻ như bạn vẫn chưa tìm thấy kho báu tiếp theo của mình. Hãy khám phá các bộ sưu tập của chúng tôi để tìm thấy điều gì đó phi thường.
+        Có vẻ như bạn vẫn chưa tìm thấy kho báu tiếp theo của mình. Hãy khám phá
+        các bộ sưu tập của chúng tôi để tìm thấy điều gì đó phi thường.
       </p>
       <Link
         href="/"
@@ -110,7 +127,8 @@ function LoginPrompt() {
         Đăng nhập để xem giỏ hàng
       </h2>
       <p className="text-muted-foreground max-w-md mb-10 font-body">
-        Đăng nhập vào tài khoản của bạn để truy cập giỏ hàng và tiếp tục trải nghiệm mua sắm của bạn.
+        Đăng nhập vào tài khoản của bạn để truy cập giỏ hàng và tiếp tục trải
+        nghiệm mua sắm của bạn.
       </p>
       <Link
         href="/login?redirect=/cart"
@@ -126,8 +144,18 @@ function LoginPrompt() {
 export default function CartPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { items, subtotal, total, isLoading, appliedVoucher, updateQuantity, removeItem } = useCartContext();
-  const { data: suggestions } = useCartSuggestions(isAuthenticated && items.length > 0);
+  const {
+    items,
+    subtotal,
+    total,
+    isLoading,
+    appliedVoucher,
+    updateQuantity,
+    removeItem,
+  } = useCartContext();
+  const { data: suggestions } = useCartSuggestions(
+    isAuthenticated && items.length > 0,
+  );
   const { data: allVouchersData } = useVouchers({ limit: 50 });
   const [voucherCode, setVoucherCode] = useState("");
   const applyVoucherMutation = useApplyVoucher();
@@ -164,19 +192,22 @@ export default function CartPage() {
 
   const applicableVouchers = useMemo(() => {
     if (!allVouchersData || items.length === 0) return [];
-    
+
     // Extract unique category IDs from cart items
-    const cartCategoryIds = new Set(items.map(item => item.product.categoryId));
-    
+    const cartCategoryIds = new Set(
+      items.map((item) => item.product.categoryId),
+    );
+
     const vouchers = Array.isArray(allVouchersData)
       ? allVouchersData
       : ((allVouchersData as { data?: Voucher[] } | undefined)?.data ?? []);
 
     // Filter vouchers where categoryId matches any in cart
-    return vouchers.filter((v: Voucher) => 
-      v.isActive && 
-      new Date(v.endDate) > new Date() &&
-      cartCategoryIds.has(v.categoryId)
+    return vouchers.filter(
+      (v: Voucher) =>
+        v.isActive &&
+        new Date(v.endDate) > new Date() &&
+        cartCategoryIds.has(v.categoryId),
     );
   }, [allVouchersData, items]);
 
@@ -240,7 +271,9 @@ export default function CartPage() {
                 <div className="space-y-6 mb-10">
                   <div className="flex justify-between items-center text-muted-foreground border-b border-border/10 pb-4">
                     <span className="font-sans">Tạm tính</span>
-                    <span className="font-sans font-semibold">{formatCurrency(subtotal)}</span>
+                    <span className="font-sans font-semibold">
+                      {formatCurrency(subtotal)}
+                    </span>
                   </div>
 
                   {/* Voucher Section */}
@@ -249,7 +282,7 @@ export default function CartPage() {
                       <Ticket className="w-4 h-4 text-primary" />
                       <span>Mã giảm giá</span>
                     </div>
-                    
+
                     {!appliedVoucher ? (
                       <div className="space-y-4">
                         <div className="flex gap-2">
@@ -258,12 +291,19 @@ export default function CartPage() {
                             placeholder="Nhập mã ưu đãi"
                             className="flex-grow bg-background border border-border/40 rounded-md px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
                             value={voucherCode}
-                            onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                            onKeyDown={(e) => e.key === 'Enter' && handleApplyVoucher()}
+                            onChange={(e) =>
+                              setVoucherCode(e.target.value.toUpperCase())
+                            }
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleApplyVoucher()
+                            }
                           />
                           <button
                             onClick={() => handleApplyVoucher()}
-                            disabled={applyVoucherMutation.isPending || !voucherCode.trim()}
+                            disabled={
+                              applyVoucherMutation.isPending ||
+                              !voucherCode.trim()
+                            }
                             className="bg-primary text-primary-foreground px-6 py-3 rounded-md text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
                           >
                             {applyVoucherMutation.isPending ? "..." : "Sử dụng"}
@@ -285,12 +325,16 @@ export default function CartPage() {
                                 >
                                   <div>
                                     <div className="flex items-center gap-2">
-                                      <span className="font-sans font-bold text-primary">{v.code}</span>
+                                      <span className="font-sans font-bold text-primary">
+                                        {v.code}
+                                      </span>
                                       <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                                         {v.category?.name}
                                       </span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{v.description}</p>
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                      {v.description}
+                                    </p>
                                   </div>
                                   <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </button>
@@ -316,7 +360,9 @@ export default function CartPage() {
                           </button>
                         </div>
                         <div className="flex justify-between items-center text-primary border-t border-primary/10 pt-2">
-                          <span className="text-sm font-sans">Giảm giá đã áp dụng</span>
+                          <span className="text-sm font-sans">
+                            Giảm giá đã áp dụng
+                          </span>
                           <span className="font-sans font-bold italic">
                             - {formatCurrency(appliedVoucher.discountAmount)}
                           </span>
@@ -327,13 +373,19 @@ export default function CartPage() {
 
                   <div className="flex justify-between items-center text-muted-foreground border-t border-border/10 pt-6">
                     <span className="font-sans">Phí vận chuyển</span>
-                    <span className="font-sans font-semibold italic text-xs">Tính ở bước tiếp theo</span>
+                    <span className="font-sans font-semibold italic text-xs">
+                      Tính ở bước tiếp theo
+                    </span>
                   </div>
-                  
+
                   <div className="pt-6 border-t-2 border-border/30 flex justify-between items-end">
                     <div>
-                      <span className="text-xl font-headline font-bold text-foreground">Tổng cộng</span>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Đã bao gồm VAT</p>
+                      <span className="text-xl font-headline font-bold text-foreground">
+                        Tổng cộng
+                      </span>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
+                        Đã bao gồm VAT
+                      </p>
                     </div>
                     <span className="text-3xl font-sans font-extrabold text-primary tracking-tighter">
                       {formatCurrency(total)}
@@ -342,9 +394,10 @@ export default function CartPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <button 
+                  <button
                     onClick={() => router.push("/checkout")}
-                    className="w-full bg-primary text-primary-foreground py-5 rounded-md font-sans font-bold tracking-widest uppercase text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-3 shadow-[0_15px_30px_rgba(133,55,36,0.2)]">
+                    className="w-full bg-primary text-primary-foreground py-5 rounded-md font-sans font-bold tracking-widest uppercase text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-3 shadow-[0_15px_30px_rgba(133,55,36,0.2)]"
+                  >
                     Tiến tới Thanh toán
                     <ArrowRight className="w-5 h-5" />
                   </button>
@@ -364,7 +417,8 @@ export default function CartPage() {
                         Cam kết Bền vững
                       </p>
                       <p className="text-xs font-sans text-secondary-foreground mt-1 opacity-80 leading-relaxed italic">
-                        Mỗi đơn hàng được đóng gói bằng 100% vật liệu tự hủy và phương thức vận chuyển trung hòa carbon.
+                        Mỗi đơn hàng được đóng gói bằng 100% vật liệu tự hủy và
+                        phương thức vận chuyển trung hòa carbon.
                       </p>
                     </div>
                   </div>

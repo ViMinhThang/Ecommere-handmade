@@ -37,8 +37,6 @@ describe('AppController (e2e)', () => {
   });
 
   it('/users/:id (GET) should return 401 when unauthenticated', () => {
-    return request(app.getHttpServer())
-      .get('/users/some-user-id')
-      .expect(401);
+    return request(app.getHttpServer()).get('/users/some-user-id').expect(401);
   });
 });

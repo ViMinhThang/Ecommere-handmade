@@ -2,7 +2,6 @@
 
 import { Suspense, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   useSeller,
@@ -15,6 +14,7 @@ import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 import {
   Edit2,
   Save,
@@ -177,7 +177,7 @@ function SellerProfilePageContent() {
     }
 
     if (!reportReason.trim()) {
-      toast.error("Vui long nhap ly do bao cao.");
+      toast.error("Vui lòng nhập lý do báo cáo.");
       return;
     }
 
@@ -191,10 +191,10 @@ function SellerProfilePageContent() {
       setReportReason("");
       setReportDescription("");
       setIsReportDialogOpen(false);
-      toast.success("Da gui bao cao gian hang.");
+      toast.success("Đã gửi báo cáo gian hàng.");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Khong the gui bao cao.",
+        error instanceof Error ? error.message : "Không thể gửi báo cáo.",
       );
     }
   };
@@ -281,7 +281,7 @@ function SellerProfilePageContent() {
             <div className="relative group">
               <div className="overflow-hidden rounded-lg shadow-2xl aspect-4/5 relative bg-accent">
                 {formData.sellerHeroImage ? (
-                  <Image
+                  <SafeImage
                     src={formData.sellerHeroImage}
                     alt={seller.name}
                     fill
@@ -535,7 +535,7 @@ function SellerProfilePageContent() {
               <div className="aspect-square bg-[#e6e2dc] rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
               <div className="rounded-lg shadow-xl overflow-hidden relative aspect-square bg-accent">
                 {formData.sellerAboutImage ? (
-                  <Image
+                  <SafeImage
                     src={formData.sellerAboutImage}
                     alt="Detail of craft"
                     fill
@@ -745,7 +745,7 @@ function SellerProfilePageContent() {
                       <Link href={`/products/${product.id}`}>
                         <div className="relative overflow-hidden aspect-4/5 bg-accent mb-6 rounded-lg shadow-sm border border-primary/5">
                           {product.images?.[0] ? (
-                            <Image
+                            <SafeImage
                               src={mediaApi.getImageUrl(product.images[0].url)}
                               alt={product.name}
                               fill
@@ -753,7 +753,7 @@ function SellerProfilePageContent() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">
-                              No image
+                              Chưa có ảnh
                             </div>
                           )}
                           <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -801,9 +801,9 @@ function SellerProfilePageContent() {
       <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Bao cao gian hang</DialogTitle>
+            <DialogTitle>Báo cáo gian hàng</DialogTitle>
             <DialogDescription>
-              Gui thong tin de admin xem xet gian hang nay.
+              Gửi thông tin để admin xem xét gian hàng này.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -812,14 +812,14 @@ function SellerProfilePageContent() {
                 htmlFor="report-reason"
                 className="text-sm font-medium text-foreground"
               >
-                Ly do
+                Lý do
               </label>
               <Input
                 id="report-reason"
                 value={reportReason}
                 onChange={(event) => setReportReason(event.target.value)}
                 maxLength={120}
-                placeholder="Vi du: Thong tin gian hang gay hieu nham"
+                placeholder="Ví dụ: Thông tin gian hàng gây hiểu nhầm"
               />
             </div>
             <div className="space-y-2">
@@ -827,14 +827,14 @@ function SellerProfilePageContent() {
                 htmlFor="report-description"
                 className="text-sm font-medium text-foreground"
               >
-                Mo ta them
+                Mô tả thêm
               </label>
               <Textarea
                 id="report-description"
                 value={reportDescription}
                 onChange={(event) => setReportDescription(event.target.value)}
                 maxLength={2000}
-                placeholder="Bo sung bang chung hoac noi dung can admin kiem tra"
+                placeholder="Bổ sung bằng chứng hoặc nội dung cần admin kiểm tra"
               />
             </div>
           </div>
@@ -843,13 +843,13 @@ function SellerProfilePageContent() {
               variant="outline"
               onClick={() => setIsReportDialogOpen(false)}
             >
-              Huy
+              Hủy
             </Button>
             <Button
               onClick={handleSubmitReport}
               disabled={createReportMutation.isPending}
             >
-              {createReportMutation.isPending ? "Dang gui..." : "Gui bao cao"}
+              {createReportMutation.isPending ? "Đang gửi..." : "Gửi báo cáo"}
             </Button>
           </DialogFooter>
         </DialogContent>

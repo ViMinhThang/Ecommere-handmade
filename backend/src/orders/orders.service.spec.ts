@@ -411,8 +411,7 @@ describe('OrdersService', () => {
       return;
     }
 
-    process.env.FLASH_SALE_GUARDRAILS_ENABLED =
-      previousFlashSaleGuardrailsFlag;
+    process.env.FLASH_SALE_GUARDRAILS_ENABLED = previousFlashSaleGuardrailsFlag;
   });
 
   it('does not checkout when atomic stock decrement fails', async () => {
@@ -1029,9 +1028,7 @@ describe('OrdersService', () => {
       PaymentMethod.STRIPE,
     );
 
-    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith(
-      'pi_duplicate',
-    );
+    expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_duplicate');
     expect(result).toMatchObject({
       orderId: 'order_1',
       clientSecret: 'existing_secret',
@@ -1075,7 +1072,8 @@ describe('OrdersService', () => {
       PaymentMethod.STRIPE,
     );
 
-    const itemCreateCall = mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    const itemCreateCall =
+      mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
     expect(itemCreateCall?.data[0]).not.toHaveProperty('flashSaleId');
     expect(itemCreateCall?.data[0]).not.toHaveProperty(
       'flashSaleDiscountPercent',
@@ -1101,7 +1099,8 @@ describe('OrdersService', () => {
       PaymentMethod.STRIPE,
     );
 
-    const itemCreateCall = mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    const itemCreateCall =
+      mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
     expect(itemCreateCall?.data[0]).toMatchObject({
       flashSaleId: 'flash_sale_1',
       flashSaleDiscountPercent: 10,
@@ -1149,9 +1148,7 @@ describe('OrdersService', () => {
       expect.arrayContaining(['flash_sale_1', 'customer_1', 1, 1]),
     );
     expect(getRawSqlText(1)).toContain('INSERT INTO "FlashSaleUserUsage"');
-    expect(getRawSqlText(1)).toContain(
-      'ON CONFLICT ("flashSaleId", "userId")',
-    );
+    expect(getRawSqlText(1)).toContain('ON CONFLICT ("flashSaleId", "userId")');
     expect(getRawSqlText(1)).toContain('DO UPDATE SET');
     expect(mockPrisma.order.create).toHaveBeenCalled();
     expectNoFlashSaleCounterWrites();
@@ -1336,7 +1333,8 @@ describe('OrdersService', () => {
       PaymentMethod.STRIPE,
     );
 
-    const itemCreateCall = mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    const itemCreateCall =
+      mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
     expect(itemCreateCall?.data[0]).toMatchObject({
       flashSaleId: 'flash_sale_1',
       flashSaleDiscountPercent: 0,
@@ -1363,9 +1361,9 @@ describe('OrdersService', () => {
       PaymentMethod.STRIPE,
     );
 
-    expect(mockPrisma.product.updateMany.mock.calls.at(-1)?.[0].where.stock).toEqual(
-      { gte: 1 },
-    );
+    expect(
+      mockPrisma.product.updateMany.mock.calls.at(-1)?.[0].where.stock,
+    ).toEqual({ gte: 1 });
   });
 
   it('rejects checkout when reserveStock prevents stock decrement', async () => {
@@ -1386,9 +1384,9 @@ describe('OrdersService', () => {
       'Insufficient stock for flash sale. Please refresh your cart.',
     );
 
-    expect(mockPrisma.product.updateMany.mock.calls.at(-1)?.[0].where.stock).toEqual(
-      { gte: 6 },
-    );
+    expect(
+      mockPrisma.product.updateMany.mock.calls.at(-1)?.[0].where.stock,
+    ).toEqual({ gte: 6 });
     expect(mockStripe.cancelPaymentIntent).toHaveBeenCalledWith('pi_1');
     expect(mockPrisma.order.create).not.toHaveBeenCalled();
     expectNoFlashSaleCounterWrites();

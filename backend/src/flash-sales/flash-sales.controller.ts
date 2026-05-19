@@ -7,12 +7,14 @@ import {
   Param,
   Delete,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FlashSalesService } from './flash-sales.service';
 import { CreateFlashSaleDto } from './dto/create-flash-sale.dto';
 import { UpdateFlashSaleDto } from './dto/update-flash-sale.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 
 @Controller('flash-sales')
 export class FlashSalesController {
@@ -29,9 +31,18 @@ export class FlashSalesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('admin/all')
+  @Roles('ROLE_ADMIN')
+  findAllAdmin() {
+    return this.flashSalesService.findAll({ includeInactive: true });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.flashSalesService.findOne(id);
+  findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.flashSalesService.findOne(id, {
+      includeInactive: req.user.roles.includes('ROLE_ADMIN'),
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatConversationSummary } from "@/types";
+import { mediaApi } from "@/lib/api/media";
 import { getInitials } from "../utils";
 
 interface ChatHeaderProps {
@@ -29,7 +30,7 @@ export function ChatHeader({
         </Button>
         <Avatar className="h-9 w-9">
           <AvatarImage
-            src={selectedConversation.otherParticipant.avatar || ""}
+            src={selectedConversation.otherParticipant.avatar ? mediaApi.getImageUrl(selectedConversation.otherParticipant.avatar) : ""}
             alt={selectedConversation.otherParticipant.name}
           />
           <AvatarFallback className="text-[10px]">

@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import type {
   MarketplaceLedgerEntry,
   Order,
+  Refund,
   RefundRequest,
   SubOrder,
 } from '@/types';
@@ -68,7 +69,7 @@ export const ordersApi = {
     apiClient.get<MarketplaceLedgerEntry[]>(`/orders/admin/${id}/ledger`),
 
   refundAdminOrder: (id: string, data: RefundRequest) =>
-    apiClient.post<Order>(`/orders/admin/${id}/refunds`, data),
+    apiClient.post<Refund>(`/orders/admin/${id}/refunds`, data),
 
   updateSubOrderStatus: (id: string, status: OrderStatus) =>
     apiClient.patch<SubOrder>(`/orders/sub-order/${id}/status`, { status }),

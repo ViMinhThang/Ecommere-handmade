@@ -3,7 +3,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Search, Star, Store } from "lucide-react";
@@ -15,6 +14,7 @@ import type {
   SellerSearchResult,
   SellerSearchSortBy,
 } from "@/types";
+import { SafeImage } from "@/components/ui/safe-image";
 
 const PAGE_SIZE = 9;
 
@@ -265,7 +265,7 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
     <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-border/40 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <div className="relative aspect-[4/3] overflow-hidden bg-accent">
         {seller.avatar ? (
-          <Image
+          <SafeImage
             src={mediaApi.getImageUrl(seller.avatar)}
             alt={studioName}
             fill

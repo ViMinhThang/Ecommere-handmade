@@ -7,11 +7,11 @@ import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { formatCurrency } from "@/lib/utils";
 import { ChevronDown, X } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Suspense, useCallback, useMemo } from "react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 const PRODUCTS_PER_PAGE = 9;
 
@@ -281,7 +281,7 @@ function CategoryPageContent() {
                     <Link href={`/products/${product.id}`}>
                       <div className="relative mb-6 aspect-[4/5] overflow-hidden rounded-lg border border-border/10 bg-border/10 shadow-sm">
                         {product.images?.[0] ? (
-                          <Image
+                          <SafeImage
                             src={mediaApi.getImageUrl(product.images[0].url)}
                             alt={product.name}
                             fill
@@ -289,7 +289,7 @@ function CategoryPageContent() {
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                            No image
+                            Chưa có ảnh
                           </div>
                         )}
                         <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 transition-opacity group-hover:opacity-100">

@@ -164,4 +164,45 @@ describe('ChatController', () => {
     );
     expect(result).toEqual(message);
   });
+
+  it('should emit conversation updates only when marking read changed state', async () => {
+    const request = createRequest('customer-1');
+    const readState = {
+      conversationId: 'conv-1',
+      lastReadAt: new Date('2026-05-18T07:30:00.000Z'),
+      changed: true,
+    };
+    mockChatService.markConversationRead.mockResolvedValue(readState);
+    mockChatGateway.emitConversationUpdated.mockResolvedValue(undefined);
+
+    const result = await controller.markAsRead(request, 'conv-1');
+
+    expect(mockChatService.markConversationRead).toHaveBeenCalledWith(
+      'customer-1',
+      'conv-1',
+    );
+    expect(mockChatGateway.emitConversationUpdated).toHaveBeenCalledWith(
+      'conv-1',
+    );
+    expect(result).toEqual(readState);
+  });
+
+  it('should not emit conversation updates for no-op read markers', async () => {
+    const request = createRequest('customer-1');
+    const readState = {
+      conversationId: 'conv-1',
+      lastReadAt: new Date('2026-05-18T07:30:00.000Z'),
+      changed: false,
+    };
+    mockChatService.markConversationRead.mockResolvedValue(readState);
+
+    const result = await controller.markAsRead(request, 'conv-1');
+
+    expect(mockChatService.markConversationRead).toHaveBeenCalledWith(
+      'customer-1',
+      'conv-1',
+    );
+    expect(mockChatGateway.emitConversationUpdated).not.toHaveBeenCalled();
+    expect(result).toEqual(readState);
+  });
 });

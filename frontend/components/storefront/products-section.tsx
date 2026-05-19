@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import {
@@ -12,6 +11,8 @@ import {
 import { productsApi } from "@/lib/api/products";
 import { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 type ProductsSectionMode =
   | "latest"
@@ -173,11 +174,7 @@ function ProductCard({
 }) {
   const mainImage =
     product.images?.find((img) => img.isMain) || product.images?.[0];
-  const imageUrl = mainImage?.url
-    ? mainImage.url.startsWith("http")
-      ? mainImage.url
-      : `http://localhost:3001/uploads/${mainImage.url}`
-    : null;
+  const imageUrl = mainImage?.url ? mediaApi.getImageUrl(mainImage.url) : null;
   const isFlashSale = product.pricing && product.pricing.discountPercent > 0;
   const metricLabel =
     mode === "best-selling"
@@ -192,7 +189,7 @@ function ProductCard({
     <Link href={`/products/${product.id}`} className="group block">
       <div className="relative mb-6 aspect-[3/4] overflow-hidden rounded-xl border border-border/20 bg-accent shadow-sm">
         {imageUrl ? (
-          <Image
+          <SafeImage
             src={imageUrl}
             alt={product.name}
             fill

@@ -67,7 +67,10 @@ export class StripeWebhookController {
       const payload = Buffer.isBuffer(req.body)
         ? req.body
         : Buffer.from(JSON.stringify(req.body));
-      const event = this.stripeService.constructWebhookEvent(payload, signature);
+      const event = this.stripeService.constructWebhookEvent(
+        payload,
+        signature,
+      );
 
       const paymentIntentId = this.extractPaymentIntentId(event.data.object);
       emitObservabilityEvent(this.logger, 'log', 'payment_webhook_received', {
@@ -128,9 +131,9 @@ export class StripeWebhookController {
         eventType: event.type,
         paymentIntentId,
         processed: Boolean(result.processed),
-        reason:
-          typeof result.reason === 'string' ? result.reason : 'processed',
-        orderId: typeof result.orderId === 'string' ? result.orderId : undefined,
+        reason: typeof result.reason === 'string' ? result.reason : 'processed',
+        orderId:
+          typeof result.orderId === 'string' ? result.orderId : undefined,
         customOrderId:
           typeof result.customOrderId === 'string'
             ? result.customOrderId

@@ -303,13 +303,13 @@ export function RefundDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="refund-amount">Amount</Label>
+            <Label htmlFor="refund-amount">Số tiền</Label>
             <Input
               id="refund-amount"
               inputMode="numeric"
               min={1}
               max={maxAmount}
-              placeholder="Blank for full refundable balance"
+              placeholder="Để trống để hoàn toàn bộ số tiền còn lại"
               type="number"
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
@@ -317,12 +317,12 @@ export function RefundDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="refund-reason">Reason</Label>
+            <Label htmlFor="refund-reason">Lý do</Label>
             <Textarea
               id="refund-reason"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Customer support note"
+              placeholder="Ghi chú xử lý cho khách hàng"
             />
           </div>
 
@@ -334,7 +334,7 @@ export function RefundDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               type="submit"
@@ -342,7 +342,7 @@ export function RefundDialog({
               disabled={isSubmitting || maxAmount <= 0}
             >
               <RotateCcw className="h-4 w-4" />
-              {isSubmitting ? "Refunding..." : "Create refund"}
+              {isSubmitting ? "Đang hoàn tiền..." : "Tạo hoàn tiền"}
             </Button>
           </DialogFooter>
         </form>

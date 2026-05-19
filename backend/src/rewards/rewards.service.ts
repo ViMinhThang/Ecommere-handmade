@@ -31,7 +31,9 @@ export class RewardsService {
   normalizePoints(value: unknown) {
     const points = Number(value ?? 0);
     if (!Number.isInteger(points) || points < 0) {
-      throw new BadRequestException('Reward points must be a non-negative integer');
+      throw new BadRequestException(
+        'Reward points must be a non-negative integer',
+      );
     }
 
     return points;

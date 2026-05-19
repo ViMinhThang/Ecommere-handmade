@@ -70,7 +70,10 @@ export class ProductsController {
           callback(null, true);
           return;
         }
-        callback(new BadRequestException('Only image files are allowed'), false);
+        callback(
+          new BadRequestException('Only image files are allowed'),
+          false,
+        );
       },
     }),
   )

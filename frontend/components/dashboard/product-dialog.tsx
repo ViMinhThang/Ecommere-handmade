@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ImageSelector } from './image-selector'
+import { mediaApi } from '@/lib/api/media'
 
 interface ProductImageInput {
   url: string
@@ -102,9 +103,9 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const validImages = selectedImages
-      .filter(img => img.url !== '')
-      .map((img, index) => ({
-        url: img.url,
+        .filter(img => img.url !== '')
+        .map((img, index) => ({
+        url: img.path || img.url,
         isMain: index === 0 ? true : (img.isMain || false),
       }))
     
@@ -260,7 +261,7 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
                   {selectedImages
                     .map((img, idx) => (
                       <div key={img.id} className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted">
-                        <img src={img.url} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={mediaApi.getImageUrl(img.path || img.url)} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
                         {img.isMain && (
                           <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1">
                             Chính

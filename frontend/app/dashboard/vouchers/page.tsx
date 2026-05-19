@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { VoucherDialog } from '@/components/dashboard/voucher-dialog'
-import { useVouchers, useCreateVoucher, useUpdateVoucher, useDeleteVoucher, useCategories } from '@/lib/api/hooks'
+import { useAdminVouchers, useCreateVoucher, useUpdateVoucher, useDeleteVoucher, useCategories } from '@/lib/api/hooks'
 import { Voucher, Category } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Search, Plus, Pencil, Trash2, Tag } from 'lucide-react'
@@ -36,7 +36,7 @@ export default function VouchersPage() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
 
-  const { data: vouchersData, isLoading: vouchersLoading } = useVouchers({ page, limit })
+  const { data: vouchersData, isLoading: vouchersLoading } = useAdminVouchers({ page, limit })
   const { data: categoriesData } = useCategories()
   const createVoucher = useCreateVoucher()
   const updateVoucher = useUpdateVoucher()

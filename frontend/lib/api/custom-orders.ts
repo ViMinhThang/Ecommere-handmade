@@ -3,6 +3,7 @@ import type {
   FinancialSummary,
   MarketplaceLedgerEntry,
   QuoteSnapshot,
+  Refund,
   RefundRequest,
 } from '@/types';
 
@@ -95,7 +96,7 @@ export const customOrdersApi = {
     id: string,
     data: Omit<RefundRequest, 'subOrderId'>,
   ) => {
-    return apiClient.post<CustomOrder>(`/custom-orders/admin/${id}/refunds`, data);
+    return apiClient.post<Refund>(`/custom-orders/admin/${id}/refunds`, data);
   },
 
   getAdminCustomOrderLedger: (id: string) => {

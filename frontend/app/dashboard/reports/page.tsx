@@ -50,6 +50,20 @@ const statusClasses: Record<ReportStatus, string> = {
   REJECTED: 'bg-red-100 text-red-800',
 }
 
+const statusLabels: Record<ReportStatus, string> = {
+  PENDING: 'Chờ xử lý',
+  REVIEWING: 'Đang xem xét',
+  RESOLVED: 'Đã xử lý',
+  REJECTED: 'Từ chối',
+}
+
+const typeLabels: Record<ReportType, string> = {
+  SHOP: 'Gian hàng',
+  CUSTOMER: 'Khách hàng',
+  PRODUCT: 'Sản phẩm',
+  ORDER: 'Đơn hàng',
+}
+
 function targetLabel(report: Report) {
   if (report.targetUser) {
     return report.targetUser.shopName || report.targetUser.name
@@ -58,7 +72,7 @@ function targetLabel(report: Report) {
     return report.targetProduct.name
   }
   if (report.order) {
-    return `Order #${report.order.id.slice(0, 8)}`
+    return `Đơn hàng #${report.order.id.slice(0, 8)}`
   }
   return '-'
 }
@@ -102,11 +116,11 @@ export default function DashboardReportsPage() {
           adminNote: adminNote || undefined,
         },
       })
-      toast.success('Report status updated')
+      toast.success('Đã cập nhật trạng thái báo cáo')
       setSelectedReport(null)
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not update report',
+        error instanceof Error ? error.message : 'Không thể cập nhật báo cáo',
       )
     }
   }
@@ -115,7 +129,7 @@ export default function DashboardReportsPage() {
     return (
       <div className="flex min-h-[320px] items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Ban khong co quyen truy cap bao cao.
+          Bạn không có quyền truy cập báo cáo.
         </p>
       </div>
     )
@@ -124,16 +138,16 @@ export default function DashboardReportsPage() {
   return (
     <div className="space-y-7">
       <div>
-        <h1 className="text-4xl font-semibold text-primary">Reports</h1>
+        <h1 className="text-4xl font-semibold text-primary">Báo cáo</h1>
         <p className="text-sm text-muted-foreground">
-          Xem va xu ly bao cao gian hang, khach hang, san pham va don hang.
+          Xem và xử lý báo cáo gian hàng, khách hàng, sản phẩm và đơn hàng.
         </p>
       </div>
 
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>Report list</CardTitle>
+            <CardTitle>Danh sách báo cáo</CardTitle>
             <div className="flex gap-3">
               <Select
                 value={statusFilter}
@@ -142,13 +156,13 @@ export default function DashboardReportsPage() {
                 }
               >
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All status</SelectItem>
+                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                   {REPORT_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status}
+                      {statusLabels[status]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -160,13 +174,13 @@ export default function DashboardReportsPage() {
                 }
               >
                 <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Type" />
+                  <SelectValue placeholder="Loại" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All type</SelectItem>
+                  <SelectItem value="ALL">Tất cả loại</SelectItem>
                   {REPORT_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {type}
+                      {typeLabels[type]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -183,31 +197,31 @@ export default function DashboardReportsPage() {
             <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
               <AlertCircle className="h-10 w-10 text-red-500/60" />
               <p className="text-sm text-muted-foreground">
-                Khong the tai danh sach bao cao.
+                Không thể tải danh sách báo cáo.
               </p>
             </div>
           ) : reports.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
-              Chua co bao cao nao.
+              Chưa có báo cáo nào.
             </div>
           ) : (
             <div className="overflow-hidden rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Reporter</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead>Loại</TableHead>
+                    <TableHead>Người báo cáo</TableHead>
+                    <TableHead>Đối tượng</TableHead>
+                    <TableHead>Lý do</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                    <TableHead className="text-right">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {reports.map((report) => (
                     <TableRow key={report.id}>
-                      <TableCell>{report.type}</TableCell>
+                      <TableCell>{typeLabels[report.type]}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium">
@@ -231,7 +245,7 @@ export default function DashboardReportsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge className={`${statusClasses[report.status]} border-0`}>
-                          {report.status}
+                          {statusLabels[report.status]}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -243,7 +257,7 @@ export default function DashboardReportsPage() {
                           size="sm"
                           onClick={() => openStatusDialog(report)}
                         >
-                          Update
+                          Cập nhật
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -263,9 +277,9 @@ export default function DashboardReportsPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Update report</DialogTitle>
+            <DialogTitle>Cập nhật báo cáo</DialogTitle>
             <DialogDescription>
-              Chuyen trang thai va ghi chu xu ly cho bao cao.
+              Chuyển trạng thái và ghi chú xử lý cho báo cáo.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -274,12 +288,12 @@ export default function DashboardReportsPage() {
               onValueChange={(value) => setNextStatus(value as ReportStatus)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
                 {REPORT_STATUSES.map((status) => (
                   <SelectItem key={status} value={status}>
-                    {status}
+                    {statusLabels[status]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -287,18 +301,18 @@ export default function DashboardReportsPage() {
             <Textarea
               value={adminNote}
               onChange={(event) => setAdminNote(event.target.value)}
-              placeholder="Admin note"
+              placeholder="Ghi chú xử lý"
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedReport(null)}>
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleUpdateStatus}
               disabled={updateStatus.isPending}
             >
-              {updateStatus.isPending ? 'Saving...' : 'Save'}
+              {updateStatus.isPending ? 'Đang lưu...' : 'Lưu'}
             </Button>
           </DialogFooter>
         </DialogContent>

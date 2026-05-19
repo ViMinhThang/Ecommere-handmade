@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
@@ -189,13 +190,19 @@ export class ChatController {
   }
 
   @Post('conversations/:conversationId/read')
+  @SkipThrottle()
   async markAsRead(
     @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
-    await this.chatService.markConversationRead(req.user.id, conversationId);
-    await this.chatGateway.emitConversationUpdated(conversationId);
-    return { success: true };
+    const readState = await this.chatService.markConversationRead(
+      req.user.id,
+      conversationId,
+    );
+    if (readState.changed) {
+      await this.chatGateway.emitConversationUpdated(conversationId);
+    }
+    return readState;
   }
 
   @Get('unread-count')

@@ -13,6 +13,7 @@ import { useCategories, useCategoryStats, useCreateCategory, useUpdateCategory, 
 import { useAuth } from '@/contexts/auth-context'
 import { Category, CategoryStatus } from '@/types'
 import { Search, Plus, Pencil, Trash2 } from 'lucide-react'
+import { mediaApi } from '@/lib/api/media'
 
 export default function CategoriesPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -177,7 +178,7 @@ export default function CategoriesPage() {
                     <TableCell>
                       <div className="w-16 h-12 rounded-md overflow-hidden bg-muted">
                         {category.image ? (
-                          <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                          <img src={mediaApi.getImageUrl(category.image)} alt={category.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Không có ảnh</div>
                         )}

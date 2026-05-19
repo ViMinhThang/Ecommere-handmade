@@ -1,6 +1,7 @@
 import { MessageSquare, Star } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { mediaApi } from "@/lib/api/media";
 
 export interface ProductReview {
   id: string;
@@ -117,7 +118,7 @@ export function ProductReviews({
                       <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/30 bg-muted font-serif text-xl italic text-primary">
                         {review.user.avatar ? (
                           <img
-                            src={review.user.avatar}
+                            src={mediaApi.getImageUrl(review.user.avatar)}
                             alt=""
                             className="h-full w-full object-cover"
                           />
@@ -163,7 +164,7 @@ export function ProductReviews({
                             className="group/img relative h-24 w-24 overflow-hidden rounded-xl border border-border/30 shadow-sm"
                           >
                             <img
-                              src={img}
+                              src={mediaApi.getImageUrl(img)}
                               alt=""
                               className="h-full w-full object-cover transition-transform duration-300 group-hover/img:scale-105"
                             />

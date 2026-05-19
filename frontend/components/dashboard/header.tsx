@@ -1,12 +1,14 @@
 ﻿"use client"
 
 import { useRouter } from "next/navigation"
-import { Bell, LogOut, Moon, Search, Sun, User } from "lucide-react"
+import { LogOut, Moon, Search, Sun, User } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
+import { mediaApi } from "@/lib/api/media"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 
 export function Header() {
   const router = useRouter()
@@ -53,9 +55,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" className="h-9 w-9">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <NotificationBell />
 
         <Button
           variant="ghost"
@@ -68,7 +68,7 @@ export function Header() {
 
         <div className="ml-2 pl-3 border-l border-border/60 flex items-center gap-2.5">
           <Avatar className="h-8 w-8 ring-1 ring-border/50">
-            <AvatarImage src={user?.avatar || ""} />
+            <AvatarImage src={user?.avatar ? mediaApi.getImageUrl(user.avatar) : ""} />
             <AvatarFallback className="text-xs bg-muted text-muted-foreground">
               {user?.name ? getInitials(user.name) : <User className="h-4 w-4" />}
             </AvatarFallback>

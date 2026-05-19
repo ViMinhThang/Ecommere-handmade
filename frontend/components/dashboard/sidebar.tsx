@@ -31,21 +31,22 @@ export function Sidebar() {
 
   const isAdmin = user?.roles?.includes("ROLE_ADMIN")
   const isSeller = user?.roles?.includes("ROLE_SELLER")
+  const showAdvancedPaymentConsole = false
 
   const navItems = [
     { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard, show: true },
     { href: "/dashboard/new-listing", label: "Đăng sản phẩm", icon: FilePlus2, show: isAdmin || isSeller },
     { href: "/dashboard/products", label: "Sản phẩm", icon: Package, show: isAdmin || isSeller },
-    { href: "/dashboard/chat", label: "Tin nhan", icon: MessageCircle, show: isAdmin || isSeller },
+    { href: "/dashboard/chat", label: "Tin nhắn", icon: MessageCircle, show: isAdmin || isSeller },
     { href: "/dashboard/orders", label: "Đơn hàng", icon: ShoppingCart, show: isAdmin || isSeller },
-    { href: "/dashboard/payments", label: "Payment Reliability", icon: Wallet, show: isAdmin },
+    { href: "/dashboard/payments", label: "Đối soát thanh toán", icon: Wallet, show: isAdmin && showAdvancedPaymentConsole },
     { href: "/dashboard/users", label: "Người dùng", icon: Users, show: isAdmin },
     { href: "/dashboard/reports", label: "Báo cáo", icon: Flag, show: isAdmin },
     { href: "/dashboard/categories", label: "Danh mục", icon: Folder, show: isAdmin },
     { href: "/dashboard/vouchers", label: "Mã giảm giá", icon: Ticket, show: isAdmin },
-    { href: "/dashboard/flash-sales", label: "Flash Sales", icon: Zap, show: isAdmin },
+    { href: "/dashboard/flash-sales", label: "Flash sale", icon: Zap, show: isAdmin },
     { href: "/dashboard/inventory", label: "Kho hàng", icon: ClipboardList, show: isSeller },
-    { href: "/seller/commissions", label: "Commission", icon: ClipboardList, show: isSeller },
+    { href: "/seller/commissions", label: "Yêu cầu thiết kế", icon: ClipboardList, show: isSeller },
     { href: "/seller/custom-orders", label: "Thiết kế riêng", icon: PenTool, show: isSeller },
     { href: "/seller/quote-templates", label: "Mẫu báo giá", icon: FileText, show: isSeller },
     { href: "/dashboard/media", label: "Thư viện ảnh", icon: Image, show: true },
@@ -62,7 +63,7 @@ export function Sidebar() {
           <div>
             <h1 className="font-serif text-xl italic text-primary leading-none">Terra &amp; Thread</h1>
             <p className="text-[11px] uppercase tracking-[0.16em] text-sidebar-foreground/65 mt-1">
-              Master Craftsperson
+              Khu vận hành
             </p>
           </div>
         </div>
@@ -90,13 +91,15 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border/70 space-y-2.5">
-        <Link
-          href="/dashboard/new-listing"
-          className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold shadow-[0_14px_24px_-18px_rgba(133,55,36,0.65)] hover:brightness-[1.03] transition-all"
-        >
-          <FilePlus2 className="h-4 w-4" />
-          Đăng sản phẩm mới
-        </Link>
+        {(isAdmin || isSeller) && (
+          <Link
+            href="/dashboard/new-listing"
+            className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold shadow-[0_14px_24px_-18px_rgba(133,55,36,0.65)] hover:brightness-[1.03] transition-all"
+          >
+            <FilePlus2 className="h-4 w-4" />
+            Đăng sản phẩm mới
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => {
