@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
@@ -9,6 +8,7 @@ import { useProducts, useCategories } from "@/lib/api/hooks";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 export default function DiscoveryPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,7 +94,7 @@ export default function DiscoveryPage() {
                     >
                       <div className="aspect-[16/10] bg-muted rounded-none mb-6 shadow-sm group-hover:shadow-xl transition-all relative overflow-hidden ring-1 ring-border/10">
                         {products[0].images?.[0] && (
-                          <Image
+                          <SafeImage
                             src={getImageUrl(products[0].images?.[0].url)}
                             alt={products[0].name}
                             fill
@@ -140,7 +140,7 @@ export default function DiscoveryPage() {
                             className={`${ratio} bg-muted rounded-none mb-6 shadow-sm group-hover:shadow-xl transition-all relative overflow-hidden ring-1 ring-border/10`}
                           >
                             {product.images?.[0] && (
-                              <Image
+                              <SafeImage
                                 src={getImageUrl(product.images?.[0].url)}
                                 alt={product.name}
                                 fill
@@ -200,7 +200,7 @@ export default function DiscoveryPage() {
             </div>
 
             <div className="w-full md:w-1/2 lg:w-2/5 aspect-[4/3] bg-muted rounded-none shadow-2xl relative transform md:rotate-2 ring-8 ring-white/10 group overflow-hidden">
-              <Image
+              <SafeImage
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-pM_RSR2sLwKsh9MBy0y46D9y8R36t1vLwT7J_7yLzVnXR2cT_Kz4_L9fH_JmX3V_f_GvOX_z"
                 alt="Dịch vụ sản xuất riêng"
                 fill

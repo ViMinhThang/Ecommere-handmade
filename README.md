@@ -182,13 +182,18 @@ Password: admin123
 | Role | Email | Mục đích demo |
 | --- | --- | --- |
 | Admin | `admin@ecommerce.com` | Duyệt sản phẩm, xem users/orders/reports/settings |
-| Seller 1 | `seller@ecommerce.com` | Shop gốm/trang sức/gỗ, có order và custom order |
-| Seller 2 | `seller2@ecommerce.com` | Shop quà tặng/vải/nến/crochet, có order và custom order |
+| Seller 1 | `seller@ecommerce.com` | Linh Ceramic Studio, shop gốm/trang sức/decor, có order và custom order |
+| Seller 2 | `seller2@ecommerce.com` | Túi Vải Lá Xanh, shop vải/quà tặng/giấy thủ công |
+| Seller 3 | `seller3@ecommerce.com` | Mộc Nhiên Studio, shop đồ gỗ/đồ da/decor |
+| Seller 4 | `seller4@ecommerce.com` | Len Nhà Mây, shop đồ len/crochet/phụ kiện tóc |
+| Seller 5 | `seller5@ecommerce.com` | Gốm An Nhiên, shop gốm thủ công |
+| Seller 6 | `seller6@ecommerce.com` | Nến Thơm Hoa Cỏ, shop nến/xà phòng/mỹ phẩm handmade |
+| Real Importer | `ebay.importer@local.dev` và các `*.importer@local.dev` | Tài khoản local gắn ownership cho 227 sản phẩm thật từ eBay + Shopify JSON |
 | Customer 1 | `customer@ecommerce.com` | Browse/cart/checkout COD/review/chat |
 | Customer 2 | `customer2@ecommerce.com` | Order pending/shipped, question, report |
 | Customer 3 | `customer3@ecommerce.com` | Order cancelled/delivered, commission request |
 
-Seed tạo 8 category handmade, khoảng 25 sản phẩm demo có ảnh local, sản phẩm approved/pending/rejected/hết hàng, voucher `HANDMADE10`, voucher expired/inactive, cart, wishlist, order COD nhiều trạng thái, review, question, report, chat, custom order, quote template, commission và flash sale demo.
+Seed tạo 12 category handmade, 62 sản phẩm demo curated và 227 sản phẩm thật từ fixture JSON `backend/prisma/fixtures/handmade-real-products.json` lấy từ raw eBay crawl và public Shopify `products.json`. Ảnh chỉ lưu remote URL, không generate/download ảnh. Seed cũng có sản phẩm approved/pending/rejected/hết hàng, voucher `HANDMADE10`, voucher expired/inactive, cart, wishlist, order COD nhiều trạng thái, review, question, report, chat, custom order, quote template, commission, notification và flash sale demo.
 
 ## Main Demo Flow
 
@@ -248,7 +253,7 @@ cd backend
 npm run db:seed
 ```
 
-Seed sẽ tạo ảnh demo trong `backend/uploads/products`.
+Seed dùng URL ảnh demo từ `images.unsplash.com`, sản phẩm eBay từ `i.ebayimg.com`, và sản phẩm Shopify từ `cdn.shopify.com`; frontend đã allow các domain này trong `frontend/next.config.ts`. Nếu ảnh không hiển thị, kiểm tra kết nối mạng hoặc reload frontend dev server sau khi đổi `next.config.ts`.
 
 ### CORS hoặc API không gọi được
 

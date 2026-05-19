@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -18,6 +17,7 @@ import {
 import { mediaApi } from "@/lib/api/media";
 import { formatCurrency } from "@/lib/utils";
 import type { Product, ProductImage, WishlistItem } from "@/types";
+import { SafeImage } from "@/components/ui/safe-image";
 
 function getProductImageUrl(product: Product) {
   const mainImage = product.images?.find((image: ProductImage) => image.isMain);
@@ -72,7 +72,7 @@ function WishlistCard({
     <article className="group overflow-hidden rounded-xl border border-border/30 bg-white shadow-[0_15px_30px_-18px_rgba(84,67,60,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_22px_42px_-24px_rgba(84,67,60,0.24)]">
       <div className="relative aspect-[4/3] overflow-hidden bg-accent">
         {imageUrl ? (
-          <Image
+          <SafeImage
             src={imageUrl}
             alt={product.name}
             fill

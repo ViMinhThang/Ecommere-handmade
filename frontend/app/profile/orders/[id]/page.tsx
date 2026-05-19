@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { useState, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   OrderItem,
   OrderShippingAddress,
@@ -36,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SafeImage } from "@/components/ui/safe-image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -393,7 +393,7 @@ export default function OrderDetailPage() {
                 >
                   <div className="w-32 h-32 rounded-xl bg-muted overflow-hidden relative border border-border/20 shadow-sm shrink-0">
                     {productImageUrl ? (
-                      <Image
+                      <SafeImage
                         src={productImageUrl}
                         alt={item.product.name}
                         fill
@@ -532,7 +532,7 @@ export default function OrderDetailPage() {
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-full bg-muted border-2 border-primary/10 overflow-hidden relative">
                 {subOrder.seller.avatar ? (
-                  <Image
+                  <SafeImage
                     src={mediaApi.getImageUrl(subOrder.seller.avatar)}
                     alt={subOrder.seller.shopName || subOrder.seller.name}
                     fill
@@ -672,7 +672,7 @@ export default function OrderDetailPage() {
                     key={idx}
                     className="w-20 h-20 rounded-lg overflow-hidden relative border border-stone-200 shadow-sm"
                   >
-                    <Image src={mediaApi.getImageUrl(img)} alt="" fill className="object-cover" />
+                    <SafeImage src={mediaApi.getImageUrl(img)} alt="" fill className="object-cover" />
                   </div>
                 ))}
                 <button

@@ -4,10 +4,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useOrder } from "@/lib/api/hooks";
 import { mediaApi } from "@/lib/api/media";
 import { OrderItem, OrderShippingAddress, SubOrder } from "@/types";
-import Image from "next/image";
 import Link from "next/link";
 import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
+import { SafeImage } from "@/components/ui/safe-image";
 
 function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
   if (!value) {
@@ -116,7 +116,7 @@ export default function OrderConfirmationPage() {
                 <div key={`${item.id}-${idx}`} className="flex gap-8 items-start group">
                   <div className="w-24 h-24 md:w-32 md:h-32 bg-stone-300 flex-shrink-0 rounded-sm overflow-hidden relative border border-stone-200 shadow-sm">
                     {item.product.images?.[0] && (
-                      <Image 
+                      <SafeImage
                         src={mediaApi.getImageUrl(item.product.images[0].url)}
                         alt={item.product.name}
                         fill

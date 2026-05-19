@@ -9,8 +9,13 @@ Tất cả tài khoản seed local dùng password `admin123`.
 | Role | Email | Mục đích demo |
 | --- | --- | --- |
 | Admin | `admin@ecommerce.com` | Duyệt sản phẩm, quản lý đơn hàng/báo cáo/cấu hình |
-| Seller 1 | `seller@ecommerce.com` | Shop gốm/trang sức/gỗ, có order và custom order |
-| Seller 2 | `seller2@ecommerce.com` | Shop quà tặng/vải/nến/crochet, có order và custom order |
+| Seller 1 | `seller@ecommerce.com` | Linh Ceramic Studio, shop gốm/trang sức/decor, có order và custom order |
+| Seller 2 | `seller2@ecommerce.com` | Túi Vải Lá Xanh, shop vải/quà tặng/giấy thủ công |
+| Seller 3 | `seller3@ecommerce.com` | Mộc Nhiên Studio, shop đồ gỗ/đồ da/decor |
+| Seller 4 | `seller4@ecommerce.com` | Len Nhà Mây, shop đồ len/crochet/phụ kiện tóc |
+| Seller 5 | `seller5@ecommerce.com` | Gốm An Nhiên, shop gốm thủ công |
+| Seller 6 | `seller6@ecommerce.com` | Nến Thơm Hoa Cỏ, shop nến/xà phòng/mỹ phẩm handmade |
+| Real Importer | `ebay.importer@local.dev` và các `*.importer@local.dev` | Tài khoản local chứa 227 sản phẩm thật từ eBay + Shopify JSON |
 | Customer 1 | `customer@ecommerce.com` | Cart, COD checkout, order delivered, review, chat |
 | Customer 2 | `customer2@ecommerce.com` | Order pending/shipped, question, report |
 | Customer 3 | `customer3@ecommerce.com` | Order cancelled/delivered, commission request |
@@ -37,7 +42,7 @@ Account: `seller@ecommerce.com / admin123`
 
 1. Vào `/login`, đăng nhập seller.
 2. Vào `/dashboard/products`, kiểm tra sản phẩm demo của shop.
-3. Vào `/dashboard/new-listing`, tạo hoặc sửa sản phẩm demo, chọn ảnh từ thư viện ảnh seed `Ảnh demo sản phẩm` nếu cần.
+3. Vào `/dashboard/new-listing`, tạo hoặc sửa sản phẩm demo; có thể nhập URL ảnh hợp lệ hoặc chọn ảnh trong thư viện media seed nếu UI đang hiển thị.
 4. Vào `/dashboard/orders`, mở kiện hàng của shop và cập nhật trạng thái theo thứ tự hợp lệ.
 5. Vào `/seller/custom-orders`, kiểm tra đơn thiết kế riêng nếu seed/demo có dữ liệu, chuyển trạng thái `Đang chế tác -> Đang hoàn thiện -> Đang giao -> Đã giao`.
 6. Vào `/dashboard/chat` nếu cần demo trao đổi với khách hàng.
@@ -70,5 +75,5 @@ Kết quả mong đợi: customer không thấy action seller/admin, COD checkou
 - SMTP là optional local; OTP được log ra terminal backend nếu chưa cấu hình SMTP.
 - Notification MVP dùng in-app polling 30 giây, chưa cần realtime/push/email cho demo local.
 - Menu `Đối soát thanh toán` đang ẩn khỏi sidebar demo vì đây là màn hình vận hành nâng cao, không thuộc flow local MVP chính.
-- Seed có 8 category, khoảng 25 sản phẩm, order `PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED`, voucher active/expired/inactive, review, question, report, chat, custom order, quote template, commission và flash sale.
+- Seed có 12 category, 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, order `PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED`, voucher active/expired/inactive, review, question, report, chat, custom order, quote template, commission, notification và flash sale.
 - Nếu cần demo từ trạng thái sạch, chạy `cd backend && npm run db:reset` rồi đăng nhập lại bằng các account ở trên.

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   X,
@@ -30,6 +29,7 @@ import { toast } from "sonner";
 
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -60,7 +60,7 @@ function SuggestionCard({ product }: { product: Product }) {
       <Link href={`/products/${product.id}`}>
         <div className="aspect-square mb-4 overflow-hidden rounded-md bg-accent">
           {imageUrl ? (
-            <Image
+            <SafeImage
               src={imageUrl}
               alt={product.name}
               width={300}

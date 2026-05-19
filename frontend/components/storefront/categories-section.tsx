@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { useCategories } from "@/lib/api/hooks";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 export function CategoriesSection() {
   const { data, isLoading, error } = useCategories({ status: "ACTIVE" });
@@ -97,7 +97,7 @@ export function CategoriesSection() {
                 className={`${span} ${height} group relative overflow-hidden rounded-xl`}
               >
                 {category.image ? (
-                  <Image
+                  <SafeImage
                     src={mediaApi.getImageUrl(category.image)}
                     alt={category.name}
                     fill

@@ -14,11 +14,11 @@ import {
   useCart,
   useRewardBalance,
 } from "@/lib/api/hooks";
-import Image from "next/image";
 import { mediaApi } from "@/lib/api/media";
 import { formatCurrency } from "@/lib/utils";
 import type { Address } from "@/types";
 import { Button } from "@/components/ui/button";
+import { SafeImage } from "@/components/ui/safe-image";
 import {
   Dialog,
   DialogContent,
@@ -717,7 +717,7 @@ export default function CheckoutPage() {
                 >
                   <div className="relative h-20 w-20 overflow-hidden rounded-sm border border-stone-200 bg-stone-200">
                     {item.product.images?.[0] && (
-                      <Image
+                      <SafeImage
                         src={mediaApi.getImageUrl(item.product.images[0].url)}
                         alt={item.product.name}
                         fill

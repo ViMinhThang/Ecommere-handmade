@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import {
@@ -13,6 +12,7 @@ import { productsApi } from "@/lib/api/products";
 import { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 type ProductsSectionMode =
   | "latest"
@@ -189,7 +189,7 @@ function ProductCard({
     <Link href={`/products/${product.id}`} className="group block">
       <div className="relative mb-6 aspect-[3/4] overflow-hidden rounded-xl border border-border/20 bg-accent shadow-sm">
         {imageUrl ? (
-          <Image
+          <SafeImage
             src={imageUrl}
             alt={product.name}
             fill

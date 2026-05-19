@@ -18,9 +18,9 @@ import {
   PenTool,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { OrderItem, Product, ProductImage, SubOrder } from "@/types";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 
 type CustomerSubOrder = SubOrder & {
   type?: "CUSTOM";
@@ -235,7 +235,7 @@ export default function OrdersPage() {
                     <div key={item.id} className="flex items-center space-x-5">
                       <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden relative border border-border/20 shadow-sm shrink-0">
                         {item.product.images?.[0]?.url ? (
-                          <Image
+                          <SafeImage
                             src={getProductImageUrl(item.product)}
                             alt={item.product.name}
                             fill

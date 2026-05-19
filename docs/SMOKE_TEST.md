@@ -17,6 +17,8 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Login admin: `admin@ecommerce.com / admin123`.
 - [ ] Login seller: `seller@ecommerce.com / admin123`.
 - [ ] Login seller 2: `seller2@ecommerce.com / admin123`.
+- [ ] Login seller 3-6 nếu cần demo shop chuyên biệt: `seller3@ecommerce.com`, `seller4@ecommerce.com`, `seller5@ecommerce.com`, `seller6@ecommerce.com` cùng password `admin123`.
+- [ ] Login real importer nếu cần xem sản phẩm eBay JSON: `ebay.importer@local.dev / admin123`.
 - [ ] Login customer: `customer@ecommerce.com / admin123`.
 - [ ] Login customer 2/3: `customer2@ecommerce.com / admin123`, `customer3@ecommerce.com / admin123`.
 - [ ] Logout rồi login lại bằng role khác không bị giữ menu/session cũ.
@@ -38,7 +40,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 
 - [ ] Login seller.
 - [ ] Mở dashboard products và thấy sản phẩm demo.
-- [ ] Tạo sản phẩm mới với ảnh từ media folder seed `Ảnh demo sản phẩm` hoặc ảnh placeholder.
+- [ ] Tạo sản phẩm mới với URL ảnh hợp lệ hoặc ảnh từ media library seed nếu UI đang hiển thị.
 - [ ] Sửa một sản phẩm của seller và kiểm tra status cần admin duyệt nếu flow yêu cầu.
 - [ ] Mở seller orders và thấy order COD seed.
 - [ ] Cập nhật order từ `PENDING` sang bước tiếp theo nếu action khả dụng.
@@ -103,9 +105,9 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 ## Phase 5 Seed And Final MVP Smoke
 
 - [ ] Chạy `cd backend && npm run db:seed` hai lần liên tiếp không lỗi duplicate.
-- [ ] Seed tạo đủ account demo: 1 admin, 2 seller, 3 customer.
-- [ ] Seed tạo 8 category handmade active có slug và mô tả.
-- [ ] Seed tạo khoảng 25 sản phẩm demo, có sản phẩm approved, pending, rejected và hết hàng.
+- [ ] Seed tạo đủ account demo: 1 admin, 6 seller, 1 importer seller, 3 customer.
+- [ ] Seed tạo 12 category handmade active có slug và mô tả.
+- [ ] Seed tạo 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, có sản phẩm approved, pending, rejected và hết hàng.
 - [ ] Seed tạo order COD ở các trạng thái `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`.
 - [ ] Customer chỉ thấy order của chính mình trong `/profile/orders`.
 - [ ] Seller chỉ thấy/cập nhật sub-order thuộc shop mình trong `/dashboard/orders`.
@@ -113,7 +115,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seed tạo voucher active `HANDMADE10`, expired `EXPIRED5`, inactive `INACTIVE15`.
 - [ ] Public/customer không apply được voucher expired hoặc inactive.
 - [ ] Seed tạo review/question/report/chat/custom order/quote template/commission tối thiểu để các màn hình demo không trống.
-- [ ] Ảnh demo tồn tại trong `backend/uploads/products` và media library của seller có ảnh để chọn.
+- [ ] Ảnh chỉ lưu remote URL `images.unsplash.com`, `i.ebayimg.com` hoặc `cdn.shopify.com`; không có broken image; `frontend/next.config.ts` allow các domain này.
 - [ ] Feature chưa hoàn chỉnh không xuất hiện trong menu chính demo.
 - [ ] Security smoke trong `docs/SECURITY_SMOKE_TEST.md` vẫn pass sau seed mới.
 

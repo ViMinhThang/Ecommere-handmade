@@ -2,7 +2,6 @@
 
 import { Suspense, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   useSeller,
@@ -15,6 +14,7 @@ import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
+import { SafeImage } from "@/components/ui/safe-image";
 import {
   Edit2,
   Save,
@@ -281,7 +281,7 @@ function SellerProfilePageContent() {
             <div className="relative group">
               <div className="overflow-hidden rounded-lg shadow-2xl aspect-4/5 relative bg-accent">
                 {formData.sellerHeroImage ? (
-                  <Image
+                  <SafeImage
                     src={formData.sellerHeroImage}
                     alt={seller.name}
                     fill
@@ -535,7 +535,7 @@ function SellerProfilePageContent() {
               <div className="aspect-square bg-[#e6e2dc] rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
               <div className="rounded-lg shadow-xl overflow-hidden relative aspect-square bg-accent">
                 {formData.sellerAboutImage ? (
-                  <Image
+                  <SafeImage
                     src={formData.sellerAboutImage}
                     alt="Detail of craft"
                     fill
@@ -745,7 +745,7 @@ function SellerProfilePageContent() {
                       <Link href={`/products/${product.id}`}>
                         <div className="relative overflow-hidden aspect-4/5 bg-accent mb-6 rounded-lg shadow-sm border border-primary/5">
                           {product.images?.[0] ? (
-                            <Image
+                            <SafeImage
                               src={mediaApi.getImageUrl(product.images[0].url)}
                               alt={product.name}
                               fill
