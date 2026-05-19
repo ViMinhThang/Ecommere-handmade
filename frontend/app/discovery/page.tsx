@@ -40,7 +40,7 @@ export default function DiscoveryPage() {
           </p>
 
           {/* Main Search */}
-          <div className="max-w-2xl mx-auto relative flex items-center bg-white p-1.5 rounded-none shadow-[0_10px_40px_-15px_rgba(84,67,60,0.15)] border border-border/40">
+          <div className="max-w-2xl mx-auto relative flex items-center bg-white dark:bg-background p-1.5 rounded-none shadow-[0_10px_40px_-15px_rgba(84,67,60,0.15)] dark:shadow-none border border-border/40 dark:border-border/70">
             <Search className="ml-4 w-5 h-5 text-muted-foreground/50" />
             <input
               type="text"
@@ -180,7 +180,7 @@ export default function DiscoveryPage() {
 
         {/* Custom Commission Banner */}
         <section className="max-w-7xl mx-auto px-6 mb-32">
-          <div className="bg-[#F2EEE6] rounded-none p-12 md:p-24 flex flex-col md:flex-row items-center justify-between gap-16 border border-border/30 shadow-sm relative overflow-hidden">
+          <div className="bg-[#F2EEE6] dark:bg-muted/30 rounded-none p-12 md:p-24 flex flex-col md:flex-row items-center justify-between gap-16 border border-border/30 dark:border-border/60 shadow-sm dark:shadow-none relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
 
             <div className="max-w-lg z-10">
@@ -199,14 +199,14 @@ export default function DiscoveryPage() {
               </button>
             </div>
 
-            <div className="w-full md:w-1/2 lg:w-2/5 aspect-[4/3] bg-muted rounded-none shadow-2xl relative transform md:rotate-2 ring-8 ring-white/10 group overflow-hidden">
+            <div className="w-full md:w-1/2 lg:w-2/5 aspect-[4/3] bg-muted rounded-none shadow-2xl dark:shadow-none relative transform md:rotate-2 ring-8 ring-white/10 dark:ring-border/20 group overflow-hidden">
               <SafeImage
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-pM_RSR2sLwKsh9MBy0y46D9y8R36t1vLwT7J_7yLzVnXR2cT_Kz4_L9fH_JmX3V_f_GvOX_z"
                 alt="Dịch vụ sản xuất riêng"
                 fill
                 className="object-cover opacity-90 transition-transform duration-1000 group-hover:scale-105"
               />
-              <div className="absolute inset-0 border border-white/30 m-6" />
+              <div className="absolute inset-0 border border-white/30 dark:border-border/30 m-6" />
             </div>
           </div>
         </section>
