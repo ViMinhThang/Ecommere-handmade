@@ -49,6 +49,16 @@ export function CustomerNavBar() {
               Khám phá
             </Link>
             <Link
+              href="/products"
+              className={`font-medium transition-colors duration-300 font-headline italic tracking-tight ${
+                pathname === "/products" || pathname.startsWith("/products/")
+                  ? "border-b-2 border-primary pb-1 text-primary"
+                  : "text-muted-foreground hover:text-primary"
+              }`}
+            >
+              Sản phẩm
+            </Link>
+            <Link
               href="/sellers"
               className={`font-medium transition-colors duration-300 font-headline italic tracking-tight ${
                 pathname === "/sellers"
