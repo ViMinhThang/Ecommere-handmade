@@ -87,6 +87,8 @@ type DemoProductInput = {
   tags: string[];
   image: string;
   status?: ProductStatus;
+  createdAt?: Date;
+  viewCount?: number;
 };
 
 type RealHandmadeFixture = {
@@ -218,6 +220,8 @@ async function upsertProduct(input: DemoProductInput) {
     lowStockThreshold: input.lowStockThreshold,
     sku: input.sku,
     tags: input.tags,
+    ...(input.createdAt ? { createdAt: input.createdAt } : {}),
+    ...(input.viewCount !== undefined ? { viewCount: input.viewCount } : {}),
     deletedAt: null,
   };
 
@@ -360,6 +364,11 @@ async function seedRealHandmadeFixture(
       tags: product.tags ?? ['real-data', 'ebay', 'handmade'],
       image: product.imageUrl,
       status: parseFixtureProductStatus(product.status),
+      createdAt:
+        product.categorySlug === 'hair-accessories'
+          ? new Date('2024-01-01T00:00:00.000Z')
+          : undefined,
+      viewCount: product.categorySlug === 'hair-accessories' ? 0 : undefined,
     });
     productCount += 1;
   }
