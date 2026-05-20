@@ -22,7 +22,8 @@
     "sourceCounts": {
       "ebay": 100,
       "shopify": 127,
-      "total": 227
+      "total": 247,
+      "localHairAccessories": 20
     }
   },
   "categories": [
@@ -30,6 +31,12 @@
       "slug": "ceramics",
       "name": "Handmade pottery and ceramics",
       "description": "Pottery, mugs, bowls, vases and handmade ceramic decor from real product records.",
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "hair-accessories",
+      "name": "Phụ kiện tóc handmade",
+      "description": "Kẹp tóc, scrunchie, băng đô và phụ kiện tóc may hoặc đính thủ công.",
       "status": "ACTIVE"
     }
   ],
@@ -110,9 +117,880 @@
       "avatar": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Small-Round-Capiz-Shell-Chime-Ombre-Spice.webp?v=1778885833",
       "sellerHeroImage": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Small-Round-Capiz-Shell-Chime-Ombre-Turquoise.webp?v=1778885833",
       "sellerAboutImage": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Small-Round-Capiz-Shell-Chime-Ombre-Lavender.webp?v=1778885833"
+    },
+    {
+      "email": "seller4@ecommerce.com",
+      "name": "Seller 4",
+      "shopName": "Len Nhà Mây",
+      "sellerTitle": "Shop đồ len, crochet và phụ kiện tóc handmade",
+      "sellerBio": "Cửa hàng demo chuyên phụ kiện tóc may, móc và đính tay cho phong cách nhẹ nhàng hằng ngày.",
+      "sellerAbout": "Len Nhà Mây là seller demo địa phương, dùng cho dữ liệu mẫu của danh mục phụ kiện tóc handmade.",
+      "avatar": "https://images.unsplash.com/photo-1606772016409-d4a55e32be6e?w=400&h=400&fit=crop&auto=format",
+      "sellerHeroImage": "https://images.unsplash.com/photo-1441123200976-b582108ebc19?w=1400&h=600&fit=crop&auto=format",
+      "sellerAboutImage": "https://images.unsplash.com/photo-1611072501323-a27ce45cdfc5?w=900&h=700&fit=crop&auto=format"
     }
   ],
   "products": [
+    {
+      "externalId": "local-hair-accessories:001",
+      "sku": "DEMO-SILK-SCRUNCHIE-SET",
+      "name": "Set scrunchie lụa tơ 3 màu",
+      "description": "Bộ 3 scrunchie may từ vải lụa mềm, ít hằn tóc, phối màu kem, hồng đất và xanh rêu.",
+      "priceVnd": 120000,
+      "priceText": "120.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 35,
+      "lowStockThreshold": 7,
+      "imageUrl": "https://images.unsplash.com/photo-1606772016409-d4a55e32be6e?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "scrunchie",
+        "phu-kien-toc",
+        "lua"
+      ],
+      "attributes": {
+        "itemType": "scrunchie lụa",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-silk-scrunchie-set",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:002",
+      "sku": "DEMO-PEARL-HAIR-CLIP",
+      "name": "Kẹp tóc ngọc trai giả đính tay",
+      "description": "Kẹp tóc kim loại đính ngọc trai giả và hạt nhỏ bằng tay, hợp đi tiệc nhẹ hoặc chụp ảnh.",
+      "priceVnd": 98000,
+      "priceText": "98.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 28,
+      "lowStockThreshold": 5,
+      "imageUrl": "https://images.unsplash.com/photo-1609536834325-f9ecf43992f6?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-toc",
+        "ngoc-trai",
+        "dinh-tay"
+      ],
+      "attributes": {
+        "itemType": "kẹp tóc ngọc trai",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-pearl-hair-clip",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:003",
+      "sku": "DEMO-FLORAL-HEADBAND",
+      "name": "Băng đô hoa nhí cotton",
+      "description": "Băng đô cotton họa tiết hoa nhí, may lót mềm, co giãn vừa phải cho sử dụng hằng ngày.",
+      "priceVnd": 89000,
+      "priceText": "89.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 31,
+      "lowStockThreshold": 6,
+      "imageUrl": "https://images.unsplash.com/photo-1441123200976-b582108ebc19?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "bang-do",
+        "cotton",
+        "hoa-nhi"
+      ],
+      "attributes": {
+        "itemType": "băng đô hoa nhí",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-floral-headband",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:004",
+      "sku": "DEMO-RIBBON-BARRETTE",
+      "name": "Kẹp nơ ruy băng satin",
+      "description": "Kẹp nơ satin dáng dài, may thủ công và cố định bằng kẹp kim loại chắc, tông màu vintage.",
+      "priceVnd": 75000,
+      "priceText": "75.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 42,
+      "lowStockThreshold": 8,
+      "imageUrl": "https://images.unsplash.com/photo-1601938219471-fb3393955f15?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-no",
+        "satin",
+        "vintage"
+      ],
+      "attributes": {
+        "itemType": "kẹp nơ satin",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-ribbon-barrette",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:005",
+      "sku": "DEMO-CROCHET-HAIR-TIE",
+      "name": "Dây buộc tóc hoa len crochet",
+      "description": "Dây buộc tóc trang trí hoa len nhỏ móc tay, màu pastel, nhẹ và không kéo tóc.",
+      "priceVnd": 59000,
+      "priceText": "59.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 48,
+      "lowStockThreshold": 9,
+      "imageUrl": "https://images.unsplash.com/photo-1611072501323-a27ce45cdfc5?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "day-buoc-toc",
+        "crochet",
+        "hoa-len"
+      ],
+      "attributes": {
+        "itemType": "dây buộc tóc hoa len",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-crochet-hair-tie",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:006",
+      "sku": "DEMO-LINEN-SCRUNCHIE-BEIGE",
+      "name": "Scrunchie linen màu be thêu lá",
+      "description": "Scrunchie vải linen màu be, thêu nhánh lá nhỏ bằng chỉ xanh olive, phù hợp tóc búi thấp.",
+      "priceVnd": 69000,
+      "priceText": "69.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 24,
+      "lowStockThreshold": 4,
+      "imageUrl": "https://images.unsplash.com/photo-1630081757603-a46d414be089?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "scrunchie",
+        "linen",
+        "theu-tay"
+      ],
+      "attributes": {
+        "itemType": "scrunchie linen thêu lá",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-linen-scrunchie-beige",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:007",
+      "sku": "DEMO-VELVET-SCRUNCHIE-BURGUNDY",
+      "name": "Scrunchie nhung đỏ rượu",
+      "description": "Scrunchie nhung mềm màu đỏ rượu, bản phồng vừa phải, tạo điểm nhấn cho tóc buộc cao.",
+      "priceVnd": 79000,
+      "priceText": "79.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 26,
+      "lowStockThreshold": 5,
+      "imageUrl": "https://images.unsplash.com/photo-1630081757773-a87bffbdea5e?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "scrunchie",
+        "nhung",
+        "do-ruou"
+      ],
+      "attributes": {
+        "itemType": "scrunchie nhung đỏ rượu",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-velvet-scrunchie-burgundy",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:008",
+      "sku": "DEMO-DAISY-CLAW-CLIP",
+      "name": "Kẹp càng cua hoa cúc vẽ tay",
+      "description": "Kẹp càng cua phủ màu sữa, vẽ tay họa tiết hoa cúc vàng và phủ bóng bảo vệ.",
+      "priceVnd": 135000,
+      "priceText": "135.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 18,
+      "lowStockThreshold": 3,
+      "imageUrl": "https://images.unsplash.com/photo-1630267209823-648506870b22?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-cang-cua",
+        "hoa-cuc",
+        "ve-tay"
+      ],
+      "attributes": {
+        "itemType": "kẹp càng cua hoa cúc",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-daisy-claw-clip",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:009",
+      "sku": "DEMO-MINI-PEARL-PIN-PAIR",
+      "name": "Cặp kẹp mái ngọc trai mini",
+      "description": "Set 2 kẹp mái nhỏ đính ngọc trai giả, giữ tóc con gọn mà vẫn thanh lịch.",
+      "priceVnd": 65000,
+      "priceText": "65.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 40,
+      "lowStockThreshold": 8,
+      "imageUrl": "https://images.unsplash.com/photo-1533908529530-c0aaa365d36b?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-mai",
+        "ngoc-trai",
+        "set-2"
+      ],
+      "attributes": {
+        "itemType": "kẹp mái ngọc trai mini",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-mini-pearl-pin-pair",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:010",
+      "sku": "DEMO-CROCHET-BOW-CLIP-PINK",
+      "name": "Kẹp nơ len crochet hồng phấn",
+      "description": "Kẹp nơ móc len cotton màu hồng phấn, gắn trên kẹp mỏ vịt kim loại bọc ruy băng.",
+      "priceVnd": 72000,
+      "priceText": "72.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 34,
+      "lowStockThreshold": 6,
+      "imageUrl": "https://images.unsplash.com/photo-1744177762258-c98418b7a4eb?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-no",
+        "crochet",
+        "hong-phan"
+      ],
+      "attributes": {
+        "itemType": "kẹp nơ len crochet",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-crochet-bow-clip-pink",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:011",
+      "sku": "DEMO-BATIK-HEADBAND-BLUE",
+      "name": "Băng đô vải batik xanh chàm",
+      "description": "Băng đô bản vừa làm từ vải batik xanh chàm, may chun sau gáy cho cảm giác thoải mái.",
+      "priceVnd": 99000,
+      "priceText": "99.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 22,
+      "lowStockThreshold": 4,
+      "imageUrl": "https://images.unsplash.com/photo-1773747203069-c4ed5b1200ac?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "bang-do",
+        "batik",
+        "xanh-cham"
+      ],
+      "attributes": {
+        "itemType": "băng đô batik xanh chàm",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-batik-headband-blue",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:012",
+      "sku": "DEMO-ORGANZA-RIBBON-CLIP",
+      "name": "Kẹp tóc nơ organza kem",
+      "description": "Kẹp tóc nơ organza màu kem, lớp vải trong nhẹ, hợp váy sáng màu và phong cách tiệc trà.",
+      "priceVnd": 85000,
+      "priceText": "85.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 29,
+      "lowStockThreshold": 5,
+      "imageUrl": "https://images.unsplash.com/photo-1609536834325-f9ecf43992f6?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-no",
+        "organza",
+        "mau-kem"
+      ],
+      "attributes": {
+        "itemType": "kẹp nơ organza kem",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-organza-ribbon-clip",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:013",
+      "sku": "DEMO-BEAD-FLOWER-BARRETTE",
+      "name": "Kẹp tóc hoa hạt cườm",
+      "description": "Kẹp barrette đính hoa hạt cườm thủ công, phối trắng ngà và vàng nhạt trên nền kim loại.",
+      "priceVnd": 118000,
+      "priceText": "118.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 20,
+      "lowStockThreshold": 4,
+      "imageUrl": "https://images.unsplash.com/photo-1630081757603-a46d414be089?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "barrette",
+        "hat-cuom",
+        "hoa"
+      ],
+      "attributes": {
+        "itemType": "kẹp tóc hoa hạt cườm",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-bead-flower-barrette",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:014",
+      "sku": "DEMO-MACRAME-HAIR-TIE",
+      "name": "Dây buộc tóc macrame tua rua",
+      "description": "Dây buộc tóc dây cotton thắt macrame, có tua rua ngắn tạo cảm giác boho nhẹ nhàng.",
+      "priceVnd": 68000,
+      "priceText": "68.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 33,
+      "lowStockThreshold": 6,
+      "imageUrl": "https://images.unsplash.com/photo-1611072501323-a27ce45cdfc5?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "day-buoc-toc",
+        "macrame",
+        "boho"
+      ],
+      "attributes": {
+        "itemType": "dây buộc tóc macrame",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-macrame-hair-tie",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:015",
+      "sku": "DEMO-LACE-HEADBAND-IVORY",
+      "name": "Băng đô ren ivory vintage",
+      "description": "Băng đô ren màu ivory, lót cotton mềm phía trong, hợp phối váy vintage hoặc ảnh cưới nhẹ.",
+      "priceVnd": 105000,
+      "priceText": "105.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 17,
+      "lowStockThreshold": 3,
+      "imageUrl": "https://images.unsplash.com/photo-1773747203069-c4ed5b1200ac?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "bang-do",
+        "ren",
+        "ivory"
+      ],
+      "attributes": {
+        "itemType": "băng đô ren ivory",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-lace-headband-ivory",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:016",
+      "sku": "DEMO-PRESSED-FLOWER-CLIP",
+      "name": "Kẹp tóc hoa ép resin",
+      "description": "Kẹp tóc resin trong suốt có hoa ép nhỏ bên trong, hoàn thiện bằng tay từng chiếc.",
+      "priceVnd": 125000,
+      "priceText": "125.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 16,
+      "lowStockThreshold": 3,
+      "imageUrl": "https://images.unsplash.com/photo-1744177762258-c98418b7a4eb?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-toc",
+        "resin",
+        "hoa-ep"
+      ],
+      "attributes": {
+        "itemType": "kẹp tóc hoa ép resin",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-pressed-flower-clip",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:017",
+      "sku": "DEMO-DENIM-SCRUNCHIE-PATCH",
+      "name": "Scrunchie denim tái chế phối patch",
+      "description": "Scrunchie từ denim tái chế, phối miếng patch nhỏ và đường may nổi cá tính.",
+      "priceVnd": 76000,
+      "priceText": "76.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 27,
+      "lowStockThreshold": 5,
+      "imageUrl": "https://images.unsplash.com/photo-1601938219471-fb3393955f15?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "scrunchie",
+        "denim",
+        "tai-che"
+      ],
+      "attributes": {
+        "itemType": "scrunchie denim tái chế",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-denim-scrunchie-patch",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:018",
+      "sku": "DEMO-CHECKERED-BOW-CLIP",
+      "name": "Kẹp nơ caro nâu kem",
+      "description": "Kẹp nơ vải caro nâu kem, dáng nhỏ xinh cho tóc mái, tóc tết hoặc tóc buộc nửa.",
+      "priceVnd": 64000,
+      "priceText": "64.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 36,
+      "lowStockThreshold": 7,
+      "imageUrl": "https://images.unsplash.com/photo-1630267209823-648506870b22?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-no",
+        "caro",
+        "nau-kem"
+      ],
+      "attributes": {
+        "itemType": "kẹp nơ caro",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-checkered-bow-clip",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:019",
+      "sku": "DEMO-SHELL-HAIR-PIN",
+      "name": "Trâm tóc vỏ sò biển",
+      "description": "Trâm tóc gỗ nhỏ trang trí vỏ sò và hạt cườm, hợp phong cách đi biển mùa hè.",
+      "priceVnd": 110000,
+      "priceText": "110.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 15,
+      "lowStockThreshold": 3,
+      "imageUrl": "https://images.unsplash.com/photo-1533908529530-c0aaa365d36b?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "tram-toc",
+        "vo-so",
+        "bien"
+      ],
+      "attributes": {
+        "itemType": "trâm tóc vỏ sò",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-shell-hair-pin",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
+    {
+      "externalId": "local-hair-accessories:020",
+      "sku": "DEMO-LOTUS-EMBROIDERED-CLIP",
+      "name": "Kẹp tóc thêu hoa sen",
+      "description": "Kẹp tóc bọc vải canvas thêu tay hoa sen nhỏ, tông hồng nhạt và xanh lá mềm.",
+      "priceVnd": 92000,
+      "priceText": "92.000 VND",
+      "categorySlug": "hair-accessories",
+      "sellerEmail": "seller4@ecommerce.com",
+      "status": "APPROVED",
+      "stock": 25,
+      "lowStockThreshold": 5,
+      "imageUrl": "https://images.unsplash.com/photo-1441123200976-b582108ebc19?w=900&h=900&fit=crop&auto=format",
+      "tags": [
+        "local-demo",
+        "handmade",
+        "remote-image",
+        "hair-accessories",
+        "kep-toc",
+        "theu-tay",
+        "hoa-sen"
+      ],
+      "attributes": {
+        "itemType": "kẹp tóc thêu hoa sen",
+        "material": "mixed handmade textile and accessory materials",
+        "colors": [],
+        "size": null,
+        "vendor": "Len Nhà Mây",
+        "variantTitle": "Default Title",
+        "inferredFields": [
+          "categorySlug",
+          "material",
+          "stock"
+        ]
+      },
+      "source": {
+        "name": "local-demo-curated",
+        "domain": "local.fixture",
+        "shopName": "Len Nhà Mây",
+        "itemWebUrl": "local://hair-accessories/demo-lotus-embroidered-clip",
+        "crawledAt": "2026-05-20T00:00:00.000+07:00"
+      }
+    },
     {
       "externalId": "137252713890",
       "sku": "EBAY-137252713890",
