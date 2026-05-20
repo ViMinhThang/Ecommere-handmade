@@ -15,17 +15,93 @@ import { SafeImage } from "@/components/ui/safe-image";
 
 const PRODUCTS_PER_PAGE = 9;
 
+function getProductImageUrl(product: any) {
+  return product?.images?.[0]?.url;
+}
+
+function getProductDisplayPrice(product: any) {
+  return product?.pricing?.discountedPrice ?? product?.price;
+}
+
+function getProductOriginalPrice(product: any) {
+  return product?.pricing?.originalPrice;
+}
+
+function hasProductDiscount(product: any) {
+  const discounted = product?.pricing?.discountedPrice;
+  const original = product?.pricing?.originalPrice;
+  return typeof discounted === "number" && typeof original === "number"
+    ? discounted < original
+    : Boolean(discounted && original && Number(discounted) < Number(original));
+}
+
+function CategoryProductCard({ product }: { product: any }) {
+  const image = getProductImageUrl(product);
+  const price = getProductDisplayPrice(product);
+  const showDiscount = hasProductDiscount(product);
+  const originalPrice = getProductOriginalPrice(product);
+
+  return (
+    <article className="group">
+      <Link href={`/products/${product.id}`} className="block">
+        <div className="relative mb-5 aspect-[4/5] overflow-hidden border border-border/20 bg-accent">
+          {image ? (
+            <SafeImage
+              src={mediaApi.getImageUrl(image)}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Chưa có ảnh
+            </div>
+          )}
+
+          {typeof product?.stock === "number" && product.stock <= 0 ? (
+            <span className="absolute left-3 top-3 bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Hết hàng
+            </span>
+          ) : null}
+        </div>
+      </Link>
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <Link href={`/products/${product.id}`}>
+            <h3 className="line-clamp-2 text-xl italic text-foreground transition group-hover:text-primary">
+              {product.name}
+            </h3>
+          </Link>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {product.category?.name || category?.name || "Danh mục"} ·{" "}
+            {product.seller?.shopName || product.seller?.name || "Người bán"}
+          </p>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="font-semibold text-primary">
+            {formatCurrency(Number(price))}
+          </p>
+          {showDiscount && originalPrice ? (
+            <p className="text-xs text-muted-foreground line-through">
+              {formatCurrency(Number(originalPrice))}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function ProductGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-x-12 gap-y-20 md:grid-cols-2 xl:grid-cols-3">
-      {[1, 2, 3, 4, 5, 6].map((item) => (
-        <div
-          key={item}
-          className={`animate-pulse ${item % 3 === 1 ? "md:mt-12" : ""}`}
-        >
-          <div className="mb-6 aspect-[4/5] rounded-lg bg-border/10" />
-          <div className="mb-2 h-6 w-48 rounded bg-border/10" />
-          <div className="h-4 w-24 rounded bg-border/10" />
+    <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 9 }).map((_, index) => (
+        <div key={index} className="animate-pulse">
+          <div className="mb-5 aspect-[4/5] bg-accent" />
+          <div className="mb-3 h-5 w-3/4 bg-accent" />
+          <div className="h-4 w-1/2 bg-accent" />
         </div>
       ))}
     </div>
@@ -272,49 +348,9 @@ function CategoryPageContent() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-x-12 gap-y-20 md:grid-cols-2 xl:grid-cols-3">
-                {visibleProducts.map((product, index) => (
-                  <div
-                    key={product.id}
-                    className={`group ${index % 3 === 1 ? "md:mt-12" : ""}`}
-                  >
-                    <Link href={`/products/${product.id}`}>
-                      <div className="relative mb-6 aspect-[4/5] overflow-hidden rounded-lg border border-border/10 bg-border/10 shadow-sm">
-                        {product.images?.[0] ? (
-                          <SafeImage
-                            src={mediaApi.getImageUrl(product.images[0].url)}
-                            alt={product.name}
-                            fill
-                            className="object-cover transition-transform duration-700 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                            Chưa có ảnh
-                          </div>
-                        )}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 transition-opacity group-hover:opacity-100">
-                          <span className="translate-y-4 bg-background px-8 py-3 text-xs font-bold uppercase tracking-widest text-primary shadow-xl transition-transform duration-300 group-hover:translate-y-0">
-                            Chi tiết
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <Link href={`/products/${product.id}`}>
-                          <h3 className="mb-1 text-xl italic text-foreground transition-colors group-hover:text-primary">
-                            {product.name}
-                          </h3>
-                        </Link>
-                        <p className="text-sm font-medium italic text-muted-foreground">
-                          bởi {product.seller?.shopName || "Người bán"}
-                        </p>
-                      </div>
-                      <span className="shrink-0 whitespace-nowrap text-lg font-bold text-primary">
-                        {formatCurrency(Number(product.price))}
-                      </span>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+                {visibleProducts.map((product) => (
+                  <CategoryProductCard key={product.id} product={product} />
                 ))}
               </div>
             )}
