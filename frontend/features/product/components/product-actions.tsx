@@ -66,6 +66,18 @@ export function ProductActions({
     }
   };
 
+  const handleCustomRequestClick = () => {
+    if (!isAuthenticated) {
+      toast.info("Vui lòng đăng nhập để nhắn tin.");
+      window.setTimeout(() => {
+        window.location.href = `/login?redirect=/products/${product.id}`;
+      }, 600);
+      return;
+    }
+
+    onOpenChat(product.sellerId, product.id);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {product.stock > 0 && (
@@ -156,7 +168,7 @@ export function ProductActions({
 
       <button
         type="button"
-        onClick={() => onOpenChat(product.sellerId, product.id)}
+        onClick={handleCustomRequestClick}
         className="flex w-full items-center justify-center gap-2 rounded-md border border-primary/40 py-5 text-[10px] font-bold uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-[0.98]"
       >
         <MessageSquare className="h-4 w-4" />
