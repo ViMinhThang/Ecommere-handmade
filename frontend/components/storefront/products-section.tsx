@@ -13,6 +13,7 @@ import { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
+import { ProductCardActions } from "@/components/storefront/product-card-actions";
 
 type ProductsSectionMode =
   | "latest"
@@ -186,7 +187,7 @@ function ProductCard({
         : null;
 
   return (
-    <Link href={`/products/${product.id}`} className="group block">
+    <article className="group">
       <div className="relative mb-6 aspect-[3/4] overflow-hidden rounded-xl border border-border/20 bg-accent shadow-sm">
         {imageUrl ? (
           <SafeImage
@@ -210,12 +211,16 @@ function ProductCard({
             </span>
           )}
         </div>
+        <div className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/10" />
+        <ProductCardActions productId={product.id} stock={product.stock} />
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xl font-headline italic text-foreground transition-colors group-hover:text-primary">
-          {product.name}
-        </h3>
+        <Link href={`/products/${product.id}`}>
+          <h3 className="text-xl font-headline italic text-foreground transition-colors group-hover:text-primary">
+            {product.name}
+          </h3>
+        </Link>
         <p className="line-clamp-1 text-sm font-body text-muted-foreground">
           Bởi {product.seller?.shopName || "Người bán uy tín"}
         </p>
@@ -241,11 +246,14 @@ function ProductCard({
               </p>
             )}
           </div>
-          <button className="border-b border-transparent pb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+          <Link
+            href={`/products/${product.id}`}
+            className="border-b border-transparent pb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+          >
             Xem chi tiết
-          </button>
+          </Link>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

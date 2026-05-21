@@ -12,22 +12,24 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Suspense, useCallback, useMemo } from "react";
 import { SafeImage } from "@/components/ui/safe-image";
+import { ProductCardActions } from "@/components/storefront/product-card-actions";
+import type { Product } from "@/types";
 
 const PRODUCTS_PER_PAGE = 9;
 
-function getProductImageUrl(product: any) {
+function getProductImageUrl(product: Product) {
   return product?.images?.[0]?.url;
 }
 
-function getProductDisplayPrice(product: any) {
+function getProductDisplayPrice(product: Product) {
   return product?.pricing?.discountedPrice ?? product?.price;
 }
 
-function getProductOriginalPrice(product: any) {
+function getProductOriginalPrice(product: Product) {
   return product?.pricing?.originalPrice;
 }
 
-function hasProductDiscount(product: any) {
+function hasProductDiscount(product: Product) {
   const discounted = product?.pricing?.discountedPrice;
   const original = product?.pricing?.originalPrice;
   return typeof discounted === "number" && typeof original === "number"
@@ -35,7 +37,7 @@ function hasProductDiscount(product: any) {
     : Boolean(discounted && original && Number(discounted) < Number(original));
 }
 
-function CategoryProductCard({ product }: { product: any }) {
+function CategoryProductCard({ product }: { product: Product }) {
   const image = getProductImageUrl(product);
   const price = getProductDisplayPrice(product);
   const showDiscount = hasProductDiscount(product);
@@ -43,8 +45,7 @@ function CategoryProductCard({ product }: { product: any }) {
 
   return (
     <article className="group">
-      <Link href={`/products/${product.id}`} className="block">
-        <div className="relative mb-5 aspect-[4/5] overflow-hidden border border-border/20 bg-accent">
+      <div className="relative mb-5 aspect-[4/5] overflow-hidden border border-border/20 bg-accent">
           {image ? (
             <SafeImage
               src={mediaApi.getImageUrl(image)}
@@ -59,12 +60,13 @@ function CategoryProductCard({ product }: { product: any }) {
           )}
 
           {typeof product?.stock === "number" && product.stock <= 0 ? (
-            <span className="absolute left-3 top-3 bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="absolute left-3 top-3 z-20 bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               Hết hàng
             </span>
           ) : null}
+          <div className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/10" />
+          <ProductCardActions productId={product.id} stock={product.stock} />
         </div>
-      </Link>
 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -74,7 +76,7 @@ function CategoryProductCard({ product }: { product: any }) {
             </h3>
           </Link>
           <p className="mt-1 truncate text-sm text-muted-foreground">
-            {product.category?.name || category?.name || "Danh mục"} ·{" "}
+            {product.category?.name || "Danh mục"} ·{" "}
             {product.seller?.shopName || product.seller?.name || "Người bán"}
           </p>
         </div>
