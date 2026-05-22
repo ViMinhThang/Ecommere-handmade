@@ -75,5 +75,5 @@ Kết quả mong đợi: customer không thấy action seller/admin, COD checkou
 - SMTP là optional local; OTP được log ra terminal backend nếu chưa cấu hình SMTP.
 - Notification MVP dùng in-app polling 30 giây, chưa cần realtime/push/email cho demo local.
 - Menu `Đối soát thanh toán` đang ẩn khỏi sidebar demo vì đây là màn hình vận hành nâng cao, không thuộc flow local MVP chính.
-- Seed có 12 category, 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, order `PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED`, voucher active/expired/inactive, review, question, report, chat, custom order, quote template, commission, notification và flash sale.
+- Seed có 11 category, 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, order `PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED`, voucher active/expired/inactive, review, question, report, chat, custom order, quote template, commission, notification và flash sale.
 - Nếu cần demo từ trạng thái sạch, chạy `cd backend && npm run db:reset` rồi đăng nhập lại bằng các account ở trên.

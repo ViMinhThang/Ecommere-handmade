@@ -106,7 +106,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 
 - [ ] Chạy `cd backend && npm run db:seed` hai lần liên tiếp không lỗi duplicate.
 - [ ] Seed tạo đủ account demo: 1 admin, 6 seller, 1 importer seller, 3 customer.
-- [ ] Seed tạo 12 category handmade active có slug và mô tả.
+- [ ] Seed tạo 11 category handmade active có slug và mô tả.
 - [ ] Seed tạo 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, có sản phẩm approved, pending, rejected và hết hàng.
 - [ ] Seed tạo order COD ở các trạng thái `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`.
 - [ ] Customer chỉ thấy order của chính mình trong `/profile/orders`.

@@ -193,7 +193,7 @@ Password: admin123
 | Customer 2 | `customer2@ecommerce.com` | Order pending/shipped, question, report |
 | Customer 3 | `customer3@ecommerce.com` | Order cancelled/delivered, commission request |
 
-Seed tạo 12 category handmade, 62 sản phẩm demo curated và 227 sản phẩm thật từ fixture JSON `backend/prisma/fixtures/handmade-real-products.json` lấy từ raw eBay crawl và public Shopify `products.json`. Ảnh chỉ lưu remote URL, không generate/download ảnh. Seed cũng có sản phẩm approved/pending/rejected/hết hàng, voucher `HANDMADE10`, voucher expired/inactive, cart, wishlist, order COD nhiều trạng thái, review, question, report, chat, custom order, quote template, commission, notification và flash sale demo.
+Seed tạo 11 category handmade, 62 sản phẩm demo curated và 227 sản phẩm thật từ fixture JSON `backend/prisma/fixtures/handmade-real-products.json` lấy từ raw eBay crawl và public Shopify `products.json`. Ảnh chỉ lưu remote URL, không generate/download ảnh. Seed cũng có sản phẩm approved/pending/rejected/hết hàng, voucher `HANDMADE10`, voucher expired/inactive, cart, wishlist, order COD nhiều trạng thái, review, question, report, chat, custom order, quote template, commission, notification và flash sale demo.
 
 ## Main Demo Flow
 

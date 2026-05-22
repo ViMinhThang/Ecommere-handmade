@@ -36,22 +36,18 @@ const demoImages = {
     'https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&w=900&q=80',
   jewelry:
     'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=900&q=80',
-  wood:
-    'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80',
+  wood: 'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80',
   paper:
     'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=900&q=80',
   crochet:
     'https://images.unsplash.com/photo-1606103920295-9a091573f160?auto=format&fit=crop&w=900&q=80',
   decor:
     'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=80',
-  soap:
-    'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=900&q=80',
-  hair:
-    'https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?auto=format&fit=crop&w=900&q=80',
+  soap: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=900&q=80',
+  hair: 'https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?auto=format&fit=crop&w=900&q=80',
   leather:
     'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=80',
-  gift:
-    'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=900&q=80',
+  gift: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=900&q=80',
 };
 
 const demoImageSourceNote =
@@ -321,12 +317,14 @@ async function seedRealHandmadeFixture(
       sellerBio: seller.sellerBio,
       sellerAbout: seller.sellerAbout,
       sellerHeroImage: isHttpsUrl(seller.sellerHeroImage)
-        ? seller.sellerHeroImage ?? undefined
+        ? (seller.sellerHeroImage ?? undefined)
         : undefined,
       sellerAboutImage: isHttpsUrl(seller.sellerAboutImage)
-        ? seller.sellerAboutImage ?? undefined
+        ? (seller.sellerAboutImage ?? undefined)
         : undefined,
-      avatar: isHttpsUrl(seller.avatar) ? seller.avatar ?? undefined : undefined,
+      avatar: isHttpsUrl(seller.avatar)
+        ? (seller.avatar ?? undefined)
+        : undefined,
     });
     sellerIds[seller.email] = seededSeller.id;
   }
@@ -1108,12 +1106,6 @@ async function main() {
       image: demoImages.linen,
     },
     {
-      name: 'Nến thơm và quà tặng',
-      slug: 'gifts',
-      description: 'Quà tặng cá nhân hóa cho những dịp đặc biệt.',
-      image: demoImages.candle,
-    },
-    {
       name: 'Trang sức thủ công',
       slug: 'jewelry',
       description: 'Vòng tay, dây chuyền và phụ kiện làm tay.',
@@ -1140,11 +1132,12 @@ async function main() {
     {
       name: 'Tranh và decor thủ công',
       slug: 'wall-decor',
-      description: 'Tranh, macrame và đồ trang trí làm tay cho không gian sống.',
+      description:
+        'Tranh, macrame và đồ trang trí làm tay cho không gian sống.',
       image: demoImages.decor,
     },
     {
-      name: 'Nến thơm',
+      name: 'Nến thơm handmade',
       slug: 'candles',
       description:
         'Nến sáp đậu nành, nến thơm thư giãn và set quà hương liệu làm thủ công.',
@@ -1189,6 +1182,57 @@ async function main() {
     });
     categoryIds[category.slug] = seeded.id;
   }
+  categoryIds.gifts = categoryIds.candles;
+
+  const legacyGiftCategory = await prisma.category.findUnique({
+    where: { slug: 'gifts' },
+    select: { id: true },
+  });
+
+  if (legacyGiftCategory && legacyGiftCategory.id !== categoryIds.candles) {
+    await prisma.product.updateMany({
+      where: { categoryId: legacyGiftCategory.id },
+      data: { categoryId: categoryIds.candles },
+    });
+    await prisma.voucher.updateMany({
+      where: { categoryId: legacyGiftCategory.id },
+      data: { categoryId: categoryIds.candles },
+    });
+
+    const legacyFlashSaleCategories = await prisma.flashSaleCategory.findMany({
+      where: { categoryId: legacyGiftCategory.id },
+      select: { id: true, flashSaleId: true },
+    });
+    for (const legacyFlashSaleCategory of legacyFlashSaleCategories) {
+      const existingMergedCategory = await prisma.flashSaleCategory.findUnique({
+        where: {
+          flashSaleId_categoryId: {
+            flashSaleId: legacyFlashSaleCategory.flashSaleId,
+            categoryId: categoryIds.candles,
+          },
+        },
+        select: { id: true },
+      });
+      if (existingMergedCategory) {
+        await prisma.flashSaleCategory.delete({
+          where: { id: legacyFlashSaleCategory.id },
+        });
+      } else {
+        await prisma.flashSaleCategory.update({
+          where: { id: legacyFlashSaleCategory.id },
+          data: { categoryId: categoryIds.candles },
+        });
+      }
+    }
+  }
+
+  await prisma.category.updateMany({
+    where: { slug: 'gifts' },
+    data: {
+      status: CategoryStatus.INACTIVE,
+      deletedAt: new Date(),
+    },
+  });
 
   const admin = await upsertDemoUser({
     email: 'admin@ecommerce.com',
@@ -1410,7 +1454,7 @@ async function main() {
     description:
       'Nến thơm sáp đậu nành trong cốc gốm nhỏ, mùi hương dịu nhẹ cho bàn làm việc và phòng ngủ.',
     price: '150000',
-    categoryId: categoryIds.gifts,
+    categoryId: categoryIds.candles,
     sellerId: seller2.id,
     stock: 30,
     lowStockThreshold: 6,
@@ -1538,7 +1582,7 @@ async function main() {
       description:
         'Bộ 3 nến thơm size mini gồm gỗ tuyết tùng, cam ngọt và trà trắng, đóng hộp quà.',
       price: '290000',
-      categoryId: categoryIds.gifts,
+      categoryId: categoryIds.candles,
       sellerId: seller2.id,
       stock: 18,
       lowStockThreshold: 4,
@@ -1777,7 +1821,7 @@ async function main() {
       description:
         'Hộp quà giấy kraft kèm tag tên, dây gai và hoa khô, có thể phối với nến hoặc thiệp theo yêu cầu.',
       price: '180000',
-      categoryId: categoryIds.gifts,
+      categoryId: categoryIds.candles,
       sellerId: seller6.id,
       stock: 25,
       lowStockThreshold: 5,
@@ -1790,7 +1834,7 @@ async function main() {
       description:
         'Bộ 12 tag quà mini bằng giấy mỹ thuật, viền xé tay nhẹ, thích hợp dùng cho tiệc nhỏ hoặc gói quà handmade.',
       price: '55000',
-      categoryId: categoryIds.gifts,
+      categoryId: categoryIds.candles,
       sellerId: seller2.id,
       stock: 45,
       lowStockThreshold: 10,
@@ -1803,7 +1847,7 @@ async function main() {
       description:
         'Móc khóa gỗ nhỏ được chà nhẵn, khắc tên hoặc ngày kỷ niệm, phủ dầu bảo vệ bề mặt.',
       price: '85000',
-      categoryId: categoryIds.gifts,
+      categoryId: categoryIds.candles,
       sellerId: seller3.id,
       stock: 34,
       lowStockThreshold: 7,
@@ -2218,7 +2262,7 @@ async function main() {
     code: 'EXPIRED5',
     name: 'Voucher hết hạn demo',
     description: 'Dùng để smoke test: không được apply khi đã hết hạn.',
-    categoryId: categoryIds.gifts,
+    categoryId: categoryIds.candles,
     isActive: true,
     endDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
     discountPercent: '5',
@@ -2226,7 +2270,8 @@ async function main() {
   await ensureVoucher({
     code: 'INACTIVE15',
     name: 'Voucher tạm tắt demo',
-    description: 'Dùng để admin thấy voucher inactive và customer không apply được.',
+    description:
+      'Dùng để admin thấy voucher inactive và customer không apply được.',
     categoryId: categoryIds.textiles,
     isActive: false,
     endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
@@ -2514,7 +2559,8 @@ async function main() {
     targetUserId: seller2.id,
     type: ReportType.SHOP,
     reason: 'Đã xử lý trong demo',
-    description: 'Báo cáo shop đã được admin xử lý để demo trạng thái resolved.',
+    description:
+      'Báo cáo shop đã được admin xử lý để demo trạng thái resolved.',
     status: ReportStatus.RESOLVED,
     resolvedById: admin.id,
     adminNote: 'Đã kiểm tra, chưa phát hiện vi phạm.',
@@ -2564,8 +2610,7 @@ async function main() {
     customerId: customer2.id,
     sellerId: seller2.id,
     title: 'Hộp quà nến thơm cưới',
-    artisanNote:
-      'Hộp quà gồm 2 nến thơm, thiệp giấy ép hoa và túi vải linen.',
+    artisanNote: 'Hộp quà gồm 2 nến thơm, thiệp giấy ép hoa và túi vải linen.',
     price: '520000',
     leadTime: '7 ngày',
     sketchImageUrl: demoImages.candle,
@@ -2581,13 +2626,14 @@ async function main() {
 
   await ensureFlashSale({
     name: 'Tuần lễ handmade local',
-    description: 'Flash sale active để demo trang admin và discount guardrails.',
+    description:
+      'Flash sale active để demo trang admin và discount guardrails.',
     banner: demoImages.candle,
     startAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
     endAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
     isActive: true,
     saleState: FlashSaleState.ACTIVE,
-    categoryIds: [categoryIds.gifts, categoryIds.crochet],
+    categoryIds: [categoryIds.candles, categoryIds.crochet],
     discountPercent: '12',
   });
   await ensureFlashSale({
