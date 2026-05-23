@@ -134,6 +134,7 @@ function normalizeLowStockResponse(
 
 export const productsApi = {
   getAll: (params?: { 
+    q?: string;
     status?: string; 
     categoryId?: string; 
     sellerId?: string; 
