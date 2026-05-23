@@ -1,8 +1,8 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useSyncExternalStore } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useSyncExternalStore } from "react";
 import {
   ChevronDown,
   ClipboardList,
@@ -12,6 +12,7 @@ import {
   LogOut,
   Moon,
   PenTool,
+  Search,
   Settings,
   ShoppingBag,
   Sun,
@@ -21,7 +22,11 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { useCartContext } from "@/contexts/cart-context";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { useCategories } from "@/lib/api/hooks";
+import { SafeImage } from "@/components/ui/safe-image";
+import { useCategories, useProducts } from "@/lib/api/hooks";
+import { mediaApi } from "@/lib/api/media";
+import { formatCurrency } from "@/lib/utils";
+import type { Product } from "@/types";
 
 const profileMenuItems = [
   { href: "/profile/settings", label: "Chi tiết hồ sơ", icon: User },
@@ -39,12 +44,28 @@ export function CustomerNavBar() {
   const { theme, setTheme } = useTheme();
   const { data: categoriesData } = useCategories({ status: "ACTIVE" });
   const categories = categoriesData?.data || [];
+  const router = useRouter();
   const pathname = usePathname();
+  const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [isProductSearchFocused, setIsProductSearchFocused] = useState(false);
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false,
   );
+  const normalizedProductSearchQuery = productSearchQuery.trim();
+  const { data: productSuggestionData, isFetching: isLoadingProductSuggestions } =
+    useProducts(
+      {
+        status: "APPROVED",
+        q: normalizedProductSearchQuery,
+        page: 1,
+        limit: 5,
+        sortBy: "createdAt",
+        order: "desc",
+      },
+      normalizedProductSearchQuery.length > 0,
+    );
 
   const headerCategories = mounted ? categories : [];
   const profileItems =
@@ -57,15 +78,40 @@ export function CustomerNavBar() {
   const profileHref = mounted && isAuthenticated ? "/profile/settings" : "/login";
   const displayedItemCount = mounted ? itemCount : 0;
   const isDarkMode = mounted && theme === "dark";
+  const productSuggestions = productSuggestionData?.data || [];
+  const showProductSuggestions =
+    isProductSearchFocused && normalizedProductSearchQuery.length > 0;
+  const shouldShowProductSearch =
+    pathname === "/" ||
+    pathname === "/discovery" ||
+    pathname === "/profile/wishlist" ||
+    pathname.startsWith("/products") ||
+    pathname.startsWith("/categories") ||
+    pathname.startsWith("/sellers");
+
+  const handleProductSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsProductSearchFocused(false);
+
+    const params = new URLSearchParams();
+    if (normalizedProductSearchQuery) {
+      params.set("q", normalizedProductSearchQuery);
+    }
+    params.set("page", "1");
+
+    const query = params.toString();
+    router.push(`/products${query ? `?${query}` : ""}`);
+  };
 
   return (
     <nav className="fixed top-0 z-50 w-full bg-background/85 shadow-[0_40px_40px_rgba(84,67,60,0.06)] backdrop-blur-xl">
-      <div className="mx-auto flex max-w-full items-center justify-between px-8 py-4">
-        <div className="flex items-center gap-12">
-          <Link href="/" className="text-2xl font-headline italic text-primary">
-            The Artisanal Curator
-          </Link>
-          <div className="hidden items-center gap-8 md:flex">
+      <div className="mx-auto flex max-w-full flex-col gap-2 px-8 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-12">
+            <Link href="/" className="text-2xl font-headline italic text-primary">
+              The Artisanal Curator
+            </Link>
+            <div className="hidden items-center gap-8 md:flex">
             <Link
               href="/discovery"
               className={`font-medium transition-colors duration-300 font-headline italic tracking-tight ${
@@ -154,9 +200,9 @@ export function CustomerNavBar() {
               );
             })}
             */}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-5">
           <NotificationBell />
           <Link
             href="/cart"
@@ -246,9 +292,115 @@ export function CustomerNavBar() {
               <Moon className="h-5 w-5" />
             )}
           </button>
+          </div>
         </div>
+
+        {shouldShowProductSearch ? (
+          <form
+            onSubmit={handleProductSearchSubmit}
+            className="relative mx-auto flex w-full max-w-3xl items-center gap-3"
+          >
+            <label className="sr-only" htmlFor="header-product-search">
+              Tìm kiếm sản phẩm
+            </label>
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                id="header-product-search"
+                value={productSearchQuery}
+                onChange={(event) => {
+                  setProductSearchQuery(event.target.value);
+                  setIsProductSearchFocused(true);
+                }}
+                onFocus={() => setIsProductSearchFocused(true)}
+                onBlur={() => setIsProductSearchFocused(false)}
+                placeholder="Tìm kiếm sản phẩm..."
+                autoComplete="off"
+                className="h-10 w-full rounded-2xl border border-border bg-background pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              />
+              {showProductSuggestions ? (
+                <div
+                  className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border/70 bg-background shadow-xl"
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  {isLoadingProductSuggestions ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      Đang tải gợi ý...
+                    </div>
+                  ) : productSuggestions.length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto py-2">
+                      {productSuggestions.map((product) => (
+                        <ProductSuggestion
+                          key={product.id}
+                          product={product}
+                          onSelect={() => setIsProductSearchFocused(false)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      Không có gợi ý phù hợp.
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="submit"
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+            >
+              Tìm kiếm
+            </button>
+          </form>
+        ) : null}
       </div>
     </nav>
+  );
+}
+
+function ProductSuggestion({
+  product,
+  onSelect,
+}: {
+  product: Product;
+  onSelect: () => void;
+}) {
+  const image = product.images?.[0]?.url;
+  const price = product.pricing?.discountedPrice ?? product.price;
+
+  return (
+    <Link
+      href={`/products/${product.id}`}
+      onClick={onSelect}
+      className="flex items-center gap-3 px-4 py-3 transition hover:bg-accent/55 focus:bg-accent/55 focus:outline-none"
+    >
+      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-primary/10">
+        {image ? (
+          <SafeImage
+            src={mediaApi.getImageUrl(image)}
+            alt={product.name}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center font-headline text-lg italic text-primary">
+            SP
+          </span>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">
+          {product.name}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          {product.category?.name || "Danh mục"} ·{" "}
+          {product.seller?.shopName || product.seller?.name || "Người bán"}
+        </p>
+      </div>
+      <span className="shrink-0 text-sm font-semibold text-primary">
+        {formatCurrency(Number(price))}
+      </span>
+    </Link>
   );
 }
 

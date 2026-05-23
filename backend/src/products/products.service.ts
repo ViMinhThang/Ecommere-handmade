@@ -273,6 +273,17 @@ export class ProductsService {
     if (categoryId) where.categoryId = categoryId;
     if (sellerId) where.sellerId = sellerId;
 
+    const searchTerm = query?.q?.trim();
+    if (searchTerm) {
+      where.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+        { category: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { seller: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { seller: { shopName: { contains: searchTerm, mode: 'insensitive' } } },
+      ];
+    }
+
     // Advanced filters from query DTO
     if (query?.minPrice !== undefined || query?.maxPrice !== undefined) {
       where.price = {};

@@ -28,6 +28,7 @@ function ProductsPageContent() {
   const { data: categoriesData } = useCategories({ status: "ACTIVE" });
 
   const page = Math.max(Number(searchParams.get("page") || "1"), 1);
+  const q = searchParams.get("q")?.trim() || undefined;
   const categoryId = searchParams.get("categoryId") || undefined;
   const minPrice = searchParams.get("minPrice")
     ? Number(searchParams.get("minPrice"))
@@ -42,6 +43,7 @@ function ProductsPageContent() {
   const productParams = useMemo(
     () => ({
       status: "APPROVED",
+      q,
       categoryId,
       page,
       limit: PAGE_SIZE,
@@ -51,7 +53,7 @@ function ProductsPageContent() {
       sortBy,
       order,
     }),
-    [categoryId, maxPrice, minPrice, order, page, readyToShip, sortBy],
+    [categoryId, maxPrice, minPrice, order, page, q, readyToShip, sortBy],
   );
 
   const { data, isLoading, isError } = useProducts(productParams);
@@ -87,17 +89,25 @@ function ProductsPageContent() {
       <main className="pt-24">
         <section className="border-b border-border/30 bg-accent/40 px-6 py-16 md:px-10 lg:px-14">
           <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/70">
-                Sản phẩm
-              </p>
-              <h1 className="mt-4 max-w-4xl font-headline text-4xl italic text-primary md:text-6xl">
-                Tất cả sản phẩm thủ công
-              </h1>
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-                Lọc theo danh mục, mức giá và trạng thái còn hàng để tìm nhanh
-                món đồ phù hợp.
-              </p>
+            <div className="max-w-3xl">
+              {q ? (
+                <h1 className="max-w-3xl font-headline text-4xl italic text-primary md:text-5xl">
+                  Hiển thị kết quả cho &apos;{q}&apos;
+                </h1>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/70">
+                    Sản phẩm
+                  </p>
+                  <h1 className="mt-4 max-w-3xl font-headline text-4xl italic text-primary md:text-5xl">
+                    Tất cả sản phẩm thủ công
+                  </h1>
+                  <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+                    Lọc theo danh mục, mức giá và trạng thái còn hàng để tìm nhanh
+                    món đồ phù hợp.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3 border border-border/50 bg-background px-4 py-3">
