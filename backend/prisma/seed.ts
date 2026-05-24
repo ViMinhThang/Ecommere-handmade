@@ -1,4 +1,4 @@
-import {
+﻿import {
   CategoryStatus,
   ChatMessageType,
   CommissionPostStatus,
@@ -2190,7 +2190,8 @@ async function main() {
       stock: 16,
       lowStockThreshold: 4,
       tags: ['do-da', 'bao-the', 'khau-tay'],
-      image: demoImages.leather,
+      image:
+        'https://images.pexels.com/photos/10634549/pexels-photo-10634549.jpeg?auto=compress&cs=tinysrgb&w=900',
     },
     {
       sku: 'DEMO-LEATHER-MINI-WALLET',
@@ -2203,7 +2204,8 @@ async function main() {
       stock: 11,
       lowStockThreshold: 3,
       tags: ['vi-da', 'do-da', 'mini'],
-      image: demoImages.leather,
+      image:
+        'https://images.pexels.com/photos/4452635/pexels-photo-4452635.jpeg?auto=compress&cs=tinysrgb&w=900',
     },
     {
       sku: 'DEMO-LEATHER-CAMERA-STRAP',
@@ -2216,7 +2218,8 @@ async function main() {
       stock: 6,
       lowStockThreshold: 2,
       tags: ['day-may-anh', 'do-da', 'khau-tay'],
-      image: demoImages.leather,
+      image:
+        'https://images.pexels.com/photos/4452393/pexels-photo-4452393.jpeg?auto=compress&cs=tinysrgb&w=900',
     },
     {
       sku: 'DEMO-LEATHER-KEY-FOB',
@@ -2229,7 +2232,8 @@ async function main() {
       stock: 24,
       lowStockThreshold: 5,
       tags: ['moc-khoa', 'do-da', 'ca-nhan-hoa'],
-      image: demoImages.leather,
+      image:
+        'https://images.pexels.com/photos/12444593/pexels-photo-12444593.jpeg?auto=compress&cs=tinysrgb&w=900',
     },
     {
       sku: 'DEMO-LEATHER-NOTEBOOK-COVER',
@@ -2242,7 +2246,218 @@ async function main() {
       stock: 9,
       lowStockThreshold: 2,
       tags: ['bia-so', 'do-da', 'a6'],
-      image: demoImages.leather,
+      image:
+        'https://images.pexels.com/photos/9744735/pexels-photo-9744735.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-PASSPORT-HOLDER',
+      name: 'Bao hộ chiếu da sáp handmade',
+      description:
+        'Bao hộ chiếu da sáp khâu tay, có ngăn để passport, vé máy bay và thẻ thành viên khi đi du lịch.',
+      price: '560000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 12,
+      lowStockThreshold: 3,
+      tags: ['do-da', 'bao-ho-chieu', 'du-lich'],
+      image:
+        'https://images.pexels.com/photos/23371092/pexels-photo-23371092.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-LONG-WALLET',
+      name: 'Ví da dài cầm tay',
+      description:
+        'Ví da dài dạng cầm tay, khâu tay bằng chỉ sáp, có ngăn tiền, ngăn thẻ và ngăn khóa kéo nhỏ.',
+      price: '920000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 8,
+      lowStockThreshold: 2,
+      tags: ['vi-da', 'do-da', 'cam-tay'],
+      image:
+        'https://images.pexels.com/photos/28027963/pexels-photo-28027963.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-AIRPODS-CASE',
+      name: 'Bao AirPods da móc khóa',
+      description:
+        'Bao AirPods bằng da bò thật, có móc kim loại tiện gắn túi xách hoặc balo, nắp cài chắc chắn.',
+      price: '280000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 18,
+      lowStockThreshold: 4,
+      tags: ['do-da', 'airpods', 'moc-khoa'],
+      image:
+        'https://images.pexels.com/photos/32267562/pexels-photo-32267562.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-WATCH-STRAP',
+      name: 'Dây đồng hồ da nâu vintage',
+      description:
+        'Dây đồng hồ da bò màu nâu vintage, cắt và khâu tay theo size, phù hợp đồng hồ mặt tròn cổ điển.',
+      price: '450000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 14,
+      lowStockThreshold: 3,
+      tags: ['day-dong-ho', 'do-da', 'vintage'],
+      image:
+        'https://images.pexels.com/photos/11818546/pexels-photo-11818546.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-PEN-SLEEVE',
+      name: 'Bao bút da đơn giản',
+      description:
+        'Bao bút da dạng mỏng cho bút máy hoặc bút ký, viền đánh cạnh và phủ sáp để sử dụng lâu dài.',
+      price: '190000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 22,
+      lowStockThreshold: 5,
+      tags: ['bao-but', 'do-da', 'van-phong'],
+      image:
+        'https://images.pexels.com/photos/5963170/pexels-photo-5963170.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-COASTER-SET',
+      name: 'Bộ lót ly da bò 4 chiếc',
+      description:
+        'Bộ 4 lót ly bằng da bò thật, bề mặt xử lý chống thấm nhẹ, phù hợp bàn làm việc hoặc bàn trà.',
+      price: '240000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 20,
+      lowStockThreshold: 5,
+      tags: ['lot-ly', 'do-da', 'decor'],
+      image:
+        'https://images.pexels.com/photos/28028316/pexels-photo-28028316.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-TOTE-HANDLE-WRAP',
+      name: 'Bọc quai túi da khâu tay',
+      description:
+        'Bọc quai túi bằng da mềm, giúp cầm êm tay hơn và tạo điểm nhấn cho túi canvas hoặc tote hằng ngày.',
+      price: '210000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 17,
+      lowStockThreshold: 4,
+      tags: ['phu-kien-tui', 'do-da', 'khau-tay'],
+      image:
+        'https://images.pexels.com/photos/35685404/pexels-photo-35685404.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-SUNGLASSES-CASE',
+      name: 'Bao kính da nắp gập',
+      description:
+        'Bao kính bằng da bò dập form, nắp gập gọn nhẹ, bảo vệ kính râm hoặc kính cận khi mang trong túi.',
+      price: '390000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 10,
+      lowStockThreshold: 3,
+      tags: ['bao-kinh', 'do-da', 'nap-gap'],
+      image:
+        'https://images.pexels.com/photos/33694193/pexels-photo-33694193.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-DESK-MAT',
+      name: 'Tấm lót bàn da handmade',
+      description:
+        'Tấm lót bàn da kích thước gọn, bề mặt mịn cho chuột và bàn phím, viền được đánh cạnh bằng tay.',
+      price: '780000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 7,
+      lowStockThreshold: 2,
+      tags: ['lot-ban', 'do-da', 'ban-lam-viec'],
+      image:
+        'https://images.pexels.com/photos/5963150/pexels-photo-5963150.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-CORD-ORGANIZER',
+      name: 'Dây quấn cáp da bấm nút',
+      description:
+        'Dây quấn cáp sạc bằng da nhỏ gọn, bấm nút kim loại, giúp sắp xếp dây tai nghe và cáp sạc trong túi.',
+      price: '85000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 36,
+      lowStockThreshold: 8,
+      tags: ['quan-cap', 'do-da', 'sap-xep'],
+      image:
+        'https://images.pexels.com/photos/5963147/pexels-photo-5963147.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-LUGGAGE-TAG',
+      name: 'Thẻ hành lý da khắc tên',
+      description:
+        'Thẻ hành lý da thật có nắp che thông tin, có thể khắc tên hoặc ký hiệu ngắn theo yêu cầu.',
+      price: '180000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 26,
+      lowStockThreshold: 6,
+      tags: ['the-hanh-ly', 'do-da', 'ca-nhan-hoa'],
+      image:
+        'https://images.pexels.com/photos/11776325/pexels-photo-11776325.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-BELT',
+      name: 'Thắt lưng da bò bản nhỏ',
+      description:
+        'Thắt lưng da bò bản nhỏ, mặt khóa kim loại tối giản, cắt theo size và hoàn thiện cạnh bằng sáp.',
+      price: '740000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 9,
+      lowStockThreshold: 2,
+      tags: ['that-lung', 'do-da', 'toi-gian'],
+      image:
+        'https://images.pexels.com/photos/27127406/pexels-photo-27127406.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-CLUTCH',
+      name: 'Túi clutch da mỏng',
+      description:
+        'Túi clutch da dạng mỏng, có dây cài tay và ngăn trong đơn giản, phù hợp mang tài liệu nhỏ hoặc vật dụng cá nhân.',
+      price: '1050000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 5,
+      lowStockThreshold: 2,
+      tags: ['tui-da', 'clutch', 'do-da'],
+      image:
+        'https://images.pexels.com/photos/27137636/pexels-photo-27137636.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-BOOKMARK',
+      name: 'Bookmark da dập chữ',
+      description:
+        'Bookmark da mỏng dập chữ cái, có dây tua nhỏ, món quà gọn cho người thích đọc sách và sổ tay.',
+      price: '70000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 40,
+      lowStockThreshold: 10,
+      tags: ['bookmark', 'do-da', 'qua-tang'],
+      image:
+        'https://images.pexels.com/photos/4452707/pexels-photo-4452707.jpeg?auto=compress&cs=tinysrgb&w=900',
+    },
+    {
+      sku: 'DEMO-LEATHER-TOOL-ROLL',
+      name: 'Túi cuộn đựng dụng cụ da',
+      description:
+        'Túi cuộn da có nhiều ngăn nhỏ để bút, dao craft hoặc dụng cụ vẽ, có dây cột giữ form chắc chắn.',
+      price: '640000',
+      categoryId: categoryIds['leather-goods'],
+      sellerId: seller3.id,
+      stock: 8,
+      lowStockThreshold: 2,
+      tags: ['tui-cuon', 'do-da', 'dung-cu'],
+      image:
+        'https://images.pexels.com/photos/5963168/pexels-photo-5963168.jpeg?auto=compress&cs=tinysrgb&w=900',
     },
   ]);
 
