@@ -18,6 +18,7 @@ import { ConfirmCustomOrderPaymentDto } from './dto/confirm-custom-order-payment
 import { UpdateCustomOrderStatusDto } from './dto/update-custom-order-status.dto';
 import { UpdateSketchDto } from './dto/update-sketch.dto';
 import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto';
+import { CreateCustomOrderProgressEventDto } from './dto/create-custom-order-progress-event.dto';
 
 @Controller('custom-orders')
 export class CustomOrdersController {
@@ -73,6 +74,35 @@ export class CustomOrdersController {
       id,
       req.user.id,
       req.user.roles,
+    );
+  }
+
+  @Get(':id/progress')
+  @UseGuards(JwtAuthGuard)
+  getProgressEvents(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.customOrdersService.getProgressEvents(
+      id,
+      req.user.id,
+      req.user.roles,
+    );
+  }
+
+  @Post(':id/progress')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  createProgressEvent(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: CreateCustomOrderProgressEventDto,
+  ) {
+    return this.customOrdersService.createProgressEvent(
+      id,
+      req.user.id,
+      req.user.roles,
+      body,
     );
   }
 

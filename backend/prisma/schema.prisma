@@ -220,6 +220,7 @@ model User {
   commissionPosts       CommissionPost[]            @relation("CommissionPostCustomer")
   commissionProposals   CommissionProposal[]        @relation("CommissionProposalSeller")
   notifications         Notification[]              @relation("UserNotifications")
+  customOrderProgress   CustomOrderProgressEvent[]  @relation("CustomOrderProgressActor")
 
   @@index([status])
 }
@@ -740,11 +741,29 @@ model CustomOrder {
   updatedAt     DateTime                 @updatedAt
   ledgerEntries MarketplaceLedgerEntry[]
   refunds       Refund[]
+  progressEvents CustomOrderProgressEvent[]
 
   @@index([customerId])
   @@index([sellerId])
   @@index([paymentIntentId])
   @@index([quoteTemplateId])
+}
+
+model CustomOrderProgressEvent {
+  id            String             @id @default(uuid())
+  customOrderId String
+  customOrder   CustomOrder        @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+  actorId       String
+  actor         User               @relation("CustomOrderProgressActor", fields: [actorId], references: [id], onDelete: Cascade)
+  status        CustomOrderStatus?
+  title         String
+  note          String?            @db.Text
+  imageUrl      String?
+  createdAt     DateTime           @default(now())
+
+  @@index([customOrderId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([status, createdAt])
 }
 
 model CommissionPost {

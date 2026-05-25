@@ -23,7 +23,8 @@ import {
 } from "./chat";
 import {
   customOrdersApi,
-  CreateCustomOrderPayload,
+  type CreateCustomOrderPayload,
+  type CreateCustomOrderProgressEventPayload,
 } from "./custom-orders";
 import {
   customOrderQuoteTemplatesApi,
@@ -1454,6 +1455,7 @@ export const customOrderKeys = {
   all: ["customOrders"] as const,
   seller: () => [...customOrderKeys.all, "seller"] as const,
   detail: (id: string) => ["customOrder", id] as const,
+  progress: (id: string) => [...customOrderKeys.detail(id), "progress"] as const,
   adminLedger: (id: string) =>
     [...customOrderKeys.detail(id), "admin-ledger"] as const,
 };
@@ -1474,6 +1476,32 @@ export function useAdminCustomOrderLedger(id: string, enabled = true) {
     queryKey: customOrderKeys.adminLedger(id),
     queryFn: () => customOrdersApi.getAdminCustomOrderLedger(id),
     enabled: !!id && enabled,
+  });
+}
+
+export function useCustomOrderProgressEvents(id: string, enabled = true) {
+  return useQuery({
+    queryKey: customOrderKeys.progress(id),
+    queryFn: () => customOrdersApi.getProgressEvents(id),
+    enabled: !!id && enabled,
+  });
+}
+
+export function useCreateCustomOrderProgressEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: CreateCustomOrderProgressEventPayload;
+    }) => customOrdersApi.createProgressEvent(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.progress(id) });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.seller() });
+    },
   });
 }
 
