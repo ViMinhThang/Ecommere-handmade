@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Eye, Plus, Package, CheckCircle, Truck, RefreshCcw } from 'lucide-react';
+import { Search, Eye, Plus, Package, CheckCircle, Truck, RefreshCcw, Clock3 } from 'lucide-react';
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
@@ -55,8 +55,12 @@ export default function SellerCustomOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<CustomOrder | null>(null);
   const [isRevisionOpen, setIsRevisionOpen] = useState(false);
+  const [isProgressOpen, setIsProgressOpen] = useState(false);
   const [sketchUrl, setSketchUrl] = useState("");
   const [responseNote, setResponseNote] = useState("");
+  const [progressTitle, setProgressTitle] = useState("");
+  const [progressNote, setProgressNote] = useState("");
+  const [progressImageUrl, setProgressImageUrl] = useState("");
 
   const { data: orders, isLoading, error } = useQuery({
     queryKey: ["customOrders", "seller"],
@@ -92,6 +96,35 @@ export default function SellerCustomOrdersPage() {
     }
   });
 
+  const createProgressEvent = useMutation({
+    mutationFn: (data: {
+      id: string;
+      title: string;
+      note?: string;
+      imageUrl?: string;
+      status: CustomOrder["status"];
+    }) =>
+      customOrdersApi.createProgressEvent(data.id, {
+        title: data.title,
+        note: data.note,
+        imageUrl: data.imageUrl,
+        status: data.status,
+      }),
+    onSuccess: (_, variables) => {
+      toast.success("Đã thêm cập nhật tiến độ");
+      setIsProgressOpen(false);
+      setSelectedOrder(null);
+      setProgressTitle("");
+      setProgressNote("");
+      setProgressImageUrl("");
+      void queryClient.invalidateQueries({ queryKey: ["customOrders", "seller"] });
+      void queryClient.invalidateQueries({ queryKey: ["customOrder", variables.id, "progress"] });
+    },
+    onError: () => {
+      toast.error("Không thể thêm cập nhật tiến độ lúc này");
+    },
+  });
+
   const filteredOrders = (orders || []).filter(order => 
     order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.customer?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,12 +149,31 @@ export default function SellerCustomOrdersPage() {
     setIsRevisionOpen(true);
   };
 
+  const handleOpenProgress = (order: CustomOrder) => {
+    setSelectedOrder(order);
+    setProgressTitle("");
+    setProgressNote("");
+    setProgressImageUrl("");
+    setIsProgressOpen(true);
+  };
+
   const handleSubmitRevision = () => {
     if (!selectedOrder) return;
     submitRevision.mutate({
       id: selectedOrder.id,
       sketchImageUrl: sketchUrl,
       artisanNote: responseNote
+    });
+  };
+
+  const handleSubmitProgress = () => {
+    if (!selectedOrder || !progressTitle.trim()) return;
+    createProgressEvent.mutate({
+      id: selectedOrder.id,
+      status: selectedOrder.status,
+      title: progressTitle.trim(),
+      note: progressNote.trim() || undefined,
+      imageUrl: progressImageUrl.trim() || undefined,
     });
   };
 
@@ -252,6 +304,17 @@ export default function SellerCustomOrdersPage() {
                              Phản hồi yêu cầu
                            </Button>
                          )}
+                         {!['DELIVERED', 'CANCELLED'].includes(order.status) && (
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             className="h-8 gap-1"
+                             onClick={() => handleOpenProgress(order)}
+                           >
+                             <Clock3 className="h-3 w-3" />
+                             Tiến độ
+                           </Button>
+                         )}
                          {order.status === 'CRAFTING' && (
                            <Button 
                              size="sm" 
@@ -348,6 +411,63 @@ export default function SellerCustomOrdersPage() {
               disabled={submitRevision.isPending}
             >
               {submitRevision.isPending ? "Đang gửi bản cập nhật..." : "Gửi bản cập nhật"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isProgressOpen} onOpenChange={setIsProgressOpen}>
+        <DialogContent className="max-w-xl text-slate-900">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">Thêm cập nhật tiến độ</DialogTitle>
+            <DialogDescription>
+              Ghi lại quá trình chế tác để khách hàng theo dõi sản phẩm handmade.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="progress-title">Tiêu đề</Label>
+              <Input
+                id="progress-title"
+                placeholder="Ví dụ: Đã hoàn thiện phần thêu tên"
+                value={progressTitle}
+                onChange={(event) => setProgressTitle(event.target.value)}
+                maxLength={120}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="progress-note">Ghi chú</Label>
+              <Textarea
+                id="progress-note"
+                placeholder="Mô tả ngắn phần việc đã hoàn thành, chất liệu đang dùng hoặc bước tiếp theo..."
+                className="h-32"
+                value={progressNote}
+                onChange={(event) => setProgressNote(event.target.value)}
+                maxLength={1000}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="progress-image">Ảnh minh họa tùy chọn</Label>
+              <Input
+                id="progress-image"
+                placeholder="URL ảnh hoặc path từ media library"
+                value={progressImageUrl}
+                onChange={(event) => setProgressImageUrl(event.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsProgressOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              className="bg-[#A35C3D] hover:bg-[#8a4d33]"
+              onClick={handleSubmitProgress}
+              disabled={createProgressEvent.isPending || !progressTitle.trim()}
+            >
+              {createProgressEvent.isPending ? "Đang lưu..." : "Lưu tiến độ"}
             </Button>
           </DialogFooter>
         </DialogContent>

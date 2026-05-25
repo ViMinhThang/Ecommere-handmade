@@ -8,14 +8,18 @@ import {
   useProducts,
   useUpdateProfile,
   useCreateReport,
+  useCreateShopReview,
+  useMyShopReviewStatus,
+  useShopReviewSummary,
+  useShopReviews,
 } from "@/lib/api/hooks";
 import { useAuth } from "@/contexts/auth-context";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
+import { FollowShopButton } from "@/components/sellers/follow-shop-button";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
-import { ProductCardActions } from "@/components/storefront/product-card-actions";
 import {
   Edit2,
   Save,
@@ -24,6 +28,7 @@ import {
   MessageCircle,
   ChevronDown,
   Flag,
+  Star,
 } from "lucide-react";
 import { ImageSelector } from "@/components/dashboard/image-selector";
 import { Button } from "@/components/ui/button";
@@ -72,8 +77,17 @@ const emptySellerProfileFormData: SellerProfileFormData = {
   sellerStat2Value: "",
 };
 
+function formatReviewDate(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 function SellerProfilePageContent() {
   const { id } = useParams();
+  const sellerId = id as string;
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -91,9 +105,11 @@ function SellerProfilePageContent() {
   const sortBy = searchParams.get("sortBy") || "createdAt";
   const order = (searchParams.get("order") as "asc" | "desc") || "desc";
 
-  const { data: seller, isLoading: sellerLoading } = useSeller(id as string);
+  const isOwner = user?.id === sellerId;
+
+  const { data: seller, isLoading: sellerLoading } = useSeller(sellerId);
   const { data: productsData, isLoading: productsLoading } = useProducts({
-    sellerId: id as string,
+    sellerId,
     status: "APPROVED",
     minPrice,
     maxPrice,
@@ -101,6 +117,19 @@ function SellerProfilePageContent() {
     sortBy,
     order,
   });
+  const {
+    data: shopReviewSummary,
+    isLoading: shopReviewSummaryLoading,
+  } = useShopReviewSummary(sellerId);
+  const {
+    data: shopReviewsData,
+    isLoading: shopReviewsLoading,
+    isError: shopReviewsError,
+  } = useShopReviews(sellerId, { page: 1, limit: 5 });
+  const {
+    data: myShopReviewStatus,
+    isLoading: myShopReviewStatusLoading,
+  } = useMyShopReviewStatus(sellerId, Boolean(user));
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -121,9 +150,12 @@ function SellerProfilePageContent() {
 
   const updateProfileMutation = useUpdateProfile();
   const createReportMutation = useCreateReport();
+  const createShopReviewMutation = useCreateShopReview();
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
+  const [shopReviewRating, setShopReviewRating] = useState(5);
+  const [shopReviewComment, setShopReviewComment] = useState("");
 
   const sellerFormData: SellerProfileFormData = seller
     ? {
@@ -160,8 +192,6 @@ function SellerProfilePageContent() {
     "hero" | "about" | null
   >(null);
 
-  const isOwner = user?.id === id;
-
   const handleSave = async () => {
     try {
       await updateProfileMutation.mutateAsync(formData);
@@ -169,6 +199,31 @@ function SellerProfilePageContent() {
       toast.success("Hồ sơ đã được cập nhật thành công!");
     } catch {
       toast.error("Không thể cập nhật hồ sơ. Vui lòng thử lại.");
+    }
+  };
+
+  const handleSubmitShopReview = async () => {
+    if (!seller) {
+      return;
+    }
+
+    try {
+      await createShopReviewMutation.mutateAsync({
+        sellerId: seller.id,
+        review: {
+          rating: shopReviewRating,
+          comment: shopReviewComment.trim() || undefined,
+        },
+      });
+      setShopReviewRating(5);
+      setShopReviewComment("");
+      toast.success("Đã gửi đánh giá gian hàng.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể gửi đánh giá gian hàng.",
+      );
     }
   };
 
@@ -219,7 +274,7 @@ function SellerProfilePageContent() {
 
   if (sellerLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -227,7 +282,7 @@ function SellerProfilePageContent() {
 
   if (!seller) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
         <p className="text-xl font-headline italic">
           Không tìm thấy thông tin người bán.
         </p>
@@ -236,9 +291,15 @@ function SellerProfilePageContent() {
   }
 
   const products = productsData?.data || [];
+  const shopReviewCount =
+    shopReviewSummary?.totalReviews ?? seller.shopReviewCount ?? 0;
+  const shopAverageRating =
+    shopReviewSummary?.averageRating ?? seller.shopAverageRating ?? null;
+  const shopReviews = shopReviewsData?.data ?? [];
+  const myShopReview = myShopReviewStatus?.review ?? null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-body">
+    <div className="min-h-screen bg-[#fdf9f3] text-[#1c1c18] font-body">
       <CustomerNavBar />
 
       <main className="pt-24">
@@ -260,7 +321,7 @@ function SellerProfilePageContent() {
                     setIsEditMode(false);
                   }}
                   variant="outline"
-                  className="rounded-full w-14 h-14 bg-card border-primary shadow-xl hover:scale-110 transition-transform"
+                  className="rounded-full w-14 h-14 bg-white border-primary shadow-xl hover:scale-110 transition-transform"
                 >
                   <X className="w-6 h-6 text-primary" />
                 </Button>
@@ -280,7 +341,7 @@ function SellerProfilePageContent() {
         <section className="px-8 md:px-12 py-12 md:py-24 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
           <div className="w-full md:w-3/5 order-2 md:order-1">
             <div className="relative group">
-              <div className="overflow-hidden rounded-lg shadow-2xl aspect-[4/5] relative bg-accent">
+              <div className="overflow-hidden rounded-lg shadow-2xl aspect-4/5 relative bg-accent">
                 {formData.sellerHeroImage ? (
                   <SafeImage
                     src={formData.sellerHeroImage}
@@ -310,7 +371,7 @@ function SellerProfilePageContent() {
                   </div>
                 )}
               </div>
-              <div className="absolute -bottom-6 -right-6 md:-right-12 bg-card p-8 rounded-lg shadow-lg ring-1 ring-border/50 max-w-xs hidden md:block">
+              <div className="absolute -bottom-6 -right-6 md:-right-12 bg-white p-8 rounded-lg shadow-lg max-w-xs hidden md:block">
                 <p className="font-headline italic text-primary text-lg">
                   &ldquo;Mỗi tác phẩm là một câu chuyện, mỗi đường nét là một
                   tâm tình.&rdquo;
@@ -341,7 +402,7 @@ function SellerProfilePageContent() {
                         })
                       }
                       placeholder="VD: Người bán Gốm sứ"
-                      className="bg-card/70 border-primary/20"
+                      className="bg-white/50 border-primary/20"
                     />
                   </div>
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
@@ -350,7 +411,7 @@ function SellerProfilePageContent() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <span className="uppercase tracking-[0.2em] text-xs font-semibold text-secondary-foreground">
+                  <span className="uppercase tracking-[0.2em] text-xs font-semibold text-[#516351]">
                     {formData.sellerTitle}
                   </span>
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
@@ -376,35 +437,37 @@ function SellerProfilePageContent() {
                     updateFormData({ ...formData, sellerBio: e.target.value })
                   }
                   placeholder="Mô tả ngắn gọn về bạn và nghệ thuật của bạn..."
-                  className="bg-card/70 border-primary/20 h-32"
+                  className="bg-white/50 border-primary/20 h-32"
                 />
               </div>
             ) : (
-              <p className="text-muted-foreground text-lg leading-relaxed font-light">
+              <p className="text-[#54433c] text-lg leading-relaxed font-light">
                 {formData.sellerBio}
               </p>
             )}
 
-            <div className="flex gap-4">
-              <button className="bg-primary text-primary-foreground px-8 py-3 rounded-md hover:bg-primary/90 transition-all shadow-md font-bold text-sm tracking-wide">
-                Theo dõi Studio
-              </button>
+            <div className="flex flex-wrap gap-4">
+              <FollowShopButton
+                sellerId={seller.id}
+                initialFollowerCount={seller.followerCount ?? 0}
+                redirectPath={`/sellers/${seller.id}`}
+              />
               <Button
                 variant="outline"
                 onClick={() => openChat(seller.id)}
-                className="bg-accent text-primary px-8 py-3 rounded-md hover:bg-accent/80 transition-all font-bold text-sm tracking-wide h-auto border-none"
+                className="bg-[#ebe8e2] text-primary px-8 py-3 rounded-md hover:bg-[#e6e2dc] transition-all font-bold text-sm tracking-wide h-auto border-none"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                Lien he
+                Liên hệ
               </Button>
               {user && !isOwner && (
                 <Button
                   variant="outline"
                   onClick={() => setIsReportDialogOpen(true)}
-                  className="bg-card/80 text-primary px-6 py-3 rounded-md hover:bg-card transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
+                  className="bg-white/80 text-primary px-6 py-3 rounded-md hover:bg-white transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
                 >
                   <Flag className="w-4 h-4 mr-2" />
-                  Bao cao
+                  Báo cáo
                 </Button>
               )}
             </div>
@@ -412,7 +475,7 @@ function SellerProfilePageContent() {
         </section>
 
         {/* About Narrative Section */}
-        <section className="bg-muted/45 py-24">
+        <section className="bg-[#f7f3ed] py-24">
           <div className="max-w-7xl mx-auto px-8 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
             <div className="md:col-span-7 space-y-8">
               <h2 className="text-4xl text-primary font-headline italic">
@@ -437,11 +500,11 @@ function SellerProfilePageContent() {
                         sellerAbout: e.target.value,
                       })
                     }
-                    className="bg-card/70 border-primary/20 h-64 leading-relaxed text-lg"
+                    className="bg-white/50 border-primary/20 h-64 leading-relaxed text-lg"
                   />
                 </div>
               ) : (
-                <div className="space-y-6 text-foreground text-lg leading-relaxed whitespace-pre-line">
+                <div className="space-y-6 text-[#1c1c18] text-lg leading-relaxed whitespace-pre-line">
                   {formData.sellerAbout}
                 </div>
               )}
@@ -461,7 +524,7 @@ function SellerProfilePageContent() {
                             sellerStat1Value: e.target.value,
                           })
                         }
-                        className="bg-card/70 border-primary/20 font-headline text-2xl w-24"
+                        className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
                         id="seller-stat-1-label"
@@ -474,7 +537,7 @@ function SellerProfilePageContent() {
                             sellerStat1Label: e.target.value,
                           })
                         }
-                        className="bg-card/70 border-primary/20 text-xs w-40"
+                        className="bg-white/50 border-primary/20 text-xs w-40"
                       />
                     </>
                   ) : (
@@ -482,7 +545,7 @@ function SellerProfilePageContent() {
                       <span className="block text-3xl font-headline italic text-primary">
                         {formData.sellerStat1Value}
                       </span>
-                      <span className="text-sm text-secondary-foreground uppercase tracking-widest">
+                      <span className="text-sm text-[#516351] uppercase tracking-widest">
                         {formData.sellerStat1Label}
                       </span>
                     </>
@@ -502,7 +565,7 @@ function SellerProfilePageContent() {
                             sellerStat2Value: e.target.value,
                           })
                         }
-                        className="bg-card/70 border-primary/20 font-headline text-2xl w-24"
+                        className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
                         id="seller-stat-2-label"
@@ -515,7 +578,7 @@ function SellerProfilePageContent() {
                             sellerStat2Label: e.target.value,
                           })
                         }
-                        className="bg-card/70 border-primary/20 text-xs w-40"
+                        className="bg-white/50 border-primary/20 text-xs w-40"
                       />
                     </>
                   ) : (
@@ -523,7 +586,7 @@ function SellerProfilePageContent() {
                       <span className="block text-3xl font-headline italic text-primary">
                         {formData.sellerStat2Value}
                       </span>
-                      <span className="text-sm text-secondary-foreground uppercase tracking-widest">
+                      <span className="text-sm text-[#516351] uppercase tracking-widest">
                         {formData.sellerStat2Label}
                       </span>
                     </>
@@ -533,7 +596,7 @@ function SellerProfilePageContent() {
             </div>
 
             <div className="md:col-span-5 relative group">
-              <div className="aspect-square bg-accent rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
+              <div className="aspect-square bg-[#e6e2dc] rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
               <div className="rounded-lg shadow-xl overflow-hidden relative aspect-square bg-accent">
                 {formData.sellerAboutImage ? (
                   <SafeImage
@@ -577,7 +640,7 @@ function SellerProfilePageContent() {
                   <h2 className="text-4xl text-primary font-headline italic mb-4">
                     Bộ sưu tập
                   </h2>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+                  <p className="text-[#54433c] text-sm leading-relaxed mb-8">
                     Khám phá các sản phẩm được chế tác thủ công bởi{" "}
                     {seller.name}.
                   </p>
@@ -594,7 +657,7 @@ function SellerProfilePageContent() {
                   <select
                     id="seller-collection-sort"
                     name="seller-collection-sort"
-                    className="w-full bg-card border border-primary/20 rounded-md p-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20"
+                    className="w-full bg-white border border-primary/20 rounded-md p-3 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
                     value={`${sortBy}-${order}`}
                     onChange={(e) => {
                       const [newSort, newOrder] = e.target.value.split("-");
@@ -662,7 +725,7 @@ function SellerProfilePageContent() {
                               }
                             }}
                           />
-                          <span className="ml-3 text-sm text-foreground group-hover:text-primary transition-colors">
+                          <span className="ml-3 text-sm text-[#1c1c18] group-hover:text-primary transition-colors">
                             {range.label}
                           </span>
                         </label>
@@ -693,7 +756,7 @@ function SellerProfilePageContent() {
                           })
                         }
                       />
-                      <span className="ml-3 text-sm text-foreground">
+                      <span className="ml-3 text-sm text-[#1c1c18]">
                         Sẵn sàng giao ngay
                       </span>
                     </label>
@@ -715,12 +778,12 @@ function SellerProfilePageContent() {
             {/* Product Grid */}
             <div className="grow">
               {productsLoading ? (
-                <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="mb-5 aspect-[4/5] bg-accent" />
-                      <div className="mb-3 h-5 w-3/4 bg-accent" />
-                      <div className="h-4 w-1/2 bg-accent" />
+                    <div key={i} className={i % 3 === 1 ? "md:mt-12" : ""}>
+                      <div className="aspect-[4/5] bg-accent/50 animate-pulse rounded-lg mb-6" />
+                      <div className="h-6 w-48 bg-accent/50 animate-pulse rounded mb-2" />
+                      <div className="h-4 w-24 bg-accent/50 animate-pulse rounded" />
                     </div>
                   ))}
                 </div>
@@ -731,89 +794,295 @@ function SellerProfilePageContent() {
                   </p>
                   <button
                     onClick={clearFilters}
-                    className="mt-4 text-secondary-foreground font-bold text-sm tracking-widest uppercase hover:underline"
+                    className="mt-4 text-[#516351] font-bold text-sm tracking-widest uppercase hover:underline"
                   >
                     Xóa bộ lọc và thử lại
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
-                  {products.map((product) => {
-                    const image = product.images?.[0]?.url;
-                    const price = product.pricing?.discountedPrice ?? product.price;
-                    const hasDiscount =
-                      product.pricing?.discountedPrice &&
-                      product.pricing.discountedPrice <
-                        product.pricing.originalPrice;
-
-                    return (
-                      <article key={product.id} className="group">
-                        <div className="relative mb-5 aspect-[4/5] overflow-hidden border border-border/20 bg-accent">
-                          {image ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
+                  {products.map((product, index) => (
+                    <div
+                      key={product.id}
+                      className={`group ${index % 3 === 1 ? "md:mt-12" : ""}`}
+                    >
+                      <Link href={`/products/${product.id}`}>
+                        <div className="relative overflow-hidden aspect-4/5 bg-accent mb-6 rounded-lg shadow-sm border border-primary/5">
+                          {product.images?.[0] ? (
                             <SafeImage
-                              src={mediaApi.getImageUrl(image)}
+                              src={mediaApi.getImageUrl(product.images[0].url)}
                               alt={product.name}
                               fill
                               className="object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                           ) : (
-                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">
                               Chưa có ảnh
                             </div>
                           )}
-                          {product.stock <= 0 ? (
-                            <span className="absolute left-3 top-3 z-20 bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                              Hết hàng
-                            </span>
-                          ) : null}
-                          <div className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/10" />
-                          <ProductCardActions
-                            productId={product.id}
-                            stock={product.stock}
-                          />
-                        </div>
-
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <Link href={`/products/${product.id}`}>
-                              <h3 className="line-clamp-2 font-headline text-xl italic text-foreground transition group-hover:text-primary">
-                                {product.name}
-                              </h3>
-                            </Link>
-                            <p className="mt-1 truncate text-sm text-muted-foreground">
-                              {product.category?.name || "Danh mục"} ·{" "}
-                              {product.seller?.shopName ||
-                                product.seller?.name ||
-                                seller.name}
-                            </p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="font-semibold text-primary">
-                              {formatCurrency(Number(price))}
-                            </p>
-                            {hasDiscount ? (
-                              <p className="text-xs text-muted-foreground line-through">
-                                {formatCurrency(
-                                  Number(product.pricing?.originalPrice),
-                                )}
-                              </p>
-                            ) : null}
+                          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button className="px-8 py-3 bg-[#fdf9f3] text-primary font-bold text-xs tracking-widest uppercase shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                              Chi tiết
+                            </button>
                           </div>
                         </div>
-                      </article>
-                    );
-                  })}
+                      </Link>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <Link href={`/products/${product.id}`}>
+                            <h3 className="font-headline text-2xl text-primary mb-1 group-hover:text-primary/70 transition-colors italic leading-none">
+                              {product.name}
+                            </h3>
+                          </Link>
+                          <p className="text-[#516351] text-xs font-semibold uppercase tracking-widest">
+                            {product.category?.name}
+                          </p>
+                        </div>
+                        <span className="shrink-0 whitespace-nowrap text-xl font-bold leading-none text-primary">
+                          {formatCurrency(Number(product.price))}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
               {products.length > 0 && (
                 <div className="mt-24 flex justify-center">
-                  <button className="px-12 py-4 bg-primary text-primary-foreground rounded-md font-bold text-xs tracking-[0.2em] flex items-center group hover:bg-primary/90 transition-colors shadow-lg shadow-primary/10">
+                  <button className="px-12 py-4 bg-primary text-white rounded-md font-bold text-xs tracking-[0.2em] flex items-center group hover:bg-primary/90 transition-colors shadow-lg shadow-primary/10">
                     XEM THÊM TÁC PHẨM
                     <ChevronDown className="ml-3 w-4 h-4 transition-transform group-hover:translate-y-1" />
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-8 py-20 md:px-12">
+          <div className="mx-auto max-w-5xl space-y-10">
+            <div className="flex flex-col gap-4 border-b border-primary/10 pb-8 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                  Đánh giá gian hàng
+                </p>
+                <h2 className="mt-3 font-headline text-4xl italic text-primary">
+                  Khách hàng nói gì về {seller.shopName || seller.name}
+                </h2>
+              </div>
+              <div className="rounded-md bg-white px-6 py-4 shadow-sm ring-1 ring-primary/10">
+                {shopReviewSummaryLoading ? (
+                  <div className="h-8 w-28 animate-pulse rounded bg-primary/10" />
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <Star className="h-6 w-6 fill-primary text-primary" />
+                    <div>
+                      <p className="text-2xl font-bold text-primary">
+                        {shopAverageRating === null
+                          ? "Chưa có"
+                          : shopAverageRating.toFixed(1)}
+                      </p>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        {shopReviewCount} lượt đánh giá
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+              <div className="space-y-4">
+                {shopReviewsLoading ? (
+                  [1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-md bg-white p-5 shadow-sm ring-1 ring-primary/10"
+                    >
+                      <div className="mb-3 h-4 w-32 animate-pulse rounded bg-primary/10" />
+                      <div className="h-4 w-full animate-pulse rounded bg-primary/10" />
+                    </div>
+                  ))
+                ) : shopReviewsError ? (
+                  <div className="rounded-md bg-white p-6 text-sm text-destructive shadow-sm ring-1 ring-primary/10">
+                    Không thể tải đánh giá gian hàng. Vui lòng thử lại sau.
+                  </div>
+                ) : shopReviews.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-primary/20 bg-white/70 p-8 text-center text-sm text-muted-foreground">
+                    Gian hàng chưa có đánh giá nào.
+                  </div>
+                ) : (
+                  shopReviews.map((review) => (
+                    <article
+                      key={review.id}
+                      className="rounded-md bg-white p-5 shadow-sm ring-1 ring-primary/10"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-primary">
+                            {review.customer.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Intl.DateTimeFormat("vi-VN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            }).format(new Date(review.createdAt))}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 text-primary">
+                          {Array.from({ length: 5 }, (_, index) => (
+                            <Star
+                              key={index}
+                              className="h-4 w-4"
+                              fill={
+                                index < review.rating ? "currentColor" : "none"
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment ? (
+                        <p className="mt-4 text-sm leading-6 text-[#54433c]">
+                          {review.comment}
+                        </p>
+                      ) : null}
+                    </article>
+                  ))
+                )}
+              </div>
+
+              <div className="rounded-md bg-white p-6 shadow-sm ring-1 ring-primary/10">
+                {!user ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Đăng nhập để đánh giá gian hàng sau khi bạn đã nhận hàng.
+                    </p>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={() =>
+                        router.push(
+                          `/login?redirect=${encodeURIComponent(`/sellers/${seller.id}`)}`,
+                        )
+                      }
+                    >
+                      Đăng nhập để đánh giá
+                    </Button>
+                  </div>
+                ) : myShopReviewStatusLoading ? (
+                  <div className="space-y-3">
+                    <div className="h-4 w-40 animate-pulse rounded bg-primary/10" />
+                    <div className="h-20 w-full animate-pulse rounded bg-primary/10" />
+                  </div>
+                ) : myShopReviewStatus?.hasReviewed ? (
+                  <div className="space-y-3">
+                    <div className="rounded-md bg-primary/5 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                        Đánh giá của bạn
+                      </p>
+                      <div className="mt-3 flex items-center gap-2 text-primary">
+                        {Array.from({ length: 5 }, (_, index) => (
+                          <Star
+                            key={index}
+                            className="h-5 w-5"
+                            fill={
+                              myShopReview && index < myShopReview.rating
+                                ? "currentColor"
+                                : "none"
+                            }
+                          />
+                        ))}
+                      </div>
+                      {myShopReview?.comment ? (
+                        <p className="mt-4 text-sm leading-6 text-[#54433c]">
+                          {myShopReview.comment}
+                        </p>
+                      ) : (
+                        <p className="mt-4 text-sm text-muted-foreground">
+                          Bạn đã đánh giá bằng số sao và không để lại nhận xét.
+                        </p>
+                      )}
+                      {myShopReview ? (
+                        <div className="mt-4 space-y-1 text-xs text-muted-foreground">
+                          <p>
+                            Ngày tạo: {formatReviewDate(myShopReview.createdAt)}
+                          </p>
+                          <p>
+                            Cập nhật: {formatReviewDate(myShopReview.updatedAt)}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                    <p className="sr-only">
+                      Bạn đã đánh giá gian hàng này
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Mỗi khách hàng chỉ đánh giá một lần cho mỗi gian hàng.
+                    </p>
+                  </div>
+                ) : myShopReviewStatus?.canReview ? (
+                  <div className="space-y-5">
+                    <div>
+                      <p className="mb-3 text-sm font-semibold text-primary">
+                        Chọn số sao
+                      </p>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <button
+                            key={rating}
+                            type="button"
+                            onClick={() => setShopReviewRating(rating)}
+                            className="text-primary transition-transform hover:scale-110"
+                            aria-label={`${rating} sao`}
+                          >
+                            <Star
+                              className="h-7 w-7"
+                              fill={
+                                rating <= shopReviewRating
+                                  ? "currentColor"
+                                  : "none"
+                              }
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="shop-review-comment"
+                        className="text-sm font-semibold text-primary"
+                      >
+                        Nhận xét
+                      </label>
+                      <Textarea
+                        id="shop-review-comment"
+                        value={shopReviewComment}
+                        onChange={(event) =>
+                          setShopReviewComment(event.target.value)
+                        }
+                        maxLength={1000}
+                        placeholder="Chia sẻ trải nghiệm mua hàng tại gian hàng..."
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      disabled={createShopReviewMutation.isPending}
+                      onClick={handleSubmitShopReview}
+                    >
+                      {createShopReviewMutation.isPending
+                        ? "Đang gửi..."
+                        : "Gửi đánh giá"}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {myShopReviewStatus?.reason ||
+                      "Chỉ khách đã nhận hàng từ shop mới có thể đánh giá"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -881,8 +1150,8 @@ function SellerProfilePageContent() {
       {/* Image Selector Dialog */}
       {isImageSelectorOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-card rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center bg-background">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center bg-[#fdf9f3]">
               <h2 className="text-2xl font-headline italic text-primary">
                 Chọn hình ảnh cho hồ sơ
               </h2>
@@ -912,7 +1181,7 @@ export default function SellerProfilePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       }

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Prisma, ProductStatus, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -63,6 +64,15 @@ export class UsersService {
     sellerStat2Value: true,
     createdAt: true,
     updatedAt: true,
+  } as const;
+
+  private readonly publicSellerWithFollowerCountSelect = {
+    ...this.publicSellerSelect,
+    _count: {
+      select: {
+        shopFollowers: true,
+      },
+    },
   } as const;
 
   private normalizeSellerSearchLimit(limit?: number) {
@@ -290,19 +300,127 @@ export class UsersService {
       where: {
         id,
         deletedAt: null,
+        status: UserStatus.ACTIVE,
         roles: { has: Role.ROLE_SELLER },
         NOT: {
           roles: { has: Role.ROLE_ADMIN },
         },
       },
-      select: this.publicSellerSelect,
+      select: this.publicSellerWithFollowerCountSelect,
     });
 
     if (!seller) {
       throw new NotFoundException('Seller not found');
     }
 
-    return seller;
+    return {
+      ...this.formatPublicSeller(seller),
+      ...(await this.getShopRatingFields(id)),
+    };
+  }
+
+  async getShopFollowStatus(
+    customerId: string,
+    roles: string[],
+    sellerId: string,
+  ) {
+    this.assertCanUseShopFollow(customerId, roles, sellerId);
+    await this.assertFollowableSeller(sellerId);
+
+    const [existingFollow, followerCount] = await Promise.all([
+      this.prisma.shopFollow.findUnique({
+        where: {
+          customerId_sellerId: {
+            customerId,
+            sellerId,
+          },
+        },
+        select: { id: true },
+      }),
+      this.countShopFollowers(sellerId),
+    ]);
+
+    return {
+      sellerId,
+      isFollowing: Boolean(existingFollow),
+      followerCount,
+    };
+  }
+
+  async followShop(customerId: string, roles: string[], sellerId: string) {
+    this.assertCanUseShopFollow(customerId, roles, sellerId);
+    await this.assertFollowableSeller(sellerId);
+
+    await this.prisma.shopFollow.upsert({
+      where: {
+        customerId_sellerId: {
+          customerId,
+          sellerId,
+        },
+      },
+      update: {},
+      create: {
+        customerId,
+        sellerId,
+      },
+    });
+
+    return {
+      sellerId,
+      isFollowing: true,
+      followerCount: await this.countShopFollowers(sellerId),
+    };
+  }
+
+  async unfollowShop(customerId: string, roles: string[], sellerId: string) {
+    this.assertCanUseShopFollow(customerId, roles, sellerId);
+    await this.assertFollowableSeller(sellerId);
+
+    await this.prisma.shopFollow.deleteMany({
+      where: {
+        customerId,
+        sellerId,
+      },
+    });
+
+    return {
+      sellerId,
+      isFollowing: false,
+      followerCount: await this.countShopFollowers(sellerId),
+    };
+  }
+
+  async listFollowedShops(customerId: string, roles: string[]) {
+    if (!roles.includes(Role.ROLE_USER)) {
+      throw new ForbiddenException('Customer role is required');
+    }
+
+    const follows = await this.prisma.shopFollow.findMany({
+      where: {
+        customerId,
+        seller: {
+          deletedAt: null,
+          status: UserStatus.ACTIVE,
+          roles: { has: Role.ROLE_SELLER },
+          NOT: {
+            roles: { has: Role.ROLE_ADMIN },
+          },
+        },
+      },
+      include: {
+        seller: {
+          select: this.publicSellerWithFollowerCountSelect,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return follows.map((follow) => ({
+      id: follow.id,
+      sellerId: follow.sellerId,
+      createdAt: follow.createdAt,
+      seller: this.formatPublicSeller(follow.seller),
+    }));
   }
 
   async searchSellers(query: SearchSellersQueryDto) {
@@ -356,6 +474,9 @@ export class UsersService {
       productCount: number | bigint;
       averageRating: number | null;
       totalReviews: number | bigint;
+      followerCount: number | bigint;
+      shopAverageRating: number | null;
+      shopReviewCount: number | bigint;
     };
 
     const rows = await this.prisma.$queryRaw<SellerSearchRow[]>(Prisma.sql`
@@ -368,17 +489,25 @@ export class UsersService {
         u."sellerBio",
         u."createdAt",
         COUNT(DISTINCT p.id)::int AS "productCount",
+        COUNT(DISTINCT sf.id)::int AS "followerCount",
+        CASE
+          WHEN COUNT(sr.id) = 0 THEN NULL
+          ELSE ROUND(AVG(sr.rating)::numeric, 1)::double precision
+        END AS "shopAverageRating",
+        COUNT(DISTINCT sr.id)::int AS "shopReviewCount",
         CASE
           WHEN COUNT(r.id) = 0 THEN NULL
           ELSE ROUND(AVG(r.rating)::numeric, 1)::double precision
         END AS "averageRating",
-        COUNT(r.id)::int AS "totalReviews"
+        COUNT(DISTINCT r.id)::int AS "totalReviews"
       FROM "User" u
       LEFT JOIN "Product" p
         ON p."sellerId" = u.id
         AND p."deletedAt" IS NULL
         AND p.status = ${ProductStatus.APPROVED}::"ProductStatus"
       LEFT JOIN "Review" r ON r."productId" = p.id
+      LEFT JOIN "ShopFollow" sf ON sf."sellerId" = u.id
+      LEFT JOIN "ShopReview" sr ON sr."sellerId" = u.id
       WHERE u."deletedAt" IS NULL
         AND u.status = ${UserStatus.ACTIVE}::"UserStatus"
         AND u.roles @> ARRAY[${Role.ROLE_SELLER}]::"Role"[]
@@ -412,6 +541,9 @@ export class UsersService {
         productCount: Number(row.productCount),
         averageRating: row.averageRating,
         totalReviews: Number(row.totalReviews),
+        followerCount: Number(row.followerCount),
+        shopAverageRating: row.shopAverageRating,
+        shopReviewCount: Number(row.shopReviewCount),
         createdAt: row.createdAt,
         linkTarget: `/sellers/${row.id}`,
       })),
@@ -478,6 +610,82 @@ export class UsersService {
     return Prisma.sql`
       ORDER BY "productCount" DESC, u."createdAt" DESC, u.id ASC
     `;
+  }
+
+  private formatPublicSeller<T extends { _count?: { shopFollowers?: number } }>(
+    seller: T,
+  ) {
+    const { _count, ...publicSeller } = seller;
+
+    return {
+      ...publicSeller,
+      followerCount: _count?.shopFollowers ?? 0,
+    };
+  }
+
+  private async getShopRatingFields(sellerId: string) {
+    const aggregate = await this.prisma.shopReview.aggregate({
+      where: { sellerId },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
+    const averageRating = aggregate._avg.rating;
+
+    return {
+      shopAverageRating:
+        averageRating === null ? null : Math.round(averageRating * 10) / 10,
+      shopReviewCount: aggregate._count._all,
+    };
+  }
+
+  private assertCanUseShopFollow(
+    customerId: string,
+    roles: string[],
+    sellerId: string,
+  ) {
+    if (!roles.includes(Role.ROLE_USER)) {
+      throw new ForbiddenException('Customer role is required');
+    }
+
+    if (customerId === sellerId) {
+      throw new BadRequestException('You cannot follow your own shop');
+    }
+  }
+
+  private async assertFollowableSeller(sellerId: string) {
+    const seller = await this.prisma.user.findFirst({
+      where: {
+        id: sellerId,
+        deletedAt: null,
+        status: UserStatus.ACTIVE,
+        roles: { has: Role.ROLE_SELLER },
+        NOT: {
+          roles: { has: Role.ROLE_ADMIN },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
+  }
+
+  private countShopFollowers(sellerId: string) {
+    return this.prisma.shopFollow.count({
+      where: {
+        sellerId,
+        seller: {
+          deletedAt: null,
+          status: UserStatus.ACTIVE,
+          roles: { has: Role.ROLE_SELLER },
+          NOT: {
+            roles: { has: Role.ROLE_ADMIN },
+          },
+        },
+      },
+    });
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {

@@ -46,6 +46,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Cập nhật order từ `PENDING` sang bước tiếp theo nếu action khả dụng.
 - [ ] Mở reviews/questions nếu có dữ liệu.
 - [ ] Mở `/seller/custom-orders` và chuyển custom order `SHIPPED` sang `DELIVERED` nếu còn action.
+- [ ] Trong `/seller/custom-orders`, bấm `Tiến độ`, thêm một cập nhật tiến độ có tiêu đề và ghi chú.
 - [ ] Mở `/seller/quote-templates` và thấy template báo giá seed nếu UI/API khả dụng.
 
 ## Customer Flow
@@ -81,6 +82,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Admin opens standard order detail and creates refund when the order is refundable; detail/ledger refresh without treating the response as an order.
 - [ ] Admin opens custom order detail and creates refund when the custom order is refundable; detail/ledger refresh without treating the response as a custom order.
 - [ ] Seller moves a custom order through `CRAFTING -> FINISHING -> SHIPPED -> DELIVERED`; customer detail shows the final delivery phase.
+- [ ] Seller adds a custom order progress note; customer detail shows it in the `Tiến độ chế tác` timeline.
 - [ ] Admin voucher page can list inactive/future/expired vouchers via the admin endpoint.
 - [ ] Public cart voucher suggestions show only active and valid vouchers.
 - [ ] Admin flash sale page can list inactive/future/expired campaigns via the admin endpoint.
@@ -97,6 +99,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Profile order detail opens when an order item has no product image; the fallback icon renders instead of an empty `next/image` source.
 - [ ] Seller can open `/dashboard/orders`, update a standard shop sub-order, and see Vietnamese success/error messages.
 - [ ] Seller can open `/seller/custom-orders`; shipped custom orders show `Xác nhận đã giao`.
+- [ ] Customer can open `/custom-orders/:id/review` and see seeded handmade progress timeline entries.
 - [ ] Admin can open `/dashboard/orders/:id`, update status, and see localized payment/status labels.
 - [ ] Admin can open `/dashboard/reports`, filter reports, and update report status with localized labels.
 - [ ] Seeded category/product/review/question/report names display Vietnamese with accents after `npm run db:seed`.
@@ -115,6 +118,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seed tạo voucher active `HANDMADE10`, expired `EXPIRED5`, inactive `INACTIVE15`.
 - [ ] Public/customer không apply được voucher expired hoặc inactive.
 - [ ] Seed tạo review/question/report/chat/custom order/quote template/commission tối thiểu để các màn hình demo không trống.
+- [ ] Seed tạo custom order progress events cho ít nhất một đơn `CRAFTING` và một đơn `SHIPPED`.
 - [ ] Ảnh chỉ lưu remote URL `images.unsplash.com`, `i.ebayimg.com` hoặc `cdn.shopify.com`; không có broken image; `frontend/next.config.ts` allow các domain này.
 - [ ] Feature chưa hoàn chỉnh không xuất hiện trong menu chính demo.
 - [ ] Security smoke trong `docs/SECURITY_SMOKE_TEST.md` vẫn pass sau seed mới.
@@ -135,3 +139,18 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Tạo report; admin nhận notification `REPORT_CREATED`, reporter nhận `REPORT_STATUS_UPDATED` khi admin xử lý.
 - [ ] Anonymous không thấy chuông notification.
 - [ ] Dùng token/user khác không mark read/delete được notification không thuộc mình; API trả 404/401 thay vì update nhầm.
+
+## Seller Social Smoke
+
+- [ ] Anonymous mở `/sellers`; mỗi seller card hiển thị số sản phẩm, đánh giá gian hàng bằng `shopAverageRating/shopReviewCount`, và số người theo dõi.
+- [ ] Anonymous mở `/sellers/:id`; xem được follower count, rating summary, review list, nhưng khi bấm theo dõi hoặc đánh giá thì được dẫn tới login.
+- [ ] Login customer; mở `/sellers/:id` của shop khác và bấm `Theo dõi Studio`; follower count tăng và button chuyển sang trạng thái đang theo dõi.
+- [ ] Mở `/profile/following-shops`; danh sách shop đã theo dõi có loading state, empty state, error/retry state rõ ràng khi API lỗi, và không có broken image.
+- [ ] Từ `/profile/following-shops`, bấm `Bỏ theo dõi`; shop biến mất khỏi danh sách hoặc follower count giảm sau refresh.
+- [ ] Login seller owner; mở storefront của chính mình và xác nhận không tự follow được shop của mình.
+- [ ] Customer có delivered standard order với seller tạo được shop review một lần.
+- [ ] Customer có delivered custom order với seller tạo được shop review một lần.
+- [ ] Customer chưa có giao dịch `DELIVERED` với seller thấy lý do: `Chỉ khách đã nhận hàng từ shop mới có thể đánh giá`.
+- [ ] Sau khi đã review shop, `/sellers/:id` hiển thị box `Đánh giá của bạn` gồm số sao, comment nếu có, ngày tạo và ngày cập nhật.
+- [ ] Thử gửi rating ngoài `1..5` bằng API tool hoặc request thủ công; backend reject bằng validation.
+- [ ] Login admin hoặc seller owner thử tạo shop review; API bị chặn, không tạo review.

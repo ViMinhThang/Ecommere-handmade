@@ -23,6 +23,7 @@ import {
   LedgerTable,
   RefundDialog,
 } from "@/components/dashboard/financial-operations";
+import { CustomOrderTimeline } from "@/components/custom-orders/custom-order-timeline";
 
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
@@ -442,6 +443,10 @@ export default function CustomOrderReviewPage() {
               </div>
           </div>
       </section>
+
+      <div className="mx-auto w-full max-w-6xl px-6">
+        <CustomOrderTimeline customOrderId={order.id} />
+      </div>
 
       <main className="max-w-7xl mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 py-12 mb-20">
           <div className="aspect-[4/5] bg-[#EBE9E4] rounded-sm flex items-center justify-center relative shadow-inner overflow-hidden">
