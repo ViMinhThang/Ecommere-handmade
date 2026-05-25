@@ -20,7 +20,7 @@ export function ProductGallery({
   if (!images || images.length === 0) {
     return (
       <div className="lg:col-span-7 grid grid-cols-2 gap-4">
-        <div className="col-span-2 rounded-lg bg-surface-container-low h-[600px] flex items-center justify-center text-muted-foreground italic">
+        <div className="col-span-2 rounded-lg bg-accent h-[600px] flex items-center justify-center text-muted-foreground italic">
           Không có hình ảnh
         </div>
       </div>
@@ -36,7 +36,7 @@ export function ProductGallery({
 
   return (
     <div className="lg:col-span-7 grid grid-cols-2 gap-4 h-max">
-      <div className="col-span-2 overflow-hidden rounded-xl bg-surface-container-low shadow-sm group">
+      <div className="col-span-2 overflow-hidden rounded-xl bg-accent shadow-sm group">
         <div className="w-full h-[600px] relative">
           <SafeImage
             src={resolveImageUrl(mainImage.url)}
@@ -51,7 +51,7 @@ export function ProductGallery({
       {secondaryImages.map((img, idx) => (
         <div
           key={idx}
-          className="rounded-xl overflow-hidden h-64 relative group bg-surface-container-low"
+          className="rounded-xl overflow-hidden h-64 relative group bg-accent"
         >
           <SafeImage
             src={resolveImageUrl(img.url)}

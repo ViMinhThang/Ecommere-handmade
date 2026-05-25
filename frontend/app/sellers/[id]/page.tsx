@@ -15,6 +15,7 @@ import { CustomerFooter } from "@/components/layout/customer-footer";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
+import { ProductCardActions } from "@/components/storefront/product-card-actions";
 import {
   Edit2,
   Save,
@@ -218,7 +219,7 @@ function SellerProfilePageContent() {
 
   if (sellerLoading) {
     return (
-      <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -226,7 +227,7 @@ function SellerProfilePageContent() {
 
   if (!seller) {
     return (
-      <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-xl font-headline italic">
           Không tìm thấy thông tin người bán.
         </p>
@@ -237,7 +238,7 @@ function SellerProfilePageContent() {
   const products = productsData?.data || [];
 
   return (
-    <div className="min-h-screen bg-[#fdf9f3] text-[#1c1c18] font-body">
+    <div className="min-h-screen bg-background text-foreground font-body">
       <CustomerNavBar />
 
       <main className="pt-24">
@@ -259,7 +260,7 @@ function SellerProfilePageContent() {
                     setIsEditMode(false);
                   }}
                   variant="outline"
-                  className="rounded-full w-14 h-14 bg-white border-primary shadow-xl hover:scale-110 transition-transform"
+                  className="rounded-full w-14 h-14 bg-card border-primary shadow-xl hover:scale-110 transition-transform"
                 >
                   <X className="w-6 h-6 text-primary" />
                 </Button>
@@ -279,7 +280,7 @@ function SellerProfilePageContent() {
         <section className="px-8 md:px-12 py-12 md:py-24 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
           <div className="w-full md:w-3/5 order-2 md:order-1">
             <div className="relative group">
-              <div className="overflow-hidden rounded-lg shadow-2xl aspect-4/5 relative bg-accent">
+              <div className="overflow-hidden rounded-lg shadow-2xl aspect-[4/5] relative bg-accent">
                 {formData.sellerHeroImage ? (
                   <SafeImage
                     src={formData.sellerHeroImage}
@@ -309,7 +310,7 @@ function SellerProfilePageContent() {
                   </div>
                 )}
               </div>
-              <div className="absolute -bottom-6 -right-6 md:-right-12 bg-white p-8 rounded-lg shadow-lg max-w-xs hidden md:block">
+              <div className="absolute -bottom-6 -right-6 md:-right-12 bg-card p-8 rounded-lg shadow-lg ring-1 ring-border/50 max-w-xs hidden md:block">
                 <p className="font-headline italic text-primary text-lg">
                   &ldquo;Mỗi tác phẩm là một câu chuyện, mỗi đường nét là một
                   tâm tình.&rdquo;
@@ -340,7 +341,7 @@ function SellerProfilePageContent() {
                         })
                       }
                       placeholder="VD: Người bán Gốm sứ"
-                      className="bg-white/50 border-primary/20"
+                      className="bg-card/70 border-primary/20"
                     />
                   </div>
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
@@ -349,7 +350,7 @@ function SellerProfilePageContent() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <span className="uppercase tracking-[0.2em] text-xs font-semibold text-[#516351]">
+                  <span className="uppercase tracking-[0.2em] text-xs font-semibold text-secondary-foreground">
                     {formData.sellerTitle}
                   </span>
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
@@ -375,23 +376,23 @@ function SellerProfilePageContent() {
                     updateFormData({ ...formData, sellerBio: e.target.value })
                   }
                   placeholder="Mô tả ngắn gọn về bạn và nghệ thuật của bạn..."
-                  className="bg-white/50 border-primary/20 h-32"
+                  className="bg-card/70 border-primary/20 h-32"
                 />
               </div>
             ) : (
-              <p className="text-[#54433c] text-lg leading-relaxed font-light">
+              <p className="text-muted-foreground text-lg leading-relaxed font-light">
                 {formData.sellerBio}
               </p>
             )}
 
             <div className="flex gap-4">
-              <button className="bg-primary text-white px-8 py-3 rounded-md hover:bg-primary/90 transition-all shadow-md font-bold text-sm tracking-wide">
+              <button className="bg-primary text-primary-foreground px-8 py-3 rounded-md hover:bg-primary/90 transition-all shadow-md font-bold text-sm tracking-wide">
                 Theo dõi Studio
               </button>
               <Button
                 variant="outline"
                 onClick={() => openChat(seller.id)}
-                className="bg-[#ebe8e2] text-primary px-8 py-3 rounded-md hover:bg-[#e6e2dc] transition-all font-bold text-sm tracking-wide h-auto border-none"
+                className="bg-accent text-primary px-8 py-3 rounded-md hover:bg-accent/80 transition-all font-bold text-sm tracking-wide h-auto border-none"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Lien he
@@ -400,7 +401,7 @@ function SellerProfilePageContent() {
                 <Button
                   variant="outline"
                   onClick={() => setIsReportDialogOpen(true)}
-                  className="bg-white/80 text-primary px-6 py-3 rounded-md hover:bg-white transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
+                  className="bg-card/80 text-primary px-6 py-3 rounded-md hover:bg-card transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
                 >
                   <Flag className="w-4 h-4 mr-2" />
                   Bao cao
@@ -411,7 +412,7 @@ function SellerProfilePageContent() {
         </section>
 
         {/* About Narrative Section */}
-        <section className="bg-[#f7f3ed] py-24">
+        <section className="bg-muted/45 py-24">
           <div className="max-w-7xl mx-auto px-8 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
             <div className="md:col-span-7 space-y-8">
               <h2 className="text-4xl text-primary font-headline italic">
@@ -436,11 +437,11 @@ function SellerProfilePageContent() {
                         sellerAbout: e.target.value,
                       })
                     }
-                    className="bg-white/50 border-primary/20 h-64 leading-relaxed text-lg"
+                    className="bg-card/70 border-primary/20 h-64 leading-relaxed text-lg"
                   />
                 </div>
               ) : (
-                <div className="space-y-6 text-[#1c1c18] text-lg leading-relaxed whitespace-pre-line">
+                <div className="space-y-6 text-foreground text-lg leading-relaxed whitespace-pre-line">
                   {formData.sellerAbout}
                 </div>
               )}
@@ -460,7 +461,7 @@ function SellerProfilePageContent() {
                             sellerStat1Value: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
+                        className="bg-card/70 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
                         id="seller-stat-1-label"
@@ -473,7 +474,7 @@ function SellerProfilePageContent() {
                             sellerStat1Label: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 text-xs w-40"
+                        className="bg-card/70 border-primary/20 text-xs w-40"
                       />
                     </>
                   ) : (
@@ -481,7 +482,7 @@ function SellerProfilePageContent() {
                       <span className="block text-3xl font-headline italic text-primary">
                         {formData.sellerStat1Value}
                       </span>
-                      <span className="text-sm text-[#516351] uppercase tracking-widest">
+                      <span className="text-sm text-secondary-foreground uppercase tracking-widest">
                         {formData.sellerStat1Label}
                       </span>
                     </>
@@ -501,7 +502,7 @@ function SellerProfilePageContent() {
                             sellerStat2Value: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
+                        className="bg-card/70 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
                         id="seller-stat-2-label"
@@ -514,7 +515,7 @@ function SellerProfilePageContent() {
                             sellerStat2Label: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 text-xs w-40"
+                        className="bg-card/70 border-primary/20 text-xs w-40"
                       />
                     </>
                   ) : (
@@ -522,7 +523,7 @@ function SellerProfilePageContent() {
                       <span className="block text-3xl font-headline italic text-primary">
                         {formData.sellerStat2Value}
                       </span>
-                      <span className="text-sm text-[#516351] uppercase tracking-widest">
+                      <span className="text-sm text-secondary-foreground uppercase tracking-widest">
                         {formData.sellerStat2Label}
                       </span>
                     </>
@@ -532,7 +533,7 @@ function SellerProfilePageContent() {
             </div>
 
             <div className="md:col-span-5 relative group">
-              <div className="aspect-square bg-[#e6e2dc] rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
+              <div className="aspect-square bg-accent rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
               <div className="rounded-lg shadow-xl overflow-hidden relative aspect-square bg-accent">
                 {formData.sellerAboutImage ? (
                   <SafeImage
@@ -576,7 +577,7 @@ function SellerProfilePageContent() {
                   <h2 className="text-4xl text-primary font-headline italic mb-4">
                     Bộ sưu tập
                   </h2>
-                  <p className="text-[#54433c] text-sm leading-relaxed mb-8">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-8">
                     Khám phá các sản phẩm được chế tác thủ công bởi{" "}
                     {seller.name}.
                   </p>
@@ -593,7 +594,7 @@ function SellerProfilePageContent() {
                   <select
                     id="seller-collection-sort"
                     name="seller-collection-sort"
-                    className="w-full bg-white border border-primary/20 rounded-md p-3 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                    className="w-full bg-card border border-primary/20 rounded-md p-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20"
                     value={`${sortBy}-${order}`}
                     onChange={(e) => {
                       const [newSort, newOrder] = e.target.value.split("-");
@@ -661,7 +662,7 @@ function SellerProfilePageContent() {
                               }
                             }}
                           />
-                          <span className="ml-3 text-sm text-[#1c1c18] group-hover:text-primary transition-colors">
+                          <span className="ml-3 text-sm text-foreground group-hover:text-primary transition-colors">
                             {range.label}
                           </span>
                         </label>
@@ -692,7 +693,7 @@ function SellerProfilePageContent() {
                           })
                         }
                       />
-                      <span className="ml-3 text-sm text-[#1c1c18]">
+                      <span className="ml-3 text-sm text-foreground">
                         Sẵn sàng giao ngay
                       </span>
                     </label>
@@ -714,12 +715,12 @@ function SellerProfilePageContent() {
             {/* Product Grid */}
             <div className="grow">
               {productsLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
+                <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className={i % 3 === 1 ? "md:mt-12" : ""}>
-                      <div className="aspect-[4/5] bg-accent/50 animate-pulse rounded-lg mb-6" />
-                      <div className="h-6 w-48 bg-accent/50 animate-pulse rounded mb-2" />
-                      <div className="h-4 w-24 bg-accent/50 animate-pulse rounded" />
+                    <div key={i} className="animate-pulse">
+                      <div className="mb-5 aspect-[4/5] bg-accent" />
+                      <div className="mb-3 h-5 w-3/4 bg-accent" />
+                      <div className="h-4 w-1/2 bg-accent" />
                     </div>
                   ))}
                 </div>
@@ -730,62 +731,84 @@ function SellerProfilePageContent() {
                   </p>
                   <button
                     onClick={clearFilters}
-                    className="mt-4 text-[#516351] font-bold text-sm tracking-widest uppercase hover:underline"
+                    className="mt-4 text-secondary-foreground font-bold text-sm tracking-widest uppercase hover:underline"
                   >
                     Xóa bộ lọc và thử lại
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
-                  {products.map((product, index) => (
-                    <div
-                      key={product.id}
-                      className={`group ${index % 3 === 1 ? "md:mt-12" : ""}`}
-                    >
-                      <Link href={`/products/${product.id}`}>
-                        <div className="relative overflow-hidden aspect-4/5 bg-accent mb-6 rounded-lg shadow-sm border border-primary/5">
-                          {product.images?.[0] ? (
+                <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+                  {products.map((product) => {
+                    const image = product.images?.[0]?.url;
+                    const price = product.pricing?.discountedPrice ?? product.price;
+                    const hasDiscount =
+                      product.pricing?.discountedPrice &&
+                      product.pricing.discountedPrice <
+                        product.pricing.originalPrice;
+
+                    return (
+                      <article key={product.id} className="group">
+                        <div className="relative mb-5 aspect-[4/5] overflow-hidden border border-border/20 bg-accent">
+                          {image ? (
                             <SafeImage
-                              src={mediaApi.getImageUrl(product.images[0].url)}
+                              src={mediaApi.getImageUrl(image)}
                               alt={product.name}
                               fill
                               className="object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">
+                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                               Chưa có ảnh
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button className="px-8 py-3 bg-[#fdf9f3] text-primary font-bold text-xs tracking-widest uppercase shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                              Chi tiết
-                            </button>
+                          {product.stock <= 0 ? (
+                            <span className="absolute left-3 top-3 z-20 bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                              Hết hàng
+                            </span>
+                          ) : null}
+                          <div className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/10" />
+                          <ProductCardActions
+                            productId={product.id}
+                            stock={product.stock}
+                          />
+                        </div>
+
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <Link href={`/products/${product.id}`}>
+                              <h3 className="line-clamp-2 font-headline text-xl italic text-foreground transition group-hover:text-primary">
+                                {product.name}
+                              </h3>
+                            </Link>
+                            <p className="mt-1 truncate text-sm text-muted-foreground">
+                              {product.category?.name || "Danh mục"} ·{" "}
+                              {product.seller?.shopName ||
+                                product.seller?.name ||
+                                seller.name}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="font-semibold text-primary">
+                              {formatCurrency(Number(price))}
+                            </p>
+                            {hasDiscount ? (
+                              <p className="text-xs text-muted-foreground line-through">
+                                {formatCurrency(
+                                  Number(product.pricing?.originalPrice),
+                                )}
+                              </p>
+                            ) : null}
                           </div>
                         </div>
-                      </Link>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <Link href={`/products/${product.id}`}>
-                            <h3 className="font-headline text-2xl text-primary mb-1 group-hover:text-primary/70 transition-colors italic leading-none">
-                              {product.name}
-                            </h3>
-                          </Link>
-                          <p className="text-[#516351] text-xs font-semibold uppercase tracking-widest">
-                            {product.category?.name}
-                          </p>
-                        </div>
-                        <span className="shrink-0 whitespace-nowrap text-xl font-bold leading-none text-primary">
-                          {formatCurrency(Number(product.price))}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
               )}
 
               {products.length > 0 && (
                 <div className="mt-24 flex justify-center">
-                  <button className="px-12 py-4 bg-primary text-white rounded-md font-bold text-xs tracking-[0.2em] flex items-center group hover:bg-primary/90 transition-colors shadow-lg shadow-primary/10">
+                  <button className="px-12 py-4 bg-primary text-primary-foreground rounded-md font-bold text-xs tracking-[0.2em] flex items-center group hover:bg-primary/90 transition-colors shadow-lg shadow-primary/10">
                     XEM THÊM TÁC PHẨM
                     <ChevronDown className="ml-3 w-4 h-4 transition-transform group-hover:translate-y-1" />
                   </button>
@@ -858,8 +881,8 @@ function SellerProfilePageContent() {
       {/* Image Selector Dialog */}
       {isImageSelectorOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center bg-[#fdf9f3]">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center bg-background">
               <h2 className="text-2xl font-headline italic text-primary">
                 Chọn hình ảnh cho hồ sơ
               </h2>
@@ -889,7 +912,7 @@ export default function SellerProfilePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       }
