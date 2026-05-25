@@ -300,6 +300,7 @@ model Product {
   reviews                  Review[]
   questions                ProductQuestion[]
   wishlistItems            WishlistItem[]
+  homepageFeaturedProducts HomepageFeaturedProduct[]
   reports                  Report[]
 
   @@index([sellerId])
@@ -350,6 +351,37 @@ model ShopReview {
   @@index([sellerId, createdAt])
   @@index([sellerId, rating])
   @@index([customerId, createdAt])
+}
+
+model HomepageBanner {
+  id        String    @id @default(uuid())
+  title     String
+  subtitle  String?
+  imageUrl  String
+  linkUrl   String?
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  startAt   DateTime?
+  endAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([startAt])
+  @@index([endAt])
+}
+
+model HomepageFeaturedProduct {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId])
+  @@index([isActive, sortOrder])
 }
 
 enum ChatMessageType {

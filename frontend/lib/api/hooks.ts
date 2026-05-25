@@ -40,6 +40,13 @@ import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
 import { rewardsApi } from "./rewards";
 import {
+  homepageApi,
+  type CreateHomepageBannerDto,
+  type CreateHomepageFeaturedProductDto,
+  type UpdateHomepageBannerDto,
+  type UpdateHomepageFeaturedProductDto,
+} from "./homepage";
+import {
   reportsApi,
   type AdminReportsQuery,
   type CreateReportPayload,
@@ -184,6 +191,101 @@ export function useCreateUser() {
     mutationFn: (data: Partial<User>) => usersApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+  });
+}
+
+export function useHomepage() {
+  return useQuery({
+    queryKey: homepageKeys.public(),
+    queryFn: () => homepageApi.getHomepage(),
+  });
+}
+
+export function useAdminHomepageBanners() {
+  return useQuery({
+    queryKey: homepageKeys.banners(),
+    queryFn: () => homepageApi.getAdminBanners(),
+  });
+}
+
+export function useCreateHomepageBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateHomepageBannerDto) =>
+      homepageApi.createBanner(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useUpdateHomepageBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateHomepageBannerDto;
+    }) => homepageApi.updateBanner(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useDeleteHomepageBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => homepageApi.deleteBanner(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useAdminHomepageFeaturedProducts() {
+  return useQuery({
+    queryKey: homepageKeys.featuredProducts(),
+    queryFn: () => homepageApi.getAdminFeaturedProducts(),
+  });
+}
+
+export function useCreateHomepageFeaturedProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateHomepageFeaturedProductDto) =>
+      homepageApi.createFeaturedProduct(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useUpdateHomepageFeaturedProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateHomepageFeaturedProductDto;
+    }) => homepageApi.updateFeaturedProduct(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useDeleteHomepageFeaturedProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => homepageApi.deleteFeaturedProduct(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
     },
   });
 }
@@ -688,6 +790,15 @@ export const voucherKeys = {
   details: () => [...voucherKeys.all, "detail"] as const,
   detail: (id: string) => [...voucherKeys.details(), id] as const,
   byCode: (code: string) => [...voucherKeys.all, "code", code] as const,
+};
+
+export const homepageKeys = {
+  all: ["homepage"] as const,
+  public: () => [...homepageKeys.all, "public"] as const,
+  admin: () => [...homepageKeys.all, "admin"] as const,
+  banners: () => [...homepageKeys.admin(), "banners"] as const,
+  featuredProducts: () =>
+    [...homepageKeys.admin(), "featured-products"] as const,
 };
 
 export function useVouchers(params?: { page?: number; limit?: number }) {

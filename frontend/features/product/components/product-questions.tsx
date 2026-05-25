@@ -302,7 +302,7 @@ export function ProductQuestionsSection({
                     <div className="rounded-xl border border-primary/10 bg-primary/5 p-5">
                       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-primary/10 bg-white text-sm font-semibold text-primary">
+                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-primary/10 bg-card text-sm font-semibold text-primary">
                             {answerAvatar ? (
                               <img
                                 src={answerAvatar}

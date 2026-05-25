@@ -66,8 +66,8 @@ export function ProductReviews({
                     key={i}
                     className={`h-5 w-5 ${
                       i < Math.round(averageRating)
-                        ? "fill-brand text-brand"
-                        : "text-stone-200"
+                        ? "fill-primary text-primary"
+                        : "text-muted"
                     }`}
                   />
                 ))}
@@ -136,8 +136,8 @@ export function ProductReviews({
                               key={i}
                               className={`h-3 w-3 ${
                                 i < review.rating
-                                  ? "fill-brand text-brand"
-                                  : "text-stone-200"
+                                  ? "fill-primary text-primary"
+                                  : "text-muted"
                               }`}
                             />
                           ))}
