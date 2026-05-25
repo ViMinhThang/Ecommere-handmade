@@ -50,6 +50,11 @@ export interface User {
   sellerStat1Value?: string;
   sellerStat2Label?: string;
   sellerStat2Value?: string;
+  artisanVerified?: boolean;
+  craftSpecialty?: string | null;
+  craftExperienceYears?: number | null;
+  craftMaterials?: string[];
+  verificationNote?: string | null;
   followerCount?: number;
   shopAverageRating?: number | null;
   shopReviewCount?: number;
@@ -93,6 +98,10 @@ export interface SellerSearchResult {
   avatar?: string | null;
   sellerTitle?: string | null;
   sellerBio?: string | null;
+  artisanVerified?: boolean;
+  craftSpecialty?: string | null;
+  craftExperienceYears?: number | null;
+  craftMaterials?: string[];
   productCount: number;
   averageRating: number | null;
   totalReviews: number;

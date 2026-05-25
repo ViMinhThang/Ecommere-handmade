@@ -5,7 +5,15 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Heart, Search, Star, Store } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Heart,
+  Search,
+  Star,
+  Store,
+} from "lucide-react";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { useSearchSellers } from "@/lib/api/hooks";
@@ -334,8 +342,11 @@ function SellerSuggestion({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">
-          {studioName}
+        <p className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
+          <span className="truncate">{studioName}</span>
+          {seller.artisanVerified ? (
+            <BadgeCheck className="h-3.5 w-3.5 shrink-0 fill-emerald-600 text-white" />
+          ) : null}
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {seller.shopName ? `Bởi ${seller.name}` : seller.sellerTitle || "Gian hàng thủ công"}
@@ -387,6 +398,12 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
             <h3 className="font-headline text-2xl italic text-primary">
               {studioName}
             </h3>
+            {seller.artisanVerified ? (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
+                <BadgeCheck className="h-3.5 w-3.5 fill-emerald-600 text-white" />
+                Nghệ nhân đã xác thực
+              </span>
+            ) : null}
             {seller.shopName ? (
               <p className="text-sm text-muted-foreground">Bởi {seller.name}</p>
             ) : null}
@@ -397,7 +414,8 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
         </div>
 
         <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-          {seller.sellerBio ||
+          {seller.craftSpecialty ||
+            seller.sellerBio ||
             seller.sellerTitle ||
             "Gian hàng đang cập nhật thêm câu chuyện và bộ sưu tập của mình."}
         </p>

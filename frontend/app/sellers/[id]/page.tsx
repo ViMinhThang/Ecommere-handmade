@@ -28,6 +28,7 @@ import {
   MessageCircle,
   ChevronDown,
   Flag,
+  BadgeCheck,
   Star,
 } from "lucide-react";
 import { ImageSelector } from "@/components/dashboard/image-selector";
@@ -55,6 +56,9 @@ type SellerProfileFormData = {
   sellerStat1Value: string;
   sellerStat2Label: string;
   sellerStat2Value: string;
+  craftSpecialty: string;
+  craftExperienceYears: string;
+  craftMaterials: string;
 };
 
 type SelectedImage = {
@@ -75,6 +79,9 @@ const emptySellerProfileFormData: SellerProfileFormData = {
   sellerStat1Value: "",
   sellerStat2Label: "",
   sellerStat2Value: "",
+  craftSpecialty: "",
+  craftExperienceYears: "",
+  craftMaterials: "",
 };
 
 function formatReviewDate(value: string) {
@@ -172,6 +179,12 @@ function SellerProfilePageContent() {
         sellerStat1Value: seller.sellerStat1Value || "0",
         sellerStat2Label: seller.sellerStat2Label || "Tác phẩm",
         sellerStat2Value: seller.sellerStat2Value || "0",
+        craftSpecialty: seller.craftSpecialty || "",
+        craftExperienceYears:
+          seller.craftExperienceYears != null
+            ? String(seller.craftExperienceYears)
+            : "",
+        craftMaterials: seller.craftMaterials?.join(", ") || "",
       }
     : emptySellerProfileFormData;
 
@@ -194,7 +207,17 @@ function SellerProfilePageContent() {
 
   const handleSave = async () => {
     try {
-      await updateProfileMutation.mutateAsync(formData);
+      await updateProfileMutation.mutateAsync({
+        ...formData,
+        craftSpecialty: formData.craftSpecialty.trim() || undefined,
+        craftExperienceYears: formData.craftExperienceYears.trim()
+          ? Number(formData.craftExperienceYears)
+          : undefined,
+        craftMaterials: formData.craftMaterials
+          .split(",")
+          .map((material) => material.trim())
+          .filter(Boolean),
+      });
       setIsEditMode(false);
       toast.success("Hồ sơ đã được cập nhật thành công!");
     } catch {
@@ -408,6 +431,12 @@ function SellerProfilePageContent() {
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
                     {seller.name}
                   </h1>
+                  {seller.artisanVerified ? (
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
+                      <BadgeCheck className="h-4 w-4 fill-emerald-600 text-white" />
+                      Nghệ nhân đã xác thực
+                    </span>
+                  ) : null}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -417,6 +446,12 @@ function SellerProfilePageContent() {
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
                     {seller.name}
                   </h1>
+                  {seller.artisanVerified ? (
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
+                      <BadgeCheck className="h-4 w-4 fill-emerald-600 text-white" />
+                      Nghệ nhân đã xác thực
+                    </span>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -439,12 +474,94 @@ function SellerProfilePageContent() {
                   placeholder="Mô tả ngắn gọn về bạn và nghệ thuật của bạn..."
                   className="bg-white/50 border-primary/20 h-32"
                 />
+                <label
+                  htmlFor="craft-specialty"
+                  className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                >
+                  Chuyên môn thủ công
+                </label>
+                <Input
+                  id="craft-specialty"
+                  value={formData.craftSpecialty}
+                  onChange={(e) =>
+                    updateFormData({
+                      ...formData,
+                      craftSpecialty: e.target.value,
+                    })
+                  }
+                  placeholder="VD: Gốm men tự nhiên, crochet, nến thơm..."
+                  className="bg-white/50 border-primary/20"
+                />
+                <label
+                  htmlFor="craft-experience-years"
+                  className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                >
+                  Số năm kinh nghiệm
+                </label>
+                <Input
+                  id="craft-experience-years"
+                  type="number"
+                  min={0}
+                  max={80}
+                  value={formData.craftExperienceYears}
+                  onChange={(e) =>
+                    updateFormData({
+                      ...formData,
+                      craftExperienceYears: e.target.value,
+                    })
+                  }
+                  className="bg-white/50 border-primary/20"
+                />
+                <label
+                  htmlFor="craft-materials"
+                  className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                >
+                  Chất liệu chính
+                </label>
+                <Input
+                  id="craft-materials"
+                  value={formData.craftMaterials}
+                  onChange={(e) =>
+                    updateFormData({
+                      ...formData,
+                      craftMaterials: e.target.value,
+                    })
+                  }
+                  placeholder="Cách nhau bằng dấu phẩy, VD: Đất sét, Men tro, Gỗ"
+                  className="bg-white/50 border-primary/20"
+                />
               </div>
             ) : (
               <p className="text-[#54433c] text-lg leading-relaxed font-light">
                 {formData.sellerBio}
               </p>
             )}
+
+            {!isEditMode &&
+            (seller.craftSpecialty ||
+              seller.craftExperienceYears != null ||
+              (seller.craftMaterials?.length ?? 0) > 0) ? (
+              <div className="rounded-lg border border-primary/10 bg-white/70 p-4 text-sm text-[#54433c]">
+                {seller.craftSpecialty ? (
+                  <p>
+                    <span className="font-semibold text-primary">Chuyên môn:</span>{" "}
+                    {seller.craftSpecialty}
+                  </p>
+                ) : null}
+                {seller.craftExperienceYears != null ? (
+                  <p className="mt-1">
+                    <span className="font-semibold text-primary">Kinh nghiệm:</span>{" "}
+                    {seller.craftExperienceYears} năm
+                  </p>
+                ) : null}
+                {seller.craftMaterials?.length ? (
+                  <p className="mt-1">
+                    <span className="font-semibold text-primary">Chất liệu:</span>{" "}
+                    {seller.craftMaterials.join(", ")}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="flex flex-wrap gap-4">
               <FollowShopButton

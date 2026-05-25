@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/contexts/auth-context'
 import { ImageSelector } from './image-selector'
 
@@ -35,6 +36,11 @@ interface UserFormData {
   avatar: string
   phone?: string
   shopName?: string
+  artisanVerified: boolean
+  craftSpecialty: string
+  craftExperienceYears: string
+  craftMaterials: string
+  verificationNote: string
 }
 
 export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps) {
@@ -48,6 +54,11 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     avatar: '',
     phone: '',
     shopName: '',
+    artisanVerified: false,
+    craftSpecialty: '',
+    craftExperienceYears: '',
+    craftMaterials: '',
+    verificationNote: '',
   })
 
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null)
@@ -66,6 +77,11 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
           avatar: user.avatar || '',
           phone: user.phone || '',
           shopName: user.shopName || '',
+          artisanVerified: Boolean(user.artisanVerified),
+          craftSpecialty: user.craftSpecialty || '',
+          craftExperienceYears: user.craftExperienceYears != null ? String(user.craftExperienceYears) : '',
+          craftMaterials: user.craftMaterials?.join(', ') || '',
+          verificationNote: user.verificationNote || '',
         })
         if (user.avatar) {
           setSelectedImage({
@@ -87,6 +103,11 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
           avatar: '',
           phone: '',
           shopName: '',
+          artisanVerified: false,
+          craftSpecialty: '',
+          craftExperienceYears: '',
+          craftMaterials: '',
+          verificationNote: '',
         })
         setSelectedImage(null)
       }
@@ -95,15 +116,35 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const isSeller = formData.roles?.includes('ROLE_SELLER')
+    const craftExperienceYears = formData.craftExperienceYears.trim()
+      ? Number(formData.craftExperienceYears)
+      : undefined
+    const craftMaterials = formData.craftMaterials
+      .split(',')
+      .map((material) => material.trim())
+      .filter(Boolean)
+
     onSave({
       ...formData,
       avatar: selectedImage?.url || '',
+      artisanVerified: isSeller ? formData.artisanVerified : false,
+      craftSpecialty: isSeller ? formData.craftSpecialty.trim() || undefined : undefined,
+      craftExperienceYears: isSeller ? craftExperienceYears : undefined,
+      craftMaterials: isSeller ? craftMaterials : [],
+      verificationNote: isSeller ? formData.verificationNote.trim() || undefined : undefined,
     })
     onOpenChange(false)
   }
 
   const handleSelectionChange = (images: SelectedImage[]) => {
     setSelectedImage(images[0] || null)
+  }
+
+  const getPrimaryRole = (roles?: UserRole[]) => {
+    if (roles?.includes('ROLE_ADMIN')) return 'ROLE_ADMIN'
+    if (roles?.includes('ROLE_SELLER')) return 'ROLE_SELLER'
+    return 'ROLE_USER'
   }
 
   const getRoleLabel = (role: UserRole) => {
@@ -186,12 +227,12 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
               <div className="grid gap-2">
                 <Label htmlFor="role">Vai trò</Label>
                 <Select
-                  value={formData.roles?.[0] || 'ROLE_USER'}
+                  value={getPrimaryRole(formData.roles)}
                   onValueChange={(value) => setFormData({ ...formData, roles: [value as UserRole] })}
                 >
                   <SelectTrigger>
                     <SelectValue>
-                      {getRoleLabel(formData.roles?.[0] || 'ROLE_USER')}
+                      {getRoleLabel(getPrimaryRole(formData.roles))}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -228,6 +269,51 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                   id="shopName"
                   value={formData.shopName}
                   onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                />
+                <Label htmlFor="craftSpecialty">Chuyên môn thủ công</Label>
+                <Input
+                  id="craftSpecialty"
+                  value={formData.craftSpecialty}
+                  onChange={(e) => setFormData({ ...formData, craftSpecialty: e.target.value })}
+                  placeholder="VD: Gốm men tự nhiên, crochet, nến thơm..."
+                />
+                <Label htmlFor="craftExperienceYears">Số năm kinh nghiệm</Label>
+                <Input
+                  id="craftExperienceYears"
+                  type="number"
+                  min={0}
+                  max={80}
+                  value={formData.craftExperienceYears}
+                  onChange={(e) => setFormData({ ...formData, craftExperienceYears: e.target.value })}
+                />
+                <Label htmlFor="craftMaterials">Chất liệu chính</Label>
+                <Input
+                  id="craftMaterials"
+                  value={formData.craftMaterials}
+                  onChange={(e) => setFormData({ ...formData, craftMaterials: e.target.value })}
+                  placeholder="Cách nhau bằng dấu phẩy, VD: Đất sét, Men tro, Gỗ"
+                />
+                <div className="mt-2 flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+                  <div>
+                    <Label htmlFor="artisanVerified">Nghệ nhân đã xác thực</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Chỉ admin được bật/tắt trạng thái này.
+                    </p>
+                  </div>
+                  <Switch
+                    id="artisanVerified"
+                    checked={formData.artisanVerified}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, artisanVerified: checked })
+                    }
+                  />
+                </div>
+                <Label htmlFor="verificationNote">Ghi chú xác thực</Label>
+                <Input
+                  id="verificationNote"
+                  value={formData.verificationNote}
+                  onChange={(e) => setFormData({ ...formData, verificationNote: e.target.value })}
+                  placeholder="VD: Đã kiểm tra hồ sơ và sản phẩm thủ công"
                 />
               </div>
             )}

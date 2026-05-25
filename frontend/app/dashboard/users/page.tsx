@@ -13,7 +13,7 @@ import { UserDialog, DeleteDialog } from '@/components/dashboard/user-dialog'
 import { useUsers, useUserStats, useCreateUser, useUpdateUser, useDeleteUser } from '@/lib/api/hooks'
 import { User, UserRole } from '@/types'
 import { formatCurrency } from '@/lib/utils'
-import { Search, Plus, Pencil, Trash2, Eye } from 'lucide-react'
+import { BadgeCheck, Search, Plus, Pencil, Trash2, Eye } from 'lucide-react'
 import { mediaApi } from '@/lib/api/media'
 
 type UsersResponse = {
@@ -247,7 +247,21 @@ export default function UsersPage() {
                         {getDisplayStatus(user.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{user.shopName || '-'}</TableCell>
+                    <TableCell>
+                      {user.roles?.includes('ROLE_SELLER') ? (
+                        <div className="space-y-1">
+                          <p>{user.shopName || '-'}</p>
+                          {user.artisanVerified ? (
+                            <Badge variant="outline" className="gap-1 border-emerald-200 bg-emerald-50 text-emerald-600">
+                              <BadgeCheck className="h-3 w-3 fill-emerald-600 text-white" />
+                              Đã xác thực
+                            </Badge>
+                          ) : null}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
                     <TableCell>
                       {user.roles?.includes('ROLE_SELLER') 
                         ? `${user.sales} đơn` 

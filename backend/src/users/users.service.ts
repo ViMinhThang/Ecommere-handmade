@@ -41,6 +41,11 @@ export class UsersService {
     sellerStat1Value: true,
     sellerStat2Label: true,
     sellerStat2Value: true,
+    artisanVerified: true,
+    craftSpecialty: true,
+    craftExperienceYears: true,
+    craftMaterials: true,
+    verificationNote: true,
     isEmailVerified: true,
     rewardPointsBalance: true,
     createdAt: true,
@@ -62,6 +67,10 @@ export class UsersService {
     sellerStat1Value: true,
     sellerStat2Label: true,
     sellerStat2Value: true,
+    artisanVerified: true,
+    craftSpecialty: true,
+    craftExperienceYears: true,
+    craftMaterials: true,
     createdAt: true,
     updatedAt: true,
   } as const;
@@ -105,6 +114,8 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     const roles = this.processRoles(createUserDto.roles);
+    const isSellerAccount =
+      roles.includes(Role.ROLE_SELLER) && !roles.includes(Role.ROLE_ADMIN);
     const password = createUserDto.password?.trim();
     if (!password) {
       throw new BadRequestException(
@@ -122,6 +133,28 @@ export class UsersService {
         avatar: createUserDto.avatar,
         phone: createUserDto.phone,
         shopName: createUserDto.shopName,
+        sellerTitle: createUserDto.sellerTitle,
+        sellerBio: createUserDto.sellerBio,
+        sellerAbout: createUserDto.sellerAbout,
+        sellerHeroImage: createUserDto.sellerHeroImage,
+        sellerAboutImage: createUserDto.sellerAboutImage,
+        sellerStat1Label: createUserDto.sellerStat1Label,
+        sellerStat1Value: createUserDto.sellerStat1Value,
+        sellerStat2Label: createUserDto.sellerStat2Label,
+        sellerStat2Value: createUserDto.sellerStat2Value,
+        artisanVerified: isSellerAccount
+          ? (createUserDto.artisanVerified ?? false)
+          : false,
+        craftSpecialty: isSellerAccount
+          ? createUserDto.craftSpecialty
+          : undefined,
+        craftExperienceYears: isSellerAccount
+          ? createUserDto.craftExperienceYears
+          : undefined,
+        craftMaterials: isSellerAccount ? (createUserDto.craftMaterials ?? []) : [],
+        verificationNote: isSellerAccount
+          ? createUserDto.verificationNote
+          : undefined,
         status: createUserDto.status,
         isEmailVerified: createUserDto.isEmailVerified ?? false,
       },
@@ -165,6 +198,20 @@ export class UsersService {
           avatar: true,
           phone: true,
           shopName: true,
+          sellerTitle: true,
+          sellerBio: true,
+          sellerAbout: true,
+          sellerHeroImage: true,
+          sellerAboutImage: true,
+          sellerStat1Label: true,
+          sellerStat1Value: true,
+          sellerStat2Label: true,
+          sellerStat2Value: true,
+          artisanVerified: true,
+          craftSpecialty: true,
+          craftExperienceYears: true,
+          craftMaterials: true,
+          verificationNote: true,
           isEmailVerified: true,
           createdAt: true,
           updatedAt: true,
@@ -470,6 +517,10 @@ export class UsersService {
       avatar: string | null;
       sellerTitle: string | null;
       sellerBio: string | null;
+      artisanVerified: boolean;
+      craftSpecialty: string | null;
+      craftExperienceYears: number | null;
+      craftMaterials: string[];
       createdAt: Date;
       productCount: number | bigint;
       averageRating: number | null;
@@ -487,6 +538,10 @@ export class UsersService {
         u."shopName",
         u."sellerTitle",
         u."sellerBio",
+        u."artisanVerified",
+        u."craftSpecialty",
+        u."craftExperienceYears",
+        u."craftMaterials",
         u."createdAt",
         COUNT(DISTINCT p.id)::int AS "productCount",
         COUNT(DISTINCT sf.id)::int AS "followerCount",
@@ -520,6 +575,7 @@ export class UsersService {
                 OR COALESCE(u."shopName", '') ILIKE ${searchPattern}
                 OR COALESCE(u."sellerBio", '') ILIKE ${searchPattern}
                 OR COALESCE(u."sellerAbout", '') ILIKE ${searchPattern}
+                OR COALESCE(u."craftSpecialty", '') ILIKE ${searchPattern}
               )
             `
             : Prisma.empty
@@ -538,6 +594,10 @@ export class UsersService {
         avatar: row.avatar,
         sellerTitle: row.sellerTitle,
         sellerBio: row.sellerBio,
+        artisanVerified: row.artisanVerified,
+        craftSpecialty: row.craftSpecialty,
+        craftExperienceYears: row.craftExperienceYears,
+        craftMaterials: row.craftMaterials,
         productCount: Number(row.productCount),
         averageRating: row.averageRating,
         totalReviews: Number(row.totalReviews),
@@ -598,6 +658,7 @@ export class UsersService {
           WHEN u.name ILIKE ${searchPattern} THEN 3
           WHEN COALESCE(u."sellerBio", '') ILIKE ${searchPattern}
             OR COALESCE(u."sellerAbout", '') ILIKE ${searchPattern}
+            OR COALESCE(u."craftSpecialty", '') ILIKE ${searchPattern}
             THEN 4
           ELSE 5
         END ASC,
@@ -708,25 +769,40 @@ export class UsersService {
       sellerStat1Value,
       sellerStat2Label,
       sellerStat2Value,
+      craftSpecialty,
+      craftExperienceYears,
+      craftMaterials,
     } = updateProfileDto;
+
+    const isSellerAccount =
+      user.roles.includes(Role.ROLE_SELLER) &&
+      !user.roles.includes(Role.ROLE_ADMIN);
+    const updateData: Prisma.UserUpdateInput = {
+      name,
+      avatar,
+      phone,
+      ...(isSellerAccount
+        ? {
+            shopName,
+            sellerTitle,
+            sellerBio,
+            sellerAbout,
+            sellerHeroImage,
+            sellerAboutImage,
+            sellerStat1Label,
+            sellerStat1Value,
+            sellerStat2Label,
+            sellerStat2Value,
+            craftSpecialty,
+            craftExperienceYears,
+            craftMaterials,
+          }
+        : {}),
+    };
 
     return this.prisma.user.update({
       where: { id },
-      data: {
-        name,
-        avatar,
-        phone,
-        shopName,
-        sellerTitle,
-        sellerBio,
-        sellerAbout,
-        sellerHeroImage,
-        sellerAboutImage,
-        sellerStat1Label,
-        sellerStat1Value,
-        sellerStat2Label,
-        sellerStat2Value,
-      },
+      data: updateData,
       select: this.userSelect,
     });
   }
@@ -775,11 +851,26 @@ export class UsersService {
       roles = this.processRoles(updateUserDto.roles);
     }
 
+    const isSellerAccount =
+      roles.includes(Role.ROLE_SELLER) && !roles.includes(Role.ROLE_ADMIN);
+
+    if (updateUserDto.artisanVerified && !isSellerAccount) {
+      throw new BadRequestException('Only seller accounts can be verified');
+    }
+
     const password = updateUserDto.password
       ? await bcrypt.hash(updateUserDto.password, 10)
       : undefined;
     const updateData: AdminUpdateUserDto = { ...updateUserDto };
     delete updateData.password;
+
+    if (!isSellerAccount) {
+      updateData.artisanVerified = false;
+      delete updateData.craftSpecialty;
+      delete updateData.craftExperienceYears;
+      delete updateData.craftMaterials;
+      delete updateData.verificationNote;
+    }
 
     return this.prisma.user.update({
       where: { id },

@@ -5,7 +5,11 @@ import {
   IsEnum,
   IsArray,
   IsBoolean,
+  IsInt,
+  Max,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateUserDto {
   @IsString()
@@ -74,6 +78,30 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   sellerStat2Value?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  artisanVerified?: boolean;
+
+  @IsOptional()
+  @IsString()
+  craftSpecialty?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(80)
+  craftExperienceYears?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  craftMaterials?: string[];
+
+  @IsOptional()
+  @IsString()
+  verificationNote?: string;
 
   @IsOptional()
   @IsBoolean()

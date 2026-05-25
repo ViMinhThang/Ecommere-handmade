@@ -396,7 +396,12 @@ describe('UsersService', () => {
 
   describe('updateProfile', () => {
     it('should ignore privileged fields from self-service profile updates', async () => {
-      const user = { id: '1', name: 'Old', email: 'test@test.com' };
+      const user = {
+        id: '1',
+        name: 'Old',
+        email: 'test@test.com',
+        roles: ['ROLE_USER'],
+      };
       const updatedUser = { ...user, name: 'New' };
       mockPrismaService.user.findUnique.mockResolvedValue(user);
       mockPrismaService.user.update.mockResolvedValue(updatedUser);
@@ -407,6 +412,8 @@ describe('UsersService', () => {
         status: 'SUSPENDED',
         password: 'new-password',
         isEmailVerified: true,
+        artisanVerified: true,
+        verificationNote: 'self-approved',
       } as unknown as UpdateProfileDto;
 
       await service.updateProfile('1', maliciousProfileUpdate);
@@ -422,6 +429,71 @@ describe('UsersService', () => {
       expect(data).not.toHaveProperty('status');
       expect(data).not.toHaveProperty('password');
       expect(data).not.toHaveProperty('isEmailVerified');
+      expect(data).not.toHaveProperty('artisanVerified');
+      expect(data).not.toHaveProperty('verificationNote');
+    });
+
+    it('should allow sellers to update craft profile fields', async () => {
+      const user = {
+        id: '1',
+        name: 'Old',
+        email: 'test@test.com',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(user);
+      mockPrismaService.user.update.mockResolvedValue(user);
+
+      await service.updateProfile('1', {
+        craftSpecialty: 'Gốm thủ công',
+        craftExperienceYears: 5,
+        craftMaterials: ['Đất sét', 'Men tro'],
+      });
+
+      const updateCall = mockPrismaService.user.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.data).toMatchObject({
+        craftSpecialty: 'Gốm thủ công',
+        craftExperienceYears: 5,
+        craftMaterials: ['Đất sét', 'Men tro'],
+      });
+    });
+  });
+
+  describe('update', () => {
+    it('lets admins verify seller artisan profiles', async () => {
+      const seller = {
+        id: 'seller-id',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(seller);
+      mockPrismaService.user.update.mockResolvedValue({
+        ...seller,
+        artisanVerified: true,
+      });
+
+      await service.update('seller-id', {
+        artisanVerified: true,
+        verificationNote: 'Đã kiểm tra hồ sơ nghệ nhân',
+      });
+
+      const updateCall = mockPrismaService.user.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.data).toMatchObject({
+        artisanVerified: true,
+        verificationNote: 'Đã kiểm tra hồ sơ nghệ nhân',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      });
+    });
+
+    it('rejects artisan verification for non-seller accounts', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'customer-id',
+        roles: ['ROLE_USER'],
+      });
+
+      await expect(
+        service.update('customer-id', { artisanVerified: true }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
     });
   });
 

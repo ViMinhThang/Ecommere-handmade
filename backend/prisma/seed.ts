@@ -68,6 +68,11 @@ type DemoUserInput = {
   sellerStat1Value?: string;
   sellerStat2Label?: string;
   sellerStat2Value?: string;
+  artisanVerified?: boolean;
+  craftSpecialty?: string;
+  craftExperienceYears?: number;
+  craftMaterials?: string[];
+  verificationNote?: string;
   avatar?: string;
 };
 
@@ -144,6 +149,11 @@ async function upsertDemoUser(input: DemoUserInput) {
       sellerStat1Value: input.sellerStat1Value,
       sellerStat2Label: input.sellerStat2Label,
       sellerStat2Value: input.sellerStat2Value,
+      artisanVerified: input.artisanVerified ?? false,
+      craftSpecialty: input.craftSpecialty,
+      craftExperienceYears: input.craftExperienceYears,
+      craftMaterials: input.craftMaterials ?? [],
+      verificationNote: input.verificationNote,
       avatar: input.avatar,
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
@@ -165,6 +175,11 @@ async function upsertDemoUser(input: DemoUserInput) {
       sellerStat1Value: input.sellerStat1Value,
       sellerStat2Label: input.sellerStat2Label,
       sellerStat2Value: input.sellerStat2Value,
+      artisanVerified: input.artisanVerified ?? false,
+      craftSpecialty: input.craftSpecialty,
+      craftExperienceYears: input.craftExperienceYears,
+      craftMaterials: input.craftMaterials ?? [],
+      verificationNote: input.verificationNote,
       avatar: input.avatar,
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
@@ -1295,6 +1310,12 @@ async function main() {
     sellerStat1Value: '12+',
     sellerStat2Label: 'Năm kinh nghiệm',
     sellerStat2Value: '5',
+    artisanVerified: true,
+    craftSpecialty: 'Gốm sứ gia dụng làm tay',
+    craftExperienceYears: 5,
+    craftMaterials: ['Đất sét', 'Men nâu', 'Men tro'],
+    verificationNote:
+      'Đã xác minh hồ sơ nghệ nhân và quy trình làm gốm thủ công cho demo local.',
     avatar: demoImages.ceramic,
   });
 
@@ -1314,6 +1335,12 @@ async function main() {
     sellerStat1Value: '80+',
     sellerStat2Label: 'Phong cách',
     sellerStat2Value: 'Quà tặng',
+    artisanVerified: true,
+    craftSpecialty: 'Quà tặng cá nhân hóa và nến thơm',
+    craftExperienceYears: 4,
+    craftMaterials: ['Sáp đậu nành', 'Vải linen', 'Giấy kraft'],
+    verificationNote:
+      'Đã xác minh studio quà tặng handmade, phù hợp demo verified artisan.',
     avatar: demoImages.candle,
   });
 
@@ -1334,6 +1361,9 @@ async function main() {
     sellerStat1Value: '35+',
     sellerStat2Label: 'Chất liệu',
     sellerStat2Value: 'Gỗ & da',
+    craftSpecialty: 'Đồ gỗ decor và phụ kiện da',
+    craftExperienceYears: 6,
+    craftMaterials: ['Gỗ cao su', 'Da bò', 'Dầu lau gỗ'],
     avatar: demoImages.wood,
   });
 
@@ -1354,6 +1384,9 @@ async function main() {
     sellerStat1Value: '24+',
     sellerStat2Label: 'Thời gian',
     sellerStat2Value: '3-7 ngày',
+    craftSpecialty: 'Crochet và quà tặng len',
+    craftExperienceYears: 3,
+    craftMaterials: ['Len cotton', 'Sợi acrylic', 'Phụ kiện móc khóa'],
     avatar: demoImages.crochet,
   });
 
@@ -1374,6 +1407,9 @@ async function main() {
     sellerStat1Value: '18+',
     sellerStat2Label: 'Phong cách',
     sellerStat2Value: 'Wabi-sabi',
+    craftSpecialty: 'Gốm men tự nhiên',
+    craftExperienceYears: 7,
+    craftMaterials: ['Đất sét trắng', 'Men tự nhiên', 'Tro thực vật'],
     avatar: demoImages.ceramic,
   });
 
@@ -1394,6 +1430,9 @@ async function main() {
     sellerStat1Value: '16+',
     sellerStat2Label: 'Lưu hương',
     sellerStat2Value: 'Nhẹ dịu',
+    craftSpecialty: 'Nến thơm thực vật và xà phòng handmade',
+    craftExperienceYears: 4,
+    craftMaterials: ['Sáp đậu nành', 'Tinh dầu', 'Dầu dừa'],
     avatar: demoImages.soap,
   });
 

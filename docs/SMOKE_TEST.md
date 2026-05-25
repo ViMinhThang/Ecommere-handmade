@@ -154,3 +154,25 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Sau khi đã review shop, `/sellers/:id` hiển thị box `Đánh giá của bạn` gồm số sao, comment nếu có, ngày tạo và ngày cập nhật.
 - [ ] Thử gửi rating ngoài `1..5` bằng API tool hoặc request thủ công; backend reject bằng validation.
 - [ ] Login admin hoặc seller owner thử tạo shop review; API bị chặn, không tạo review.
+
+## Homepage Management Smoke
+
+- [ ] Login admin và mở `/dashboard/homepage`; trang có loading, empty và error/retry state rõ ràng.
+- [ ] Admin tạo banner với `title`, `imageUrl`, `sortOrder`; banner xuất hiện trong danh sách quản trị.
+- [ ] Admin sửa title/subtitle/link/sort order của banner; dữ liệu cập nhật sau khi lưu.
+- [ ] Admin tắt `isActive` hoặc đặt banner hết hạn; banner không còn hiển thị ở trang chủ public.
+- [ ] Admin xóa banner; danh sách quản trị cập nhật và trang chủ không crash.
+- [ ] Admin thêm một sản phẩm approved vào danh sách nổi bật; sản phẩm hiển thị trong section nổi bật ở trang chủ.
+- [ ] Admin thử thêm lại cùng một sản phẩm nổi bật; backend từ chối duplicate thay vì tạo bản ghi trùng.
+- [ ] Admin tắt hoặc xóa sản phẩm nổi bật; trang chủ không hiển thị item inactive.
+- [ ] Anonymous mở trang chủ; thấy banner active và sản phẩm nổi bật active, hoặc fallback hero/section cũ nếu chưa có dữ liệu.
+- [ ] Non-admin gọi API `/admin/homepage/*` bị chặn bởi quyền admin.
+
+## Verified Artisan Profile Smoke
+
+- [ ] Login admin, mở `/dashboard/users`, chỉnh một seller và bật `Nghệ nhân đã xác thực`.
+- [ ] Admin lưu chuyên môn thủ công, số năm kinh nghiệm, chất liệu chính và ghi chú xác thực cho seller.
+- [ ] Login seller, mở storefront của chính mình `/sellers/:id`, cập nhật chuyên môn/chất liệu/số năm kinh nghiệm và lưu thành công.
+- [ ] Seller không tự bật được `artisanVerified` qua profile/storefront edit.
+- [ ] Public `/sellers` hiển thị badge `Nghệ nhân đã xác thực` cho seller seed đã verify.
+- [ ] Public `/sellers/:id` hiển thị badge xác thực, chuyên môn, số năm kinh nghiệm và chất liệu chính.
