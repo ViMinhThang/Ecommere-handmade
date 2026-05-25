@@ -458,7 +458,7 @@ function SellerProfilePageContent() {
                 className="bg-[#ebe8e2] text-primary px-8 py-3 rounded-md hover:bg-[#e6e2dc] transition-all font-bold text-sm tracking-wide h-auto border-none"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                Lien he
+                Liên hệ
               </Button>
               {user && !isOwner && (
                 <Button
@@ -467,7 +467,7 @@ function SellerProfilePageContent() {
                   className="bg-white/80 text-primary px-6 py-3 rounded-md hover:bg-white transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
                 >
                   <Flag className="w-4 h-4 mr-2" />
-                  Bao cao
+                  Báo cáo
                 </Button>
               )}
             </div>

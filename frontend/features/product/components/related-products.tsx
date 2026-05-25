@@ -72,7 +72,7 @@ export function RelatedProducts({
               href={`/products/${item.id}`}
               className={`group cursor-pointer ${index === 1 ? "md:mt-24" : ""}`}
             >
-              <div className="bg-card border border-border/20 shadow-sm rounded-xl overflow-hidden mb-6 aspect-4/5 relative">
+              <div className="bg-card border border-border/20 shadow-sm rounded-xl overflow-hidden mb-6 aspect-[4/5] relative">
                 {imgUrl ? (
                   <Image
                     src={imgUrl}
