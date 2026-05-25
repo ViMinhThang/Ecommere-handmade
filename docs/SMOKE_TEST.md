@@ -139,3 +139,18 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Tạo report; admin nhận notification `REPORT_CREATED`, reporter nhận `REPORT_STATUS_UPDATED` khi admin xử lý.
 - [ ] Anonymous không thấy chuông notification.
 - [ ] Dùng token/user khác không mark read/delete được notification không thuộc mình; API trả 404/401 thay vì update nhầm.
+
+## Seller Social Smoke
+
+- [ ] Anonymous mở `/sellers`; mỗi seller card hiển thị số sản phẩm, đánh giá gian hàng bằng `shopAverageRating/shopReviewCount`, và số người theo dõi.
+- [ ] Anonymous mở `/sellers/:id`; xem được follower count, rating summary, review list, nhưng khi bấm theo dõi hoặc đánh giá thì được dẫn tới login.
+- [ ] Login customer; mở `/sellers/:id` của shop khác và bấm `Theo dõi Studio`; follower count tăng và button chuyển sang trạng thái đang theo dõi.
+- [ ] Mở `/profile/following-shops`; danh sách shop đã theo dõi có loading state, empty state, error/retry state rõ ràng khi API lỗi, và không có broken image.
+- [ ] Từ `/profile/following-shops`, bấm `Bỏ theo dõi`; shop biến mất khỏi danh sách hoặc follower count giảm sau refresh.
+- [ ] Login seller owner; mở storefront của chính mình và xác nhận không tự follow được shop của mình.
+- [ ] Customer có delivered standard order với seller tạo được shop review một lần.
+- [ ] Customer có delivered custom order với seller tạo được shop review một lần.
+- [ ] Customer chưa có giao dịch `DELIVERED` với seller thấy lý do: `Chỉ khách đã nhận hàng từ shop mới có thể đánh giá`.
+- [ ] Sau khi đã review shop, `/sellers/:id` hiển thị box `Đánh giá của bạn` gồm số sao, comment nếu có, ngày tạo và ngày cập nhật.
+- [ ] Thử gửi rating ngoài `1..5` bằng API tool hoặc request thủ công; backend reject bằng validation.
+- [ ] Login admin hoặc seller owner thử tạo shop review; API bị chặn, không tạo review.

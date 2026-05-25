@@ -11,10 +11,15 @@ import {
 } from "./flash-sales";
 import { cartApi } from "./cart";
 import { wishlistApi } from "./wishlist";
+import { shopFollowApi } from "./shop-follow";
 import { ordersApi } from "./orders";
 import type { AdminOrderFilters, OrderStatus as ApiOrderStatus } from "./orders";
 import { analyticsApi } from "./analytics";
-import { reviewsApi, type CreateReviewDto } from "./reviews";
+import {
+  reviewsApi,
+  type CreateReviewDto,
+  type CreateShopReviewDto,
+} from "./reviews";
 import {
   chatApi,
   CursorParams,
@@ -962,6 +967,54 @@ export function useRemoveFromWishlist() {
   });
 }
 
+// Shop follow hooks
+export const shopFollowKeys = {
+  all: ["shop-follow"] as const,
+  list: () => [...shopFollowKeys.all, "list"] as const,
+  status: (sellerId: string) =>
+    [...shopFollowKeys.all, "status", sellerId] as const,
+};
+
+export function useShopFollowStatus(sellerId: string, enabled = true) {
+  return useQuery({
+    queryKey: shopFollowKeys.status(sellerId),
+    queryFn: () => shopFollowApi.getStatus(sellerId),
+    enabled: !!sellerId && enabled,
+  });
+}
+
+export function useFollowedShops(enabled = true) {
+  return useQuery({
+    queryKey: shopFollowKeys.list(),
+    queryFn: () => shopFollowApi.getFollowedShops(),
+    enabled,
+  });
+}
+
+export function useFollowShop() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sellerId: string) => shopFollowApi.follow(sellerId),
+    onSuccess: (status, sellerId) => {
+      queryClient.invalidateQueries({ queryKey: shopFollowKeys.list() });
+      queryClient.invalidateQueries({ queryKey: sellerKeys.all });
+      queryClient.setQueryData(shopFollowKeys.status(sellerId), status);
+    },
+  });
+}
+
+export function useUnfollowShop() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sellerId: string) => shopFollowApi.unfollow(sellerId),
+    onSuccess: (status, sellerId) => {
+      queryClient.invalidateQueries({ queryKey: shopFollowKeys.list() });
+      queryClient.invalidateQueries({ queryKey: sellerKeys.all });
+      queryClient.setQueryData(shopFollowKeys.status(sellerId), status);
+    },
+  });
+}
+
 // Chat hooks
 export const chatKeys = {
   all: ["chat"] as const,
@@ -1658,6 +1711,14 @@ export const reviewKeys = {
   all: ["reviews"] as const,
   product: (productId: string) => [...reviewKeys.all, "product", productId] as const,
   seller: () => [...reviewKeys.all, "seller"] as const,
+  shopBase: (sellerId: string) =>
+    [...reviewKeys.all, "shop", sellerId] as const,
+  shop: (sellerId: string, params?: { page?: number; limit?: number }) =>
+    [...reviewKeys.shopBase(sellerId), "list", { ...params }] as const,
+  shopSummary: (sellerId: string) =>
+    [...reviewKeys.shopBase(sellerId), "summary"] as const,
+  shopMe: (sellerId: string) =>
+    [...reviewKeys.shopBase(sellerId), "me"] as const,
 };
 
 export function useProductReviews(productId: string) {
@@ -1686,6 +1747,56 @@ export function useSellerReply() {
       reviewsApi.sellerReply(data.reviewId, data.reply),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: reviewKeys.product(variables.productId) });
+    },
+  });
+}
+
+export function useShopReviews(
+  sellerId: string,
+  params?: { page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: reviewKeys.shop(sellerId, params),
+    queryFn: () => reviewsApi.getShopReviews(sellerId, params),
+    enabled: !!sellerId,
+  });
+}
+
+export function useShopReviewSummary(sellerId: string) {
+  return useQuery({
+    queryKey: reviewKeys.shopSummary(sellerId),
+    queryFn: () => reviewsApi.getShopReviewSummary(sellerId),
+    enabled: !!sellerId,
+  });
+}
+
+export function useMyShopReviewStatus(sellerId: string, enabled = true) {
+  return useQuery({
+    queryKey: reviewKeys.shopMe(sellerId),
+    queryFn: () => reviewsApi.getMyShopReviewStatus(sellerId),
+    enabled: enabled && !!sellerId,
+  });
+}
+
+export function useCreateShopReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { sellerId: string; review: CreateShopReviewDto }) =>
+      reviewsApi.createShopReview(data.sellerId, data.review),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.shopBase(variables.sellerId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.shopSummary(variables.sellerId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.shopMe(variables.sellerId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: sellerKeys.detail(variables.sellerId),
+      });
+      queryClient.invalidateQueries({ queryKey: sellerKeys.all });
     },
   });
 }

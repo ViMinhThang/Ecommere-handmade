@@ -8,10 +8,15 @@ import {
   useProducts,
   useUpdateProfile,
   useCreateReport,
+  useCreateShopReview,
+  useMyShopReviewStatus,
+  useShopReviewSummary,
+  useShopReviews,
 } from "@/lib/api/hooks";
 import { useAuth } from "@/contexts/auth-context";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
+import { FollowShopButton } from "@/components/sellers/follow-shop-button";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
@@ -23,6 +28,7 @@ import {
   MessageCircle,
   ChevronDown,
   Flag,
+  Star,
 } from "lucide-react";
 import { ImageSelector } from "@/components/dashboard/image-selector";
 import { Button } from "@/components/ui/button";
@@ -71,8 +77,17 @@ const emptySellerProfileFormData: SellerProfileFormData = {
   sellerStat2Value: "",
 };
 
+function formatReviewDate(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 function SellerProfilePageContent() {
   const { id } = useParams();
+  const sellerId = id as string;
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -90,9 +105,11 @@ function SellerProfilePageContent() {
   const sortBy = searchParams.get("sortBy") || "createdAt";
   const order = (searchParams.get("order") as "asc" | "desc") || "desc";
 
-  const { data: seller, isLoading: sellerLoading } = useSeller(id as string);
+  const isOwner = user?.id === sellerId;
+
+  const { data: seller, isLoading: sellerLoading } = useSeller(sellerId);
   const { data: productsData, isLoading: productsLoading } = useProducts({
-    sellerId: id as string,
+    sellerId,
     status: "APPROVED",
     minPrice,
     maxPrice,
@@ -100,6 +117,19 @@ function SellerProfilePageContent() {
     sortBy,
     order,
   });
+  const {
+    data: shopReviewSummary,
+    isLoading: shopReviewSummaryLoading,
+  } = useShopReviewSummary(sellerId);
+  const {
+    data: shopReviewsData,
+    isLoading: shopReviewsLoading,
+    isError: shopReviewsError,
+  } = useShopReviews(sellerId, { page: 1, limit: 5 });
+  const {
+    data: myShopReviewStatus,
+    isLoading: myShopReviewStatusLoading,
+  } = useMyShopReviewStatus(sellerId, Boolean(user));
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -120,9 +150,12 @@ function SellerProfilePageContent() {
 
   const updateProfileMutation = useUpdateProfile();
   const createReportMutation = useCreateReport();
+  const createShopReviewMutation = useCreateShopReview();
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
+  const [shopReviewRating, setShopReviewRating] = useState(5);
+  const [shopReviewComment, setShopReviewComment] = useState("");
 
   const sellerFormData: SellerProfileFormData = seller
     ? {
@@ -159,8 +192,6 @@ function SellerProfilePageContent() {
     "hero" | "about" | null
   >(null);
 
-  const isOwner = user?.id === id;
-
   const handleSave = async () => {
     try {
       await updateProfileMutation.mutateAsync(formData);
@@ -168,6 +199,31 @@ function SellerProfilePageContent() {
       toast.success("Hồ sơ đã được cập nhật thành công!");
     } catch {
       toast.error("Không thể cập nhật hồ sơ. Vui lòng thử lại.");
+    }
+  };
+
+  const handleSubmitShopReview = async () => {
+    if (!seller) {
+      return;
+    }
+
+    try {
+      await createShopReviewMutation.mutateAsync({
+        sellerId: seller.id,
+        review: {
+          rating: shopReviewRating,
+          comment: shopReviewComment.trim() || undefined,
+        },
+      });
+      setShopReviewRating(5);
+      setShopReviewComment("");
+      toast.success("Đã gửi đánh giá gian hàng.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể gửi đánh giá gian hàng.",
+      );
     }
   };
 
@@ -235,6 +291,12 @@ function SellerProfilePageContent() {
   }
 
   const products = productsData?.data || [];
+  const shopReviewCount =
+    shopReviewSummary?.totalReviews ?? seller.shopReviewCount ?? 0;
+  const shopAverageRating =
+    shopReviewSummary?.averageRating ?? seller.shopAverageRating ?? null;
+  const shopReviews = shopReviewsData?.data ?? [];
+  const myShopReview = myShopReviewStatus?.review ?? null;
 
   return (
     <div className="min-h-screen bg-[#fdf9f3] text-[#1c1c18] font-body">
@@ -384,10 +446,12 @@ function SellerProfilePageContent() {
               </p>
             )}
 
-            <div className="flex gap-4">
-              <button className="bg-primary text-white px-8 py-3 rounded-md hover:bg-primary/90 transition-all shadow-md font-bold text-sm tracking-wide">
-                Theo dõi Studio
-              </button>
+            <div className="flex flex-wrap gap-4">
+              <FollowShopButton
+                sellerId={seller.id}
+                initialFollowerCount={seller.followerCount ?? 0}
+                redirectPath={`/sellers/${seller.id}`}
+              />
               <Button
                 variant="outline"
                 onClick={() => openChat(seller.id)}
@@ -791,6 +855,234 @@ function SellerProfilePageContent() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-8 py-20 md:px-12">
+          <div className="mx-auto max-w-5xl space-y-10">
+            <div className="flex flex-col gap-4 border-b border-primary/10 pb-8 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                  Đánh giá gian hàng
+                </p>
+                <h2 className="mt-3 font-headline text-4xl italic text-primary">
+                  Khách hàng nói gì về {seller.shopName || seller.name}
+                </h2>
+              </div>
+              <div className="rounded-md bg-white px-6 py-4 shadow-sm ring-1 ring-primary/10">
+                {shopReviewSummaryLoading ? (
+                  <div className="h-8 w-28 animate-pulse rounded bg-primary/10" />
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <Star className="h-6 w-6 fill-primary text-primary" />
+                    <div>
+                      <p className="text-2xl font-bold text-primary">
+                        {shopAverageRating === null
+                          ? "Chưa có"
+                          : shopAverageRating.toFixed(1)}
+                      </p>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        {shopReviewCount} lượt đánh giá
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+              <div className="space-y-4">
+                {shopReviewsLoading ? (
+                  [1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-md bg-white p-5 shadow-sm ring-1 ring-primary/10"
+                    >
+                      <div className="mb-3 h-4 w-32 animate-pulse rounded bg-primary/10" />
+                      <div className="h-4 w-full animate-pulse rounded bg-primary/10" />
+                    </div>
+                  ))
+                ) : shopReviewsError ? (
+                  <div className="rounded-md bg-white p-6 text-sm text-destructive shadow-sm ring-1 ring-primary/10">
+                    Không thể tải đánh giá gian hàng. Vui lòng thử lại sau.
+                  </div>
+                ) : shopReviews.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-primary/20 bg-white/70 p-8 text-center text-sm text-muted-foreground">
+                    Gian hàng chưa có đánh giá nào.
+                  </div>
+                ) : (
+                  shopReviews.map((review) => (
+                    <article
+                      key={review.id}
+                      className="rounded-md bg-white p-5 shadow-sm ring-1 ring-primary/10"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-primary">
+                            {review.customer.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Intl.DateTimeFormat("vi-VN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            }).format(new Date(review.createdAt))}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 text-primary">
+                          {Array.from({ length: 5 }, (_, index) => (
+                            <Star
+                              key={index}
+                              className="h-4 w-4"
+                              fill={
+                                index < review.rating ? "currentColor" : "none"
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment ? (
+                        <p className="mt-4 text-sm leading-6 text-[#54433c]">
+                          {review.comment}
+                        </p>
+                      ) : null}
+                    </article>
+                  ))
+                )}
+              </div>
+
+              <div className="rounded-md bg-white p-6 shadow-sm ring-1 ring-primary/10">
+                {!user ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Đăng nhập để đánh giá gian hàng sau khi bạn đã nhận hàng.
+                    </p>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={() =>
+                        router.push(
+                          `/login?redirect=${encodeURIComponent(`/sellers/${seller.id}`)}`,
+                        )
+                      }
+                    >
+                      Đăng nhập để đánh giá
+                    </Button>
+                  </div>
+                ) : myShopReviewStatusLoading ? (
+                  <div className="space-y-3">
+                    <div className="h-4 w-40 animate-pulse rounded bg-primary/10" />
+                    <div className="h-20 w-full animate-pulse rounded bg-primary/10" />
+                  </div>
+                ) : myShopReviewStatus?.hasReviewed ? (
+                  <div className="space-y-3">
+                    <div className="rounded-md bg-primary/5 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                        Đánh giá của bạn
+                      </p>
+                      <div className="mt-3 flex items-center gap-2 text-primary">
+                        {Array.from({ length: 5 }, (_, index) => (
+                          <Star
+                            key={index}
+                            className="h-5 w-5"
+                            fill={
+                              myShopReview && index < myShopReview.rating
+                                ? "currentColor"
+                                : "none"
+                            }
+                          />
+                        ))}
+                      </div>
+                      {myShopReview?.comment ? (
+                        <p className="mt-4 text-sm leading-6 text-[#54433c]">
+                          {myShopReview.comment}
+                        </p>
+                      ) : (
+                        <p className="mt-4 text-sm text-muted-foreground">
+                          Bạn đã đánh giá bằng số sao và không để lại nhận xét.
+                        </p>
+                      )}
+                      {myShopReview ? (
+                        <div className="mt-4 space-y-1 text-xs text-muted-foreground">
+                          <p>
+                            Ngày tạo: {formatReviewDate(myShopReview.createdAt)}
+                          </p>
+                          <p>
+                            Cập nhật: {formatReviewDate(myShopReview.updatedAt)}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                    <p className="sr-only">
+                      Bạn đã đánh giá gian hàng này
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Mỗi khách hàng chỉ đánh giá một lần cho mỗi gian hàng.
+                    </p>
+                  </div>
+                ) : myShopReviewStatus?.canReview ? (
+                  <div className="space-y-5">
+                    <div>
+                      <p className="mb-3 text-sm font-semibold text-primary">
+                        Chọn số sao
+                      </p>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <button
+                            key={rating}
+                            type="button"
+                            onClick={() => setShopReviewRating(rating)}
+                            className="text-primary transition-transform hover:scale-110"
+                            aria-label={`${rating} sao`}
+                          >
+                            <Star
+                              className="h-7 w-7"
+                              fill={
+                                rating <= shopReviewRating
+                                  ? "currentColor"
+                                  : "none"
+                              }
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="shop-review-comment"
+                        className="text-sm font-semibold text-primary"
+                      >
+                        Nhận xét
+                      </label>
+                      <Textarea
+                        id="shop-review-comment"
+                        value={shopReviewComment}
+                        onChange={(event) =>
+                          setShopReviewComment(event.target.value)
+                        }
+                        maxLength={1000}
+                        placeholder="Chia sẻ trải nghiệm mua hàng tại gian hàng..."
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      disabled={createShopReviewMutation.isPending}
+                      onClick={handleSubmitShopReview}
+                    >
+                      {createShopReviewMutation.isPending
+                        ? "Đang gửi..."
+                        : "Gửi đánh giá"}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {myShopReviewStatus?.reason ||
+                      "Chỉ khách đã nhận hàng từ shop mới có thể đánh giá"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </section>

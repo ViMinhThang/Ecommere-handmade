@@ -12,6 +12,7 @@ import {
   ClipboardList,
   ShoppingBag, 
   Heart, 
+  Store,
   Settings,
   ExternalLink,
   LogOut,
@@ -32,6 +33,7 @@ export function ProfileSidebar() {
     { href: "/profile/commissions", label: "Yêu cầu commission", icon: ClipboardList },
     { href: "/profile/custom-orders", label: "Đồ thiết kế riêng", icon: PenTool },
     { href: "/profile/wishlist", label: "Danh sách yêu thích", icon: Heart },
+    { href: "/profile/following-shops", label: "Gian hàng theo dõi", icon: Store },
     { href: "/profile/account", label: "Cài đặt tài khoản", icon: Settings },
   ]
 
