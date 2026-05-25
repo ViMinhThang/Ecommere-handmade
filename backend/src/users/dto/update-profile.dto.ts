@@ -1,4 +1,5 @@
-import { IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -52,4 +53,20 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   sellerStat2Value?: string;
+
+  @IsOptional()
+  @IsString()
+  craftSpecialty?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(80)
+  craftExperienceYears?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  craftMaterials?: string[];
 }

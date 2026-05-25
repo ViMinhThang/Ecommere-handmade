@@ -167,3 +167,12 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Admin tắt hoặc xóa sản phẩm nổi bật; trang chủ không hiển thị item inactive.
 - [ ] Anonymous mở trang chủ; thấy banner active và sản phẩm nổi bật active, hoặc fallback hero/section cũ nếu chưa có dữ liệu.
 - [ ] Non-admin gọi API `/admin/homepage/*` bị chặn bởi quyền admin.
+
+## Verified Artisan Profile Smoke
+
+- [ ] Login admin, mở `/dashboard/users`, chỉnh một seller và bật `Nghệ nhân đã xác thực`.
+- [ ] Admin lưu chuyên môn thủ công, số năm kinh nghiệm, chất liệu chính và ghi chú xác thực cho seller.
+- [ ] Login seller, mở storefront của chính mình `/sellers/:id`, cập nhật chuyên môn/chất liệu/số năm kinh nghiệm và lưu thành công.
+- [ ] Seller không tự bật được `artisanVerified` qua profile/storefront edit.
+- [ ] Public `/sellers` hiển thị badge `Nghệ nhân đã xác thực` cho seller seed đã verify.
+- [ ] Public `/sellers/:id` hiển thị badge xác thực, chuyên môn, số năm kinh nghiệm và chất liệu chính.

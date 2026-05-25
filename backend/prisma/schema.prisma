@@ -184,6 +184,11 @@ model User {
   sellerStat1Value      String?
   sellerStat2Label      String?
   sellerStat2Value      String?
+  artisanVerified       Boolean                     @default(false)
+  craftSpecialty        String?
+  craftExperienceYears  Int?
+  craftMaterials        String[]                    @default([])
+  verificationNote      String?
   otpCode               String?
   otpExpires            DateTime?
   isEmailVerified       Boolean                     @default(false)
