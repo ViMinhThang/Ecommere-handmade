@@ -959,6 +959,45 @@ async function ensureCustomOrder(input: {
   });
 }
 
+async function ensureCustomOrderProgressEvent(input: {
+  customOrderId: string;
+  actorId: string;
+  status: CustomOrderStatus;
+  title: string;
+  note?: string;
+  imageUrl?: string;
+  createdAt?: Date;
+}) {
+  const existing = await prisma.customOrderProgressEvent.findFirst({
+    where: {
+      customOrderId: input.customOrderId,
+      title: input.title,
+    },
+  });
+  const data = {
+    actorId: input.actorId,
+    status: input.status,
+    title: input.title,
+    note: input.note ?? null,
+    imageUrl: input.imageUrl ?? null,
+    createdAt: input.createdAt ?? new Date(),
+  };
+
+  if (existing) {
+    return prisma.customOrderProgressEvent.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return prisma.customOrderProgressEvent.create({
+    data: {
+      customOrderId: input.customOrderId,
+      ...data,
+    },
+  });
+}
+
 async function ensureCommissionDemo(input: {
   customerId: string;
   sellerId: string;
@@ -2830,6 +2869,52 @@ async function main() {
     leadTime: '7 ngày',
     sketchImageUrl: demoImages.candle,
     status: CustomOrderStatus.SHIPPED,
+  });
+
+  await ensureCustomOrderProgressEvent({
+    customOrderId: craftingCustomOrder.id,
+    actorId: seller.id,
+    status: CustomOrderStatus.PENDING_REVIEW,
+    title: 'Đã gửi bản phác thảo đầu tiên',
+    note: 'Shop chọn tông nâu đất và bố cục khắc tên nhẹ để bộ ly giữ cảm giác tối giản.',
+    imageUrl: demoImages.ceramic,
+    createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+  });
+  await ensureCustomOrderProgressEvent({
+    customOrderId: craftingCustomOrder.id,
+    actorId: seller.id,
+    status: CustomOrderStatus.CRAFTING,
+    title: 'Bắt đầu tạo dáng và xử lý bề mặt',
+    note: 'Phần thân ly đã được tạo dáng, shop đang hong khô chậm trước khi khắc tên.',
+    imageUrl: demoImages.ceramic,
+    createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+  });
+  await ensureCustomOrderProgressEvent({
+    customOrderId: shippedCustomOrder.id,
+    actorId: seller2.id,
+    status: CustomOrderStatus.CRAFTING,
+    title: 'Chuẩn bị nguyên liệu hộp quà',
+    note: 'Nến thơm đã đổ khuôn, thiệp ép hoa và túi linen được chuẩn bị theo concept cưới.',
+    imageUrl: demoImages.candle,
+    createdAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
+  });
+  await ensureCustomOrderProgressEvent({
+    customOrderId: shippedCustomOrder.id,
+    actorId: seller2.id,
+    status: CustomOrderStatus.FINISHING,
+    title: 'Hoàn thiện đóng gói quà tặng',
+    note: 'Shop đã kiểm tra mùi hương, buộc nơ linen và đặt thiệp viết tay trong hộp.',
+    imageUrl: demoImages.gift,
+    createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+  });
+  await ensureCustomOrderProgressEvent({
+    customOrderId: shippedCustomOrder.id,
+    actorId: seller2.id,
+    status: CustomOrderStatus.SHIPPED,
+    title: 'Đã bàn giao đơn cho vận chuyển',
+    note: 'Hộp quà đã được chống sốc kỹ và chuyển sang giai đoạn giao hàng.',
+    imageUrl: demoImages.gift,
+    createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
   });
 
   await ensureCommissionDemo({

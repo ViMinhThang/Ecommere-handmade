@@ -45,8 +45,9 @@ Account: `seller@ecommerce.com / admin123`
 3. Vào `/dashboard/new-listing`, tạo hoặc sửa sản phẩm demo; có thể nhập URL ảnh hợp lệ hoặc chọn ảnh trong thư viện media seed nếu UI đang hiển thị.
 4. Vào `/dashboard/orders`, mở kiện hàng của shop và cập nhật trạng thái theo thứ tự hợp lệ.
 5. Vào `/seller/custom-orders`, kiểm tra đơn thiết kế riêng nếu seed/demo có dữ liệu, chuyển trạng thái `Đang chế tác -> Đang hoàn thiện -> Đang giao -> Đã giao`.
-6. Vào `/dashboard/chat` nếu cần demo trao đổi với khách hàng.
-7. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification đơn hàng mới/sản phẩm đã duyệt và bấm đánh dấu đã đọc.
+6. Trong `/seller/custom-orders`, bấm `Tiến độ` trên một đơn custom order, thêm tiêu đề/ghi chú/URL ảnh để khách hàng thấy nhật ký chế tác.
+7. Vào `/dashboard/chat` nếu cần demo trao đổi với khách hàng.
+8. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification đơn hàng mới/sản phẩm đã duyệt và bấm đánh dấu đã đọc.
 
 Kết quả mong đợi: seller không thấy menu admin-only, chỉ cập nhật đơn/sản phẩm thuộc shop của mình, UI hiển thị rõ sản phẩm đang chờ admin duyệt.
 
@@ -65,7 +66,8 @@ Account: `customer@ecommerce.com / admin123`
 8. Nếu có đơn delivered, tạo review hoặc kiểm tra review seed đã hiển thị.
 9. Vào `/profile/wishlist` để kiểm tra wishlist và ảnh fallback.
 10. Vào `/profile/commissions` để xem yêu cầu commission seed nếu cần demo custom quote.
-11. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification trạng thái đơn/báo giá và unread count.
+11. Mở `/custom-orders/:id/review` từ thông báo hoặc flow commission/custom order, kiểm tra timeline `Tiến độ chế tác` có các mốc handmade.
+12. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification trạng thái đơn/báo giá và unread count.
 
 Kết quả mong đợi: customer không thấy action seller/admin, COD checkout chạy được khi Stripe chưa cấu hình, không có broken image hoặc text `undefined/null`.
 
@@ -74,6 +76,7 @@ Kết quả mong đợi: customer không thấy action seller/admin, COD checkou
 - Stripe là optional local; demo chính dùng COD.
 - SMTP là optional local; OTP được log ra terminal backend nếu chưa cấu hình SMTP.
 - Notification MVP dùng in-app polling 30 giây, chưa cần realtime/push/email cho demo local.
+- Custom order progress MVP dùng nhật ký lưu DB và polling/query thường; chưa cần realtime tracking.
 - Menu `Đối soát thanh toán` đang ẩn khỏi sidebar demo vì đây là màn hình vận hành nâng cao, không thuộc flow local MVP chính.
 - Seed có 11 category, 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, order `PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED`, voucher active/expired/inactive, review, question, report, chat, custom order, quote template, commission, notification và flash sale.
 - Nếu cần demo từ trạng thái sạch, chạy `cd backend && npm run db:reset` rồi đăng nhập lại bằng các account ở trên.

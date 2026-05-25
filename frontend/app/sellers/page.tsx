@@ -5,7 +5,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Search, Star, Store } from "lucide-react";
+import { ArrowLeft, ArrowRight, Heart, Search, Star, Store } from "lucide-react";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { useSearchSellers } from "@/lib/api/hooks";
@@ -402,7 +402,7 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
             "Gian hàng đang cập nhật thêm câu chuyện và bộ sưu tập của mình."}
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl bg-accent/35 p-4 text-sm">
+        <div className="mt-6 grid grid-cols-3 gap-3 rounded-2xl bg-accent/35 p-4 text-sm">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               Sản phẩm
@@ -414,13 +414,22 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Đánh giá
+              Đánh giá gian hàng
             </p>
             <p className="mt-2 flex items-center gap-2 font-medium text-foreground">
               <Star className="h-4 w-4 fill-primary text-primary" />
-              {seller.averageRating !== null
-                ? `${seller.averageRating.toFixed(1)} · ${seller.totalReviews}`
+              {seller.shopAverageRating !== null
+                ? `${seller.shopAverageRating.toFixed(1)} · ${seller.shopReviewCount}`
                 : "Chưa có"}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Theo dõi
+            </p>
+            <p className="mt-2 flex items-center gap-2 font-medium text-foreground">
+              <Heart className="h-4 w-4 text-primary" />
+              {seller.followerCount}
             </p>
           </div>
         </div>

@@ -209,6 +209,10 @@ model User {
   productQuestions      ProductQuestion[]           @relation("ProductQuestionUser")
   answeredQuestions     ProductQuestion[]           @relation("ProductQuestionAnsweredBy")
   wishlistItems         WishlistItem[]
+  followedShops         ShopFollow[]                @relation("ShopFollowCustomer")
+  shopFollowers         ShopFollow[]                @relation("ShopFollowSeller")
+  shopReviewsWritten    ShopReview[]                @relation("ShopReviewsWritten")
+  shopReviewsReceived   ShopReview[]                @relation("ShopReviewsReceived")
   customerLedgerEntries MarketplaceLedgerEntry[]    @relation("LedgerEntryCustomer")
   sellerLedgerEntries   MarketplaceLedgerEntry[]    @relation("LedgerEntrySeller")
   rewardPointLedger     RewardPointLedger[]         @relation("RewardPointLedgerUser")
@@ -220,6 +224,7 @@ model User {
   commissionPosts       CommissionPost[]            @relation("CommissionPostCustomer")
   commissionProposals   CommissionProposal[]        @relation("CommissionProposalSeller")
   notifications         Notification[]              @relation("UserNotifications")
+  customOrderProgress   CustomOrderProgressEvent[]  @relation("CustomOrderProgressActor")
 
   @@index([status])
 }
@@ -314,6 +319,37 @@ model WishlistItem {
   @@unique([userId, productId])
   @@index([userId, createdAt])
   @@index([productId])
+}
+
+model ShopFollow {
+  id         String   @id @default(uuid())
+  customerId String
+  sellerId   String
+  customer   User     @relation("ShopFollowCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  seller     User     @relation("ShopFollowSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, sellerId])
+  @@index([customerId, createdAt])
+  @@index([sellerId, createdAt])
+}
+
+model ShopReview {
+  id         String   @id @default(uuid())
+  sellerId   String
+  seller     User     @relation("ShopReviewsReceived", fields: [sellerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   User     @relation("ShopReviewsWritten", fields: [customerId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, sellerId])
+  @@index([sellerId, createdAt])
+  @@index([sellerId, rating])
+  @@index([customerId, createdAt])
 }
 
 enum ChatMessageType {
@@ -740,11 +776,29 @@ model CustomOrder {
   updatedAt     DateTime                 @updatedAt
   ledgerEntries MarketplaceLedgerEntry[]
   refunds       Refund[]
+  progressEvents CustomOrderProgressEvent[]
 
   @@index([customerId])
   @@index([sellerId])
   @@index([paymentIntentId])
   @@index([quoteTemplateId])
+}
+
+model CustomOrderProgressEvent {
+  id            String             @id @default(uuid())
+  customOrderId String
+  customOrder   CustomOrder        @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+  actorId       String
+  actor         User               @relation("CustomOrderProgressActor", fields: [actorId], references: [id], onDelete: Cascade)
+  status        CustomOrderStatus?
+  title         String
+  note          String?            @db.Text
+  imageUrl      String?
+  createdAt     DateTime           @default(now())
+
+  @@index([customOrderId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([status, createdAt])
 }
 
 model CommissionPost {

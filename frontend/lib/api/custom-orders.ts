@@ -41,6 +41,24 @@ export interface CustomOrder {
   };
 }
 
+export interface CustomOrderProgressEvent {
+  id: string;
+  customOrderId: string;
+  actorId: string;
+  status: CustomOrder['status'] | null;
+  title: string;
+  note: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+  actor?: {
+    id: string;
+    name: string;
+    roles: string[];
+    avatar?: string | null;
+    shopName?: string | null;
+  };
+}
+
 export interface CreateCustomOrderPayload {
   customerId: string;
   title: string;
@@ -49,6 +67,13 @@ export interface CreateCustomOrderPayload {
   leadTime?: string;
   specifications?: string[];
   sketchImageUrl?: string;
+}
+
+export interface CreateCustomOrderProgressEventPayload {
+  title: string;
+  note?: string;
+  imageUrl?: string;
+  status?: CustomOrder['status'];
 }
 
 export const customOrdersApi = {
@@ -66,6 +91,22 @@ export const customOrdersApi = {
 
   getById: (id: string) => {
     return apiClient.get<CustomOrder>(`/custom-orders/${id}`);
+  },
+
+  getProgressEvents: (id: string) => {
+    return apiClient.get<CustomOrderProgressEvent[]>(
+      `/custom-orders/${id}/progress`,
+    );
+  },
+
+  createProgressEvent: (
+    id: string,
+    data: CreateCustomOrderProgressEventPayload,
+  ) => {
+    return apiClient.post<CustomOrderProgressEvent>(
+      `/custom-orders/${id}/progress`,
+      data,
+    );
   },
 
   requestRevision: (id: string, revisionNote: string) => {

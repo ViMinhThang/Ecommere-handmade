@@ -50,6 +50,9 @@ export interface User {
   sellerStat1Value?: string;
   sellerStat2Label?: string;
   sellerStat2Value?: string;
+  followerCount?: number;
+  shopAverageRating?: number | null;
+  shopReviewCount?: number;
   rewardPointsBalance?: number;
   ordersCount: number;
   totalSpent: number;
@@ -93,6 +96,9 @@ export interface SellerSearchResult {
   productCount: number;
   averageRating: number | null;
   totalReviews: number;
+  followerCount: number;
+  shopAverageRating: number | null;
+  shopReviewCount: number;
   createdAt: Date | string;
   linkTarget: string;
 }
