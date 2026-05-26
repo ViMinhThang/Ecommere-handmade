@@ -13,7 +13,6 @@ import {
   useAddresses,
   useAddAddress,
   useCart,
-  useRewardBalance,
   cartKeys,
 } from "@/lib/api/hooks";
 import { cartApi } from "@/lib/api/cart";
@@ -106,7 +105,6 @@ export default function CheckoutPage() {
   const { data: addresses } = useAddresses(user?.id || "");
   const { mutate: addAddress, isPending: isSavingAddress } = useAddAddress();
   const { data: cart } = useCart();
-  const rewardBalanceQuery = useRewardBalance(Boolean(user));
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [checkoutOrderId, setCheckoutOrderId] = useState("");
@@ -132,7 +130,6 @@ export default function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressFormData, setAddressFormData] =
     useState<AddressFormData>(emptyAddressFormData);
-  const [rewardPointsToRedeem, setRewardPointsToRedeem] = useState(0);
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
@@ -334,7 +331,6 @@ export default function CheckoutPage() {
           address: formData.street,
         },
         paymentMethod,
-        rewardPointsToRedeem: normalizedRewardPointsToRedeem,
       });
 
       if (!data?.orderId) {
@@ -398,34 +394,8 @@ export default function CheckoutPage() {
     cart?.appliedVoucher?.discountAmount ?? discountAmount;
   const shipping = 25000;
   const baseTotal = (cart?.total || 0) + shipping;
-  const rewardBalance = rewardBalanceQuery.data;
-  const rewardVndPerPoint = rewardBalance?.redeemVndPerPoint || 0;
-  const maxRedeemByTotal =
-    rewardVndPerPoint > 0 && baseTotal > 1
-      ? Math.floor((baseTotal - 1) / rewardVndPerPoint)
-      : 0;
-  const maxRedeemPoints = Math.max(
-    0,
-    Math.min(rewardBalance?.balance || 0, maxRedeemByTotal),
-  );
-  const normalizedRewardPointsToRedeem = Math.min(
-    Math.max(0, Math.floor(rewardPointsToRedeem || 0)),
-    maxRedeemPoints,
-  );
-  const rewardDiscountAmount =
-    normalizedRewardPointsToRedeem * rewardVndPerPoint;
-  const total = Math.max(0, baseTotal - rewardDiscountAmount);
+  const total = baseTotal;
   const isVoucherActionPending = isApplyingVoucher || isRemovingVoucher;
-  const estimatedEarnPoints =
-    rewardBalance?.earnVndPerPoint && total > 0
-      ? Math.floor(total / rewardBalance.earnVndPerPoint)
-      : 0;
-
-  useEffect(() => {
-    if (rewardPointsToRedeem > maxRedeemPoints) {
-      setRewardPointsToRedeem(maxRedeemPoints);
-    }
-  }, [maxRedeemPoints, rewardPointsToRedeem]);
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -964,50 +934,6 @@ export default function CheckoutPage() {
                   <span className="shrink-0 whitespace-nowrap font-semibold">
                     -{formatCurrency(voucherDiscountAmount)}
                   </span>
-                </div>
-              )}
-              {user && (
-                <div className="space-y-3 rounded-sm border border-[#8B4513]/15 bg-white/70 p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-stone-500 font-medium">
-                      Điểm thưởng
-                    </span>
-                    <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[#8B4513]">
-                      {rewardBalanceQuery.isLoading
-                        ? "Đang tải..."
-                        : `${rewardBalance?.balance || 0} điểm`}
-                    </span>
-                  </div>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={maxRedeemPoints}
-                    step={1}
-                    value={rewardPointsToRedeem}
-                    disabled={
-                      rewardBalanceQuery.isLoading || maxRedeemPoints === 0
-                    }
-                    onChange={(event) =>
-                      setRewardPointsToRedeem(
-                        Math.max(0, Math.floor(Number(event.target.value) || 0)),
-                      )
-                    }
-                    placeholder="Nhập số điểm muốn dùng"
-                  />
-                  <div className="flex items-center justify-between gap-4 text-xs text-stone-500">
-                    <span>Dùng tối đa {maxRedeemPoints} điểm</span>
-                    {rewardDiscountAmount > 0 && (
-                      <span className="font-semibold text-[#8B4513]">
-                        -{formatCurrency(rewardDiscountAmount)}
-                      </span>
-                    )}
-                  </div>
-                  {estimatedEarnPoints > 0 && (
-                    <p className="text-xs text-stone-500">
-                      Dự kiến nhận {estimatedEarnPoints} điểm sau khi đơn hàng
-                      hoàn tất.
-                    </p>
-                  )}
                 </div>
               )}
               <div className="flex items-center justify-between gap-4">

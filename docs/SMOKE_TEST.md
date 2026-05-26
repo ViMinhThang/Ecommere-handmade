@@ -57,6 +57,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Add to cart.
 - [ ] Update cart quantity.
 - [ ] Remove cart item.
+- [ ] Mở `/vouchers` và thấy voucher active/current; voucher expired/inactive không hiển thị.
 - [ ] Apply voucher `HANDMADE10` nếu sản phẩm thuộc category phù hợp.
 - [ ] Apply voucher `EXPIRED5` và xác nhận bị từ chối.
 - [ ] Checkout bằng COD.
@@ -94,7 +95,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Dashboard sidebar hides `Đối soát thanh toán` in the default local demo menu.
 - [ ] Customer, seller, and admin do not see menu actions outside their role.
 - [ ] Checkout defaults to COD; Stripe option is disabled when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is not configured.
-- [ ] Checkout summary shows subtotal, voucher discount if applied, reward points, shipping fee, total, payment method, and shipping address.
+- [ ] Checkout summary shows subtotal, voucher discount if applied, shipping fee, total, payment method, and shipping address.
 - [ ] Product images render on home/discovery/category/product detail/cart/wishlist/profile orders/seller products; missing images show a clean fallback instead of a broken image icon.
 - [ ] Profile order detail opens when an order item has no product image; the fallback icon renders instead of an empty `next/image` source.
 - [ ] Seller can open `/dashboard/orders`, update a standard shop sub-order, and see Vietnamese success/error messages.

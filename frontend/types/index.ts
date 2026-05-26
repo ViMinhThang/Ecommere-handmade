@@ -58,7 +58,6 @@ export interface User {
   followerCount?: number;
   shopAverageRating?: number | null;
   shopReviewCount?: number;
-  rewardPointsBalance?: number;
   ordersCount: number;
   totalSpent: number;
   products?: number;
@@ -289,8 +288,6 @@ export interface Order {
   products?: Product[];
   totalAmount: number;
   discountAmount?: number;
-  rewardPointsRedeemed?: number;
-  rewardDiscountAmount?: number;
   voucherCode?: string | null;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   paymentMethod?: "STRIPE" | "COD";
@@ -306,41 +303,6 @@ export interface Order {
   createdAt: Date;
   subOrders?: SubOrder[];
   financialSummary?: FinancialSummary;
-}
-
-export type RewardPointLedgerType =
-  | "EARN"
-  | "REDEEM"
-  | "REFUND"
-  | "ADJUSTMENT"
-  | "EXPIRE";
-
-export interface RewardBalance {
-  balance: number;
-  redeemVndPerPoint: number;
-  earnVndPerPoint: number;
-}
-
-export interface RewardLedgerEntry {
-  id: string;
-  userId: string;
-  orderId?: string | null;
-  type: RewardPointLedgerType;
-  points: number;
-  balanceAfter: number;
-  description?: string | null;
-  idempotencyKey: string;
-  createdAt: Date | string;
-}
-
-export interface RewardLedgerResponse {
-  data: RewardLedgerEntry[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
 }
 
 export type ReportType = "SHOP" | "CUSTOMER" | "PRODUCT" | "ORDER";

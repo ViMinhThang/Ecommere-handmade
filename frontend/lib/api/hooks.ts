@@ -38,7 +38,6 @@ import {
 } from "./custom-order-quote-templates";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
-import { rewardsApi } from "./rewards";
 import {
   homepageApi,
   type CreateHomepageBannerDto,
@@ -1284,13 +1283,6 @@ export const settingsKeys = {
   platform: () => [...settingsKeys.all, "platform"] as const,
 };
 
-export const rewardKeys = {
-  all: ["rewards"] as const,
-  balance: () => [...rewardKeys.all, "balance"] as const,
-  ledger: (params?: { page?: number; limit?: number }) =>
-    [...rewardKeys.all, "ledger", { ...params }] as const,
-};
-
 export const reportKeys = {
   all: ["reports"] as const,
   mine: (params?: { page?: number; limit?: number }) =>
@@ -1320,25 +1312,6 @@ export function useUpdatePlatformSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.platform() });
     },
-  });
-}
-
-export function useRewardBalance(enabled = true) {
-  return useQuery({
-    queryKey: rewardKeys.balance(),
-    queryFn: () => rewardsApi.getBalance(),
-    enabled,
-  });
-}
-
-export function useRewardLedger(
-  params?: { page?: number; limit?: number },
-  enabled = true,
-) {
-  return useQuery({
-    queryKey: rewardKeys.ledger(params),
-    queryFn: () => rewardsApi.getLedger(params),
-    enabled,
   });
 }
 
