@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { apiClient } from "@/lib/api/client";
@@ -13,7 +14,9 @@ import {
   useAddAddress,
   useCart,
   useRewardBalance,
+  cartKeys,
 } from "@/lib/api/hooks";
+import { cartApi } from "@/lib/api/cart";
 import { mediaApi } from "@/lib/api/media";
 import { formatCurrency } from "@/lib/utils";
 import type { Address } from "@/types";
@@ -29,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, MapPin, Plus } from "lucide-react";
+import { CheckCircle2, MapPin, Plus, Tag, Ticket, X } from "lucide-react";
 
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
@@ -68,8 +71,37 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function getVoucherErrorMessage(error: unknown) {
+  const message = getErrorMessage(error, "Không thể áp dụng mã giảm giá.");
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("expired")) {
+    return "Mã giảm giá đã hết hạn.";
+  }
+  if (normalized.includes("inactive") || normalized.includes("not found")) {
+    return "Mã giảm giá không hợp lệ hoặc chưa được kích hoạt.";
+  }
+  if (
+    normalized.includes("cannot be applied") ||
+    normalized.includes("category") ||
+    normalized.includes("range") ||
+    normalized.includes("min")
+  ) {
+    return "Đơn hàng chưa đủ điều kiện áp dụng mã giảm giá này.";
+  }
+  if (
+    normalized.includes("usage limit") ||
+    normalized.includes("limit has been reached")
+  ) {
+    return "Mã giảm giá đã hết lượt sử dụng.";
+  }
+
+  return message;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: user } = useMe();
   const { data: addresses } = useAddresses(user?.id || "");
   const { mutate: addAddress, isPending: isSavingAddress } = useAddAddress();
@@ -101,6 +133,10 @@ export default function CheckoutPage() {
   const [addressFormData, setAddressFormData] =
     useState<AddressFormData>(emptyAddressFormData);
   const [rewardPointsToRedeem, setRewardPointsToRedeem] = useState(0);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
+  const [isRemovingVoucher, setIsRemovingVoucher] = useState(false);
 
   const savedAddresses = addresses || [];
   const selectedAddress =
@@ -217,6 +253,64 @@ export default function CheckoutPage() {
     }
   }, [formData.email, user]);
 
+  const handleApplyVoucher = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (clientSecret) {
+      toast.error("Không thể đổi mã giảm giá sau khi đã tạo phiên thanh toán.");
+      return;
+    }
+
+    const code = voucherCode.trim().toUpperCase();
+    if (!code) {
+      const message = "Vui lòng nhập mã giảm giá.";
+      setVoucherError(message);
+      toast.error(message);
+      return;
+    }
+
+    setIsApplyingVoucher(true);
+    setVoucherError(null);
+
+    try {
+      const updatedCart = await cartApi.applyVoucher(code);
+      queryClient.setQueryData(cartKeys.cart(), updatedCart);
+      await queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      setVoucherCode("");
+      toast.success(`Đã áp dụng mã ${updatedCart.appliedVoucher?.code || code}.`);
+    } catch (error) {
+      const message = getVoucherErrorMessage(error);
+      setVoucherError(message);
+      toast.error(message);
+    } finally {
+      setIsApplyingVoucher(false);
+    }
+  };
+
+  const handleRemoveVoucher = async () => {
+    if (clientSecret) {
+      toast.error("Không thể xóa mã giảm giá sau khi đã tạo phiên thanh toán.");
+      return;
+    }
+
+    setIsRemovingVoucher(true);
+    setVoucherError(null);
+
+    try {
+      const updatedCart = await cartApi.removeVoucher();
+      queryClient.setQueryData(cartKeys.cart(), updatedCart);
+      await queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      setVoucherCode("");
+      toast.success("Đã xóa mã giảm giá.");
+    } catch (error) {
+      const message = getVoucherErrorMessage(error);
+      setVoucherError(message);
+      toast.error(message);
+    } finally {
+      setIsRemovingVoucher(false);
+    }
+  };
+
   const handleInitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -288,6 +382,20 @@ export default function CheckoutPage() {
 
   const subtotal = cart?.subtotal || 0;
   const discountAmount = cart?.discountAmount || 0;
+  const productOriginalSubtotal =
+    cart?.items.reduce(
+      (sum, item) =>
+        sum +
+        (item.pricing?.originalPrice ?? Number(item.product.price)) *
+          item.quantity,
+      0,
+    ) || subtotal;
+  const flashSaleDiscountAmount = Math.max(
+    0,
+    productOriginalSubtotal - subtotal,
+  );
+  const voucherDiscountAmount =
+    cart?.appliedVoucher?.discountAmount ?? discountAmount;
   const shipping = 25000;
   const baseTotal = (cart?.total || 0) + shipping;
   const rewardBalance = rewardBalanceQuery.data;
@@ -307,6 +415,7 @@ export default function CheckoutPage() {
   const rewardDiscountAmount =
     normalizedRewardPointsToRedeem * rewardVndPerPoint;
   const total = Math.max(0, baseTotal - rewardDiscountAmount);
+  const isVoucherActionPending = isApplyingVoucher || isRemovingVoucher;
   const estimatedEarnPoints =
     rewardBalance?.earnVndPerPoint && total > 0
       ? Math.floor(total / rewardBalance.earnVndPerPoint)
@@ -749,19 +858,111 @@ export default function CheckoutPage() {
             </div>
 
             <div className="space-y-4 pt-8 border-t border-stone-200/60 text-sm">
+              <div className="space-y-4 rounded-sm border border-[#8B4513]/15 bg-white/70 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="h-4 w-4 text-[#8B4513]" />
+                    <span className="font-semibold text-stone-900">
+                      Mã giảm giá
+                    </span>
+                  </div>
+                  {cart.appliedVoucher && (
+                    <span className="rounded-full bg-[#8B4513]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#8B4513]">
+                      Đang áp dụng
+                    </span>
+                  )}
+                </div>
+
+                {cart.appliedVoucher ? (
+                  <div className="rounded-sm border border-[#8B4513]/20 bg-[#8B4513]/5 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 shrink-0 text-[#8B4513]" />
+                          <span className="truncate font-bold uppercase text-[#8B4513]">
+                            {cart.appliedVoucher.code}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-stone-500">
+                          Đã giảm {formatCurrency(voucherDiscountAmount)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveVoucher}
+                        disabled={isVoucherActionPending || Boolean(clientSecret)}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-stone-200 bg-white text-stone-500 transition-colors hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Xóa mã giảm giá"
+                      >
+                        {isRemovingVoucher ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-[#8B4513]" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleApplyVoucher} className="space-y-3">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        value={voucherCode}
+                        onChange={(event) => {
+                          setVoucherCode(event.target.value.toUpperCase());
+                          setVoucherError(null);
+                        }}
+                        disabled={isVoucherActionPending || Boolean(clientSecret)}
+                        placeholder="Nhập mã giảm giá"
+                        className="h-11 bg-white"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={
+                          isVoucherActionPending ||
+                          Boolean(clientSecret) ||
+                          !voucherCode.trim()
+                        }
+                        className="h-11 shrink-0 rounded-sm bg-[#8B4513] px-5 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#6F3610]"
+                      >
+                        {isApplyingVoucher ? "Đang áp dụng..." : "Áp dụng"}
+                      </Button>
+                    </div>
+                    {voucherError && (
+                      <p className="text-xs font-medium text-red-600">
+                        {voucherError}
+                      </p>
+                    )}
+                    {clientSecret && (
+                      <p className="text-xs text-stone-500">
+                        Phiên thanh toán đã được tạo, không thể đổi mã giảm giá
+                        ở bước này.
+                      </p>
+                    )}
+                  </form>
+                )}
+              </div>
+
+              {flashSaleDiscountAmount > 0 && (
+                <div className="flex items-center justify-between gap-4 text-emerald-700">
+                  <span className="font-medium">Ưu đãi Flash sale</span>
+                  <span className="shrink-0 whitespace-nowrap font-semibold">
+                    -{formatCurrency(flashSaleDiscountAmount)}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-4">
                 <span className="text-stone-500 font-medium">Tạm tính</span>
                 <span className="shrink-0 whitespace-nowrap font-semibold">
                   {formatCurrency(subtotal)}
                 </span>
               </div>
-              {discountAmount > 0 && (
+              {voucherDiscountAmount > 0 && (
                 <div className="flex items-center justify-between gap-4 text-[#8B4513]">
                   <span className="font-medium">
                     Giảm giá ({cart.appliedVoucher?.code})
                   </span>
                   <span className="shrink-0 whitespace-nowrap font-semibold">
-                    -{formatCurrency(discountAmount)}
+                    -{formatCurrency(voucherDiscountAmount)}
                   </span>
                 </div>
               )}

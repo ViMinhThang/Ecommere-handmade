@@ -39,6 +39,7 @@ import { CreateRefundDto } from './dto/create-refund.dto';
 import { SettingsService } from '../settings/settings.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { VouchersService } from '../vouchers/vouchers.service';
 
 const SHIPPING_FEE = 25000;
 const CURRENCY = 'vnd';
@@ -55,6 +56,12 @@ const FLASH_SALE_PURCHASE_LIMIT_EXCEEDED_MESSAGE =
   'Flash sale purchase limit exceeded. Please refresh your cart.';
 const FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE =
   'Flash sale reservation state is inconsistent';
+const VOUCHER_INVALID_MESSAGE =
+  'Voucher is no longer valid. Please refresh your cart.';
+const VOUCHER_PRICING_CHANGED_MESSAGE =
+  'Voucher discount changed. Please refresh your cart.';
+const VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE =
+  'Voucher usage limit has been reached. Please refresh your cart.';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -104,6 +111,10 @@ interface CheckoutFlashSalePricingSnapshot {
 interface RewardRedemption {
   points: number;
   discountAmount: number;
+}
+
+interface CheckoutVoucherSnapshot {
+  voucherId: string;
 }
 
 interface FlashSaleReservationGroup {
@@ -215,6 +226,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     private readonly cartService: CartService,
     private readonly settingsService: SettingsService,
     private readonly rewardsService: RewardsService,
+    private readonly vouchersService: VouchersService,
     @Optional()
     private readonly notificationsService?: NotificationsService,
   ) {}
@@ -967,6 +979,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
+      const voucherSnapshot = await this.revalidateVoucherForCheckout(
+        tx,
+        userId,
+        cart,
+      );
       const flashSaleSnapshots = this.isFlashSaleGuardrailsEnabled()
         ? await this.revalidateFlashSalePricing(tx, cart)
         : undefined;
@@ -1018,6 +1035,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         rewardRedemption.points,
       );
 
+      await this.recordVoucherUsage(tx, userId, order.id, voucherSnapshot);
+
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id },
       });
@@ -1029,6 +1048,157 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       return order;
     });
+  }
+
+  private async revalidateVoucherForCheckout(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    cart: EnrichedCart,
+  ): Promise<CheckoutVoucherSnapshot | null> {
+    if (!cart.appliedVoucher) {
+      return null;
+    }
+
+    const now = new Date();
+    const voucher = await tx.voucher.findFirst({
+      where: {
+        code: cart.appliedVoucher.code,
+        deletedAt: null,
+        isActive: true,
+        endDate: { gt: now },
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
+        ranges: {
+          some: {
+            deletedAt: null,
+            endDate: { gt: now },
+          },
+        },
+      },
+      include: {
+        ranges: {
+          where: {
+            deletedAt: null,
+            endDate: { gt: now },
+          },
+        },
+        category: true,
+      },
+    });
+
+    if (!voucher) {
+      throw new BadRequestException(VOUCHER_INVALID_MESSAGE);
+    }
+
+    await this.vouchersService.assertVoucherUsageAvailable(
+      voucher,
+      userId,
+      tx,
+    );
+
+    const eligibleSubtotal = cart.items
+      .filter((item) => item.product.categoryId === voucher.categoryId)
+      .reduce(
+        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+        0,
+      );
+    const matchedRange = this.vouchersService.findMatchingRange(
+      voucher.ranges,
+      eligibleSubtotal,
+      now,
+    );
+
+    if (!matchedRange) {
+      throw new BadRequestException(VOUCHER_INVALID_MESSAGE);
+    }
+
+    const discountAmount = this.vouchersService.calculateDiscountAmount(
+      voucher,
+      matchedRange,
+      eligibleSubtotal,
+    );
+
+    if (
+      discountAmount !== cart.appliedVoucher.discountAmount ||
+      discountAmount > eligibleSubtotal ||
+      discountAmount > cart.subtotal
+    ) {
+      throw new BadRequestException(VOUCHER_PRICING_CHANGED_MESSAGE);
+    }
+
+    return {
+      voucherId: voucher.id,
+    };
+  }
+
+  private async recordVoucherUsage(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    orderId: string,
+    voucherSnapshot: CheckoutVoucherSnapshot | null,
+  ) {
+    if (!voucherSnapshot) {
+      return;
+    }
+
+    const usageRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      INSERT INTO "VoucherUsage" (
+        "id",
+        "voucherId",
+        "userId",
+        "orderId",
+        "createdAt"
+      )
+      SELECT
+        ${randomUUID()},
+        ${voucherSnapshot.voucherId},
+        ${userId},
+        ${orderId},
+        NOW()
+      WHERE EXISTS (
+        SELECT 1
+        FROM "Voucher"
+        WHERE "id" = ${voucherSnapshot.voucherId}
+          AND "deletedAt" IS NULL
+          AND "isActive" = true
+          AND "endDate" > (NOW() AT TIME ZONE 'UTC')
+          AND (
+            "perUserLimit" IS NULL
+            OR (
+              SELECT COUNT(*)
+              FROM "VoucherUsage"
+              WHERE "voucherId" = ${voucherSnapshot.voucherId}
+                AND "userId" = ${userId}
+            ) < "perUserLimit"
+          )
+      )
+      ON CONFLICT ("orderId") DO NOTHING
+      RETURNING "id"
+    `);
+
+    if (usageRows.length !== 1) {
+      throw new BadRequestException(VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE);
+    }
+
+    const voucherRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      UPDATE "Voucher"
+      SET "usedCount" = "usedCount" + 1
+      WHERE "id" = ${voucherSnapshot.voucherId}
+        AND "deletedAt" IS NULL
+        AND "isActive" = true
+        AND "endDate" > (NOW() AT TIME ZONE 'UTC')
+        AND (
+          "usageLimit" IS NULL
+          OR "usedCount" + 1 <= "usageLimit"
+        )
+      RETURNING "id"
+    `);
+
+    if (voucherRows.length !== 1) {
+      throw new BadRequestException(VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE);
+    }
   }
 
   private isFlashSaleGuardrailsEnabled() {
@@ -1227,7 +1397,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const matchedRange = flashSale.ranges.find(
       (range) =>
         originalPrice >= Number(range.minPrice) &&
-        originalPrice <= Number(range.maxPrice),
+        (range.maxPrice == null || originalPrice <= Number(range.maxPrice)),
     );
 
     if (!matchedRange) {

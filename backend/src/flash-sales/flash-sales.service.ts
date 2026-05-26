@@ -193,7 +193,7 @@ export class FlashSalesService {
         !range.deletedAt &&
         new Date(range.endDate) > new Date() &&
         price >= Number(range.minPrice) &&
-        price <= Number(range.maxPrice),
+        (range.maxPrice == null || price <= Number(range.maxPrice)),
     );
 
     if (!matchedRange) {
@@ -272,11 +272,11 @@ export class FlashSalesService {
       );
     }
 
-    if (updateFlashSaleDto.ranges) {
+    if (updateFlashSaleDto.ranges !== undefined) {
       this.validateRanges(updateFlashSaleDto.ranges);
     }
 
-    if (updateFlashSaleDto.categoryIds) {
+    if (updateFlashSaleDto.categoryIds !== undefined) {
       const categories = await this.prisma.category.findMany({
         where: { id: { in: updateFlashSaleDto.categoryIds } },
       });
@@ -286,10 +286,16 @@ export class FlashSalesService {
     }
 
     const { categoryIds, ranges, ...flashSaleData } = updateFlashSaleDto;
+    const shouldReplaceCategories = categoryIds !== undefined;
+    const shouldReplaceRanges = ranges !== undefined;
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.flashSaleCategory.deleteMany({ where: { flashSaleId: id } });
-      await tx.flashSaleRange.deleteMany({ where: { flashSaleId: id } });
+      if (shouldReplaceCategories) {
+        await tx.flashSaleCategory.deleteMany({ where: { flashSaleId: id } });
+      }
+      if (shouldReplaceRanges) {
+        await tx.flashSaleRange.deleteMany({ where: { flashSaleId: id } });
+      }
 
       const updated = await tx.flashSale.update({
         where: { id },
@@ -301,10 +307,10 @@ export class FlashSalesService {
           endAt: flashSaleData.endAt
             ? new Date(flashSaleData.endAt)
             : undefined,
-          categories: categoryIds
+          categories: shouldReplaceCategories
             ? { create: categoryIds.map((categoryId) => ({ categoryId })) }
             : undefined,
-          ranges: ranges
+          ranges: shouldReplaceRanges
             ? {
                 create: ranges.map((range) => ({
                   minPrice: range.minPrice,

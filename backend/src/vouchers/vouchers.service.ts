@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { CategoryStatus, Prisma } from '@prisma/client';
+import { CategoryStatus, Prisma, Voucher, VoucherRange } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
@@ -12,6 +12,19 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 interface VoucherVisibilityOptions {
   includeInactive?: boolean;
 }
+
+type VoucherRangeLike = Pick<
+  VoucherRange,
+  'minPrice' | 'maxPrice' | 'discountPercent' | 'endDate' | 'deletedAt'
+>;
+
+type VoucherUsageReader = Pick<PrismaService, 'voucherUsage'> &
+  Partial<Prisma.TransactionClient>;
+
+const VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE =
+  'Voucher usage limit has been reached';
+const VOUCHER_USER_LIMIT_EXCEEDED_MESSAGE =
+  'Voucher usage limit has been reached for this user';
 
 @Injectable()
 export class VouchersService {
@@ -60,6 +73,7 @@ export class VouchersService {
     }
 
     this.validateRanges(createVoucherDto.ranges);
+    this.validateVoucherLimits(createVoucherDto);
 
     return this.prisma.voucher.create({
       data: {
@@ -69,6 +83,9 @@ export class VouchersService {
         categoryId: createVoucherDto.categoryId,
         isActive: createVoucherDto.isActive ?? true,
         endDate: new Date(createVoucherDto.endDate),
+        maxDiscountAmount: createVoucherDto.maxDiscountAmount ?? null,
+        usageLimit: createVoucherDto.usageLimit ?? null,
+        perUserLimit: createVoucherDto.perUserLimit ?? null,
         ranges: {
           create: createVoucherDto.ranges.map((range) => ({
             minPrice: range.minPrice,
@@ -173,14 +190,18 @@ export class VouchersService {
       }
     }
 
-    if (updateVoucherDto.ranges) {
+    if (updateVoucherDto.ranges !== undefined) {
       this.validateRanges(updateVoucherDto.ranges);
     }
+    this.validateVoucherLimits(updateVoucherDto);
 
     const { ranges, ...voucherData } = updateVoucherDto;
+    const shouldReplaceRanges = ranges !== undefined;
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.voucherRange.deleteMany({ where: { voucherId: id } });
+      if (shouldReplaceRanges) {
+        await tx.voucherRange.deleteMany({ where: { voucherId: id } });
+      }
 
       const updated = await tx.voucher.update({
         where: { id },
@@ -189,7 +210,7 @@ export class VouchersService {
           endDate: voucherData.endDate
             ? new Date(voucherData.endDate)
             : undefined,
-          ranges: ranges
+          ranges: shouldReplaceRanges
             ? {
                 create: ranges.map((range) => ({
                   minPrice: range.minPrice,
@@ -216,6 +237,95 @@ export class VouchersService {
       throw new NotFoundException(`Voucher with ID ${id} not found`);
     }
     return this.prisma.voucher.delete({ where: { id } });
+  }
+
+  findMatchingRange<T extends VoucherRangeLike>(
+    ranges: T[],
+    eligibleSubtotal: number,
+    now = new Date(),
+  ): T | undefined {
+    return ranges.find(
+      (range) =>
+        !range.deletedAt &&
+        new Date(range.endDate) > now &&
+        eligibleSubtotal >= Number(range.minPrice) &&
+        (range.maxPrice == null || eligibleSubtotal <= Number(range.maxPrice)),
+    );
+  }
+
+  calculateDiscountAmount(
+    voucher: Pick<Voucher, 'maxDiscountAmount'>,
+    range: Pick<VoucherRange, 'discountPercent'>,
+    eligibleSubtotal: number,
+  ) {
+    const subtotal = Math.max(0, Math.round(eligibleSubtotal));
+    const rawDiscount = Math.round(
+      (subtotal * Number(range.discountPercent)) / 100,
+    );
+    const cappedDiscount =
+      voucher.maxDiscountAmount == null
+        ? rawDiscount
+        : Math.min(rawDiscount, Number(voucher.maxDiscountAmount));
+
+    return Math.max(0, Math.min(cappedDiscount, subtotal));
+  }
+
+  async assertVoucherUsageAvailable(
+    voucher: Pick<
+      Voucher,
+      'id' | 'usageLimit' | 'perUserLimit' | 'usedCount'
+    >,
+    userId: string,
+    tx: VoucherUsageReader = this.prisma,
+  ) {
+    if (voucher.usageLimit != null && voucher.usedCount >= voucher.usageLimit) {
+      throw new BadRequestException(VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE);
+    }
+
+    if (voucher.perUserLimit == null) {
+      return;
+    }
+
+    const userUsageCount = await tx.voucherUsage.count({
+      where: {
+        voucherId: voucher.id,
+        userId,
+      },
+    });
+
+    if (userUsageCount >= voucher.perUserLimit) {
+      throw new BadRequestException(VOUCHER_USER_LIMIT_EXCEEDED_MESSAGE);
+    }
+  }
+
+  private validateVoucherLimits(dto: {
+    maxDiscountAmount?: number | null;
+    usageLimit?: number | null;
+    perUserLimit?: number | null;
+  }) {
+    if (
+      dto.maxDiscountAmount !== undefined &&
+      dto.maxDiscountAmount !== null &&
+      dto.maxDiscountAmount < 0
+    ) {
+      throw new BadRequestException('maxDiscountAmount must be greater than or equal to 0');
+    }
+
+    if (
+      dto.usageLimit !== undefined &&
+      dto.usageLimit !== null &&
+      dto.usageLimit <= 0
+    ) {
+      throw new BadRequestException('usageLimit must be greater than 0');
+    }
+
+    if (
+      dto.perUserLimit !== undefined &&
+      dto.perUserLimit !== null &&
+      dto.perUserLimit <= 0
+    ) {
+      throw new BadRequestException('perUserLimit must be greater than 0');
+    }
   }
 
   private validateRanges(

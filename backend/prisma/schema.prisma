@@ -225,6 +225,7 @@ model User {
   reportsTargetingUser  Report[]                    @relation("ReportTargetUser")
   reportsResolved       Report[]                    @relation("ReportResolvedBy")
   sellerPayouts         SellerPayout[]              @relation("SellerPayoutSeller")
+  voucherUsages         VoucherUsage[]              @relation("UserVoucherUsages")
   flashSaleUsages       FlashSaleUserUsage[]
   commissionPosts       CommissionPost[]            @relation("CommissionPostCustomer")
   commissionProposals   CommissionProposal[]        @relation("CommissionProposalSeller")
@@ -279,24 +280,24 @@ model Category {
 }
 
 model Product {
-  id                       String             @id @default(uuid())
+  id                       String                    @id @default(uuid())
   name                     String
   description              String
-  price                    Decimal            @default(0)
+  price                    Decimal                   @default(0)
   categoryId               String
-  category                 Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category                 Category                  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   sellerId                 String
-  seller                   User               @relation("Product_sellerId_fkey", fields: [sellerId], references: [id], onDelete: Cascade)
-  status                   ProductStatus      @default(PENDING)
-  stock                    Int                @default(0)
-  lowStockThreshold        Int                @default(10)
+  seller                   User                      @relation("Product_sellerId_fkey", fields: [sellerId], references: [id], onDelete: Cascade)
+  status                   ProductStatus             @default(PENDING)
+  stock                    Int                       @default(0)
+  lowStockThreshold        Int                       @default(10)
   sku                      String?
-  tags                     String[]           @default([])
-  descriptionImages        String[]           @default([])
-  viewCount                Int                @default(0)
+  tags                     String[]                  @default([])
+  descriptionImages        String[]                  @default([])
+  viewCount                Int                       @default(0)
   deletedAt                DateTime?
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @updatedAt
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
   images                   ProductImage[]
   inventoryLogs            InventoryLog[]
   cartItems                CartItem[]
@@ -499,21 +500,27 @@ model InventoryLog {
 }
 
 model Voucher {
-  id          String         @id @default(uuid())
-  name        String
-  description String?
-  code        String         @unique
-  categoryId  String
-  category    Category       @relation(fields: [categoryId], references: [id])
-  isActive    Boolean        @default(true)
-  endDate     DateTime
-  deletedAt   DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  ranges      VoucherRange[]
-  carts       Cart[]
+  id                String         @id @default(uuid())
+  name              String
+  description       String?
+  code              String         @unique
+  categoryId        String
+  category          Category       @relation(fields: [categoryId], references: [id])
+  isActive          Boolean        @default(true)
+  endDate           DateTime
+  maxDiscountAmount Decimal?
+  usageLimit        Int?
+  perUserLimit      Int?
+  usedCount         Int            @default(0)
+  deletedAt         DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  ranges            VoucherRange[]
+  carts             Cart[]
+  usages            VoucherUsage[]
 
   @@index([categoryId])
+  @@index([isActive, endDate])
 }
 
 model VoucherRange {
@@ -529,6 +536,20 @@ model VoucherRange {
   updatedAt       DateTime  @updatedAt
 
   @@index([voucherId])
+}
+
+model VoucherUsage {
+  id        String   @id @default(uuid())
+  voucherId String
+  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("UserVoucherUsages", fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String?  @unique
+  order     Order?   @relation("OrderVoucherUsage", fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([voucherId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model FlashSale {
@@ -667,6 +688,7 @@ model Order {
   rewardPointLedger      RewardPointLedger[]
   refunds                Refund[]
   reports                Report[]
+  voucherUsage           VoucherUsage?            @relation("OrderVoucherUsage")
 
   @@unique([customerId, checkoutIdempotencyKey])
   @@index([customerId])
@@ -807,12 +829,12 @@ model CustomOrder {
 
   status CustomOrderStatus @default(DRAFT)
 
-  cancelledAt   DateTime?
-  deliveredAt   DateTime?
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-  ledgerEntries MarketplaceLedgerEntry[]
-  refunds       Refund[]
+  cancelledAt    DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  ledgerEntries  MarketplaceLedgerEntry[]
+  refunds        Refund[]
   progressEvents CustomOrderProgressEvent[]
 
   @@index([customerId])
@@ -839,42 +861,42 @@ model CustomOrderProgressEvent {
 }
 
 model CommissionPost {
-  id                 String                 @id @default(uuid())
+  id                 String               @id @default(uuid())
   customerId         String
-  customer           User                   @relation("CommissionPostCustomer", fields: [customerId], references: [id], onDelete: Cascade)
-  selectedProposalId String?                @unique
-  selectedProposal   CommissionProposal?    @relation("SelectedCommissionProposal", fields: [selectedProposalId], references: [id], onDelete: SetNull)
+  customer           User                 @relation("CommissionPostCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  selectedProposalId String?              @unique
+  selectedProposal   CommissionProposal?  @relation("SelectedCommissionProposal", fields: [selectedProposalId], references: [id], onDelete: SetNull)
   customOrderId      String?
   title              String
-  description        String                 @db.Text
+  description        String               @db.Text
   budgetMin          Decimal?
   budgetMax          Decimal?
   desiredTimeline    String?
-  referenceImages    String[]               @default([])
-  status             CommissionPostStatus   @default(OPEN)
+  referenceImages    String[]             @default([])
+  status             CommissionPostStatus @default(OPEN)
   closedAt           DateTime?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  proposals          CommissionProposal[]   @relation("CommissionPostProposals")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  proposals          CommissionProposal[] @relation("CommissionPostProposals")
 
   @@index([customerId, createdAt])
   @@index([status, createdAt])
 }
 
 model CommissionProposal {
-  id             String                   @id @default(uuid())
-  commissionId   String
-  commission     CommissionPost           @relation("CommissionPostProposals", fields: [commissionId], references: [id], onDelete: Cascade)
-  sellerId       String
-  seller         User                     @relation("CommissionProposalSeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  selectedFor    CommissionPost?          @relation("SelectedCommissionProposal")
-  message        String                   @db.Text
-  proposedPrice  Decimal
+  id               String                   @id @default(uuid())
+  commissionId     String
+  commission       CommissionPost           @relation("CommissionPostProposals", fields: [commissionId], references: [id], onDelete: Cascade)
+  sellerId         String
+  seller           User                     @relation("CommissionProposalSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  selectedFor      CommissionPost?          @relation("SelectedCommissionProposal")
+  message          String                   @db.Text
+  proposedPrice    Decimal
   proposedLeadTime String
-  sketchImageUrl String?
-  status         CommissionProposalStatus @default(PENDING)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
+  sketchImageUrl   String?
+  status           CommissionProposalStatus @default(PENDING)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 
   @@unique([commissionId, sellerId])
   @@index([sellerId, createdAt])

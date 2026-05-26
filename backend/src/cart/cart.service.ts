@@ -162,8 +162,23 @@ export class CartService {
     );
 
     if (matchedRange && this.isVoucherValid(voucher, matchedRange)) {
-      const discountAmount = Math.round(
-        (eligibleSubtotal * Number(matchedRange.discountPercent)) / 100,
+      try {
+        await this.vouchersService.assertVoucherUsageAvailable(
+          voucher,
+          cart.userId,
+        );
+      } catch (error) {
+        if (!(error instanceof BadRequestException)) {
+          throw error;
+        }
+        await this.clearAppliedVoucher(cart.id);
+        return { discountAmount: 0, appliedVoucher: null };
+      }
+
+      const discountAmount = this.vouchersService.calculateDiscountAmount(
+        voucher,
+        matchedRange,
+        eligibleSubtotal,
       );
       return {
         discountAmount,
@@ -176,10 +191,7 @@ export class CartService {
     }
 
     // Voucher no longer valid or doesn't match, clear it
-    await this.prisma.cart.update({
-      where: { id: cart.id },
-      data: { appliedVoucherId: null },
-    });
+    await this.clearAppliedVoucher(cart.id);
     return { discountAmount: 0, appliedVoucher: null };
   }
 
@@ -193,7 +205,7 @@ export class CartService {
         !range.deletedAt &&
         new Date(range.endDate) > now &&
         eligibleSubtotal >= Number(range.minPrice) &&
-        eligibleSubtotal < Number(range.maxPrice),
+        (range.maxPrice == null || eligibleSubtotal <= Number(range.maxPrice)),
     );
   }
 
@@ -378,6 +390,8 @@ export class CartService {
       throw new BadRequestException('Voucher cannot be applied to this cart');
     }
 
+    await this.vouchersService.assertVoucherUsageAvailable(voucher, userId);
+
     await this.prisma.cart.update({
       where: { id: cart.id },
       data: { appliedVoucherId: voucher.id },
@@ -397,6 +411,13 @@ export class CartService {
 
   private async getOrCreateCart(userId: string) {
     return this.getOrCreateCartTransactional(userId, this.prisma);
+  }
+
+  private async clearAppliedVoucher(cartId: string) {
+    await this.prisma.cart.update({
+      where: { id: cartId },
+      data: { appliedVoucherId: null },
+    });
   }
 
   private async assertProductPurchasable(productId: string, quantity: number) {

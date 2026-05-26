@@ -5,6 +5,9 @@ import {
   IsDateString,
   IsArray,
   ValidateNested,
+  IsNumber,
+  IsInt,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UpdateVoucherRangeDto } from './update-voucher-range.dto';
@@ -33,6 +36,24 @@ export class UpdateVoucherDto {
   @IsDateString()
   @IsOptional()
   endDate?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @Type(() => Number)
+  maxDiscountAmount?: number | null;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  @Type(() => Number)
+  usageLimit?: number | null;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  @Type(() => Number)
+  perUserLimit?: number | null;
 
   @IsArray()
   @ValidateNested({ each: true })
