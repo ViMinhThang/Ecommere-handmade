@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { mediaApi } from "@/lib/api/media";
+import { PersonalizationNote } from "@/components/storefront/personalization-note";
 
 type ReviewableOrderItem = OrderItem & {
   review?: { rating: number } | null;
@@ -426,6 +427,7 @@ export default function OrderDetailPage() {
                       <p className="text-sm text-muted-foreground line-clamp-2 italic leading-relaxed">
                         {item.product.description}
                       </p>
+                      <PersonalizationNote personalization={item.personalization} />
 
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-6">

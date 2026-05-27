@@ -10,10 +10,10 @@ export interface CreateFlashSaleDto {
   isActive?: boolean;
   saleState?: "ACTIVE" | "PAUSED" | "ENDED";
   pausedReason?: string;
-  maxUnits?: number;
-  perUserLimit?: number;
+  maxUnits?: number | null;
+  perUserLimit?: number | null;
   reserveStock?: number;
-  autoPauseThreshold?: number;
+  autoPauseThreshold?: number | null;
   categoryIds: string[];
   ranges: {
     minPrice: number;
@@ -32,10 +32,10 @@ export interface UpdateFlashSaleDto {
   isActive?: boolean;
   saleState?: "ACTIVE" | "PAUSED" | "ENDED";
   pausedReason?: string;
-  maxUnits?: number;
-  perUserLimit?: number;
+  maxUnits?: number | null;
+  perUserLimit?: number | null;
   reserveStock?: number;
-  autoPauseThreshold?: number;
+  autoPauseThreshold?: number | null;
   categoryIds?: string[];
   ranges?: {
     minPrice: number;

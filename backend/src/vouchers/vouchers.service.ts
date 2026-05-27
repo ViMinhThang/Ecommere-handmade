@@ -3,7 +3,14 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { CategoryStatus, Prisma } from '@prisma/client';
+import {
+  CategoryStatus,
+  Prisma,
+  Role,
+  UserStatus,
+  Voucher,
+  VoucherRange,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
@@ -12,6 +19,19 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 interface VoucherVisibilityOptions {
   includeInactive?: boolean;
 }
+
+type VoucherRangeLike = Pick<
+  VoucherRange,
+  'minPrice' | 'maxPrice' | 'discountPercent' | 'endDate' | 'deletedAt'
+>;
+
+type VoucherUsageReader = Pick<PrismaService, 'voucherUsage'> &
+  Partial<Prisma.TransactionClient>;
+
+const VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE =
+  'Voucher usage limit has been reached';
+const VOUCHER_USER_LIMIT_EXCEEDED_MESSAGE =
+  'Voucher usage limit has been reached for this user';
 
 @Injectable()
 export class VouchersService {
@@ -32,12 +52,31 @@ export class VouchersService {
           endDate: { gt: now },
         },
       },
+      OR: [
+        { sellerId: null },
+        {
+          seller: {
+            deletedAt: null,
+            status: UserStatus.ACTIVE,
+            roles: { has: Role.ROLE_SELLER },
+          },
+        },
+      ],
     };
   }
 
   private getVoucherInclude(includeInactive = false, now = new Date()) {
     return {
       category: true,
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          shopName: true,
+          avatar: true,
+          status: true,
+        },
+      },
       ranges: includeInactive
         ? true
         : {
@@ -59,7 +98,12 @@ export class VouchersService {
       );
     }
 
+    if (createVoucherDto.sellerId) {
+      await this.assertActiveSeller(createVoucherDto.sellerId);
+    }
+
     this.validateRanges(createVoucherDto.ranges);
+    this.validateVoucherLimits(createVoucherDto);
 
     return this.prisma.voucher.create({
       data: {
@@ -67,8 +111,12 @@ export class VouchersService {
         description: createVoucherDto.description,
         code: createVoucherDto.code,
         categoryId: createVoucherDto.categoryId,
+        sellerId: createVoucherDto.sellerId ?? null,
         isActive: createVoucherDto.isActive ?? true,
         endDate: new Date(createVoucherDto.endDate),
+        maxDiscountAmount: createVoucherDto.maxDiscountAmount ?? null,
+        usageLimit: createVoucherDto.usageLimit ?? null,
+        perUserLimit: createVoucherDto.perUserLimit ?? null,
         ranges: {
           create: createVoucherDto.ranges.map((range) => ({
             minPrice: range.minPrice,
@@ -80,8 +128,25 @@ export class VouchersService {
       },
       include: {
         category: true,
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            shopName: true,
+            avatar: true,
+            status: true,
+          },
+        },
         ranges: true,
       },
+    });
+  }
+
+  async createForSeller(sellerId: string, createVoucherDto: CreateVoucherDto) {
+    await this.assertActiveSeller(sellerId);
+    return this.create({
+      ...createVoucherDto,
+      sellerId,
     });
   }
 
@@ -138,6 +203,39 @@ export class VouchersService {
     return voucher;
   }
 
+  async findAllForSeller(sellerId: string, pagination?: PaginationDto) {
+    await this.assertActiveSeller(sellerId);
+
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const where: Prisma.VoucherWhereInput = {
+      sellerId,
+      deletedAt: null,
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.voucher.findMany({
+        where,
+        include: this.getVoucherInclude(true),
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.voucher.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findByCode(code: string, options: VoucherVisibilityOptions = {}) {
     const now = new Date();
     const includeInactive = options.includeInactive ?? false;
@@ -173,14 +271,22 @@ export class VouchersService {
       }
     }
 
-    if (updateVoucherDto.ranges) {
-      this.validateRanges(updateVoucherDto.ranges);
+    if (updateVoucherDto.sellerId) {
+      await this.assertActiveSeller(updateVoucherDto.sellerId);
     }
 
+    if (updateVoucherDto.ranges !== undefined) {
+      this.validateRanges(updateVoucherDto.ranges);
+    }
+    this.validateVoucherLimits(updateVoucherDto);
+
     const { ranges, ...voucherData } = updateVoucherDto;
+    const shouldReplaceRanges = ranges !== undefined;
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.voucherRange.deleteMany({ where: { voucherId: id } });
+      if (shouldReplaceRanges) {
+        await tx.voucherRange.deleteMany({ where: { voucherId: id } });
+      }
 
       const updated = await tx.voucher.update({
         where: { id },
@@ -189,7 +295,7 @@ export class VouchersService {
           endDate: voucherData.endDate
             ? new Date(voucherData.endDate)
             : undefined,
-          ranges: ranges
+          ranges: shouldReplaceRanges
             ? {
                 create: ranges.map((range) => ({
                   minPrice: range.minPrice,
@@ -202,6 +308,15 @@ export class VouchersService {
         },
         include: {
           category: true,
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              shopName: true,
+              avatar: true,
+              status: true,
+            },
+          },
           ranges: true,
         },
       });
@@ -210,12 +325,150 @@ export class VouchersService {
     });
   }
 
+  async updateForSeller(
+    sellerId: string,
+    id: string,
+    updateVoucherDto: UpdateVoucherDto,
+  ) {
+    await this.assertActiveSeller(sellerId);
+
+    const existing = await this.prisma.voucher.findFirst({
+      where: { id, sellerId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException(`Voucher with ID ${id} not found`);
+    }
+
+    const { sellerId: _ignoredSellerId, ...safeUpdate } = updateVoucherDto;
+    return this.update(id, safeUpdate);
+  }
+
   async remove(id: string) {
     const existing = await this.prisma.voucher.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException(`Voucher with ID ${id} not found`);
     }
     return this.prisma.voucher.delete({ where: { id } });
+  }
+
+  async removeForSeller(sellerId: string, id: string) {
+    await this.assertActiveSeller(sellerId);
+
+    const existing = await this.prisma.voucher.findFirst({
+      where: { id, sellerId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException(`Voucher with ID ${id} not found`);
+    }
+
+    return this.prisma.voucher.delete({ where: { id } });
+  }
+
+  findMatchingRange<T extends VoucherRangeLike>(
+    ranges: T[],
+    eligibleSubtotal: number,
+    now = new Date(),
+  ): T | undefined {
+    return ranges.find(
+      (range) =>
+        !range.deletedAt &&
+        new Date(range.endDate) > now &&
+        eligibleSubtotal >= Number(range.minPrice) &&
+        (range.maxPrice == null || eligibleSubtotal <= Number(range.maxPrice)),
+    );
+  }
+
+  calculateDiscountAmount(
+    voucher: Pick<Voucher, 'maxDiscountAmount'>,
+    range: Pick<VoucherRange, 'discountPercent'>,
+    eligibleSubtotal: number,
+  ) {
+    const subtotal = Math.max(0, Math.round(eligibleSubtotal));
+    const rawDiscount = Math.round(
+      (subtotal * Number(range.discountPercent)) / 100,
+    );
+    const cappedDiscount =
+      voucher.maxDiscountAmount == null
+        ? rawDiscount
+        : Math.min(rawDiscount, Number(voucher.maxDiscountAmount));
+
+    return Math.max(0, Math.min(cappedDiscount, subtotal));
+  }
+
+  async assertVoucherUsageAvailable(
+    voucher: Pick<
+      Voucher,
+      'id' | 'usageLimit' | 'perUserLimit' | 'usedCount'
+    >,
+    userId: string,
+    tx: VoucherUsageReader = this.prisma,
+  ) {
+    if (voucher.usageLimit != null && voucher.usedCount >= voucher.usageLimit) {
+      throw new BadRequestException(VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE);
+    }
+
+    if (voucher.perUserLimit == null) {
+      return;
+    }
+
+    const userUsageCount = await tx.voucherUsage.count({
+      where: {
+        voucherId: voucher.id,
+        userId,
+      },
+    });
+
+    if (userUsageCount >= voucher.perUserLimit) {
+      throw new BadRequestException(VOUCHER_USER_LIMIT_EXCEEDED_MESSAGE);
+    }
+  }
+
+  private validateVoucherLimits(dto: {
+    maxDiscountAmount?: number | null;
+    usageLimit?: number | null;
+    perUserLimit?: number | null;
+  }) {
+    if (
+      dto.maxDiscountAmount !== undefined &&
+      dto.maxDiscountAmount !== null &&
+      dto.maxDiscountAmount < 0
+    ) {
+      throw new BadRequestException('maxDiscountAmount must be greater than or equal to 0');
+    }
+
+    if (
+      dto.usageLimit !== undefined &&
+      dto.usageLimit !== null &&
+      dto.usageLimit <= 0
+    ) {
+      throw new BadRequestException('usageLimit must be greater than 0');
+    }
+
+    if (
+      dto.perUserLimit !== undefined &&
+      dto.perUserLimit !== null &&
+      dto.perUserLimit <= 0
+    ) {
+      throw new BadRequestException('perUserLimit must be greater than 0');
+    }
+  }
+
+  private async assertActiveSeller(sellerId: string) {
+    const seller = await this.prisma.user.findFirst({
+      where: {
+        id: sellerId,
+        deletedAt: null,
+        status: UserStatus.ACTIVE,
+        roles: { has: Role.ROLE_SELLER },
+      },
+      select: { id: true },
+    });
+
+    if (!seller) {
+      throw new BadRequestException('Seller is not active or does not exist');
+    }
   }
 
   private validateRanges(

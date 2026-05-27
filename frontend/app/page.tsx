@@ -6,6 +6,7 @@ import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { HomepageFeaturedProducts } from "@/components/storefront/homepage-featured-products";
 import { ProductsSection } from "@/components/storefront/products-section";
+import { PublicFlashSaleSection } from "@/components/storefront/public-promotions-section";
 import { SafeImage } from "@/components/ui/safe-image";
 import { useHomepage } from "@/lib/api/hooks";
 import { mediaApi } from "@/lib/api/media";
@@ -116,6 +117,8 @@ export default function Home() {
         {featuredProducts.length > 0 ? (
           <HomepageFeaturedProducts products={featuredProducts} />
         ) : null}
+
+        <PublicFlashSaleSection />
 
         <ProductsSection
           title="Gợi ý cho bạn"

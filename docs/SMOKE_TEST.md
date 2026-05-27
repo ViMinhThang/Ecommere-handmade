@@ -57,6 +57,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Add to cart.
 - [ ] Update cart quantity.
 - [ ] Remove cart item.
+- [ ] Mở `/vouchers` và thấy voucher active/current; voucher expired/inactive không hiển thị.
 - [ ] Apply voucher `HANDMADE10` nếu sản phẩm thuộc category phù hợp.
 - [ ] Apply voucher `EXPIRED5` và xác nhận bị từ chối.
 - [ ] Checkout bằng COD.
@@ -94,7 +95,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Dashboard sidebar hides `Đối soát thanh toán` in the default local demo menu.
 - [ ] Customer, seller, and admin do not see menu actions outside their role.
 - [ ] Checkout defaults to COD; Stripe option is disabled when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is not configured.
-- [ ] Checkout summary shows subtotal, voucher discount if applied, reward points, shipping fee, total, payment method, and shipping address.
+- [ ] Checkout summary shows subtotal, voucher discount if applied, shipping fee, total, payment method, and shipping address.
 - [ ] Product images render on home/discovery/category/product detail/cart/wishlist/profile orders/seller products; missing images show a clean fallback instead of a broken image icon.
 - [ ] Profile order detail opens when an order item has no product image; the fallback icon renders instead of an empty `next/image` source.
 - [ ] Seller can open `/dashboard/orders`, update a standard shop sub-order, and see Vietnamese success/error messages.
@@ -176,3 +177,13 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seller không tự bật được `artisanVerified` qua profile/storefront edit.
 - [ ] Public `/sellers` hiển thị badge `Nghệ nhân đã xác thực` cho seller seed đã verify.
 - [ ] Public `/sellers/:id` hiển thị badge xác thực, chuyên môn, số năm kinh nghiệm và chất liệu chính.
+## Shop Voucher / Marketing Smoke
+
+- [ ] Login seller và mở `/seller/marketing`; thấy thống kê voucher shop, bảng voucher, empty/loading/error state.
+- [ ] Seller tạo voucher shop theo một danh mục; voucher được lưu với owner là seller hiện tại.
+- [ ] Seller sửa tên/trạng thái/range của voucher shop; ranges cũ không bị mất nếu không gửi ranges mới.
+- [ ] Seller không sửa/xóa được voucher của seller khác bằng API thủ công.
+- [ ] Customer chỉ apply được voucher shop khi giỏ hàng có sản phẩm đúng category và đúng seller.
+- [ ] Giỏ nhiều seller chỉ phân bổ discount shop voucher vào sub-order của seller sở hữu voucher.
+- [ ] `/vouchers` hiển thị voucher shop active/current kèm điều kiện shop; trang chủ không cần hiển thị voucher shop.
+- [ ] Voucher shop expired/inactive hoặc seller inactive không xuất hiện ở public API.

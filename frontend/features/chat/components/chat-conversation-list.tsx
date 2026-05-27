@@ -31,7 +31,7 @@ export function ChatConversationList({
   return (
     <aside
       className={cn(
-        "border-r border-border/60 bg-muted/35 min-h-0",
+        "min-h-0 shrink-0 overflow-hidden border-r border-border/60 bg-muted/35",
         compact ? "w-[40%]" : "w-full md:w-[20rem]",
         showConversationList ? "flex flex-col" : "hidden md:flex md:flex-col",
       )}

@@ -6,6 +6,9 @@ import {
   IsArray,
   IsInt,
   Min,
+  Max,
+  MaxLength,
+  IsBoolean,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -60,4 +63,24 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   sku?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  personalizationEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  personalizationRequired?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  personalizationInstructions?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  personalizationMaxLength?: number;
 }

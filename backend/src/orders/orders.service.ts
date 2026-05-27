@@ -33,12 +33,15 @@ import {
   RefundStatus,
   FlashSaleState,
   NotificationType,
+  Role,
+  UserStatus,
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
 import { SettingsService } from '../settings/settings.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { VouchersService } from '../vouchers/vouchers.service';
 
 const SHIPPING_FEE = 25000;
 const CURRENCY = 'vnd';
@@ -55,6 +58,12 @@ const FLASH_SALE_PURCHASE_LIMIT_EXCEEDED_MESSAGE =
   'Flash sale purchase limit exceeded. Please refresh your cart.';
 const FLASH_SALE_COUNTER_STATE_INCONSISTENT_MESSAGE =
   'Flash sale reservation state is inconsistent';
+const VOUCHER_INVALID_MESSAGE =
+  'Voucher is no longer valid. Please refresh your cart.';
+const VOUCHER_PRICING_CHANGED_MESSAGE =
+  'Voucher discount changed. Please refresh your cart.';
+const VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE =
+  'Voucher usage limit has been reached. Please refresh your cart.';
 
 interface SubOrderGroup {
   subTotal: number;
@@ -91,6 +100,7 @@ interface CheckoutReuseValidationContext {
 interface CheckoutCartComparisonItem {
   productId: string;
   quantity: number;
+  personalization: Prisma.JsonValue | null;
 }
 
 interface CheckoutFlashSalePricingSnapshot {
@@ -104,6 +114,10 @@ interface CheckoutFlashSalePricingSnapshot {
 interface RewardRedemption {
   points: number;
   discountAmount: number;
+}
+
+interface CheckoutVoucherSnapshot {
+  voucherId: string;
 }
 
 interface FlashSaleReservationGroup {
@@ -165,6 +179,7 @@ type OrderWithCheckoutSnapshot = Prisma.OrderGetPayload<{
             price: true;
             originalPrice: true;
             platformDiscountAmount: true;
+            personalization: true;
           };
         };
       };
@@ -215,6 +230,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     private readonly cartService: CartService,
     private readonly settingsService: SettingsService,
     private readonly rewardsService: RewardsService,
+    private readonly vouchersService: VouchersService,
     @Optional()
     private readonly notificationsService?: NotificationsService,
   ) {}
@@ -545,6 +561,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
                 price: true,
                 originalPrice: true,
                 platformDiscountAmount: true,
+                personalization: true,
               },
             },
           },
@@ -751,6 +768,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           platformDiscountAmount: this.toCheckoutMoney(
             Math.max(0, originalPrice - discountedPrice),
           ),
+          personalization: item.personalization ?? null,
         };
       })
       .sort((a, b) => a.productId.localeCompare(b.productId));
@@ -767,6 +785,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         platformDiscountAmount: this.toCheckoutMoney(
           item.platformDiscountAmount,
         ),
+        personalization: item.personalization ?? null,
       }))
       .sort((a, b) => a.productId.localeCompare(b.productId));
   }
@@ -775,6 +794,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
+      personalization: item.personalization ?? null,
     }));
   }
 
@@ -783,6 +803,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       subOrder.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
+        personalization: item.personalization ?? null,
       })),
     );
   }
@@ -795,6 +816,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           select: {
             productId: true,
             quantity: true,
+            personalization: true,
           },
         },
       },
@@ -809,7 +831,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   ) {
     const normalize = (items: CheckoutCartComparisonItem[]) =>
       items
-        .map((item) => `${item.productId}:${item.quantity}`)
+        .map((item) =>
+          this.hashCheckoutValue({
+            productId: item.productId,
+            quantity: item.quantity,
+            personalization: item.personalization ?? null,
+          }),
+        )
         .sort()
         .join('|');
 
@@ -967,6 +995,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
+      const voucherSnapshot = await this.revalidateVoucherForCheckout(
+        tx,
+        userId,
+        cart,
+      );
       const flashSaleSnapshots = this.isFlashSaleGuardrailsEnabled()
         ? await this.revalidateFlashSalePricing(tx, cart)
         : undefined;
@@ -1018,6 +1051,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         rewardRedemption.points,
       );
 
+      await this.recordVoucherUsage(tx, userId, order.id, voucherSnapshot);
+
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id },
       });
@@ -1029,6 +1064,187 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       return order;
     });
+  }
+
+  private async revalidateVoucherForCheckout(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    cart: EnrichedCart,
+  ): Promise<CheckoutVoucherSnapshot | null> {
+    if (!cart.appliedVoucher) {
+      return null;
+    }
+
+    const now = new Date();
+    const voucher = await tx.voucher.findFirst({
+      where: {
+        code: cart.appliedVoucher.code,
+        deletedAt: null,
+        isActive: true,
+        endDate: { gt: now },
+        category: {
+          deletedAt: null,
+          status: CategoryStatus.ACTIVE,
+        },
+        ranges: {
+          some: {
+            deletedAt: null,
+            endDate: { gt: now },
+          },
+        },
+        OR: [
+          { sellerId: null },
+          {
+            seller: {
+              deletedAt: null,
+              status: UserStatus.ACTIVE,
+              roles: { has: Role.ROLE_SELLER },
+            },
+          },
+        ],
+      },
+      include: {
+        ranges: {
+          where: {
+            deletedAt: null,
+            endDate: { gt: now },
+          },
+        },
+        category: true,
+      },
+    });
+
+    if (!voucher) {
+      throw new BadRequestException(VOUCHER_INVALID_MESSAGE);
+    }
+
+    await this.vouchersService.assertVoucherUsageAvailable(
+      voucher,
+      userId,
+      tx,
+    );
+
+    const eligibleSubtotal = this.calculateVoucherEligibleSubtotal(
+      cart.items,
+      voucher,
+    );
+    const matchedRange = this.vouchersService.findMatchingRange(
+      voucher.ranges,
+      eligibleSubtotal,
+      now,
+    );
+
+    if (!matchedRange) {
+      throw new BadRequestException(VOUCHER_INVALID_MESSAGE);
+    }
+
+    const discountAmount = this.vouchersService.calculateDiscountAmount(
+      voucher,
+      matchedRange,
+      eligibleSubtotal,
+    );
+
+    if (
+      discountAmount !== cart.appliedVoucher.discountAmount ||
+      discountAmount > eligibleSubtotal ||
+      discountAmount > cart.subtotal
+    ) {
+      throw new BadRequestException(VOUCHER_PRICING_CHANGED_MESSAGE);
+    }
+
+    return {
+      voucherId: voucher.id,
+    };
+  }
+
+  private calculateVoucherEligibleSubtotal(
+    items: EnrichedCartItem[],
+    voucher: { categoryId: string; sellerId?: string | null },
+  ) {
+    return items
+      .filter((item) => this.isVoucherItemEligible(item, voucher))
+      .reduce(
+        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+        0,
+      );
+  }
+
+  private isVoucherItemEligible(
+    item: EnrichedCartItem,
+    voucher: { categoryId: string; sellerId?: string | null },
+  ) {
+    return (
+      item.product.categoryId === voucher.categoryId &&
+      (!voucher.sellerId || item.product.sellerId === voucher.sellerId)
+    );
+  }
+
+  private async recordVoucherUsage(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    orderId: string,
+    voucherSnapshot: CheckoutVoucherSnapshot | null,
+  ) {
+    if (!voucherSnapshot) {
+      return;
+    }
+
+    const usageRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      INSERT INTO "VoucherUsage" (
+        "id",
+        "voucherId",
+        "userId",
+        "orderId",
+        "createdAt"
+      )
+      SELECT
+        ${randomUUID()},
+        ${voucherSnapshot.voucherId},
+        ${userId},
+        ${orderId},
+        NOW()
+      WHERE EXISTS (
+        SELECT 1
+        FROM "Voucher"
+        WHERE "id" = ${voucherSnapshot.voucherId}
+          AND "deletedAt" IS NULL
+          AND "isActive" = true
+          AND "endDate" > (NOW() AT TIME ZONE 'UTC')
+          AND (
+            "perUserLimit" IS NULL
+            OR (
+              SELECT COUNT(*)
+              FROM "VoucherUsage"
+              WHERE "voucherId" = ${voucherSnapshot.voucherId}
+                AND "userId" = ${userId}
+            ) < "perUserLimit"
+          )
+      )
+      ON CONFLICT ("orderId") DO NOTHING
+      RETURNING "id"
+    `);
+
+    if (usageRows.length !== 1) {
+      throw new BadRequestException(VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE);
+    }
+
+    const voucherRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      UPDATE "Voucher"
+      SET "usedCount" = "usedCount" + 1
+      WHERE "id" = ${voucherSnapshot.voucherId}
+        AND "deletedAt" IS NULL
+        AND "isActive" = true
+        AND "endDate" > (NOW() AT TIME ZONE 'UTC')
+        AND (
+          "usageLimit" IS NULL
+          OR "usedCount" + 1 <= "usageLimit"
+        )
+      RETURNING "id"
+    `);
+
+    if (voucherRows.length !== 1) {
+      throw new BadRequestException(VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE);
+    }
   }
 
   private isFlashSaleGuardrailsEnabled() {
@@ -1227,7 +1443,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const matchedRange = flashSale.ranges.find(
       (range) =>
         originalPrice >= Number(range.minPrice) &&
-        originalPrice <= Number(range.maxPrice),
+        (range.maxPrice == null || originalPrice <= Number(range.maxPrice)),
     );
 
     if (!matchedRange) {
@@ -1331,16 +1547,34 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   ) {
     const groups = Array.from(sellerGroups.entries());
     let remainingDiscount = cart.discountAmount;
+    const discountBases = new Map(
+      groups.map(([sellerId, data]) => [
+        sellerId,
+        cart.appliedVoucher
+          ? this.calculateVoucherEligibleSubtotal(data.items, cart.appliedVoucher)
+          : data.subTotal,
+      ]),
+    );
+    const totalDiscountBase = Array.from(discountBases.values()).reduce(
+      (sum, value) => sum + value,
+      0,
+    );
+    const discountableSellerIds = groups
+      .filter(([sellerId]) => (discountBases.get(sellerId) ?? 0) > 0)
+      .map(([sellerId]) => sellerId);
+    const lastDiscountableSellerId =
+      discountableSellerIds[discountableSellerIds.length - 1];
 
     for (let i = 0; i < groups.length; i++) {
       const [sellerId, data] = groups[i];
-      const isLast = i === groups.length - 1;
+      const discountBase = discountBases.get(sellerId) ?? 0;
 
-      const subOrderDiscount = isLast
-        ? remainingDiscount
-        : Math.round(
-            cart.discountAmount * (data.subTotal / (cart.subtotal || 1)),
-          );
+      const subOrderDiscount =
+        cart.discountAmount > 0 && discountBase > 0 && totalDiscountBase > 0
+          ? sellerId === lastDiscountableSellerId
+            ? remainingDiscount
+            : Math.round(cart.discountAmount * (discountBase / totalDiscountBase))
+          : 0;
 
       remainingDiscount -= subOrderDiscount;
 
@@ -1368,6 +1602,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
               0,
               item.pricing.originalPrice - item.pricing.discountedPrice,
             ),
+            personalization: item.personalization
+              ? (item.personalization as Prisma.InputJsonValue)
+              : undefined,
             ...(flashSaleSnapshots
               ? {
                   flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,

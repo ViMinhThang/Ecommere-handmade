@@ -1,19 +1,65 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Pagination } from '@/components/ui/pagination'
-import { FlashSaleDialog } from '@/components/dashboard/flash-sale-dialog'
-import { useAdminFlashSales, useCreateFlashSale, useUpdateFlashSale, useDeleteFlashSale, useCategories } from '@/lib/api/hooks'
+import { AlertTriangle, Clock, Pencil, Plus, RefreshCcw, Trash2 } from 'lucide-react'
 import { FlashSale } from '@/types'
-import { Search, Plus, Pencil, Trash2, Clock } from 'lucide-react'
-import { useAuth } from '@/contexts/auth-context'
+import { CreateFlashSaleDto } from '@/lib/api/flash-sales'
 import { mediaApi } from '@/lib/api/media'
+import {
+  useAdminFlashSales,
+  useCategories,
+  useCreateFlashSale,
+  useDeleteFlashSale,
+  useUpdateFlashSale,
+} from '@/lib/api/hooks'
+import { useAuth } from '@/contexts/auth-context'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Pagination } from '@/components/ui/pagination'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { FlashSaleDialog } from '@/components/dashboard/flash-sale-dialog'
+
+type FlashSaleDisplayStatus = 'active' | 'paused' | 'ended' | 'upcoming' | 'inactive'
+
+const formatDateTime = (date: Date | string) => new Date(date).toLocaleString('vi-VN')
+
+const formatNumber = (value: number | null | undefined) =>
+  value === null || value === undefined ? 'Không giới hạn' : value.toLocaleString('vi-VN')
+
+const getStatus = (flashSale: FlashSale): FlashSaleDisplayStatus => {
+  const now = new Date()
+  const startAt = new Date(flashSale.startAt)
+  const endAt = new Date(flashSale.endAt)
+
+  if (flashSale.saleState === 'PAUSED') return 'paused'
+  if (flashSale.saleState === 'ENDED' || endAt < now) return 'ended'
+  if (!flashSale.isActive) return 'inactive'
+  if (startAt > now) return 'upcoming'
+  return 'active'
+}
+
+const getStatusBadge = (status: FlashSaleDisplayStatus) => {
+  switch (status) {
+    case 'active':
+      return <Badge className="bg-emerald-600 text-white">Đang chạy</Badge>
+    case 'paused':
+      return <Badge variant="secondary">Tạm dừng</Badge>
+    case 'ended':
+      return <Badge variant="destructive">Đã kết thúc</Badge>
+    case 'upcoming':
+      return <Badge variant="outline">Sắp diễn ra</Badge>
+    default:
+      return <Badge variant="outline">Không hoạt động</Badge>
+  }
+}
+
+const getRemainingUnits = (flashSale: FlashSale) => {
+  if (flashSale.maxUnits === null || flashSale.maxUnits === undefined) return null
+  return flashSale.maxUnits - (flashSale.soldUnits ?? 0) - (flashSale.reservedUnits ?? 0)
+}
 
 export default function FlashSalesPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -24,63 +70,63 @@ export default function FlashSalesPage() {
   const [limit, setLimit] = useState(10)
   const { user } = useAuth()
 
-  const { data: flashSalesData, isLoading: flashSalesLoading } = useAdminFlashSales()
+  const {
+    data: flashSalesData,
+    isError: flashSalesError,
+    isLoading: flashSalesLoading,
+    refetch: refetchFlashSales,
+  } = useAdminFlashSales()
   const { data: categoriesData } = useCategories()
   const createFlashSale = useCreateFlashSale()
   const updateFlashSale = useUpdateFlashSale()
   const deleteFlashSale = useDeleteFlashSale()
 
   const flashSales = flashSalesData || []
-  const meta = { total: flashSales.length }
   const categories = categoriesData?.data || []
 
-  const filteredFlashSales = flashSales.filter((fs: FlashSale) => {
-    const matchesSearch =
-      fs.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      fs.categories.some((c: FlashSale["categories"][number]) => c.category?.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    return matchesSearch
+  const filteredFlashSales = flashSales.filter((flashSale) => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return true
+
+    return (
+      flashSale.name.toLowerCase().includes(query) ||
+      flashSale.categories.some((category) =>
+        category.category?.name.toLowerCase().includes(query),
+      )
+    )
   })
 
-  const now = new Date()
-  const totalFlashSales = Number(meta?.total) || flashSales.length
+  const activeFlashSales = flashSales.filter((flashSale) => getStatus(flashSale) === 'active').length
+  const pausedFlashSales = flashSales.filter((flashSale) => getStatus(flashSale) === 'paused').length
+  const totalSoldUnits = flashSales.reduce((sum, flashSale) => sum + (flashSale.soldUnits ?? 0), 0)
 
-  const handlePageChange = (newPage: number) => setPage(newPage)
-  const handleLimitChange = (newLimit: number) => {
-    setLimit(newLimit)
-    setPage(1)
-  }
-  const activeFlashSales = flashSales.filter((fs: FlashSale) => fs.isActive && new Date(fs.startAt) <= now && new Date(fs.endAt) >= now).length
-  const upcomingFlashSales = flashSales.filter((fs: FlashSale) => new Date(fs.startAt) > now).length
+  const paginatedFlashSales = filteredFlashSales.slice(
+    (page - 1) * limit,
+    page * limit,
+  )
 
-  const handleAddFlashSale = (data: {
-    name: string
-    description?: string
-    banner?: string
-    startAt: string
-    endAt: string
-    isActive: boolean
-    categoryIds: string[]
-    ranges: { minPrice: number; maxPrice: number; discountPercent: number; endDate: string }[]
-  }) => {
-    createFlashSale.mutate(data)
-  }
-
-  const handleEditFlashSale = (data: {
-    name: string
-    description?: string
-    banner?: string
-    startAt: string
-    endAt: string
-    isActive: boolean
-    categoryIds: string[]
-    ranges: { minPrice: number; maxPrice: number; discountPercent: number; endDate: string }[]
-  }) => {
-    if (!selectedFlashSale) return
-    updateFlashSale.mutate({
-      id: selectedFlashSale.id,
-      data,
+  const handleAddFlashSale = (data: CreateFlashSaleDto) => {
+    createFlashSale.mutate(data, {
+      onSuccess: () => {
+        setEditDialogOpen(false)
+      },
     })
-    setSelectedFlashSale(null)
+  }
+
+  const handleEditFlashSale = (data: CreateFlashSaleDto) => {
+    if (!selectedFlashSale) return
+    updateFlashSale.mutate(
+      {
+        id: selectedFlashSale.id,
+        data,
+      },
+      {
+        onSuccess: () => {
+          setEditDialogOpen(false)
+          setSelectedFlashSale(null)
+        },
+      },
+    )
   }
 
   const handleDeleteFlashSale = () => {
@@ -89,93 +135,111 @@ export default function FlashSalesPage() {
     setSelectedFlashSale(null)
   }
 
-  const openEditDialog = (fs: FlashSale) => {
-    setSelectedFlashSale(fs)
+  const openEditDialog = (flashSale: FlashSale) => {
+    setSelectedFlashSale(flashSale)
     setEditDialogOpen(true)
   }
 
-  const openDeleteDialog = (fs: FlashSale) => {
-    setSelectedFlashSale(fs)
+  const openDeleteDialog = (flashSale: FlashSale) => {
+    setSelectedFlashSale(flashSale)
     setDeleteDialogOpen(true)
-  }
-
-  const getStatus = (fs: FlashSale) => {
-    const now = new Date()
-    if (new Date(fs.startAt) > now) return 'upcoming'
-    if (new Date(fs.endAt) < now) return 'ended'
-    if (fs.isActive) return 'active'
-    return 'inactive'
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="default">Đang diễn ra</Badge>
-      case 'upcoming':
-        return <Badge variant="secondary">Sắp diễn ra</Badge>
-      case 'ended':
-        return <Badge variant="destructive">Đã kết thúc</Badge>
-      default:
-        return <Badge variant="outline">Không hoạt động</Badge>
-    }
-  }
-
-  const formatDateTime = (date: Date | string) => {
-    return new Date(date).toLocaleString('vi-VN')
   }
 
   return (
     <div className="space-y-7">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="artisan-title text-4xl">Flash sale</h1>
-          <p className="text-muted-foreground">Quản lý các chương trình flash sale.</p>
+          <p className="text-muted-foreground">
+            Quản lý chiến dịch, hạn mức bán và trạng thái guardrail.
+          </p>
         </div>
-        <Button onClick={() => { setSelectedFlashSale(null); setEditDialogOpen(true) }}>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button
+          onClick={() => {
+            setSelectedFlashSale(null)
+            setEditDialogOpen(true)
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
           Tạo flash sale
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Tổng flash sale</p>
-            <p className="text-2xl font-bold">{totalFlashSales}</p>
+            <p className="text-2xl font-bold">{flashSales.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Đang diễn ra</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-300">{activeFlashSales}</p>
+            <p className="text-sm text-muted-foreground">Đang chạy</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">
+              {activeFlashSales}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Sắp diễn ra</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">{upcomingFlashSales}</p>
+            <p className="text-sm text-muted-foreground">Tạm dừng</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-300">
+              {pausedFlashSales}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Đã bán qua flash sale</p>
+            <p className="text-2xl font-bold">{totalSoldUnits.toLocaleString('vi-VN')}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Tất cả flash sale</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Tất cả flash sale</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Sold/reserved là readonly, được cập nhật bởi checkout guardrail.
+              </p>
+            </div>
+            <div className="relative w-full md:w-72">
               <Input
-                placeholder="Tìm kiếm flash sale..."
-                className="pl-9"
+                placeholder="Tìm theo tên hoặc danh mục..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value)
+                  setPage(1)
+                }}
               />
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {flashSalesLoading ? (
-            <div className="text-center py-4">Đang tải...</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Đang tải flash sale...
+            </div>
+          ) : flashSalesError ? (
+            <div className="flex flex-col items-center gap-3 rounded-md border border-destructive/25 bg-destructive/10 p-6 text-center">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <p className="text-sm text-destructive">
+                Không thể tải danh sách flash sale.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetchFlashSales()}>
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Thử lại
+              </Button>
+            </div>
+          ) : filteredFlashSales.length === 0 ? (
+            <div className="rounded-md border bg-muted/30 p-8 text-center">
+              <p className="font-medium">Chưa có flash sale phù hợp</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tạo chiến dịch mới hoặc thay đổi từ khóa tìm kiếm.
+              </p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -185,65 +249,112 @@ export default function FlashSalesPage() {
                   <TableHead>Danh mục</TableHead>
                   <TableHead>Thời gian</TableHead>
                   <TableHead>Trạng thái</TableHead>
+                  <TableHead>Hạn mức</TableHead>
+                  <TableHead>Sold / Reserved / Còn</TableHead>
                   <TableHead>Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredFlashSales.map((fs) => {
-                  const status = getStatus(fs)
+                {paginatedFlashSales.map((flashSale) => {
+                  const status = getStatus(flashSale)
+                  const remainingUnits = getRemainingUnits(flashSale)
+
                   return (
-                    <TableRow key={fs.id}>
+                    <TableRow key={flashSale.id}>
                       <TableCell>
-                        {fs.banner ? (
-                          <div className="w-20 h-12 rounded-md overflow-hidden bg-muted">
+                        {flashSale.banner ? (
+                          <div className="h-12 w-20 overflow-hidden rounded-md bg-muted">
                             <img
-                              src={mediaApi.getImageUrl(fs.banner)}
-                              alt={fs.name}
-                              className="w-full h-full object-cover"
+                              src={mediaApi.getImageUrl(flashSale.banner)}
+                              alt={flashSale.name}
+                              className="h-full w-full object-cover"
                             />
                           </div>
                         ) : (
-                          <div className="w-20 h-12 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-xs">
+                          <div className="flex h-12 w-20 items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">
                             Không có
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium">{fs.name}</p>
-                        {fs.description && (
-                          <p className="text-sm text-muted-foreground truncate max-w-xs">
-                            {fs.description}
+                        <p className="font-medium">{flashSale.name}</p>
+                        {flashSale.description && (
+                          <p className="max-w-xs truncate text-sm text-muted-foreground">
+                            {flashSale.description}
                           </p>
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {fs.categories.map((c) => (
-                            <Badge key={c.id} variant="outline" className="text-xs">
-                              {c.category?.name || '—'}
+                        <div className="flex max-w-[180px] flex-wrap gap-1">
+                          {flashSale.categories.map((category) => (
+                            <Badge key={category.id} variant="outline" className="text-xs">
+                              {category.category?.name || 'Chưa rõ'}
                             </Badge>
                           ))}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-xs space-y-1">
+                        <div className="space-y-1 text-xs">
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="h-3 w-3" />
-                            <span>Bắt đầu: {formatDateTime(fs.startAt)}</span>
+                            <span>Bắt đầu: {formatDateTime(flashSale.startAt)}</span>
                           </div>
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="h-3 w-3" />
-                            <span>Kết thúc: {formatDateTime(fs.endAt)}</span>
+                            <span>Kết thúc: {formatDateTime(flashSale.endAt)}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{getStatusBadge(status)}</TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {getStatusBadge(status)}
+                          <p className="text-xs text-muted-foreground">
+                            saleState: {flashSale.saleState || 'ACTIVE'}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 text-xs">
+                          <p>Tổng: {formatNumber(flashSale.maxUnits)}</p>
+                          <p>Mỗi khách: {formatNumber(flashSale.perUserLimit)}</p>
+                          <p>Dự phòng: {flashSale.reserveStock ?? 0}</p>
+                          <p>
+                            Auto pause:{' '}
+                            {flashSale.autoPauseThreshold ?? 'Chưa thiết lập'}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 text-xs">
+                          <p>Sold: {(flashSale.soldUnits ?? 0).toLocaleString('vi-VN')}</p>
+                          <p>
+                            Reserved:{' '}
+                            {(flashSale.reservedUnits ?? 0).toLocaleString('vi-VN')}
+                          </p>
+                          <p>
+                            Còn:{' '}
+                            {remainingUnits === null
+                              ? 'Không giới hạn'
+                              : remainingUnits.toLocaleString('vi-VN')}
+                          </p>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(fs)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(flashSale)}
+                            aria-label="Sửa flash sale"
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(fs)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDeleteDialog(flashSale)}
+                            aria-label="Xóa flash sale"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -254,12 +365,16 @@ export default function FlashSalesPage() {
               </TableBody>
             </Table>
           )}
+
           <Pagination
             page={page}
             limit={limit}
-            total={Number(meta?.total) || 0}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
+            total={filteredFlashSales.length}
+            onPageChange={setPage}
+            onLimitChange={(newLimit) => {
+              setLimit(newLimit)
+              setPage(1)
+            }}
           />
         </CardContent>
       </Card>
@@ -281,7 +396,8 @@ export default function FlashSalesPage() {
           </DialogHeader>
           <p className="py-4">
             Bạn có chắc chắn muốn xóa flash sale{' '}
-            <span className="font-semibold">{selectedFlashSale?.name || ''}</span>? Hành động này không thể hoàn tác.
+            <span className="font-semibold">{selectedFlashSale?.name || ''}</span>?
+            Hành động này không thể hoàn tác.
           </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
@@ -290,12 +406,13 @@ export default function FlashSalesPage() {
             <Button
               type="button"
               variant="destructive"
+              disabled={deleteFlashSale.isPending}
               onClick={() => {
                 handleDeleteFlashSale()
                 setDeleteDialogOpen(false)
               }}
             >
-              Xóa
+              {deleteFlashSale.isPending ? 'Đang xóa...' : 'Xóa'}
             </Button>
           </DialogFooter>
         </DialogContent>

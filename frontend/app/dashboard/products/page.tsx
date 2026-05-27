@@ -17,6 +17,21 @@ import { AlertCircle, Search, Plus, Pencil, Trash2, Eye, Check, X } from 'lucide
 import { formatCurrency } from '@/lib/utils'
 import { mediaApi } from '@/lib/api/media'
 
+interface ProductSavePayload {
+  name: string
+  description: string
+  price: number
+  categoryId: string
+  images: { url: string; isMain: boolean }[]
+  stock: number
+  lowStockThreshold: number
+  sku?: string
+  personalizationEnabled?: boolean
+  personalizationRequired?: boolean
+  personalizationInstructions?: string
+  personalizationMaxLength?: number
+}
+
 export default function ProductsPage() {
   const router = useRouter()
   const { user } = useAuth()
@@ -81,7 +96,7 @@ export default function ProductsPage() {
     return mainImage?.url || product.images?.[0]?.url || ''
   }
 
-  const handleAddProduct = (productData: { name: string; description: string; price: number; categoryId: string; images: { url: string; isMain: boolean }[]; stock: number; lowStockThreshold: number; sku?: string }) => {
+  const handleAddProduct = (productData: ProductSavePayload) => {
     createProduct.mutate({
       name: productData.name,
       description: productData.description,
@@ -91,10 +106,14 @@ export default function ProductsPage() {
       stock: productData.stock,
       lowStockThreshold: productData.lowStockThreshold,
       sku: productData.sku,
+      personalizationEnabled: productData.personalizationEnabled,
+      personalizationRequired: productData.personalizationRequired,
+      personalizationInstructions: productData.personalizationInstructions,
+      personalizationMaxLength: productData.personalizationMaxLength,
     })
   }
 
-  const handleEditProduct = (productData: { name: string; description: string; price: number; categoryId: string; images: { url: string; isMain: boolean }[]; stock: number; lowStockThreshold: number; sku?: string }) => {
+  const handleEditProduct = (productData: ProductSavePayload) => {
     if (!selectedProduct) return
     updateProduct.mutate({
       id: selectedProduct.id,
@@ -107,6 +126,10 @@ export default function ProductsPage() {
         stock: productData.stock,
         lowStockThreshold: productData.lowStockThreshold,
         sku: productData.sku,
+        personalizationEnabled: productData.personalizationEnabled,
+        personalizationRequired: productData.personalizationRequired,
+        personalizationInstructions: productData.personalizationInstructions,
+        personalizationMaxLength: productData.personalizationMaxLength,
       },
     })
     setSelectedProduct(null)
