@@ -277,10 +277,6 @@ export class ProductsService {
     if (searchTerm) {
       where.OR = [
         { name: { contains: searchTerm, mode: 'insensitive' } },
-        { description: { contains: searchTerm, mode: 'insensitive' } },
-        { category: { name: { contains: searchTerm, mode: 'insensitive' } } },
-        { seller: { name: { contains: searchTerm, mode: 'insensitive' } } },
-        { seller: { shopName: { contains: searchTerm, mode: 'insensitive' } } },
       ];
     }
 
