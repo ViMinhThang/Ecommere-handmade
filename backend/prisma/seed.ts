@@ -1760,7 +1760,7 @@ async function main() {
     }),
     crochetKeychain: await upsertProduct({
       sku: 'DEMO-CROCHET-FLOWER-KEYCHAIN',
-      name: 'Móc khóa hoa len crochet',
+      name: 'Móc khóa hoa len móc tay',
       description:
         'Móc khóa hoa len nhỏ, móc tay bằng sợi cotton, có thể gắn túi hoặc chìa khóa.',
       price: '75000',
@@ -1999,7 +1999,7 @@ async function main() {
     },
     {
       sku: 'DEMO-CROCHET-TULIP-BOUQUET',
-      name: 'Bó hoa tulip len crochet',
+      name: 'Bó hoa tulip len móc tay',
       description:
         'Bó 5 bông tulip len cotton, màu pastel, không héo và có thể đặt phối màu theo ghi chú.',
       price: '320000',
@@ -2129,7 +2129,7 @@ async function main() {
     },
     {
       sku: 'DEMO-LEMONGRASS-SOAP',
-      name: 'Xà phòng sả chanh cold process',
+      name: 'Xà phòng sả chanh quy trình lạnh',
       description:
         'Bánh xà phòng 95g làm theo phương pháp cold process, hương sả chanh sạch mát, thích hợp da thường.',
       price: '85000',
@@ -2233,7 +2233,7 @@ async function main() {
     },
     {
       sku: 'DEMO-RIBBON-BARRETTE',
-      name: 'Kẹp nơ ruy băng satin',
+      name: 'Kẹp nơ ruy băng lụa bóng',
       description:
         'Kẹp nơ satin dáng dài, may thủ công và cố định bằng kẹp kim loại chắc, tông màu vintage.',
       price: '75000',
@@ -2246,7 +2246,7 @@ async function main() {
     },
     {
       sku: 'DEMO-CROCHET-HAIR-TIE',
-      name: 'Dây buộc tóc hoa len crochet',
+      name: 'Dây buộc tóc hoa len móc tay',
       description:
         'Dây buộc tóc trang trí hoa len nhỏ móc tay, màu pastel, nhẹ và không kéo tóc.',
       price: '59000',
@@ -2371,7 +2371,7 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-WATCH-STRAP',
-      name: 'Dây đồng hồ da nâu vintage',
+      name: 'Dây đồng hồ da nâu cổ điển',
       description:
         'Dây đồng hồ da bò màu nâu vintage, cắt và khâu tay theo size, phù hợp đồng hồ mặt tròn cổ điển.',
       price: '450000',
