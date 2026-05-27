@@ -33,6 +33,8 @@ import {
   RefundStatus,
   FlashSaleState,
   NotificationType,
+  Role,
+  UserStatus,
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
@@ -98,6 +100,7 @@ interface CheckoutReuseValidationContext {
 interface CheckoutCartComparisonItem {
   productId: string;
   quantity: number;
+  personalization: Prisma.JsonValue | null;
 }
 
 interface CheckoutFlashSalePricingSnapshot {
@@ -176,6 +179,7 @@ type OrderWithCheckoutSnapshot = Prisma.OrderGetPayload<{
             price: true;
             originalPrice: true;
             platformDiscountAmount: true;
+            personalization: true;
           };
         };
       };
@@ -557,6 +561,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
                 price: true,
                 originalPrice: true,
                 platformDiscountAmount: true,
+                personalization: true,
               },
             },
           },
@@ -763,6 +768,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           platformDiscountAmount: this.toCheckoutMoney(
             Math.max(0, originalPrice - discountedPrice),
           ),
+          personalization: item.personalization ?? null,
         };
       })
       .sort((a, b) => a.productId.localeCompare(b.productId));
@@ -779,6 +785,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         platformDiscountAmount: this.toCheckoutMoney(
           item.platformDiscountAmount,
         ),
+        personalization: item.personalization ?? null,
       }))
       .sort((a, b) => a.productId.localeCompare(b.productId));
   }
@@ -787,6 +794,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
+      personalization: item.personalization ?? null,
     }));
   }
 
@@ -795,6 +803,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       subOrder.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
+        personalization: item.personalization ?? null,
       })),
     );
   }
@@ -807,6 +816,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           select: {
             productId: true,
             quantity: true,
+            personalization: true,
           },
         },
       },
@@ -821,7 +831,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   ) {
     const normalize = (items: CheckoutCartComparisonItem[]) =>
       items
-        .map((item) => `${item.productId}:${item.quantity}`)
+        .map((item) =>
+          this.hashCheckoutValue({
+            productId: item.productId,
+            quantity: item.quantity,
+            personalization: item.personalization ?? null,
+          }),
+        )
         .sort()
         .join('|');
 
@@ -1076,6 +1092,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             endDate: { gt: now },
           },
         },
+        OR: [
+          { sellerId: null },
+          {
+            seller: {
+              deletedAt: null,
+              status: UserStatus.ACTIVE,
+              roles: { has: Role.ROLE_SELLER },
+            },
+          },
+        ],
       },
       include: {
         ranges: {
@@ -1098,12 +1124,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       tx,
     );
 
-    const eligibleSubtotal = cart.items
-      .filter((item) => item.product.categoryId === voucher.categoryId)
-      .reduce(
-        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
-        0,
-      );
+    const eligibleSubtotal = this.calculateVoucherEligibleSubtotal(
+      cart.items,
+      voucher,
+    );
     const matchedRange = this.vouchersService.findMatchingRange(
       voucher.ranges,
       eligibleSubtotal,
@@ -1131,6 +1155,28 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return {
       voucherId: voucher.id,
     };
+  }
+
+  private calculateVoucherEligibleSubtotal(
+    items: EnrichedCartItem[],
+    voucher: { categoryId: string; sellerId?: string | null },
+  ) {
+    return items
+      .filter((item) => this.isVoucherItemEligible(item, voucher))
+      .reduce(
+        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+        0,
+      );
+  }
+
+  private isVoucherItemEligible(
+    item: EnrichedCartItem,
+    voucher: { categoryId: string; sellerId?: string | null },
+  ) {
+    return (
+      item.product.categoryId === voucher.categoryId &&
+      (!voucher.sellerId || item.product.sellerId === voucher.sellerId)
+    );
   }
 
   private async recordVoucherUsage(
@@ -1501,16 +1547,34 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   ) {
     const groups = Array.from(sellerGroups.entries());
     let remainingDiscount = cart.discountAmount;
+    const discountBases = new Map(
+      groups.map(([sellerId, data]) => [
+        sellerId,
+        cart.appliedVoucher
+          ? this.calculateVoucherEligibleSubtotal(data.items, cart.appliedVoucher)
+          : data.subTotal,
+      ]),
+    );
+    const totalDiscountBase = Array.from(discountBases.values()).reduce(
+      (sum, value) => sum + value,
+      0,
+    );
+    const discountableSellerIds = groups
+      .filter(([sellerId]) => (discountBases.get(sellerId) ?? 0) > 0)
+      .map(([sellerId]) => sellerId);
+    const lastDiscountableSellerId =
+      discountableSellerIds[discountableSellerIds.length - 1];
 
     for (let i = 0; i < groups.length; i++) {
       const [sellerId, data] = groups[i];
-      const isLast = i === groups.length - 1;
+      const discountBase = discountBases.get(sellerId) ?? 0;
 
-      const subOrderDiscount = isLast
-        ? remainingDiscount
-        : Math.round(
-            cart.discountAmount * (data.subTotal / (cart.subtotal || 1)),
-          );
+      const subOrderDiscount =
+        cart.discountAmount > 0 && discountBase > 0 && totalDiscountBase > 0
+          ? sellerId === lastDiscountableSellerId
+            ? remainingDiscount
+            : Math.round(cart.discountAmount * (discountBase / totalDiscountBase))
+          : 0;
 
       remainingDiscount -= subOrderDiscount;
 
@@ -1538,6 +1602,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
               0,
               item.pricing.originalPrice - item.pricing.discountedPrice,
             ),
+            personalization: item.personalization
+              ? (item.personalization as Prisma.InputJsonValue)
+              : undefined,
             ...(flashSaleSnapshots
               ? {
                   flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,

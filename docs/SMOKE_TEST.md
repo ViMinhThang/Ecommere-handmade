@@ -177,3 +177,13 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seller không tự bật được `artisanVerified` qua profile/storefront edit.
 - [ ] Public `/sellers` hiển thị badge `Nghệ nhân đã xác thực` cho seller seed đã verify.
 - [ ] Public `/sellers/:id` hiển thị badge xác thực, chuyên môn, số năm kinh nghiệm và chất liệu chính.
+## Shop Voucher / Marketing Smoke
+
+- [ ] Login seller và mở `/seller/marketing`; thấy thống kê voucher shop, bảng voucher, empty/loading/error state.
+- [ ] Seller tạo voucher shop theo một danh mục; voucher được lưu với owner là seller hiện tại.
+- [ ] Seller sửa tên/trạng thái/range của voucher shop; ranges cũ không bị mất nếu không gửi ranges mới.
+- [ ] Seller không sửa/xóa được voucher của seller khác bằng API thủ công.
+- [ ] Customer chỉ apply được voucher shop khi giỏ hàng có sản phẩm đúng category và đúng seller.
+- [ ] Giỏ nhiều seller chỉ phân bổ discount shop voucher vào sub-order của seller sở hữu voucher.
+- [ ] `/vouchers` hiển thị voucher shop active/current kèm điều kiện shop; trang chủ không cần hiển thị voucher shop.
+- [ ] Voucher shop expired/inactive hoặc seller inactive không xuất hiện ở public API.

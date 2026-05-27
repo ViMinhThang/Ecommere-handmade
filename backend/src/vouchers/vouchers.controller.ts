@@ -34,6 +34,54 @@ export class VouchersController {
     return this.vouchersService.findAll(pagination, { includeInactive: true });
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('seller/mine')
+  @Roles('ROLE_SELLER')
+  findSellerVouchers(
+    @Request() req: AuthenticatedRequest,
+    @Query() pagination?: PaginationDto,
+  ) {
+    return this.vouchersService.findAllForSeller(req.user.id, pagination);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post('seller')
+  @Roles('ROLE_SELLER')
+  createSellerVoucher(
+    @Request() req: AuthenticatedRequest,
+    @Body() createVoucherDto: CreateVoucherDto,
+  ) {
+    return this.vouchersService.createForSeller(
+      req.user.id,
+      createVoucherDto,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch('seller/:id')
+  @Roles('ROLE_SELLER')
+  updateSellerVoucher(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateVoucherDto: UpdateVoucherDto,
+  ) {
+    return this.vouchersService.updateForSeller(
+      req.user.id,
+      id,
+      updateVoucherDto,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('seller/:id')
+  @Roles('ROLE_SELLER')
+  removeSellerVoucher(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.vouchersService.removeForSeller(req.user.id, id);
+  }
+
   @Get('code/:code')
   findByCode(@Param('code') code: string) {
     return this.vouchersService.findByCode(code);

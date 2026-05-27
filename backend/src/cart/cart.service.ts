@@ -20,6 +20,19 @@ import {
   EnrichedCartItem,
 } from '../common/interfaces/commerce.interface';
 
+interface PersonalizationSnapshot {
+  text: string;
+}
+
+type PurchasableProductForCart = Prisma.ProductGetPayload<{
+  select: {
+    id: true;
+    personalizationEnabled: true;
+    personalizationRequired: true;
+    personalizationMaxLength: true;
+  };
+}>;
+
 type CartWithItems = Prisma.CartGetPayload<{
   include: {
     appliedVoucher: {
@@ -147,8 +160,8 @@ export class CartService {
     }
 
     const voucher = cart.appliedVoucher;
-    const eligibleItems = enrichedItems.filter(
-      (item) => item.product.categoryId === voucher.categoryId,
+    const eligibleItems = enrichedItems.filter((item) =>
+      this.isVoucherItemEligible(item, voucher),
     );
 
     const eligibleSubtotal = eligibleItems.reduce(
@@ -186,6 +199,8 @@ export class CartService {
           code: voucher.code,
           discountAmount,
           discountPercent: Number(matchedRange.discountPercent),
+          categoryId: voucher.categoryId,
+          sellerId: voucher.sellerId,
         },
       };
     }
@@ -242,6 +257,16 @@ export class CartService {
   async addToCart(userId: string, dto: AddToCartDto) {
     const cart = await this.getOrCreateCart(userId);
     const requestedQuantity = dto.quantity || 1;
+    const product = await this.getPurchasableProductForCart(
+      dto.productId,
+      requestedQuantity,
+    );
+    const personalization = this.normalizePersonalization(
+      product,
+      dto.personalization,
+    );
+    const shouldWritePersonalization =
+      dto.personalization !== undefined || product.personalizationRequired;
 
     const existingItem = await this.prisma.cartItem.findUnique({
       where: {
@@ -254,21 +279,33 @@ export class CartService {
 
     if (existingItem) {
       const nextQuantity = existingItem.quantity + requestedQuantity;
-      await this.assertProductPurchasable(dto.productId, nextQuantity);
+      await this.getPurchasableProductForCart(dto.productId, nextQuantity);
 
       return this.prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: nextQuantity },
+        data: {
+          quantity: nextQuantity,
+          ...(shouldWritePersonalization
+            ? {
+                personalization:
+                  this.toPersonalizationJsonValue(personalization),
+              }
+            : {}),
+        },
       });
     }
-
-    await this.assertProductPurchasable(dto.productId, requestedQuantity);
 
     return this.prisma.cartItem.create({
       data: {
         cartId: cart.id,
         productId: dto.productId,
         quantity: requestedQuantity,
+        ...(personalization
+          ? {
+              personalization:
+                personalization as unknown as Prisma.InputJsonValue,
+            }
+          : {}),
       },
     });
   }
@@ -297,11 +334,37 @@ export class CartService {
       return this.removeItem(userId, productId);
     }
 
-    await this.assertProductPurchasable(productId, dto.quantity);
+    const product = await this.getPurchasableProductForCart(
+      productId,
+      dto.quantity,
+    );
+    const personalization =
+      dto.personalization === undefined
+        ? undefined
+        : this.normalizePersonalization(product, dto.personalization);
+
+    if (
+      dto.personalization === undefined &&
+      product.personalizationRequired &&
+      !this.hasPersonalizationText(item.personalization)
+    ) {
+      throw new BadRequestException(
+        'Personalization text is required for this product',
+      );
+    }
 
     return this.prisma.cartItem.update({
       where: { id: item.id },
-      data: { quantity: dto.quantity },
+      data: {
+        quantity: dto.quantity,
+        ...(dto.personalization !== undefined
+          ? {
+              personalization: this.toPersonalizationJsonValue(
+                personalization ?? null,
+              ),
+            }
+          : {}),
+      },
     });
   }
 
@@ -365,8 +428,8 @@ export class CartService {
     }
 
     const cartWithItems = await this.getCart(userId);
-    const hasEligibleItems = cartWithItems.items.some(
-      (item) => item.product.categoryId === voucher.categoryId,
+    const hasEligibleItems = cartWithItems.items.some((item) =>
+      this.isVoucherItemEligible(item, voucher),
     );
 
     if (!hasEligibleItems) {
@@ -376,7 +439,7 @@ export class CartService {
     }
 
     const eligibleSubtotal = cartWithItems.items
-      .filter((item) => item.product.categoryId === voucher.categoryId)
+      .filter((item) => this.isVoucherItemEligible(item, voucher))
       .reduce(
         (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
         0,
@@ -400,6 +463,16 @@ export class CartService {
     return this.getCart(userId);
   }
 
+  private isVoucherItemEligible(
+    item: EnrichedCartItem,
+    voucher: { categoryId: string; sellerId?: string | null },
+  ) {
+    return (
+      item.product.categoryId === voucher.categoryId &&
+      (!voucher.sellerId || item.product.sellerId === voucher.sellerId)
+    );
+  }
+
   async removeVoucher(userId: string) {
     const cart = await this.getOrCreateCart(userId);
     await this.prisma.cart.update({
@@ -420,7 +493,10 @@ export class CartService {
     });
   }
 
-  private async assertProductPurchasable(productId: string, quantity: number) {
+  private async getPurchasableProductForCart(
+    productId: string,
+    quantity: number,
+  ): Promise<PurchasableProductForCart> {
     const product = await this.prisma.product.findFirst({
       where: {
         id: productId,
@@ -432,12 +508,79 @@ export class CartService {
           status: CategoryStatus.ACTIVE,
         },
       },
-      select: { id: true },
+      select: {
+        id: true,
+        personalizationEnabled: true,
+        personalizationRequired: true,
+        personalizationMaxLength: true,
+      },
     });
 
     if (!product) {
       throw new BadRequestException('Product is not available for purchase');
     }
+
+    return product;
+  }
+
+  private normalizePersonalization(
+    product: PurchasableProductForCart,
+    personalization?: AddToCartDto['personalization'],
+  ): PersonalizationSnapshot | null {
+    const rawText = personalization?.text;
+    const sanitizedText =
+      typeof rawText === 'string'
+        ? rawText
+            .replace(/<\s*(script|style)[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+            .replace(/<[^>]*>/g, '')
+            .trim()
+        : '';
+
+    if (!product.personalizationEnabled) {
+      if (sanitizedText) {
+        throw new BadRequestException(
+          'Personalization is not enabled for this product',
+        );
+      }
+
+      return null;
+    }
+
+    if (product.personalizationRequired && !sanitizedText) {
+      throw new BadRequestException(
+        'Personalization text is required for this product',
+      );
+    }
+
+    if (!sanitizedText) {
+      return null;
+    }
+
+    if (sanitizedText.length > product.personalizationMaxLength) {
+      throw new BadRequestException(
+        `Personalization text must be at most ${product.personalizationMaxLength} characters`,
+      );
+    }
+
+    return { text: sanitizedText };
+  }
+
+  private toPersonalizationJsonValue(
+    personalization: PersonalizationSnapshot | null,
+  ) {
+    return personalization
+      ? (personalization as unknown as Prisma.InputJsonValue)
+      : Prisma.DbNull;
+  }
+
+  private hasPersonalizationText(value: Prisma.JsonValue | null) {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value) &&
+      typeof value.text === 'string' &&
+      value.text.trim().length > 0
+    );
   }
 
   private async getOrCreateCartTransactional(

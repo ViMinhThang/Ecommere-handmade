@@ -13,12 +13,14 @@ import { BasicInfoSection } from '@/components/dashboard/product-form/basic-info
 import { MediaSection } from '@/components/dashboard/product-form/media-section'
 import { PricingSection } from '@/components/dashboard/product-form/pricing-section'
 import { InventorySection } from '@/components/dashboard/product-form/inventory-section'
+import { PersonalizationSection } from '@/components/dashboard/product-form/personalization-section'
 
 const SECTIONS = [
   { id: 'basic', label: 'Thông tin cơ bản' },
   { id: 'media', label: 'Hình ảnh' },
   { id: 'pricing', label: 'Giá & Khả dụng' },
   { id: 'inventory', label: 'Tồn kho' },
+  { id: 'personalization', label: 'Cá nhân hóa' },
 ]
 
 function NewListingContent() {
@@ -46,6 +48,10 @@ function NewListingContent() {
     lowStockThreshold: 5,
     sku: '',
     status: 'PENDING' as 'PENDING' | 'APPROVED' | 'REJECTED',
+    personalizationEnabled: false,
+    personalizationRequired: false,
+    personalizationInstructions: '',
+    personalizationMaxLength: 120,
   })
 
   const [isUploading, setIsUploading] = useState(false)
@@ -64,6 +70,10 @@ function NewListingContent() {
         lowStockThreshold: existingProduct.lowStockThreshold || 0,
         sku: existingProduct.sku || '',
         status: existingProduct.status || 'PENDING',
+        personalizationEnabled: Boolean(existingProduct.personalizationEnabled),
+        personalizationRequired: Boolean(existingProduct.personalizationRequired),
+        personalizationInstructions: existingProduct.personalizationInstructions || '',
+        personalizationMaxLength: existingProduct.personalizationMaxLength || 120,
       })
     }
   }, [existingProduct])
@@ -141,6 +151,19 @@ function NewListingContent() {
       return
     }
 
+    const personalizationMaxLength = Number(formData.personalizationMaxLength) || 120
+    if (formData.personalizationEnabled && (personalizationMaxLength < 1 || personalizationMaxLength > 500)) {
+      alert('Giới hạn ký tự cá nhân hóa phải từ 1 đến 500')
+      document.getElementById('personalization')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
+    if (formData.personalizationInstructions.length > 1000) {
+      alert('Hướng dẫn cá nhân hóa không được vượt quá 1000 ký tự')
+      document.getElementById('personalization')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
     setIsSubmitting(true)
 
     const productData = {
@@ -153,6 +176,16 @@ function NewListingContent() {
       stock: Number(formData.stock),
       lowStockThreshold: Number(formData.lowStockThreshold),
       sku: formData.sku,
+      personalizationEnabled: formData.personalizationEnabled,
+      personalizationRequired: formData.personalizationEnabled
+        ? formData.personalizationRequired
+        : false,
+      personalizationInstructions: formData.personalizationEnabled
+        ? formData.personalizationInstructions.trim() || undefined
+        : undefined,
+      personalizationMaxLength: formData.personalizationEnabled
+        ? personalizationMaxLength
+        : 120,
     }
 
     if (productId && existingProduct) {
@@ -219,6 +252,14 @@ function NewListingContent() {
 
           <InventorySection 
             stock={formData.stock}
+            onChange={handleInputChange}
+          />
+
+          <PersonalizationSection
+            personalizationEnabled={formData.personalizationEnabled}
+            personalizationRequired={formData.personalizationRequired}
+            personalizationInstructions={formData.personalizationInstructions}
+            personalizationMaxLength={formData.personalizationMaxLength}
             onChange={handleInputChange}
           />
         </div>

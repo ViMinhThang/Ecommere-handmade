@@ -225,6 +225,7 @@ model User {
   reportsTargetingUser  Report[]                    @relation("ReportTargetUser")
   reportsResolved       Report[]                    @relation("ReportResolvedBy")
   sellerPayouts         SellerPayout[]              @relation("SellerPayoutSeller")
+  sellerVouchers        Voucher[]                   @relation("SellerVouchers")
   voucherUsages         VoucherUsage[]              @relation("UserVoucherUsages")
   flashSaleUsages       FlashSaleUserUsage[]
   commissionPosts       CommissionPost[]            @relation("CommissionPostCustomer")
@@ -280,34 +281,38 @@ model Category {
 }
 
 model Product {
-  id                       String                    @id @default(uuid())
-  name                     String
-  description              String
-  price                    Decimal                   @default(0)
-  categoryId               String
-  category                 Category                  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  sellerId                 String
-  seller                   User                      @relation("Product_sellerId_fkey", fields: [sellerId], references: [id], onDelete: Cascade)
-  status                   ProductStatus             @default(PENDING)
-  stock                    Int                       @default(0)
-  lowStockThreshold        Int                       @default(10)
-  sku                      String?
-  tags                     String[]                  @default([])
-  descriptionImages        String[]                  @default([])
-  viewCount                Int                       @default(0)
-  deletedAt                DateTime?
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  images                   ProductImage[]
-  inventoryLogs            InventoryLog[]
-  cartItems                CartItem[]
-  chatContextConversations ChatConversation[]
-  OrderItem                OrderItem[]
-  reviews                  Review[]
-  questions                ProductQuestion[]
-  wishlistItems            WishlistItem[]
-  homepageFeaturedProducts HomepageFeaturedProduct[]
-  reports                  Report[]
+  id                          String                    @id @default(uuid())
+  name                        String
+  description                 String
+  price                       Decimal                   @default(0)
+  categoryId                  String
+  category                    Category                  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sellerId                    String
+  seller                      User                      @relation("Product_sellerId_fkey", fields: [sellerId], references: [id], onDelete: Cascade)
+  status                      ProductStatus             @default(PENDING)
+  stock                       Int                       @default(0)
+  lowStockThreshold           Int                       @default(10)
+  sku                         String?
+  tags                        String[]                  @default([])
+  descriptionImages           String[]                  @default([])
+  personalizationEnabled      Boolean                   @default(false)
+  personalizationRequired     Boolean                   @default(false)
+  personalizationInstructions String?                   @db.Text
+  personalizationMaxLength    Int                       @default(120)
+  viewCount                   Int                       @default(0)
+  deletedAt                   DateTime?
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+  images                      ProductImage[]
+  inventoryLogs               InventoryLog[]
+  cartItems                   CartItem[]
+  chatContextConversations    ChatConversation[]
+  OrderItem                   OrderItem[]
+  reviews                     Review[]
+  questions                   ProductQuestion[]
+  wishlistItems               WishlistItem[]
+  homepageFeaturedProducts    HomepageFeaturedProduct[]
+  reports                     Report[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -506,6 +511,8 @@ model Voucher {
   code              String         @unique
   categoryId        String
   category          Category       @relation(fields: [categoryId], references: [id])
+  sellerId          String?
+  seller            User?          @relation("SellerVouchers", fields: [sellerId], references: [id], onDelete: SetNull)
   isActive          Boolean        @default(true)
   endDate           DateTime
   maxDiscountAmount Decimal?
@@ -520,6 +527,7 @@ model Voucher {
   usages            VoucherUsage[]
 
   @@index([categoryId])
+  @@index([sellerId, isActive, endDate])
   @@index([isActive, endDate])
 }
 
@@ -650,14 +658,15 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(uuid())
-  cartId    String
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(uuid())
+  cartId          String
+  cart            Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity        Int      @default(1)
+  personalization Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([cartId, productId])
   @@index([cartId])
@@ -725,6 +734,7 @@ model OrderItem {
   platformDiscountAmount   Decimal  @default(0)
   flashSaleId              String?
   flashSaleDiscountPercent Decimal?
+  personalization          Json?
 
   review Review?
 

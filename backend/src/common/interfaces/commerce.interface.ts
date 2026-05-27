@@ -26,6 +26,7 @@ export interface EnrichedCartItem {
   cartId: string;
   productId: string;
   quantity: number;
+  personalization: Prisma.JsonValue | null;
   createdAt: Date;
   updatedAt: Date;
   product: ProductWithImages;
@@ -43,6 +44,8 @@ export interface EnrichedCart {
     code: string;
     discountAmount: number;
     discountPercent: number;
+    categoryId: string;
+    sellerId: string | null;
   } | null;
 }
 

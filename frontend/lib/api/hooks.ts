@@ -786,6 +786,8 @@ export const voucherKeys = {
     [...voucherKeys.all, "list", params ?? {}] as const,
   adminLists: (params?: { page?: number; limit?: number }) =>
     [...voucherKeys.all, "admin-list", params ?? {}] as const,
+  sellerLists: (params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "seller-list", params ?? {}] as const,
   details: () => [...voucherKeys.all, "detail"] as const,
   detail: (id: string) => [...voucherKeys.details(), id] as const,
   byCode: (code: string) => [...voucherKeys.all, "code", code] as const,
@@ -811,6 +813,13 @@ export function useAdminVouchers(params?: { page?: number; limit?: number }) {
   return useQuery({
     queryKey: voucherKeys.adminLists(params),
     queryFn: () => vouchersApi.getAdminAll(params),
+  });
+}
+
+export function useSellerVouchers(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: voucherKeys.sellerLists(params),
+    queryFn: () => vouchersApi.getSellerMine(params),
   });
 }
 
@@ -855,6 +864,37 @@ export function useDeleteVoucher() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => vouchersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: voucherKeys.all });
+    },
+  });
+}
+
+export function useCreateSellerVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateVoucherDto) => vouchersApi.createSeller(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: voucherKeys.all });
+    },
+  });
+}
+
+export function useUpdateSellerVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateVoucherDto }) =>
+      vouchersApi.updateSeller(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: voucherKeys.all });
+    },
+  });
+}
+
+export function useDeleteSellerVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => vouchersApi.deleteSeller(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: voucherKeys.all });
     },
@@ -959,10 +999,12 @@ export function useAddToCart() {
     mutationFn: ({
       productId,
       quantity,
+      personalization,
     }: {
       productId: string;
       quantity?: number;
-    }) => cartApi.addItem(productId, quantity || 1),
+      personalization?: { text?: string | null };
+    }) => cartApi.addItem(productId, quantity || 1, personalization),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -975,10 +1017,12 @@ export function useUpdateCartItem() {
     mutationFn: ({
       productId,
       quantity,
+      personalization,
     }: {
       productId: string;
       quantity: number;
-    }) => cartApi.updateItem(productId, quantity),
+      personalization?: { text?: string | null };
+    }) => cartApi.updateItem(productId, quantity, personalization),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },

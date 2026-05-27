@@ -26,6 +26,10 @@ export class CreateVoucherDto {
   @IsString()
   categoryId: string;
 
+  @IsString()
+  @IsOptional()
+  sellerId?: string;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

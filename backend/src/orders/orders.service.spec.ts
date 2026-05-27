@@ -156,6 +156,7 @@ describe('OrdersService', () => {
       {
         productId: 'product_1',
         quantity: 1,
+        personalization: null,
         pricing: { discountedPrice: 100000, originalPrice: 100000 },
         product: {
           id: 'product_1',
@@ -183,6 +184,8 @@ describe('OrdersService', () => {
         code: 'HANDMADE10',
         discountAmount: 10000,
         discountPercent: 10,
+        categoryId: 'cat_1',
+        sellerId: null,
       },
       ...overrides,
     });
@@ -217,6 +220,7 @@ describe('OrdersService', () => {
         {
           productId: 'product_1',
           quantity: 1,
+          personalization: null,
           pricing: {
             originalPrice: 100000,
             discountedPrice: 90000,
@@ -302,6 +306,7 @@ describe('OrdersService', () => {
             price: 100000,
             originalPrice: 100000,
             platformDiscountAmount: 0,
+            personalization: null,
           },
         ],
       },
@@ -922,6 +927,34 @@ describe('OrdersService', () => {
     });
   });
 
+  it('copies cart item personalization into order item snapshots', async () => {
+    const cart = buildCart();
+    mockCart.getCart.mockResolvedValue({
+      ...cart,
+      items: [
+        {
+          ...cart.items[0],
+          personalization: { text: 'Khắc tên Linh' },
+        },
+      ],
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.COD,
+    );
+
+    const itemCreateCall =
+      mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    expect(itemCreateCall?.data[0]).toMatchObject({
+      productId: 'product_1',
+      quantity: 1,
+      personalization: { text: 'Khắc tên Linh' },
+    });
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
   it('reuses existing checkout for the same missing-key payload fallback', async () => {
     mockCart.getCart.mockResolvedValue(buildCart());
     mockPrisma.order.findFirst.mockResolvedValue(buildReusableOrder());
@@ -1083,6 +1116,8 @@ describe('OrdersService', () => {
           code: 'HANDMADE10',
           discountAmount: 15000,
           discountPercent: 10,
+          categoryId: 'cat_1',
+          sellerId: null,
         },
         discountAmount: 15000,
         total: 85000,
@@ -1419,6 +1454,7 @@ describe('OrdersService', () => {
           {
             productId: 'product_1',
             quantity: 1,
+            personalization: null,
             pricing: {
               originalPrice: 100000,
               discountedPrice: 90000,

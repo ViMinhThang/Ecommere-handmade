@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, History, Leaf } from "lucide-react";
+import { ChevronDown, History, Leaf, PencilLine } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
@@ -20,6 +20,9 @@ import { ProductStory } from "@/features/product/components/product-story";
 import { ProductReviews } from "@/features/product/components/product-reviews";
 import { ProductQuestionsSection } from "@/features/product/components/product-questions";
 import { RelatedProducts } from "@/features/product/components/related-products";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 type ProductReviewList = Parameters<typeof ProductReviews>[0]["reviews"];
 
@@ -113,6 +116,15 @@ function ProductDetailContent({
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [personalizationText, setPersonalizationText] = useState("");
+  const [personalizationError, setPersonalizationError] = useState("");
+
+  const personalizationEnabled = Boolean(product.personalizationEnabled);
+  const personalizationRequired = Boolean(product.personalizationRequired);
+  const personalizationMaxLength = Math.min(
+    500,
+    Math.max(1, Number(product.personalizationMaxLength || 120)),
+  );
 
   const averageRating = useMemo(() => {
     if (!reviews?.length) return 0;
@@ -125,13 +137,39 @@ function ProductDetailContent({
       window.location.href = `/login?redirect=/products/${product.id}`;
       return;
     }
+
+    const trimmedPersonalization = personalizationText.trim();
+    if (personalizationEnabled) {
+      if (personalizationRequired && !trimmedPersonalization) {
+        setPersonalizationError("Vui lòng nhập nội dung cá nhân hóa.");
+        return;
+      }
+
+      if (trimmedPersonalization.length > personalizationMaxLength) {
+        setPersonalizationError(
+          `Nội dung cá nhân hóa không được vượt quá ${personalizationMaxLength} ký tự.`,
+        );
+        return;
+      }
+    }
+
     setIsAdding(true);
     try {
-      await addItem(product.id, quantity);
+      await addItem(
+        product.id,
+        quantity,
+        personalizationEnabled && trimmedPersonalization
+          ? { text: trimmedPersonalization }
+          : undefined,
+      );
       setAddedSuccess(true);
       setTimeout(() => setAddedSuccess(false), 2500);
-    } catch {
-      // Error handled by mutation
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Không thể thêm sản phẩm vào giỏ hàng.";
+      toast.error(message);
     } finally {
       setIsAdding(false);
     }
@@ -181,6 +219,44 @@ function ProductDetailContent({
                 </div>
               </div>
             </div>
+
+            {personalizationEnabled && (
+              <div className="rounded-xl border border-primary/15 bg-primary/5 p-5">
+                <div className="mb-4 flex items-start gap-3">
+                  <PencilLine className="mt-0.5 h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">
+                      Cá nhân hóa sản phẩm
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {product.personalizationInstructions ||
+                        "Nhập nội dung shop cần dùng để cá nhân hóa sản phẩm."}
+                    </p>
+                  </div>
+                </div>
+                <Label htmlFor="personalizationText">
+                  Nội dung cá nhân hóa
+                  {personalizationRequired ? " *" : ""}
+                </Label>
+                <Textarea
+                  id="personalizationText"
+                  value={personalizationText}
+                  maxLength={personalizationMaxLength}
+                  onChange={(event) => {
+                    setPersonalizationText(event.target.value);
+                    setPersonalizationError("");
+                  }}
+                  placeholder="Ví dụ: Khắc tên An, màu chữ nâu, kèm lời nhắn tặng sinh nhật."
+                  className="mt-2 min-h-28 bg-background"
+                />
+                <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                  <p className="text-destructive">{personalizationError}</p>
+                  <p className="ml-auto text-muted-foreground">
+                    {personalizationText.length}/{personalizationMaxLength} ký tự
+                  </p>
+                </div>
+              </div>
+            )}
 
             <ProductActions
               product={product}

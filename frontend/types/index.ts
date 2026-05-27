@@ -129,6 +129,10 @@ export interface ProductImage {
   createdAt: Date;
 }
 
+export interface ProductPersonalization {
+  text?: string | null;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -150,6 +154,10 @@ export interface Product {
   stock: number;
   lowStockThreshold: number;
   sku?: string;
+  personalizationEnabled?: boolean;
+  personalizationRequired?: boolean;
+  personalizationInstructions?: string | null;
+  personalizationMaxLength?: number;
   viewCount?: number;
   soldQuantity?: number;
   createdAt: Date;
@@ -372,6 +380,7 @@ export interface OrderItem {
   price: number;
   originalPrice?: number;
   platformDiscountAmount?: number;
+  personalization?: ProductPersonalization | null;
 }
 
 export interface Customer {
@@ -474,8 +483,14 @@ export interface Voucher {
   code: string;
   categoryId: string;
   category?: Category;
+  sellerId?: string | null;
+  seller?: Pick<User, "id" | "name" | "shopName" | "avatar" | "status"> | null;
   isActive: boolean;
   endDate: Date | string;
+  maxDiscountAmount?: number | string | null;
+  usageLimit?: number | null;
+  perUserLimit?: number | null;
+  usedCount?: number;
   ranges: VoucherRange[];
   createdAt: Date;
   updatedAt: Date;
@@ -531,6 +546,7 @@ export interface CartItem {
     discountPercent: number;
     flashSaleId: string | null;
   };
+  personalization?: ProductPersonalization | null;
   createdAt: Date;
   updatedAt: Date;
 }

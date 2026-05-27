@@ -43,6 +43,10 @@ import { formatCurrency } from '@/lib/utils'
 import { AlertCircle, ArrowLeft, Loader2, RotateCcw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import {
+  getPersonalizationText,
+  PersonalizationNote,
+} from '@/components/storefront/personalization-note'
 
 const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
   'PENDING',
@@ -164,6 +168,20 @@ export default function DashboardOrderDetailPage() {
   const selectedOrderStatus = nextOrderStatus ?? order?.status ?? 'PENDING'
   const selectedSubOrderStatus = nextSubOrderStatus ?? subOrder?.status ?? 'PENDING'
   const activePaymentStatus = order?.paymentStatus || subOrder?.order?.paymentStatus
+  const personalizedAdminItems = useMemo(() => {
+    if (!order?.subOrders) {
+      return []
+    }
+
+    return order.subOrders.flatMap((row) =>
+      row.items
+        .filter((item) => getPersonalizationText(item.personalization))
+        .map((item) => ({
+          item,
+          sellerName: row.seller?.shopName || row.seller?.name || '-',
+        })),
+    )
+  }, [order?.subOrders])
 
   const isLoading = isAdmin ? adminOrderQuery.isLoading : sellerSubOrderQuery.isLoading
   const error = isAdmin ? adminOrderQuery.error : sellerSubOrderQuery.error
@@ -429,6 +447,29 @@ export default function DashboardOrderDetailPage() {
         </Card>
       )}
 
+      {isAdmin && personalizedAdminItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Yêu cầu cá nhân hóa</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {personalizedAdminItems.map(({ item, sellerName }) => (
+                <div key={item.id} className="rounded-lg border p-4">
+                  <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="font-medium">{item.product.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Người bán: {sellerName}
+                    </p>
+                  </div>
+                  <PersonalizationNote personalization={item.personalization} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {isAdmin && (
         <LedgerTable
           entries={adminOrderLedgerQuery.data}
@@ -453,6 +494,7 @@ export default function DashboardOrderDetailPage() {
                     <p className="text-sm text-muted-foreground">
                       Số lượng: {item.quantity}
                     </p>
+                    <PersonalizationNote personalization={item.personalization} compact />
                   </div>
                   <div className="text-right">
                     <p className="font-medium">

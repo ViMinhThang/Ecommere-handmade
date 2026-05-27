@@ -21,6 +21,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { Address } from "@/types";
 import { Button } from "@/components/ui/button";
 import { SafeImage } from "@/components/ui/safe-image";
+import { PersonalizationNote } from "@/components/storefront/personalization-note";
 import {
   Dialog,
   DialogContent,
@@ -67,7 +68,14 @@ const emptyAddressFormData: AddressFormData = {
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
+  const message = error instanceof Error ? error.message : fallback;
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("personalization")) {
+    return "Một sản phẩm cần nội dung cá nhân hóa. Vui lòng quay lại sản phẩm hoặc giỏ hàng để kiểm tra.";
+  }
+
+  return message;
 }
 
 function getVoucherErrorMessage(error: unknown) {
@@ -815,6 +823,11 @@ export default function CheckoutPage() {
                       <p className="mt-1 text-xs uppercase tracking-tight text-stone-500">
                         Mã sản phẩm: {item.product.sku || "Chưa có"}
                       </p>
+                      <PersonalizationNote
+                        personalization={item.personalization}
+                        compact
+                        className="bg-white/80"
+                      />
                     </div>
                     <p className="mt-2 inline-flex shrink-0 whitespace-nowrap text-right font-headline text-lg italic text-[#8B4513] sm:mt-0">
                       {formatCurrency(

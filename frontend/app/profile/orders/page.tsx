@@ -21,6 +21,7 @@ import Link from "next/link";
 import { OrderItem, Product, ProductImage, SubOrder } from "@/types";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
+import { PersonalizationNote } from "@/components/storefront/personalization-note";
 
 type CustomerSubOrder = SubOrder & {
   type?: "CUSTOM";
@@ -262,6 +263,10 @@ export default function OrdersPage() {
                             </p>
                           )}
                         </div>
+                        <PersonalizationNote
+                          personalization={item.personalization}
+                          compact
+                        />
                       </div>
                     </div>
                   ))}

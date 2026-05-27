@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ImageSelector } from './image-selector'
 import { mediaApi } from '@/lib/api/media'
+import { PersonalizationSection } from '@/components/dashboard/product-form/personalization-section'
 
 interface ProductImageInput {
   url: string
@@ -32,7 +33,20 @@ interface ProductDialogProps {
   product?: Product | null
   categories: Category[]
   sellerId: string
-  onSave: (product: { name: string; description: string; price: number; categoryId: string; images: ProductImageInput[]; stock: number; lowStockThreshold: number; sku?: string }) => void
+  onSave: (product: {
+    name: string
+    description: string
+    price: number
+    categoryId: string
+    images: ProductImageInput[]
+    stock: number
+    lowStockThreshold: number
+    sku?: string
+    personalizationEnabled?: boolean
+    personalizationRequired?: boolean
+    personalizationInstructions?: string
+    personalizationMaxLength?: number
+  }) => void
 }
 
 export function ProductDialog({ open, onOpenChange, product, categories, sellerId, onSave }: ProductDialogProps) {
@@ -45,6 +59,10 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
     stock: number
     lowStockThreshold: number
     sku: string
+    personalizationEnabled: boolean
+    personalizationRequired: boolean
+    personalizationInstructions: string
+    personalizationMaxLength: number
   }>({
     name: '',
     description: '',
@@ -54,6 +72,10 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
     stock: 0,
     lowStockThreshold: 10,
     sku: '',
+    personalizationEnabled: false,
+    personalizationRequired: false,
+    personalizationInstructions: '',
+    personalizationMaxLength: 120,
   })
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([])
@@ -73,6 +95,10 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
         stock: product.stock || 0,
         lowStockThreshold: product.lowStockThreshold || 10,
         sku: product.sku || '',
+        personalizationEnabled: Boolean(product.personalizationEnabled),
+        personalizationRequired: Boolean(product.personalizationRequired),
+        personalizationInstructions: product.personalizationInstructions || '',
+        personalizationMaxLength: product.personalizationMaxLength || 120,
       })
       setSelectedImages(
         product.images?.length 
@@ -95,6 +121,10 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
         stock: 0,
         lowStockThreshold: 10,
         sku: '',
+        personalizationEnabled: false,
+        personalizationRequired: false,
+        personalizationInstructions: '',
+        personalizationMaxLength: 120,
       })
       setSelectedImages([])
     }
@@ -124,6 +154,13 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
     if (validImages.length === 0) {
       validImages.push({ url: 'https://placehold.co/400x400', isMain: true })
     }
+
+    const personalizationMaxLength = Number(formData.personalizationMaxLength) || 120
+    if (formData.personalizationEnabled && (personalizationMaxLength < 1 || personalizationMaxLength > 500)) {
+      alert('Giới hạn ký tự cá nhân hóa phải từ 1 đến 500')
+      return
+    }
+
     onSave({
       name: formData.name,
       description: formData.description,
@@ -133,6 +170,16 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
       stock: formData.stock,
       lowStockThreshold: formData.lowStockThreshold,
       sku: formData.sku || undefined,
+      personalizationEnabled: formData.personalizationEnabled,
+      personalizationRequired: formData.personalizationEnabled
+        ? formData.personalizationRequired
+        : false,
+      personalizationInstructions: formData.personalizationEnabled
+        ? formData.personalizationInstructions.trim() || undefined
+        : undefined,
+      personalizationMaxLength: formData.personalizationEnabled
+        ? personalizationMaxLength
+        : 120,
     })
     onOpenChange(false)
   }
@@ -243,6 +290,16 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
                 />
               </div>
             </div>
+
+            <PersonalizationSection
+              personalizationEnabled={formData.personalizationEnabled}
+              personalizationRequired={formData.personalizationRequired}
+              personalizationInstructions={formData.personalizationInstructions}
+              personalizationMaxLength={formData.personalizationMaxLength}
+              onChange={(field, value) =>
+                setFormData((current) => ({ ...current, [field]: value }))
+              }
+            />
 
             <div className="grid gap-2">
               <Label>Hình ảnh sản phẩm</Label>

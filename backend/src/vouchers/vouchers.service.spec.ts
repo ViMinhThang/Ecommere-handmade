@@ -15,6 +15,9 @@ describe('VouchersService visibility', () => {
     category: {
       findUnique: jest.Mock;
     };
+    user: {
+      findFirst: jest.Mock;
+    };
     voucher: {
       create: jest.Mock;
       findMany: jest.Mock;
@@ -41,6 +44,9 @@ describe('VouchersService visibility', () => {
     prisma = {
       category: {
         findUnique: jest.fn().mockResolvedValue({ id: 'cat-1' }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'seller-1' }),
       },
       voucher: {
         create: jest.fn(),
@@ -94,10 +100,11 @@ describe('VouchersService visibility', () => {
     expect(prisma.voucher.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { deletedAt: null },
-        include: {
+        include: expect.objectContaining({
           category: true,
           ranges: true,
-        },
+          seller: expect.any(Object),
+        }),
       }),
     );
   });
@@ -257,5 +264,64 @@ describe('VouchersService visibility', () => {
     expect(prisma.voucherUsage.count).toHaveBeenCalledWith({
       where: { voucherId: 'voucher-1', userId: 'user-1' },
     });
+  });
+
+  it('creates seller-owned vouchers for the current seller', async () => {
+    prisma.voucher.create.mockResolvedValue({ id: 'voucher-1' });
+
+    await service.createForSeller('seller-1', {
+      name: 'Shop voucher',
+      code: 'SHOP10',
+      categoryId: 'cat-1',
+      endDate: '2030-01-01T00:00:00.000Z',
+      ranges: [
+        {
+          minPrice: 100,
+          maxPrice: 1000,
+          discountPercent: 10,
+          endDate: '2030-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'seller-1',
+          deletedAt: null,
+          status: 'ACTIVE',
+          roles: { has: 'ROLE_SELLER' },
+        }),
+      }),
+    );
+    expect(prisma.voucher.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          code: 'SHOP10',
+          sellerId: 'seller-1',
+        }),
+      }),
+    );
+  });
+
+  it('keeps seller voucher ownership scoped to the current seller on update', async () => {
+    prisma.voucher.findFirst.mockResolvedValue({ id: 'voucher-1' });
+
+    await service.updateForSeller('seller-1', 'voucher-1', {
+      name: 'Updated shop voucher',
+      sellerId: 'other-seller',
+    });
+
+    expect(prisma.voucher.findFirst).toHaveBeenCalledWith({
+      where: { id: 'voucher-1', sellerId: 'seller-1', deletedAt: null },
+      select: { id: true },
+    });
+    expect(tx.voucher.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({
+          sellerId: 'other-seller',
+        }),
+      }),
+    );
   });
 });

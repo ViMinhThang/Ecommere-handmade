@@ -76,6 +76,9 @@ function getFlashSaleDiscountLabel(flashSale: FlashSale) {
 function getVoucherCondition(voucher: Voucher) {
   const range = voucher.ranges?.[0];
   const parts = [
+    voucher.sellerId
+      ? `Shop: ${voucher.seller?.shopName || voucher.seller?.name || "Gian hàng"}`
+      : "Toàn sàn",
     voucher.category?.name ? `Danh mục: ${voucher.category.name}` : null,
   ];
 

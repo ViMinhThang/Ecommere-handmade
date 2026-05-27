@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { Product, ProductImage } from "@/types";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
+import { PersonalizationNote } from "@/components/storefront/personalization-note";
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -27,6 +28,7 @@ interface CartItemCardProps {
       discountPercent: number;
       flashSaleId: string | null;
     };
+    personalization?: unknown;
   };
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemove: (productId: string) => void;
@@ -83,6 +85,7 @@ export function CartItemCard({
             <p className="text-secondary-foreground font-medium mb-4">
               {item.product.category?.name || "Tác phẩm Thủ công"}
             </p>
+            <PersonalizationNote personalization={item.personalization} compact />
           </div>
           <button
             onClick={() => onRemove(item.productId)}

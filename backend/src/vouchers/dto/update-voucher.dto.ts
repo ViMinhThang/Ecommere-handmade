@@ -29,6 +29,10 @@ export class UpdateVoucherDto {
   @IsOptional()
   categoryId?: string;
 
+  @IsString()
+  @IsOptional()
+  sellerId?: string | null;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

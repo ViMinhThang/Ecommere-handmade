@@ -35,6 +35,10 @@ export interface CreateProductDto {
   stock?: number;
   lowStockThreshold?: number;
   sku?: string;
+  personalizationEnabled?: boolean;
+  personalizationRequired?: boolean;
+  personalizationInstructions?: string;
+  personalizationMaxLength?: number;
 }
 
 export interface ProductsStats {
