@@ -359,7 +359,7 @@ async function seedRealHandmadeFixture(
   let productCount = 0;
   for (const product of products) {
     const categoryId =
-      categoryIds[product.categorySlug] ?? categoryIds.ceramics;
+      categoryIds[product.categorySlug] ?? categoryIds['wall-decor'];
     const sellerId =
       sellerIds[product.sellerEmail] ?? sellerIds[sellers[0]?.email ?? ''];
 
@@ -457,6 +457,7 @@ async function ensureDemoOrder(input: {
   orderStatus: OrderStatus;
   subOrderStatus: OrderStatus;
   paymentStatus?: PaymentStatus;
+  createdAt?: Date;
 }) {
   const include = {
     subOrders: {
@@ -493,6 +494,7 @@ async function ensureDemoOrder(input: {
         paymentMethod: PaymentMethod.COD,
         paymentStatus,
         currency: 'vnd',
+        ...(input.createdAt ? { createdAt: input.createdAt } : {}),
         shippingAddress: {
           fullName: 'Nguyễn Minh Anh',
           phone: '0900000001',
@@ -510,6 +512,7 @@ async function ensureDemoOrder(input: {
           subTotal: String(subtotal),
           status: input.subOrderStatus,
           discountAmount: '0',
+          ...(input.createdAt ? { createdAt: input.createdAt } : {}),
         },
       });
 
@@ -543,6 +546,7 @@ async function ensureDemoOrder(input: {
           sellerId: input.sellerId,
           subTotal: String(subtotal),
           status: input.subOrderStatus,
+          ...(input.createdAt ? { createdAt: input.createdAt } : {}),
           items: {
             create: [
               {
@@ -572,6 +576,7 @@ async function ensureDemoOrder(input: {
       paymentStatus,
       checkoutIdempotencyKey: input.checkoutIdempotencyKey,
       currency: 'vnd',
+      ...(input.createdAt ? { createdAt: input.createdAt } : {}),
       shippingAddress: {
         fullName: 'Nguyễn Minh Anh',
         phone: '0900000001',
@@ -583,6 +588,7 @@ async function ensureDemoOrder(input: {
             sellerId: input.sellerId,
             subTotal: String(subtotal),
             status: input.subOrderStatus,
+            ...(input.createdAt ? { createdAt: input.createdAt } : {}),
             items: {
               create: [
                 {
@@ -599,6 +605,231 @@ async function ensureDemoOrder(input: {
     },
     include,
   });
+}
+
+async function seedCeramicPurchaseHistoryForUsers(categoryId: string) {
+  const staleHistoryOrders = await prisma.order.findMany({
+    where: {
+      checkoutIdempotencyKey: { startsWith: 'seed-ceramic-history-' },
+      customer: {
+        OR: [
+          { roles: { has: Role.ROLE_SELLER } },
+          { roles: { has: Role.ROLE_ADMIN } },
+        ],
+      },
+    },
+    include: {
+      subOrders: {
+        include: {
+          items: {
+            select: { id: true },
+          },
+        },
+      },
+    },
+  });
+  const staleOrderIds = staleHistoryOrders.map((order) => order.id);
+  const staleOrderItemIds = staleHistoryOrders.flatMap((order) =>
+    order.subOrders.flatMap((subOrder) =>
+      subOrder.items.map((item) => item.id),
+    ),
+  );
+
+  if (staleOrderItemIds.length > 0) {
+    await prisma.review.deleteMany({
+      where: { orderItemId: { in: staleOrderItemIds } },
+    });
+  }
+  if (staleOrderIds.length > 0) {
+    await prisma.order.deleteMany({
+      where: { id: { in: staleOrderIds } },
+    });
+  }
+
+  const [users, ceramicProducts] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+        roles: { has: Role.ROLE_USER },
+        NOT: [{ roles: { has: Role.ROLE_SELLER } }, { roles: { has: Role.ROLE_ADMIN } }],
+      },
+      orderBy: { email: 'asc' },
+      take: 20,
+      select: { id: true, email: true },
+    }),
+    prisma.product.findMany({
+      where: {
+        categoryId,
+        status: ProductStatus.APPROVED,
+        deletedAt: null,
+      },
+      orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
+      take: 40,
+      select: { id: true, price: true, sellerId: true },
+    }),
+  ]);
+
+  if (users.length === 0 || ceramicProducts.length === 0) return 0;
+
+  const desiredHistoryKeys = users.flatMap((user, userIndex) => {
+    const ordersForUser = userIndex < 11 ? 3 : 2;
+    return Array.from(
+      { length: ordersForUser },
+      (_, orderIndex) =>
+        `seed-ceramic-history-${user.email}-${orderIndex + 1}`,
+    );
+  });
+  const extraHistoryOrders = await prisma.order.findMany({
+    where: {
+      checkoutIdempotencyKey: { startsWith: 'seed-ceramic-history-' },
+      customer: {
+        roles: { has: Role.ROLE_USER },
+        NOT: [
+          { roles: { has: Role.ROLE_SELLER } },
+          { roles: { has: Role.ROLE_ADMIN } },
+        ],
+      },
+      NOT: {
+        checkoutIdempotencyKey: { in: desiredHistoryKeys },
+      },
+    },
+    include: {
+      subOrders: {
+        include: {
+          items: {
+            select: { id: true },
+          },
+        },
+      },
+    },
+  });
+  const extraOrderIds = extraHistoryOrders.map((order) => order.id);
+  const extraOrderItemIds = extraHistoryOrders.flatMap((order) =>
+    order.subOrders.flatMap((subOrder) =>
+      subOrder.items.map((item) => item.id),
+    ),
+  );
+
+  if (extraOrderItemIds.length > 0) {
+    await prisma.review.deleteMany({
+      where: { orderItemId: { in: extraOrderItemIds } },
+    });
+  }
+  if (extraOrderIds.length > 0) {
+    await prisma.order.deleteMany({
+      where: { id: { in: extraOrderIds } },
+    });
+  }
+
+  const now = new Date();
+  let ordersCount = 0;
+
+  for (let userIndex = 0; userIndex < users.length; userIndex += 1) {
+    const user = users[userIndex];
+    const ordersForUser = userIndex < 11 ? 3 : 2;
+
+    for (let orderIndex = 0; orderIndex < ordersForUser; orderIndex += 1) {
+      const productOffset = userIndex * 3 + orderIndex;
+      const product =
+        ceramicProducts.find(
+          (_, index) =>
+            index >= productOffset % ceramicProducts.length &&
+            ceramicProducts[index].sellerId !== user.id,
+        ) ??
+        ceramicProducts.find((item) => item.sellerId !== user.id) ??
+        ceramicProducts[productOffset % ceramicProducts.length];
+      const createdAt = new Date(
+        now.getTime() -
+          (userIndex * 3 + orderIndex + 2) * 24 * 60 * 60 * 1000,
+      );
+      const quantity = (userIndex + orderIndex) % 3 === 0 ? 2 : 1;
+
+      await ensureDemoOrder({
+        checkoutIdempotencyKey: `seed-ceramic-history-${user.email}-${orderIndex + 1}`,
+        customerId: user.id,
+        sellerId: product.sellerId,
+        productId: product.id,
+        quantity,
+        unitPrice: String(Math.round(Number(product.price))),
+        orderStatus: OrderStatus.DELIVERED,
+        subOrderStatus: OrderStatus.DELIVERED,
+        paymentStatus: PaymentStatus.PAID,
+        createdAt,
+      });
+      ordersCount += 1;
+    }
+  }
+
+  return ordersCount;
+}
+
+async function seedReviewsForCeramicPurchaseHistory() {
+  const reviewComments = [
+    'Men gốm lên màu rất đẹp, cầm chắc tay và đóng gói kỹ.',
+    'Sản phẩm đúng ảnh, bề mặt hoàn thiện mịn và dùng hằng ngày rất thích.',
+    'Màu men ngoài đời ấm hơn ảnh, shop gói hàng cẩn thận.',
+    'Đường nét thủ công có nét riêng, đặt trên bàn rất xinh.',
+    'Giao hàng nhanh, món gốm không sứt mẻ và chất lượng tốt.',
+    'Kiểu dáng tối giản, phù hợp làm quà tặng cho người thích đồ handmade.',
+    'Lớp men đẹp, hơi khác nhẹ giữa từng sản phẩm nhưng rất có duyên.',
+    'Sản phẩm chắc chắn, giá hợp lý so với độ hoàn thiện.',
+  ];
+  const sellerReplies = [
+    'Cảm ơn bạn đã ủng hộ shop, chúc bạn dùng sản phẩm thật vui.',
+    'Shop rất vui khi sản phẩm đến tay bạn an toàn.',
+    'Cảm ơn góp ý của bạn, shop sẽ tiếp tục hoàn thiện từng mẻ gốm.',
+    'Cảm ơn bạn đã yêu thích đồ gốm thủ công của shop.',
+  ];
+  const orders = await prisma.order.findMany({
+    where: {
+      checkoutIdempotencyKey: { startsWith: 'seed-ceramic-history-' },
+      status: OrderStatus.DELIVERED,
+      customer: {
+        roles: { has: Role.ROLE_USER },
+        NOT: [
+          { roles: { has: Role.ROLE_SELLER } },
+          { roles: { has: Role.ROLE_ADMIN } },
+        ],
+      },
+    },
+    include: {
+      subOrders: {
+        include: {
+          items: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  let reviewsCount = 0;
+  for (let orderIndex = 0; orderIndex < orders.length; orderIndex += 1) {
+    const order = orders[orderIndex];
+    const orderItems = order.subOrders.flatMap((subOrder) => subOrder.items);
+
+    for (let itemIndex = 0; itemIndex < orderItems.length; itemIndex += 1) {
+      const orderItem = orderItems[itemIndex];
+      const commentIndex =
+        (orderIndex + itemIndex) % reviewComments.length;
+      const rating = [5, 5, 4, 5, 4][(orderIndex + itemIndex) % 5];
+
+      await ensureReviewForOrderItem({
+        orderItemId: orderItem.id,
+        userId: order.customerId,
+        productId: orderItem.productId,
+        rating,
+        comment: reviewComments[commentIndex],
+        sellerReply:
+          orderIndex % 3 === 0
+            ? sellerReplies[orderIndex % sellerReplies.length]
+            : undefined,
+      });
+      reviewsCount += 1;
+    }
+  }
+
+  return reviewsCount;
 }
 
 async function ensureMediaLibrary(userId: string, imagePaths: string[]) {
@@ -1460,10 +1691,73 @@ async function main() {
     avatar: demoImages.paper,
   });
 
+  const customer4 = await upsertDemoUser({
+    email: 'customer4@ecommerce.com',
+    name: 'Bảo Ngọc',
+    roles: [Role.ROLE_USER],
+    phone: '0902000004',
+    avatar: demoImages.gift,
+  });
+
+  const customer5 = await upsertDemoUser({
+    email: 'customer5@ecommerce.com',
+    name: 'Tuấn Khang',
+    roles: [Role.ROLE_USER],
+    phone: '0902000005',
+    avatar: demoImages.leather,
+  });
+
+  const customer6 = await upsertDemoUser({
+    email: 'customer6@ecommerce.com',
+    name: 'Lan Vy',
+    roles: [Role.ROLE_USER],
+    phone: '0902000006',
+    avatar: demoImages.ceramic,
+  });
+
+  const extraCustomers = await Promise.all(
+    [
+      'Gia Hân',
+      'Khánh Linh',
+      'Phương Mai',
+      'Đức Anh',
+      'Ngọc Huyền',
+      'Thanh Tâm',
+      'Quỳnh Như',
+      'Anh Khoa',
+      'Mỹ Duyên',
+      'Hải Đăng',
+      'Tường Vy',
+      'Minh Quân',
+      'Bích Ngọc',
+      'Việt An',
+    ].map((name, index) =>
+      upsertDemoUser({
+        email: `customer${index + 7}@ecommerce.com`,
+        name,
+        roles: [Role.ROLE_USER],
+        phone: `09020000${String(index + 7).padStart(2, '0')}`,
+        avatar: [
+          demoImages.ceramic,
+          demoImages.linen,
+          demoImages.paper,
+          demoImages.gift,
+          demoImages.decor,
+        ][index % 5],
+      }),
+    ),
+  );
+
   await Promise.all([
     ensureDefaultAddress(customer.id),
     ensureDefaultAddress(customer2.id),
     ensureDefaultAddress(customer3.id),
+    ensureDefaultAddress(customer4.id),
+    ensureDefaultAddress(customer5.id),
+    ensureDefaultAddress(customer6.id),
+    ...extraCustomers.map((extraCustomer) =>
+      ensureDefaultAddress(extraCustomer.id),
+    ),
     ensureMediaLibrary(seller.id, [
       demoImages.ceramic,
       demoImages.jewelry,
@@ -2540,6 +2834,10 @@ async function main() {
   ]);
 
   const realFixtureSummary = await seedRealHandmadeFixture(categoryIds);
+  const ceramicHistoryOrdersCount =
+    await seedCeramicPurchaseHistoryForUsers(categoryIds.ceramics);
+  const ceramicHistoryReviewsCount =
+    await seedReviewsForCeramicPurchaseHistory();
 
   const now = new Date();
   const activeVoucher = await ensureVoucher({
@@ -3128,11 +3426,17 @@ async function main() {
     'Seller: seller@ecommerce.com, seller2@ecommerce.com, seller3@ecommerce.com, seller4@ecommerce.com, seller5@ecommerce.com, seller6@ecommerce.com, ebay.importer@local.dev',
   );
   console.log(
-    'Customer: customer@ecommerce.com, customer2@ecommerce.com, customer3@ecommerce.com',
+    'Customer: customer@ecommerce.com through customer20@ecommerce.com',
   );
   console.log(demoImageSourceNote);
   console.log(
     `Real product fixture: ${realFixtureSummary.productCount} product(s), ${realFixtureSummary.sellerCount} importer seller(s), source ${realFixturePath}`,
+  );
+  console.log(
+    `Ceramic purchase history: ${ceramicHistoryOrdersCount} order(s) for seeded users.`,
+  );
+  console.log(
+    `Ceramic purchase reviews: ${ceramicHistoryReviewsCount} review(s).`,
   );
 }
 

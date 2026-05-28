@@ -30,6 +30,16 @@ export class CategoriesService {
       .replace(/^-+|-+$/g, '');
   }
 
+  private sortCategoriesForDisplay<T extends { slug: string | null }>(
+    categories: T[],
+  ): T[] {
+    return [...categories].sort((a, b) => {
+      if (a.slug === 'ceramics') return -1;
+      if (b.slug === 'ceramics') return 1;
+      return 0;
+    });
+  }
+
   async findAll(status?: string, pagination?: PaginationDto) {
     const where: {
       status?: 'ACTIVE' | 'INACTIVE';
@@ -51,7 +61,7 @@ export class CategoriesService {
     ]);
 
     return {
-      data,
+      data: this.sortCategoriesForDisplay(data),
       meta: {
         page,
         limit,
