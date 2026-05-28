@@ -223,9 +223,35 @@ export class UsersService {
       }),
       this.prisma.user.count({ where }),
     ]);
+    const usersWithMetrics = await Promise.all(
+      data.map(async (user) => {
+        const [ordersCount, totalSpent, sales] = await Promise.all([
+          this.prisma.order.count({
+            where: { customerId: user.id },
+          }),
+          this.prisma.order.aggregate({
+            where: {
+              customerId: user.id,
+              status: { not: 'CANCELLED' },
+            },
+            _sum: { totalAmount: true },
+          }),
+          this.prisma.subOrder.count({
+            where: { sellerId: user.id },
+          }),
+        ]);
+
+        return {
+          ...user,
+          ordersCount,
+          totalSpent: Number(totalSpent._sum.totalAmount ?? 0),
+          sales,
+        };
+      }),
+    );
 
     return {
-      data,
+      data: usersWithMetrics,
       meta: {
         page,
         limit,
@@ -892,7 +918,7 @@ export class UsersService {
   }
 
   async getStats() {
-    const [total, admins, sellers] = await Promise.all([
+    const [total, admins, sellers, customers] = await Promise.all([
       this.prisma.user.count({ where: { deletedAt: null } }),
       this.prisma.user.count({
         where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null },
@@ -900,8 +926,17 @@ export class UsersService {
       this.prisma.user.count({
         where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null },
       }),
+      this.prisma.user.count({
+        where: {
+          roles: { has: 'ROLE_USER' },
+          NOT: [
+            { roles: { has: 'ROLE_SELLER' } },
+            { roles: { has: 'ROLE_ADMIN' } },
+          ],
+          deletedAt: null,
+        },
+      }),
     ]);
-    const customers = total - sellers;
 
     return { total, admins, sellers, customers };
   }

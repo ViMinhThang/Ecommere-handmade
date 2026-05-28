@@ -29,7 +29,11 @@ export function CategoriesSection() {
     );
   }
 
-  const categories = data?.data || [];
+  const categories = [...(data?.data || [])].sort((a, b) => {
+    if (a.slug === "ceramics") return -1;
+    if (b.slug === "ceramics") return 1;
+    return 0;
+  });
 
   if (error || categories.length === 0) {
     return (
