@@ -188,7 +188,7 @@ Password: admin123
 | Seller 4 | `seller4@ecommerce.com` | Len Nhà Mây, shop đồ len/crochet/phụ kiện tóc |
 | Seller 5 | `seller5@ecommerce.com` | Gốm An Nhiên, shop gốm thủ công |
 | Seller 6 | `seller6@ecommerce.com` | Nến Thơm Hoa Cỏ, shop nến/xà phòng/mỹ phẩm handmade |
-| Real Importer | `ebay.importer@local.dev` và các `*.importer@local.dev` | Tài khoản local gắn ownership cho 227 sản phẩm thật từ eBay + Shopify JSON |
+| Seller 7 | `seller7@ecommerce.com` | Đồ Gốm Bát Tràng Minh Khang, tài khoản test doanh thu/doanh số/lịch sử đơn hàng |
 | Customer 1 | `customer@ecommerce.com` | Browse/cart/checkout COD/review/chat |
 | Customer 2 | `customer2@ecommerce.com` | Order pending/shipped, question, report |
 | Customer 3 | `customer3@ecommerce.com` | Order cancelled/delivered, commission request |

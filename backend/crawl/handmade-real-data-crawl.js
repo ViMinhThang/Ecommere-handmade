@@ -248,7 +248,7 @@ function normalizeEbay(rawItems) {
         priceVnd: Math.max(30000, Math.round(Number(item.priceValue))),
         priceText: item.priceText,
         categorySlug: 'ceramics',
-        sellerEmail: 'ebay.importer@local.dev',
+        sellerEmail: 'seller7@ecommerce.com',
         status: index === 0 ? 'PENDING' : 'APPROVED',
         stock: 4 + (index % 18),
         lowStockThreshold: 3,
@@ -385,9 +385,9 @@ function buildFixture({ ebayItems, shopifyRawProducts, generatedAt }) {
     ],
     sellers: [
       {
-        email: 'ebay.importer@local.dev',
-        name: 'eBay Handmade Importer',
-        shopName: 'eBay Handmade Source',
+        email: 'seller7@ecommerce.com',
+        name: 'Đồ Gốm Bát Tràng Minh Khang',
+        shopName: 'Đồ Gốm Bát Tràng Minh Khang',
         sellerTitle: 'Real handmade product source from local eBay crawl',
         sellerBio:
           'Local importer account for real products that preserve source URLs. The raw file does not include real seller username.',

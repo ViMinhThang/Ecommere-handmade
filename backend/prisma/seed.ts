@@ -1,4 +1,4 @@
-﻿import {
+import {
   CategoryStatus,
   ChatMessageType,
   CommissionPostStatus,
@@ -51,7 +51,7 @@ const demoImages = {
 };
 
 const demoImageSourceNote =
-  'Ảnh demo dùng URL Unsplash cho local MVP; không hotlink ảnh từ sàn thương mại điện tử, không watermark, không tạo ảnh AI.';
+  '?nh demo d�ng URL Unsplash cho local MVP; kh�ng hotlink ?nh t? s�n thuong m?i di?n t?, kh�ng watermark, kh�ng t?o ?nh AI.';
 
 type DemoUserInput = {
   email: string;
@@ -193,12 +193,12 @@ async function ensureDefaultAddress(userId: string) {
   });
 
   const address = {
-    fullName: 'Nguyễn Minh Anh',
+    fullName: 'Nguy?n Minh Anh',
     phone: '0900000001',
-    address: '12 Đường Thủ Công',
-    city: 'Hồ Chí Minh',
-    district: 'Quận 1',
-    ward: 'Bến Nghé',
+    address: '12 �u?ng Th? C�ng',
+    city: 'H? Ch� Minh',
+    district: 'Qu?n 1',
+    ward: 'B?n Ngh�',
     isDefault: true,
     deletedAt: null,
   };
@@ -496,9 +496,9 @@ async function ensureDemoOrder(input: {
         currency: 'vnd',
         ...(input.createdAt ? { createdAt: input.createdAt } : {}),
         shippingAddress: {
-          fullName: 'Nguyễn Minh Anh',
+          fullName: 'Nguy?n Minh Anh',
           phone: '0900000001',
-          address: '12 Đường Thủ Công, Quận 1, Hồ Chí Minh',
+          address: '12 �u?ng Th? C�ng, Qu?n 1, H? Ch� Minh',
         },
       },
     });
@@ -578,9 +578,9 @@ async function ensureDemoOrder(input: {
       currency: 'vnd',
       ...(input.createdAt ? { createdAt: input.createdAt } : {}),
       shippingAddress: {
-        fullName: 'Nguyễn Minh Anh',
+        fullName: 'Nguy?n Minh Anh',
         phone: '0900000001',
-        address: '12 Đường Thủ Công, Quận 1, Hồ Chí Minh',
+        address: '12 �u?ng Th? C�ng, Qu?n 1, H? Ch� Minh',
       },
       subOrders: {
         create: [
@@ -766,20 +766,20 @@ async function seedCeramicPurchaseHistoryForUsers(categoryId: string) {
 
 async function seedReviewsForCeramicPurchaseHistory() {
   const reviewComments = [
-    'Men gốm lên màu rất đẹp, cầm chắc tay và đóng gói kỹ.',
-    'Sản phẩm đúng ảnh, bề mặt hoàn thiện mịn và dùng hằng ngày rất thích.',
-    'Màu men ngoài đời ấm hơn ảnh, shop gói hàng cẩn thận.',
-    'Đường nét thủ công có nét riêng, đặt trên bàn rất xinh.',
-    'Giao hàng nhanh, món gốm không sứt mẻ và chất lượng tốt.',
-    'Kiểu dáng tối giản, phù hợp làm quà tặng cho người thích đồ handmade.',
-    'Lớp men đẹp, hơi khác nhẹ giữa từng sản phẩm nhưng rất có duyên.',
-    'Sản phẩm chắc chắn, giá hợp lý so với độ hoàn thiện.',
+    'Men g?m l�n m�u r?t d?p, c?m ch?c tay v� d�ng g�i k?.',
+    'S?n ph?m d�ng ?nh, b? m?t ho�n thi?n m?n v� d�ng h?ng ng�y r?t th�ch.',
+    'M�u men ngo�i d?i ?m hon ?nh, shop g�i h�ng c?n th?n.',
+    '�u?ng n�t th? c�ng c� n�t ri�ng, d?t tr�n b�n r?t xinh.',
+    'Giao h�ng nhanh, m�n g?m kh�ng s?t m? v� ch?t lu?ng t?t.',
+    'Ki?u d�ng t?i gi?n, ph� h?p l�m qu� t?ng cho ngu?i th�ch d? handmade.',
+    'L?p men d?p, hoi kh�c nh? gi?a t?ng s?n ph?m nhung r?t c� duy�n.',
+    'S?n ph?m ch?c ch?n, gi� h?p l� so v?i d? ho�n thi?n.',
   ];
   const sellerReplies = [
-    'Cảm ơn bạn đã ủng hộ shop, chúc bạn dùng sản phẩm thật vui.',
-    'Shop rất vui khi sản phẩm đến tay bạn an toàn.',
-    'Cảm ơn góp ý của bạn, shop sẽ tiếp tục hoàn thiện từng mẻ gốm.',
-    'Cảm ơn bạn đã yêu thích đồ gốm thủ công của shop.',
+    'C?m on b?n d� ?ng h? shop, ch�c b?n d�ng s?n ph?m th?t vui.',
+    'Shop r?t vui khi s?n ph?m d?n tay b?n an to�n.',
+    'C?m on g�p � c?a b?n, shop s? ti?p t?c ho�n thi?n t?ng m? g?m.',
+    'C?m on b?n d� y�u th�ch d? g?m th? c�ng c?a shop.',
   ];
   const orders = await prisma.order.findMany({
     where: {
@@ -833,7 +833,7 @@ async function seedReviewsForCeramicPurchaseHistory() {
 }
 
 async function ensureMediaLibrary(userId: string, imagePaths: string[]) {
-  const folderName = 'Ảnh demo sản phẩm';
+  const folderName = '?nh demo s?n ph?m';
   const folder =
     (await prisma.imageFolder.findFirst({
       where: { userId, name: folderName, deletedAt: null },
@@ -1123,12 +1123,12 @@ async function ensureQuoteTemplate(input: {
     estimatedPrice: input.estimatedPrice,
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
-    materials: ['Gốm thủ công', 'Men an toàn thực phẩm'],
-    sizeOptions: ['Bộ 2 món', 'Bộ 4 món'],
+    materials: ['G?m th? c�ng', 'Men an to�n th?c ph?m'],
+    sizeOptions: ['B? 2 m�n', 'B? 4 m�n'],
     estimatedLeadTime: input.estimatedLeadTime,
-    revisionPolicy: 'Bao gồm 1 lần chỉnh sửa bản phác thảo.',
-    shippingNote: 'Đóng gói chống sốc trước khi giao.',
-    termsNote: 'Khách duyệt phác thảo trước khi người bán bắt đầu chế tác.',
+    revisionPolicy: 'Bao g?m 1 l?n ch?nh s?a b?n ph�c th?o.',
+    shippingNote: '��ng g�i ch?ng s?c tru?c khi giao.',
+    termsNote: 'Kh�ch duy?t ph�c th?o tru?c khi ngu?i b�n b?t d?u ch? t�c.',
     isActive: true,
     deletedAt: null,
   };
@@ -1177,7 +1177,7 @@ async function ensureCustomOrder(input: {
     artisanNote: input.artisanNote,
     price: input.price,
     leadTime: input.leadTime,
-    specifications: ['Màu ấm', 'Cá nhân hóa theo tên', 'Đóng gói quà tặng'],
+    specifications: ['M�u ?m', 'C� nh�n h�a theo t�n', '��ng g�i qu� t?ng'],
     sketchImageUrl: input.sketchImageUrl,
     status: input.status,
     paymentStatus:
@@ -1255,10 +1255,10 @@ async function ensureCommissionDemo(input: {
   });
   const postData = {
     description:
-      'Khách muốn đặt một món quà handmade cá nhân hóa để tặng sinh nhật.',
+      'Kh�ch mu?n d?t m?t m�n qu� handmade c� nh�n h�a d? t?ng sinh nh?t.',
     budgetMin: '250000',
     budgetMax: '600000',
-    desiredTimeline: '2 tuần',
+    desiredTimeline: '2 tu?n',
     referenceImages: [input.referenceImage],
     status: CommissionPostStatus.OPEN,
   };
@@ -1284,9 +1284,9 @@ async function ensureCommissionDemo(input: {
     },
     update: {
       message:
-        'Shop có thể làm bản phác thảo trong 2 ngày và hoàn thiện trong 10 ngày.',
+        'Shop c� th? l�m b?n ph�c th?o trong 2 ng�y v� ho�n thi?n trong 10 ng�y.',
       proposedPrice: '420000',
-      proposedLeadTime: '10 ngày',
+      proposedLeadTime: '10 ng�y',
       sketchImageUrl: input.referenceImage,
       status: CommissionProposalStatus.PENDING,
     },
@@ -1294,9 +1294,9 @@ async function ensureCommissionDemo(input: {
       commissionId: post.id,
       sellerId: input.sellerId,
       message:
-        'Shop có thể làm bản phác thảo trong 2 ngày và hoàn thiện trong 10 ngày.',
+        'Shop c� th? l�m b?n ph�c th?o trong 2 ng�y v� ho�n thi?n trong 10 ng�y.',
       proposedPrice: '420000',
-      proposedLeadTime: '10 ngày',
+      proposedLeadTime: '10 ng�y',
       sketchImageUrl: input.referenceImage,
       status: CommissionProposalStatus.PENDING,
     },
@@ -1366,87 +1366,87 @@ async function main() {
     where: { id: 'platform' },
     update: {
       platformName: 'HandCraft Market',
-      platformDescription: 'Marketplace cho sản phẩm handmade',
+      platformDescription: 'Marketplace cho s?n ph?m handmade',
       commissionBps: 1000,
     },
     create: {
       id: 'platform',
       platformName: 'HandCraft Market',
-      platformDescription: 'Marketplace cho sản phẩm handmade',
+      platformDescription: 'Marketplace cho s?n ph?m handmade',
       commissionBps: 1000,
     },
   });
 
   const categories = [
     {
-      name: 'Gốm sứ thủ công',
+      name: 'G?m s? th? c�ng',
       slug: 'ceramics',
-      description: 'Ly, bình và đồ trang trí gốm sứ làm tay.',
+      description: 'Ly, b�nh v� d? trang tr� g?m s? l�m tay.',
       image: demoImages.ceramic,
     },
     {
-      name: 'Vải và túi handmade',
+      name: 'V?i v� t�i handmade',
       slug: 'textiles',
-      description: 'Túi vải, phụ kiện và sản phẩm may thủ công.',
+      description: 'T�i v?i, ph? ki?n v� s?n ph?m may th? c�ng.',
       image: demoImages.linen,
     },
     {
-      name: 'Trang sức thủ công',
+      name: 'Trang s?c th? c�ng',
       slug: 'jewelry',
-      description: 'Vòng tay, dây chuyền và phụ kiện làm tay.',
+      description: 'V�ng tay, d�y chuy?n v� ph? ki?n l�m tay.',
       image: demoImages.jewelry,
     },
     {
-      name: 'Đồ gỗ trang trí',
+      name: '�? g? trang tr�',
       slug: 'wood-decor',
-      description: 'Khay gỗ, kệ nhỏ và decor nhà cửa.',
+      description: 'Khay g?, k? nh? v� decor nh� c?a.',
       image: demoImages.wood,
     },
     {
-      name: 'Thiệp và giấy nghệ thuật',
+      name: 'Thi?p v� gi?y ngh? thu?t',
       slug: 'paper-art',
-      description: 'Thiệp, scrapbook và sản phẩm giấy thủ công.',
+      description: 'Thi?p, scrapbook v� s?n ph?m gi?y th? c�ng.',
       image: demoImages.paper,
     },
     {
-      name: 'Đồ len và crochet',
+      name: '�? len v� crochet',
       slug: 'crochet',
-      description: 'Hoa len, thú bông, lót ly và phụ kiện móc thủ công.',
+      description: 'Hoa len, th� b�ng, l�t ly v� ph? ki?n m�c th? c�ng.',
       image: demoImages.crochet,
     },
     {
-      name: 'Tranh và decor thủ công',
+      name: 'Tranh v� decor th? c�ng',
       slug: 'wall-decor',
       description:
-        'Tranh, macrame và đồ trang trí làm tay cho không gian sống.',
+        'Tranh, macrame v� d? trang tr� l�m tay cho kh�ng gian s?ng.',
       image: demoImages.decor,
     },
     {
-      name: 'Nến thơm handmade',
+      name: 'N?n thom handmade',
       slug: 'candles',
       description:
-        'Nến sáp đậu nành, nến thơm thư giãn và set quà hương liệu làm thủ công.',
+        'N?n s�p d?u n�nh, n?n thom thu gi�n v� set qu� huong li?u l�m th? c�ng.',
       image: demoImages.candle,
     },
     {
-      name: 'Xà phòng và mỹ phẩm handmade',
+      name: 'X� ph�ng v� m? ph?m handmade',
       slug: 'soap-cosmetics',
       description:
-        'Xà phòng cold process, son dưỡng, muối tắm và chăm sóc cơ thể từ nguyên liệu lành tính.',
+        'X� ph�ng cold process, son du?ng, mu?i t?m v� cham s�c co th? t? nguy�n li?u l�nh t�nh.',
       image: demoImages.soap,
     },
     {
-      name: 'Phụ kiện tóc handmade',
+      name: 'Ph? ki?n t�c handmade',
       slug: 'hair-accessories',
       description:
-        'Kẹp tóc, scrunchie, băng đô và phụ kiện tóc may hoặc đính thủ công.',
+        'K?p t�c, scrunchie, bang d� v� ph? ki?n t�c may ho?c d�nh th? c�ng.',
       image: demoImages.hair,
     },
     {
-      name: 'Đồ da thủ công',
+      name: '�? da th? c�ng',
       slug: 'leather-goods',
       description:
-        'Ví da, móc khóa, bao thẻ và phụ kiện da làm tay theo phong cách bền vững.',
+        'V� da, m�c kh�a, bao th? v� ph? ki?n da l�m tay theo phong c�ch b?n v?ng.',
       image: demoImages.leather,
     },
   ];
@@ -1527,143 +1527,143 @@ async function main() {
 
   const seller = await upsertDemoUser({
     email: 'seller@ecommerce.com',
-    name: 'Linh Trần',
+    name: 'Linh Tr?n',
     roles: [Role.ROLE_USER, Role.ROLE_SELLER],
     phone: '0901000001',
     shopName: 'Linh Ceramic Studio',
-    sellerTitle: 'Nghệ nhân gốm sứ',
-    sellerBio: 'Gốm sứ làm tay với men màu ấm và kiểu dáng hiện đại.',
+    sellerTitle: 'Ngh? nh�n g?m s?',
+    sellerBio: 'G?m s? l�m tay v?i men m�u ?m v� ki?u d�ng hi?n d?i.',
     sellerAbout:
-      'Linh Ceramic Studio tập trung vào các sản phẩm gốm sứ dùng hằng ngày, làm thủ công theo từng mẻ nhỏ.',
+      'Linh Ceramic Studio t?p trung v�o c�c s?n ph?m g?m s? d�ng h?ng ng�y, l�m th? c�ng theo t?ng m? nh?.',
     sellerHeroImage: demoImages.ceramic,
     sellerAboutImage: demoImages.wood,
-    sellerStat1Label: 'Sản phẩm',
+    sellerStat1Label: 'S?n ph?m',
     sellerStat1Value: '12+',
-    sellerStat2Label: 'Năm kinh nghiệm',
+    sellerStat2Label: 'Nam kinh nghi?m',
     sellerStat2Value: '5',
     artisanVerified: true,
-    craftSpecialty: 'Gốm sứ gia dụng làm tay',
+    craftSpecialty: 'G?m s? gia d?ng l�m tay',
     craftExperienceYears: 5,
-    craftMaterials: ['Đất sét', 'Men nâu', 'Men tro'],
+    craftMaterials: ['�?t s�t', 'Men n�u', 'Men tro'],
     verificationNote:
-      'Đã xác minh hồ sơ nghệ nhân và quy trình làm gốm thủ công cho demo local.',
+      '�� x�c minh h? so ngh? nh�n v� quy tr�nh l�m g?m th? c�ng cho demo local.',
     avatar: demoImages.ceramic,
   });
 
   const seller2 = await upsertDemoUser({
     email: 'seller2@ecommerce.com',
-    name: 'Mai Nguyễn',
+    name: 'Mai Nguy?n',
     roles: [Role.ROLE_USER, Role.ROLE_SELLER],
     phone: '0901000002',
     shopName: 'Mai Handmade Gifts',
-    sellerTitle: 'Nghệ nhân quà tặng',
-    sellerBio: 'Quà tặng thủ công, nến thơm và phụ kiện vải cá nhân hóa.',
+    sellerTitle: 'Ngh? nh�n qu� t?ng',
+    sellerBio: 'Qu� t?ng th? c�ng, n?n thom v� ph? ki?n v?i c� nh�n h�a.',
     sellerAbout:
-      'Mai Handmade Gifts tạo nến thơm, đồ vải và quà tặng cá nhân hóa cho các dịp đặc biệt.',
+      'Mai Handmade Gifts t?o n?n thom, d? v?i v� qu� t?ng c� nh�n h�a cho c�c d?p d?c bi?t.',
     sellerHeroImage: demoImages.candle,
     sellerAboutImage: demoImages.crochet,
-    sellerStat1Label: 'Đơn hoàn thành',
+    sellerStat1Label: '�on ho�n th�nh',
     sellerStat1Value: '80+',
-    sellerStat2Label: 'Phong cách',
-    sellerStat2Value: 'Quà tặng',
+    sellerStat2Label: 'Phong c�ch',
+    sellerStat2Value: 'Qu� t?ng',
     artisanVerified: true,
-    craftSpecialty: 'Quà tặng cá nhân hóa và nến thơm',
+    craftSpecialty: 'Qu� t?ng c� nh�n h�a v� n?n thom',
     craftExperienceYears: 4,
-    craftMaterials: ['Sáp đậu nành', 'Vải linen', 'Giấy kraft'],
+    craftMaterials: ['S�p d?u n�nh', 'V?i linen', 'Gi?y kraft'],
     verificationNote:
-      'Đã xác minh studio quà tặng handmade, phù hợp demo verified artisan.',
+      '�� x�c minh studio qu� t?ng handmade, ph� h?p demo verified artisan.',
     avatar: demoImages.candle,
   });
 
   const seller3 = await upsertDemoUser({
     email: 'seller3@ecommerce.com',
-    name: 'Quang Phạm',
+    name: 'Quang Ph?m',
     roles: [Role.ROLE_USER, Role.ROLE_SELLER],
     phone: '0901000003',
-    shopName: 'Mộc Nhiên Studio',
-    sellerTitle: 'Xưởng gỗ và da thủ công',
+    shopName: 'M?c Nhi�n Studio',
+    sellerTitle: 'Xu?ng g? v� da th? c�ng',
     sellerBio:
-      'Đồ gỗ decor, ví da và phụ kiện bàn làm việc được hoàn thiện bằng tay.',
+      '�? g? decor, v� da v� ph? ki?n b�n l�m vi?c du?c ho�n thi?n b?ng tay.',
     sellerAbout:
-      'Mộc Nhiên Studio ưu tiên vật liệu bền, bề mặt hoàn thiện mộc và các chi tiết sử dụng lâu dài trong không gian sống.',
+      'M?c Nhi�n Studio uu ti�n v?t li?u b?n, b? m?t ho�n thi?n m?c v� c�c chi ti?t s? d?ng l�u d�i trong kh�ng gian s?ng.',
     sellerHeroImage: demoImages.wood,
     sellerAboutImage: demoImages.leather,
-    sellerStat1Label: 'Đơn tùy chỉnh',
+    sellerStat1Label: '�on t�y ch?nh',
     sellerStat1Value: '35+',
-    sellerStat2Label: 'Chất liệu',
-    sellerStat2Value: 'Gỗ & da',
-    craftSpecialty: 'Đồ gỗ decor và phụ kiện da',
+    sellerStat2Label: 'Ch?t li?u',
+    sellerStat2Value: 'G? & da',
+    craftSpecialty: '�? g? decor v� ph? ki?n da',
     craftExperienceYears: 6,
-    craftMaterials: ['Gỗ cao su', 'Da bò', 'Dầu lau gỗ'],
+    craftMaterials: ['G? cao su', 'Da b�', 'D?u lau g?'],
     avatar: demoImages.wood,
   });
 
   const seller4 = await upsertDemoUser({
     email: 'seller4@ecommerce.com',
-    name: 'Mây Lê',
+    name: 'M�y L�',
     roles: [Role.ROLE_USER, Role.ROLE_SELLER],
     phone: '0901000004',
-    shopName: 'Len Nhà Mây',
-    sellerTitle: 'Crochet và đồ len cotton',
+    shopName: 'Len Nh� M�y',
+    sellerTitle: 'Crochet v� d? len cotton',
     sellerBio:
-      'Thú bông len, túi crochet, phụ kiện len mềm và các món quà nhỏ móc tay.',
+      'Th� b�ng len, t�i crochet, ph? ki?n len m?m v� c�c m�n qu� nh? m�c tay.',
     sellerAbout:
-      'Len Nhà Mây làm từng sản phẩm bằng len cotton mềm, ưu tiên màu pastel và kích thước gọn cho quà tặng cá nhân.',
+      'Len Nh� M�y l�m t?ng s?n ph?m b?ng len cotton m?m, uu ti�n m�u pastel v� k�ch thu?c g?n cho qu� t?ng c� nh�n.',
     sellerHeroImage: demoImages.crochet,
     sellerAboutImage: demoImages.gift,
-    sellerStat1Label: 'Mẫu len',
+    sellerStat1Label: 'M?u len',
     sellerStat1Value: '24+',
-    sellerStat2Label: 'Thời gian',
-    sellerStat2Value: '3-7 ngày',
-    craftSpecialty: 'Crochet và quà tặng len',
+    sellerStat2Label: 'Th?i gian',
+    sellerStat2Value: '3-7 ng�y',
+    craftSpecialty: 'Crochet v� qu� t?ng len',
     craftExperienceYears: 3,
-    craftMaterials: ['Len cotton', 'Sợi acrylic', 'Phụ kiện móc khóa'],
+    craftMaterials: ['Len cotton', 'S?i acrylic', 'Ph? ki?n m�c kh�a'],
     avatar: demoImages.crochet,
   });
 
   const seller5 = await upsertDemoUser({
     email: 'seller5@ecommerce.com',
-    name: 'An Nhiên',
+    name: 'An Nhi�n',
     roles: [Role.ROLE_USER, Role.ROLE_SELLER],
     phone: '0901000005',
-    shopName: 'Gốm An Nhiên',
-    sellerTitle: 'Gốm thủ công men tự nhiên',
+    shopName: 'G?m An Nhi�n',
+    sellerTitle: 'G?m th? c�ng men t? nhi�n',
     sellerBio:
-      'Ly, chén, bình hoa và đồ bàn ăn gốm thủ công với tông men tự nhiên.',
+      'Ly, ch�n, b�nh hoa v� d? b�n an g?m th? c�ng v?i t�ng men t? nhi�n.',
     sellerAbout:
-      'Gốm An Nhiên làm theo mẻ nhỏ, mỗi sản phẩm có biến thiên men nhẹ nên phù hợp với người thích đồ thủ công độc bản.',
+      'G?m An Nhi�n l�m theo m? nh?, m?i s?n ph?m c� bi?n thi�n men nh? n�n ph� h?p v?i ngu?i th�ch d? th? c�ng d?c b?n.',
     sellerHeroImage: demoImages.ceramic,
     sellerAboutImage: demoImages.decor,
-    sellerStat1Label: 'Mẻ gốm',
+    sellerStat1Label: 'M? g?m',
     sellerStat1Value: '18+',
-    sellerStat2Label: 'Phong cách',
+    sellerStat2Label: 'Phong c�ch',
     sellerStat2Value: 'Wabi-sabi',
-    craftSpecialty: 'Gốm men tự nhiên',
+    craftSpecialty: 'G?m men t? nhi�n',
     craftExperienceYears: 7,
-    craftMaterials: ['Đất sét trắng', 'Men tự nhiên', 'Tro thực vật'],
+    craftMaterials: ['�?t s�t tr?ng', 'Men t? nhi�n', 'Tro th?c v?t'],
     avatar: demoImages.ceramic,
   });
 
   const seller6 = await upsertDemoUser({
     email: 'seller6@ecommerce.com',
-    name: 'Hà Chi',
+    name: 'H� Chi',
     roles: [Role.ROLE_USER, Role.ROLE_SELLER],
     phone: '0901000006',
-    shopName: 'Nến Thơm Hoa Cỏ',
-    sellerTitle: 'Nến thơm và chăm sóc cơ thể',
+    shopName: 'N?n Thom Hoa C?',
+    sellerTitle: 'N?n thom v� cham s�c co th?',
     sellerBio:
-      'Nến sáp đậu nành, xà phòng handmade và set thư giãn từ hương hoa cỏ.',
+      'N?n s�p d?u n�nh, x� ph�ng handmade v� set thu gi�n t? huong hoa c?.',
     sellerAbout:
-      'Nến Thơm Hoa Cỏ dùng sáp thực vật, tinh dầu dịu nhẹ và bao bì giấy tái chế để tạo quà tặng chăm sóc bản thân.',
+      'N?n Thom Hoa C? d�ng s�p th?c v?t, tinh d?u d?u nh? v� bao b� gi?y t�i ch? d? t?o qu� t?ng cham s�c b?n th�n.',
     sellerHeroImage: demoImages.candle,
     sellerAboutImage: demoImages.soap,
-    sellerStat1Label: 'Mùi hương',
+    sellerStat1Label: 'M�i huong',
     sellerStat1Value: '16+',
-    sellerStat2Label: 'Lưu hương',
-    sellerStat2Value: 'Nhẹ dịu',
-    craftSpecialty: 'Nến thơm thực vật và xà phòng handmade',
+    sellerStat2Label: 'Luu huong',
+    sellerStat2Value: 'Nh? d?u',
+    craftSpecialty: 'N?n thom th?c v?t v� x� ph�ng handmade',
     craftExperienceYears: 4,
-    craftMaterials: ['Sáp đậu nành', 'Tinh dầu', 'Dầu dừa'],
+    craftMaterials: ['S�p d?u n�nh', 'Tinh d?u', 'D?u d?a'],
     avatar: demoImages.soap,
   });
 
@@ -1677,7 +1677,7 @@ async function main() {
 
   const customer2 = await upsertDemoUser({
     email: 'customer2@ecommerce.com',
-    name: 'Hoàng Nam',
+    name: 'Ho�ng Nam',
     roles: [Role.ROLE_USER],
     phone: '0902000002',
     avatar: demoImages.wood,
@@ -1685,7 +1685,7 @@ async function main() {
 
   const customer3 = await upsertDemoUser({
     email: 'customer3@ecommerce.com',
-    name: 'Thu Hà',
+    name: 'Thu H�',
     roles: [Role.ROLE_USER],
     phone: '0902000003',
     avatar: demoImages.paper,
@@ -1693,7 +1693,7 @@ async function main() {
 
   const customer4 = await upsertDemoUser({
     email: 'customer4@ecommerce.com',
-    name: 'Bảo Ngọc',
+    name: 'B?o Ng?c',
     roles: [Role.ROLE_USER],
     phone: '0902000004',
     avatar: demoImages.gift,
@@ -1701,7 +1701,7 @@ async function main() {
 
   const customer5 = await upsertDemoUser({
     email: 'customer5@ecommerce.com',
-    name: 'Tuấn Khang',
+    name: 'Tu?n Khang',
     roles: [Role.ROLE_USER],
     phone: '0902000005',
     avatar: demoImages.leather,
@@ -1717,20 +1717,20 @@ async function main() {
 
   const extraCustomers = await Promise.all(
     [
-      'Gia Hân',
-      'Khánh Linh',
-      'Phương Mai',
-      'Đức Anh',
-      'Ngọc Huyền',
-      'Thanh Tâm',
-      'Quỳnh Như',
+      'Gia H�n',
+      'Kh�nh Linh',
+      'Phuong Mai',
+      '�?c Anh',
+      'Ng?c Huy?n',
+      'Thanh T�m',
+      'Qu?nh Nhu',
       'Anh Khoa',
-      'Mỹ Duyên',
-      'Hải Đăng',
-      'Tường Vy',
-      'Minh Quân',
-      'Bích Ngọc',
-      'Việt An',
+      'M? Duy�n',
+      'H?i �ang',
+      'Tu?ng Vy',
+      'Minh Qu�n',
+      'B�ch Ng?c',
+      'Vi?t An',
     ].map((name, index) =>
       upsertDemoUser({
         email: `customer${index + 7}@ecommerce.com`,
@@ -1794,9 +1794,9 @@ async function main() {
 
   const mug = await upsertProduct({
     sku: 'DEMO-CERAMIC-MUG',
-    name: 'Ly gốm men nâu làm tay',
+    name: 'Ly g?m men n�u l�m tay',
     description:
-      'Ly gốm dung tích 300ml, được tạo hình và phủ men thủ công. Phù hợp làm quà tặng hoặc dùng hằng ngày.',
+      'Ly g?m dung t�ch 300ml, du?c t?o h�nh v� ph? men th? c�ng. Ph� h?p l�m qu� t?ng ho?c d�ng h?ng ng�y.',
     price: '180000',
     categoryId: categoryIds.ceramics,
     sellerId: seller.id,
@@ -1808,9 +1808,9 @@ async function main() {
 
   const tote = await upsertProduct({
     sku: 'DEMO-LINEN-TOTE',
-    name: 'Túi vải linen thêu tay',
+    name: 'T�i v?i linen th�u tay',
     description:
-      'Túi linen có quai dày, thêu họa tiết nhỏ bằng tay. Chất liệu bền và dễ phối đồ.',
+      'T�i linen c� quai d�y, th�u h?a ti?t nh? b?ng tay. Ch?t li?u b?n v� d? ph?i d?.',
     price: '220000',
     categoryId: categoryIds.textiles,
     sellerId: seller2.id,
@@ -1822,9 +1822,9 @@ async function main() {
 
   const candle = await upsertProduct({
     sku: 'DEMO-SOY-CANDLE',
-    name: 'Nến thơm đậu nành hương mộc',
+    name: 'N?n thom d?u n�nh huong m?c',
     description:
-      'Nến thơm sáp đậu nành trong cốc gốm nhỏ, mùi hương dịu nhẹ cho bàn làm việc và phòng ngủ.',
+      'N?n thom s�p d?u n�nh trong c?c g?m nh?, m�i huong d?u nh? cho b�n l�m vi?c v� ph�ng ng?.',
     price: '150000',
     categoryId: categoryIds.candles,
     sellerId: seller2.id,
@@ -1836,9 +1836,9 @@ async function main() {
 
   const bracelet = await upsertProduct({
     sku: 'DEMO-SILVER-BRACELET',
-    name: 'Vòng tay bạc đan hạt gốm',
+    name: 'V�ng tay b?c dan h?t g?m',
     description:
-      'Vòng tay bạc tối giản kết hợp hạt gốm nhỏ, có thể điều chỉnh kích thước.',
+      'V�ng tay b?c t?i gi?n k?t h?p h?t g?m nh?, c� th? di?u ch?nh k�ch thu?c.',
     price: '320000',
     categoryId: categoryIds.jewelry,
     sellerId: seller.id,
@@ -1850,9 +1850,9 @@ async function main() {
 
   const woodTray = await upsertProduct({
     sku: 'DEMO-WOODEN-TRAY',
-    name: 'Khay gỗ decor phòng khách',
+    name: 'Khay g? decor ph�ng kh�ch',
     description:
-      'Khay gỗ nhỏ được chà nhám và phủ dầu bảo vệ, dùng để decor bàn trà hoặc kệ sách.',
+      'Khay g? nh? du?c ch� nh�m v� ph? d?u b?o v?, d�ng d? decor b�n tr� ho?c k? s�ch.',
     price: '260000',
     categoryId: categoryIds['wood-decor'],
     sellerId: seller.id,
@@ -1864,9 +1864,9 @@ async function main() {
 
   const paperCard = await upsertProduct({
     sku: 'DEMO-PAPER-CARD',
-    name: 'Thiệp giấy ép hoa khô',
+    name: 'Thi?p gi?y �p hoa kh�',
     description:
-      'Thiệp handmade ép hoa khô, có phong bì kèm theo, phù hợp sinh nhật và kỷ niệm.',
+      'Thi?p handmade �p hoa kh�, c� phong b� k�m theo, ph� h?p sinh nh?t v� k? ni?m.',
     price: '65000',
     categoryId: categoryIds['paper-art'],
     sellerId: seller2.id,
@@ -1885,9 +1885,9 @@ async function main() {
     paperCard,
     ceramicBowl: await upsertProduct({
       sku: 'DEMO-CERAMIC-BOWL',
-      name: 'Bát gốm men kem vẽ tay',
+      name: 'B�t g?m men kem v? tay',
       description:
-        'Bát gốm nhỏ phủ men kem, viền vẽ tay, phù hợp dùng cho bữa sáng hoặc decor bàn ăn.',
+        'B�t g?m nh? ph? men kem, vi?n v? tay, ph� h?p d�ng cho b?a s�ng ho?c decor b�n an.',
       price: '165000',
       categoryId: categoryIds.ceramics,
       sellerId: seller5.id,
@@ -1898,9 +1898,9 @@ async function main() {
     }),
     ceramicVase: await upsertProduct({
       sku: 'DEMO-CERAMIC-VASE',
-      name: 'Bình gốm mini cắm hoa khô',
+      name: 'B�nh g?m mini c?m hoa kh�',
       description:
-        'Bình gốm dáng trụ nhỏ, màu men nâu đất, dùng cắm hoa khô hoặc trang trí kệ sách.',
+        'B�nh g?m d�ng tr? nh?, m�u men n�u d?t, d�ng c?m hoa kh� ho?c trang tr� k? s�ch.',
       price: '240000',
       categoryId: categoryIds.ceramics,
       sellerId: seller5.id,
@@ -1911,9 +1911,9 @@ async function main() {
     }),
     incenseHolder: await upsertProduct({
       sku: 'DEMO-INCENSE-HOLDER',
-      name: 'Đế đốt trầm gốm thủ công',
+      name: '�? d?t tr?m g?m th? c�ng',
       description:
-        'Đế đốt trầm men mờ, tạo hình thủ công, hợp với góc làm việc hoặc phòng thiền.',
+        '�? d?t tr?m men m?, t?o h�nh th? c�ng, h?p v?i g�c l�m vi?c ho?c ph�ng thi?n.',
       price: '125000',
       categoryId: categoryIds.ceramics,
       sellerId: seller.id,
@@ -1924,9 +1924,9 @@ async function main() {
     }),
     embroideredPouch: await upsertProduct({
       sku: 'DEMO-EMBROIDERED-POUCH',
-      name: 'Ví vải thêu hoa lavender',
+      name: 'V� v?i th�u hoa lavender',
       description:
-        'Ví vải nhỏ có khóa kéo, thêu hoa lavender bằng tay, dùng đựng mỹ phẩm hoặc phụ kiện.',
+        'V� v?i nh? c� kh�a k�o, th�u hoa lavender b?ng tay, d�ng d?ng m? ph?m ho?c ph? ki?n.',
       price: '145000',
       categoryId: categoryIds.textiles,
       sellerId: seller2.id,
@@ -1937,9 +1937,9 @@ async function main() {
     }),
     fabricHeadband: await upsertProduct({
       sku: 'DEMO-FABRIC-HEADBAND',
-      name: 'Băng đô vải linen thắt nơ',
+      name: 'Bang d� v?i linen th?t no',
       description:
-        'Băng đô linen mềm, may thủ công, phối được với trang phục tối giản hằng ngày.',
+        'Bang d� linen m?m, may th? c�ng, ph?i du?c v?i trang ph?c t?i gi?n h?ng ng�y.',
       price: '85000',
       categoryId: categoryIds.textiles,
       sellerId: seller2.id,
@@ -1950,9 +1950,9 @@ async function main() {
     }),
     candleGiftSet: await upsertProduct({
       sku: 'DEMO-CANDLE-GIFT-SET',
-      name: 'Set nến thơm quà tặng 3 mùi',
+      name: 'Set n?n thom qu� t?ng 3 m�i',
       description:
-        'Bộ 3 nến thơm size mini gồm gỗ tuyết tùng, cam ngọt và trà trắng, đóng hộp quà.',
+        'B? 3 n?n thom size mini g?m g? tuy?t t�ng, cam ng?t v� tr� tr?ng, d�ng h?p qu�.',
       price: '290000',
       categoryId: categoryIds.candles,
       sellerId: seller2.id,
@@ -1963,9 +1963,9 @@ async function main() {
     }),
     ceramicPlanter: await upsertProduct({
       sku: 'DEMO-CERAMIC-PLANTER-SOLDOUT',
-      name: 'Chậu cây gốm men rêu',
+      name: 'Ch?u c�y g?m men r�u',
       description:
-        'Chậu cây gốm men rêu kích thước nhỏ cho sen đá, hiện dùng để demo trạng thái hết hàng.',
+        'Ch?u c�y g?m men r�u k�ch thu?c nh? cho sen d�, hi?n d�ng d? demo tr?ng th�i h?t h�ng.',
       price: '210000',
       categoryId: categoryIds.ceramics,
       sellerId: seller5.id,
@@ -1976,9 +1976,9 @@ async function main() {
     }),
     beadedNecklace: await upsertProduct({
       sku: 'DEMO-BEADED-NECKLACE',
-      name: 'Dây chuyền hạt gốm phối bạc',
+      name: 'D�y chuy?n h?t g?m ph?i b?c',
       description:
-        'Dây chuyền hạt gốm nhỏ phối charm bạc, làm thủ công theo tông màu trung tính.',
+        'D�y chuy?n h?t g?m nh? ph?i charm b?c, l�m th? c�ng theo t�ng m�u trung t�nh.',
       price: '360000',
       categoryId: categoryIds.jewelry,
       sellerId: seller.id,
@@ -1989,9 +1989,9 @@ async function main() {
     }),
     wovenEarrings: await upsertProduct({
       sku: 'DEMO-WOVEN-EARRINGS',
-      name: 'Khuyên tai đan sợi màu đất',
+      name: 'Khuy�n tai dan s?i m�u d?t',
       description:
-        'Khuyên tai nhẹ, đan sợi thủ công với vòng kim loại chống gỉ, phù hợp phong cách boho.',
+        'Khuy�n tai nh?, dan s?i th? c�ng v?i v�ng kim lo?i ch?ng g?, ph� h?p phong c�ch boho.',
       price: '175000',
       categoryId: categoryIds.jewelry,
       sellerId: seller2.id,
@@ -2002,9 +2002,9 @@ async function main() {
     }),
     phoneStand: await upsertProduct({
       sku: 'DEMO-WOOD-PHONE-STAND',
-      name: 'Giá đỡ điện thoại gỗ óc chó',
+      name: 'Gi� d? di?n tho?i g? �c ch�',
       description:
-        'Giá đỡ điện thoại chà nhám thủ công, phủ dầu bảo vệ, dùng tốt trên bàn làm việc.',
+        'Gi� d? di?n tho?i ch� nh�m th? c�ng, ph? d?u b?o v?, d�ng t?t tr�n b�n l�m vi?c.',
       price: '185000',
       categoryId: categoryIds['wood-decor'],
       sellerId: seller.id,
@@ -2015,9 +2015,9 @@ async function main() {
     }),
     miniShelf: await upsertProduct({
       sku: 'DEMO-WOOD-MINI-SHELF',
-      name: 'Kệ gỗ mini treo tường',
+      name: 'K? g? mini treo tu?ng',
       description:
-        'Kệ gỗ mini để cây nhỏ, nến thơm hoặc đồ sưu tầm, hoàn thiện bằng dầu tự nhiên.',
+        'K? g? mini d? c�y nh?, n?n thom ho?c d? suu t?m, ho�n thi?n b?ng d?u t? nhi�n.',
       price: '310000',
       categoryId: categoryIds['wood-decor'],
       sellerId: seller.id,
@@ -2028,9 +2028,9 @@ async function main() {
     }),
     scrapbookKit: await upsertProduct({
       sku: 'DEMO-SCRAPBOOK-KIT',
-      name: 'Bộ scrapbook kỷ niệm handmade',
+      name: 'B? scrapbook k? ni?m handmade',
       description:
-        'Bộ giấy, sticker và thiệp nhỏ để tự làm scrapbook lưu giữ ảnh và lời nhắn.',
+        'B? gi?y, sticker v� thi?p nh? d? t? l�m scrapbook luu gi? ?nh v� l?i nh?n.',
       price: '135000',
       categoryId: categoryIds['paper-art'],
       sellerId: seller2.id,
@@ -2041,9 +2041,9 @@ async function main() {
     }),
     bookmark: await upsertProduct({
       sku: 'DEMO-PAPER-BOOKMARK',
-      name: 'Bookmark giấy dó vẽ tay',
+      name: 'Bookmark gi?y d� v? tay',
       description:
-        'Bookmark giấy dó ép hoa, vẽ tay từng chiếc, phù hợp làm quà nhỏ cho người thích đọc sách.',
+        'Bookmark gi?y d� �p hoa, v? tay t?ng chi?c, ph� h?p l�m qu� nh? cho ngu?i th�ch d?c s�ch.',
       price: '45000',
       categoryId: categoryIds['paper-art'],
       sellerId: seller2.id,
@@ -2054,9 +2054,9 @@ async function main() {
     }),
     crochetKeychain: await upsertProduct({
       sku: 'DEMO-CROCHET-FLOWER-KEYCHAIN',
-      name: 'Móc khóa hoa len móc tay',
+      name: 'M�c kh�a hoa len m�c tay',
       description:
-        'Móc khóa hoa len nhỏ, móc tay bằng sợi cotton, có thể gắn túi hoặc chìa khóa.',
+        'M�c kh�a hoa len nh?, m�c tay b?ng s?i cotton, c� th? g?n t�i ho?c ch�a kh�a.',
       price: '75000',
       categoryId: categoryIds.crochet,
       sellerId: seller2.id,
@@ -2067,9 +2067,9 @@ async function main() {
     }),
     crochetCoaster: await upsertProduct({
       sku: 'DEMO-CROCHET-COASTER',
-      name: 'Bộ lót ly len móc tay',
+      name: 'B? l�t ly len m�c tay',
       description:
-        'Bộ 4 lót ly crochet màu kem, phù hợp bàn trà hoặc góc làm việc.',
+        'B? 4 l�t ly crochet m�u kem, ph� h?p b�n tr� ho?c g�c l�m vi?c.',
       price: '120000',
       categoryId: categoryIds.crochet,
       sellerId: seller2.id,
@@ -2080,9 +2080,9 @@ async function main() {
     }),
     crochetBearPending: await upsertProduct({
       sku: 'DEMO-CROCHET-BEAR-PENDING',
-      name: 'Gấu len crochet chờ duyệt',
+      name: 'G?u len crochet ch? duy?t',
       description:
-        'Sản phẩm demo trạng thái chờ duyệt để admin thực hiện approve trong buổi chấm.',
+        'S?n ph?m demo tr?ng th�i ch? duy?t d? admin th?c hi?n approve trong bu?i ch?m.',
       price: '260000',
       categoryId: categoryIds.crochet,
       sellerId: seller2.id,
@@ -2094,9 +2094,9 @@ async function main() {
     }),
     rejectedWallArt: await upsertProduct({
       sku: 'DEMO-WALL-ART-REJECTED',
-      name: 'Tranh decor demo bị từ chối',
+      name: 'Tranh decor demo b? t? ch?i',
       description:
-        'Sản phẩm demo trạng thái từ chối để admin/seller kiểm tra UI moderation.',
+        'S?n ph?m demo tr?ng th�i t? ch?i d? admin/seller ki?m tra UI moderation.',
       price: '390000',
       categoryId: categoryIds['wall-decor'],
       sellerId: seller2.id,
@@ -2108,9 +2108,9 @@ async function main() {
     }),
     macrameWallHanging: await upsertProduct({
       sku: 'DEMO-MACRAME-WALL-HANGING',
-      name: 'Macrame treo tường cotton',
+      name: 'Macrame treo tu?ng cotton',
       description:
-        'Tấm macrame treo tường đan thủ công bằng sợi cotton, tạo điểm nhấn cho phòng ngủ.',
+        'T?m macrame treo tu?ng dan th? c�ng b?ng s?i cotton, t?o di?m nh?n cho ph�ng ng?.',
       price: '420000',
       categoryId: categoryIds['wall-decor'],
       sellerId: seller2.id,
@@ -2121,9 +2121,9 @@ async function main() {
     }),
     pressedFlowerFrame: await upsertProduct({
       sku: 'DEMO-PRESSED-FLOWER-FRAME',
-      name: 'Khung tranh hoa ép thủ công',
+      name: 'Khung tranh hoa �p th? c�ng',
       description:
-        'Khung tranh nhỏ dùng hoa khô ép thật, phù hợp trang trí bàn làm việc hoặc tặng bạn bè.',
+        'Khung tranh nh? d�ng hoa kh� �p th?t, ph� h?p trang tr� b�n l�m vi?c ho?c t?ng b?n b�.',
       price: '280000',
       categoryId: categoryIds['wall-decor'],
       sellerId: seller2.id,
@@ -2134,9 +2134,9 @@ async function main() {
     }),
     weddingCardSet: await upsertProduct({
       sku: 'DEMO-WEDDING-CARD-SET',
-      name: 'Set thiệp cưới giấy kraft',
+      name: 'Set thi?p cu?i gi?y kraft',
       description:
-        'Set thiệp cưới phong cách mộc với giấy kraft, dây gai và hoa khô trang trí.',
+        'Set thi?p cu?i phong c�ch m?c v?i gi?y kraft, d�y gai v� hoa kh� trang tr�.',
       price: '210000',
       categoryId: categoryIds['paper-art'],
       sellerId: seller2.id,
@@ -2147,9 +2147,9 @@ async function main() {
     }),
     customNameBracelet: await upsertProduct({
       sku: 'DEMO-CUSTOM-NAME-BRACELET',
-      name: 'Vòng tay khắc tên theo yêu cầu',
+      name: 'V�ng tay kh?c t�n theo y�u c?u',
       description:
-        'Vòng tay dây da phối charm kim loại, có thể khắc tên ngắn theo yêu cầu của khách.',
+        'V�ng tay d�y da ph?i charm kim lo?i, c� th? kh?c t�n ng?n theo y�u c?u c?a kh�ch.',
       price: '245000',
       categoryId: categoryIds.jewelry,
       sellerId: seller.id,
@@ -2163,9 +2163,9 @@ async function main() {
   const expandedProducts = await upsertProducts([
     {
       sku: 'DEMO-CANVAS-CROSSBODY-BAG',
-      name: 'Túi canvas đeo chéo thêu lá',
+      name: 'T�i canvas deo ch�o th�u l�',
       description:
-        'Túi canvas dày, đeo chéo tiện đi học hoặc đi cà phê, mặt trước thêu họa tiết lá xanh bằng tay.',
+        'T�i canvas d�y, deo ch�o ti?n di h?c ho?c di c� ph�, m?t tru?c th�u h?a ti?t l� xanh b?ng tay.',
       price: '285000',
       categoryId: categoryIds.textiles,
       sellerId: seller2.id,
@@ -2176,9 +2176,9 @@ async function main() {
     },
     {
       sku: 'DEMO-PATCHWORK-COIN-PURSE',
-      name: 'Ví xu patchwork vải vụn',
+      name: 'V� xu patchwork v?i v?n',
       description:
-        'Ví xu nhỏ ghép từ vải vụn cotton, có lót trong và khóa kéo chắc chắn, phù hợp đựng tai nghe hoặc tiền lẻ.',
+        'V� xu nh? gh�p t? v?i v?n cotton, c� l�t trong v� kh�a k�o ch?c ch?n, ph� h?p d?ng tai nghe ho?c ti?n l?.',
       price: '95000',
       categoryId: categoryIds.textiles,
       sellerId: seller2.id,
@@ -2189,9 +2189,9 @@ async function main() {
     },
     {
       sku: 'DEMO-PERSONALIZED-GIFT-BOX',
-      name: 'Hộp quà cá nhân hóa giấy kraft',
+      name: 'H?p qu� c� nh�n h�a gi?y kraft',
       description:
-        'Hộp quà giấy kraft kèm tag tên, dây gai và hoa khô, có thể phối với nến hoặc thiệp theo yêu cầu.',
+        'H?p qu� gi?y kraft k�m tag t�n, d�y gai v� hoa kh�, c� th? ph?i v?i n?n ho?c thi?p theo y�u c?u.',
       price: '180000',
       categoryId: categoryIds.candles,
       sellerId: seller6.id,
@@ -2202,9 +2202,9 @@ async function main() {
     },
     {
       sku: 'DEMO-MINI-GIFT-TAG-SET',
-      name: 'Set tag quà mini viết tay',
+      name: 'Set tag qu� mini vi?t tay',
       description:
-        'Bộ 12 tag quà mini bằng giấy mỹ thuật, viền xé tay nhẹ, thích hợp dùng cho tiệc nhỏ hoặc gói quà handmade.',
+        'B? 12 tag qu� mini b?ng gi?y m? thu?t, vi?n x� tay nh?, th�ch h?p d�ng cho ti?c nh? ho?c g�i qu� handmade.',
       price: '55000',
       categoryId: categoryIds.candles,
       sellerId: seller2.id,
@@ -2215,9 +2215,9 @@ async function main() {
     },
     {
       sku: 'DEMO-ENGRAVED-WOOD-KEYCHAIN',
-      name: 'Móc khóa gỗ khắc tên',
+      name: 'M�c kh�a g? kh?c t�n',
       description:
-        'Móc khóa gỗ nhỏ được chà nhẵn, khắc tên hoặc ngày kỷ niệm, phủ dầu bảo vệ bề mặt.',
+        'M�c kh�a g? nh? du?c ch� nh?n, kh?c t�n ho?c ng�y k? ni?m, ph? d?u b?o v? b? m?t.',
       price: '85000',
       categoryId: categoryIds.candles,
       sellerId: seller3.id,
@@ -2228,9 +2228,9 @@ async function main() {
     },
     {
       sku: 'DEMO-RESIN-FLOWER-RING',
-      name: 'Nhẫn resin hoa khô trong suốt',
+      name: 'Nh?n resin hoa kh� trong su?t',
       description:
-        'Nhẫn resin đổ tay với cánh hoa khô nhỏ, dáng mảnh, hợp phong cách nhẹ nhàng và tối giản.',
+        'Nh?n resin d? tay v?i c�nh hoa kh� nh?, d�ng m?nh, h?p phong c�ch nh? nh�ng v� t?i gi?n.',
       price: '135000',
       categoryId: categoryIds.jewelry,
       sellerId: seller4.id,
@@ -2241,9 +2241,9 @@ async function main() {
     },
     {
       sku: 'DEMO-PEARL-ANKLET',
-      name: 'Lắc chân ngọc trai giả phối đá',
+      name: 'L?c ch�n ng?c trai gi? ph?i d�',
       description:
-        'Lắc chân dây mảnh phối ngọc trai giả và đá nhỏ màu sữa, có dây nối điều chỉnh kích thước.',
+        'L?c ch�n d�y m?nh ph?i ng?c trai gi? v� d� nh? m�u s?a, c� d�y n?i di?u ch?nh k�ch thu?c.',
       price: '155000',
       categoryId: categoryIds.jewelry,
       sellerId: seller2.id,
@@ -2254,9 +2254,9 @@ async function main() {
     },
     {
       sku: 'DEMO-WOOD-DESK-ORGANIZER',
-      name: 'Khay gỗ để bút và danh thiếp',
+      name: 'Khay g? d? b�t v� danh thi?p',
       description:
-        'Khay gỗ để bàn có 3 ngăn nhỏ cho bút, card và kẹp giấy, hoàn thiện mộc phù hợp góc làm việc.',
+        'Khay g? d? b�n c� 3 ngan nh? cho b�t, card v� k?p gi?y, ho�n thi?n m?c ph� h?p g�c l�m vi?c.',
       price: '340000',
       categoryId: categoryIds['wood-decor'],
       sellerId: seller3.id,
@@ -2267,9 +2267,9 @@ async function main() {
     },
     {
       sku: 'DEMO-WOOD-COASTER-SET',
-      name: 'Bộ lót ly gỗ bo tròn',
+      name: 'B? l�t ly g? bo tr�n',
       description:
-        'Bộ 4 lót ly gỗ được bo cạnh và phủ dầu thực vật, vân gỗ tự nhiên mỗi chiếc hơi khác nhau.',
+        'B? 4 l�t ly g? du?c bo c?nh v� ph? d?u th?c v?t, v�n g? t? nhi�n m?i chi?c hoi kh�c nhau.',
       price: '210000',
       categoryId: categoryIds['wood-decor'],
       sellerId: seller3.id,
@@ -2280,9 +2280,9 @@ async function main() {
     },
     {
       sku: 'DEMO-HANDMADE-NOTEBOOK',
-      name: 'Sổ tay bìa giấy dó khâu gáy',
+      name: 'S? tay b�a gi?y d� kh�u g�y',
       description:
-        'Sổ tay giấy dó bìa mềm, khâu gáy thủ công, giấy bên trong dày vừa để viết nhật ký hoặc sketch nhẹ.',
+        'S? tay gi?y d� b�a m?m, kh�u g�y th? c�ng, gi?y b�n trong d�y v?a d? vi?t nh?t k� ho?c sketch nh?.',
       price: '98000',
       categoryId: categoryIds['paper-art'],
       sellerId: seller2.id,
@@ -2293,9 +2293,9 @@ async function main() {
     },
     {
       sku: 'DEMO-CROCHET-TULIP-BOUQUET',
-      name: 'Bó hoa tulip len móc tay',
+      name: 'B� hoa tulip len m�c tay',
       description:
-        'Bó 5 bông tulip len cotton, màu pastel, không héo và có thể đặt phối màu theo ghi chú.',
+        'B� 5 b�ng tulip len cotton, m�u pastel, kh�ng h�o v� c� th? d?t ph?i m�u theo ghi ch�.',
       price: '320000',
       categoryId: categoryIds.crochet,
       sellerId: seller4.id,
@@ -2306,9 +2306,9 @@ async function main() {
     },
     {
       sku: 'DEMO-CROCHET-MINI-BAG',
-      name: 'Túi len crochet mini màu kem',
+      name: 'T�i len crochet mini m�u kem',
       description:
-        'Túi len móc tay dáng mini, quai ngắn, đủ đựng điện thoại và ví nhỏ, nên giặt tay nhẹ.',
+        'T�i len m�c tay d�ng mini, quai ng?n, d? d?ng di?n tho?i v� v� nh?, n�n gi?t tay nh?.',
       price: '260000',
       categoryId: categoryIds.crochet,
       sellerId: seller4.id,
@@ -2319,9 +2319,9 @@ async function main() {
     },
     {
       sku: 'DEMO-CROCHET-BUNNY-CHARM',
-      name: 'Charm thỏ len móc tay',
+      name: 'Charm th? len m�c tay',
       description:
-        'Charm thỏ len kích thước nhỏ, có móc cài kim loại, phù hợp gắn balo hoặc làm quà cho trẻ nhỏ.',
+        'Charm th? len k�ch thu?c nh?, c� m�c c�i kim lo?i, ph� h?p g?n balo ho?c l�m qu� cho tr? nh?.',
       price: '69000',
       categoryId: categoryIds.crochet,
       sellerId: seller4.id,
@@ -2332,9 +2332,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LINEN-WALL-BANNER',
-      name: 'Tranh vải linen chữ thêu tay',
+      name: 'Tranh v?i linen ch? th�u tay',
       description:
-        'Banner vải linen treo tường với chữ thêu tay ngắn, tông màu trung tính cho góc học tập hoặc phòng ngủ.',
+        'Banner v?i linen treo tu?ng v?i ch? th�u tay ng?n, t�ng m�u trung t�nh cho g�c h?c t?p ho?c ph�ng ng?.',
       price: '380000',
       categoryId: categoryIds['wall-decor'],
       sellerId: seller2.id,
@@ -2345,9 +2345,9 @@ async function main() {
     },
     {
       sku: 'DEMO-WOOD-FRAME-POSTER',
-      name: 'Tranh poster khung gỗ thủ công',
+      name: 'Tranh poster khung g? th? c�ng',
       description:
-        'Tranh poster giấy mỹ thuật kèm khung gỗ mảnh, phù hợp decor phòng khách hoặc góc đọc sách.',
+        'Tranh poster gi?y m? thu?t k�m khung g? m?nh, ph� h?p decor ph�ng kh�ch ho?c g�c d?c s�ch.',
       price: '520000',
       categoryId: categoryIds['wall-decor'],
       sellerId: seller3.id,
@@ -2358,9 +2358,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LAVENDER-SOY-CANDLE',
-      name: 'Nến thơm lavender sáp đậu nành',
+      name: 'N?n thom lavender s�p d?u n�nh',
       description:
-        'Nến 180g hương lavender dịu, sáp đậu nành và tim cotton, thời gian cháy khoảng 32-36 giờ.',
+        'N?n 180g huong lavender d?u, s�p d?u n�nh v� tim cotton, th?i gian ch�y kho?ng 32-36 gi?.',
       price: '185000',
       categoryId: categoryIds.candles,
       sellerId: seller6.id,
@@ -2371,9 +2371,9 @@ async function main() {
     },
     {
       sku: 'DEMO-VANILLA-CANDLE-TIN',
-      name: 'Nến vanilla hũ thiếc du lịch',
+      name: 'N?n vanilla hu thi?c du l?ch',
       description:
-        'Nến hũ thiếc 120g mùi vanilla ấm, gọn nhẹ để mang đi du lịch hoặc đặt trong phòng làm việc.',
+        'N?n hu thi?c 120g m�i vanilla ?m, g?n nh? d? mang di du l?ch ho?c d?t trong ph�ng l�m vi?c.',
       price: '145000',
       categoryId: categoryIds.candles,
       sellerId: seller6.id,
@@ -2384,9 +2384,9 @@ async function main() {
     },
     {
       sku: 'DEMO-SANDALWOOD-CANDLE',
-      name: 'Nến gỗ đàn hương và hổ phách',
+      name: 'N?n g? d�n huong v� h? ph�ch',
       description:
-        'Nến thơm tông gỗ 220g, hương đàn hương pha hổ phách, phù hợp buổi tối thư giãn.',
+        'N?n thom t�ng g? 220g, huong d�n huong pha h? ph�ch, ph� h?p bu?i t?i thu gi�n.',
       price: '260000',
       categoryId: categoryIds.candles,
       sellerId: seller6.id,
@@ -2397,9 +2397,9 @@ async function main() {
     },
     {
       sku: 'DEMO-JASMINE-WAX-MELT',
-      name: 'Sáp thơm hoa nhài dạng viên',
+      name: 'S�p thom hoa nh�i d?ng vi�n',
       description:
-        'Hộp 8 viên sáp thơm hoa nhài, dùng với đèn đốt sáp, mùi nhẹ và không quá ngọt.',
+        'H?p 8 vi�n s�p thom hoa nh�i, d�ng v?i d�n d?t s�p, m�i nh? v� kh�ng qu� ng?t.',
       price: '120000',
       categoryId: categoryIds.candles,
       sellerId: seller6.id,
@@ -2410,9 +2410,9 @@ async function main() {
     },
     {
       sku: 'DEMO-CITRUS-CANDLE-GIFT',
-      name: 'Nến cam quế hộp quà nhỏ',
+      name: 'N?n cam qu? h?p qu� nh?',
       description:
-        'Nến cam quế 160g kèm hộp giấy kraft, hợp làm quà sinh nhật hoặc quà cảm ơn.',
+        'N?n cam qu? 160g k�m h?p gi?y kraft, h?p l�m qu� sinh nh?t ho?c qu� c?m on.',
       price: '210000',
       categoryId: categoryIds.candles,
       sellerId: seller6.id,
@@ -2423,9 +2423,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEMONGRASS-SOAP',
-      name: 'Xà phòng sả chanh quy trình lạnh',
+      name: 'X� ph�ng s? chanh quy tr�nh l?nh',
       description:
-        'Bánh xà phòng 95g làm theo phương pháp cold process, hương sả chanh sạch mát, thích hợp da thường.',
+        'B�nh x� ph�ng 95g l�m theo phuong ph�p cold process, huong s? chanh s?ch m�t, th�ch h?p da thu?ng.',
       price: '85000',
       categoryId: categoryIds['soap-cosmetics'],
       sellerId: seller6.id,
@@ -2436,9 +2436,9 @@ async function main() {
     },
     {
       sku: 'DEMO-OAT-HONEY-SOAP',
-      name: 'Xà phòng yến mạch mật ong',
+      name: 'X� ph�ng y?n m?ch m?t ong',
       description:
-        'Xà phòng yến mạch và mật ong có hạt scrub mịn, mùi dịu, dùng tốt cho routine tắm thư giãn.',
+        'X� ph�ng y?n m?ch v� m?t ong c� h?t scrub m?n, m�i d?u, d�ng t?t cho routine t?m thu gi�n.',
       price: '95000',
       categoryId: categoryIds['soap-cosmetics'],
       sellerId: seller6.id,
@@ -2449,9 +2449,9 @@ async function main() {
     },
     {
       sku: 'DEMO-COCOA-LIP-BALM',
-      name: 'Son dưỡng cacao handmade',
+      name: 'Son du?ng cacao handmade',
       description:
-        'Son dưỡng dạng thỏi với bơ cacao và dầu hạnh nhân, không màu, phù hợp dùng hằng ngày.',
+        'Son du?ng d?ng th?i v?i bo cacao v� d?u h?nh nh�n, kh�ng m�u, ph� h?p d�ng h?ng ng�y.',
       price: '65000',
       categoryId: categoryIds['soap-cosmetics'],
       sellerId: seller6.id,
@@ -2462,9 +2462,9 @@ async function main() {
     },
     {
       sku: 'DEMO-HERBAL-BATH-SALT',
-      name: 'Muối tắm thảo mộc hoa cúc',
+      name: 'Mu?i t?m th?o m?c hoa c�c',
       description:
-        'Lọ muối tắm 250g phối hoa cúc khô và tinh dầu dịu nhẹ, dùng cho ngâm chân hoặc tắm thư giãn.',
+        'L? mu?i t?m 250g ph?i hoa c�c kh� v� tinh d?u d?u nh?, d�ng cho ng�m ch�n ho?c t?m thu gi�n.',
       price: '135000',
       categoryId: categoryIds['soap-cosmetics'],
       sellerId: seller6.id,
@@ -2475,9 +2475,9 @@ async function main() {
     },
     {
       sku: 'DEMO-ROSE-BODY-BUTTER',
-      name: 'Bơ dưỡng thể hoa hồng mini',
+      name: 'Bo du?ng th? hoa h?ng mini',
       description:
-        'Hũ bơ dưỡng thể 60ml tông hoa hồng nhẹ, kết cấu đặc vừa, dùng cho vùng da khô.',
+        'Hu bo du?ng th? 60ml t�ng hoa h?ng nh?, k?t c?u d?c v?a, d�ng cho v�ng da kh�.',
       price: '155000',
       categoryId: categoryIds['soap-cosmetics'],
       sellerId: seller6.id,
@@ -2488,9 +2488,9 @@ async function main() {
     },
     {
       sku: 'DEMO-SILK-SCRUNCHIE-SET',
-      name: 'Set scrunchie lụa tơ 3 màu',
+      name: 'Set scrunchie l?a to 3 m�u',
       description:
-        'Bộ 3 scrunchie may từ vải lụa mềm, ít hằn tóc, phối màu kem, hồng đất và xanh rêu.',
+        'B? 3 scrunchie may t? v?i l?a m?m, �t h?n t�c, ph?i m�u kem, h?ng d?t v� xanh r�u.',
       price: '120000',
       categoryId: categoryIds['hair-accessories'],
       sellerId: seller4.id,
@@ -2501,9 +2501,9 @@ async function main() {
     },
     {
       sku: 'DEMO-PEARL-HAIR-CLIP',
-      name: 'Kẹp tóc ngọc trai giả đính tay',
+      name: 'K?p t�c ng?c trai gi? d�nh tay',
       description:
-        'Kẹp tóc kim loại đính ngọc trai giả và hạt nhỏ bằng tay, hợp đi tiệc nhẹ hoặc chụp ảnh.',
+        'K?p t�c kim lo?i d�nh ng?c trai gi? v� h?t nh? b?ng tay, h?p di ti?c nh? ho?c ch?p ?nh.',
       price: '98000',
       categoryId: categoryIds['hair-accessories'],
       sellerId: seller4.id,
@@ -2514,9 +2514,9 @@ async function main() {
     },
     {
       sku: 'DEMO-FLORAL-HEADBAND',
-      name: 'Băng đô hoa nhí cotton',
+      name: 'Bang d� hoa nh� cotton',
       description:
-        'Băng đô cotton họa tiết hoa nhí, may lót mềm, co giãn vừa phải cho sử dụng hằng ngày.',
+        'Bang d� cotton h?a ti?t hoa nh�, may l�t m?m, co gi�n v?a ph?i cho s? d?ng h?ng ng�y.',
       price: '89000',
       categoryId: categoryIds['hair-accessories'],
       sellerId: seller4.id,
@@ -2527,9 +2527,9 @@ async function main() {
     },
     {
       sku: 'DEMO-RIBBON-BARRETTE',
-      name: 'Kẹp nơ ruy băng lụa bóng',
+      name: 'K?p no ruy bang l?a b�ng',
       description:
-        'Kẹp nơ satin dáng dài, may thủ công và cố định bằng kẹp kim loại chắc, tông màu vintage.',
+        'K?p no satin d�ng d�i, may th? c�ng v� c? d?nh b?ng k?p kim lo?i ch?c, t�ng m�u vintage.',
       price: '75000',
       categoryId: categoryIds['hair-accessories'],
       sellerId: seller4.id,
@@ -2540,9 +2540,9 @@ async function main() {
     },
     {
       sku: 'DEMO-CROCHET-HAIR-TIE',
-      name: 'Dây buộc tóc hoa len móc tay',
+      name: 'D�y bu?c t�c hoa len m�c tay',
       description:
-        'Dây buộc tóc trang trí hoa len nhỏ móc tay, màu pastel, nhẹ và không kéo tóc.',
+        'D�y bu?c t�c trang tr� hoa len nh? m�c tay, m�u pastel, nh? v� kh�ng k�o t�c.',
       price: '59000',
       categoryId: categoryIds['hair-accessories'],
       sellerId: seller4.id,
@@ -2553,9 +2553,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-CARD-HOLDER',
-      name: 'Bao thẻ da bò khâu tay',
+      name: 'Bao th? da b� kh�u tay',
       description:
-        'Bao thẻ da bò thật, khâu tay bằng chỉ sáp, có 2 khe thẻ và form mỏng để bỏ túi áo.',
+        'Bao th? da b� th?t, kh�u tay b?ng ch? s�p, c� 2 khe th? v� form m?ng d? b? t�i �o.',
       price: '420000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2567,9 +2567,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-MINI-WALLET',
-      name: 'Ví da mini nắp gập',
+      name: 'V� da mini n?p g?p',
       description:
-        'Ví da mini nắp gập, khâu tay chắc chắn, đủ đựng tiền mặt và 4-5 thẻ cơ bản.',
+        'V� da mini n?p g?p, kh�u tay ch?c ch?n, d? d?ng ti?n m?t v� 4-5 th? co b?n.',
       price: '680000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2581,9 +2581,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-CAMERA-STRAP',
-      name: 'Dây máy ảnh da thủ công',
+      name: 'D�y m�y ?nh da th? c�ng',
       description:
-        'Dây máy ảnh da khâu tay, mặt trong xử lý mềm, có khoen kim loại chắc cho máy ảnh mirrorless.',
+        'D�y m�y ?nh da kh�u tay, m?t trong x? l� m?m, c� khoen kim lo?i ch?c cho m�y ?nh mirrorless.',
       price: '890000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2595,9 +2595,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-KEY-FOB',
-      name: 'Móc khóa da khắc chữ cái',
+      name: 'M�c kh�a da kh?c ch? c�i',
       description:
-        'Móc khóa da nhỏ có thể khắc một chữ cái, viền được đánh cạnh và phủ sáp bảo vệ.',
+        'M�c kh�a da nh? c� th? kh?c m?t ch? c�i, vi?n du?c d�nh c?nh v� ph? s�p b?o v?.',
       price: '160000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2609,9 +2609,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-NOTEBOOK-COVER',
-      name: 'Bìa sổ da thay ruột',
+      name: 'B�a s? da thay ru?t',
       description:
-        'Bìa sổ da handmade dùng được với ruột A6, có dây cột và ngăn nhỏ để card.',
+        'B�a s? da handmade d�ng du?c v?i ru?t A6, c� d�y c?t v� ngan nh? d? card.',
       price: '520000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2623,9 +2623,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-PASSPORT-HOLDER',
-      name: 'Bao hộ chiếu da sáp handmade',
+      name: 'Bao h? chi?u da s�p handmade',
       description:
-        'Bao hộ chiếu da sáp khâu tay, có ngăn để passport, vé máy bay và thẻ thành viên khi đi du lịch.',
+        'Bao h? chi?u da s�p kh�u tay, c� ngan d? passport, v� m�y bay v� th? th�nh vi�n khi di du l?ch.',
       price: '560000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2637,9 +2637,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-LONG-WALLET',
-      name: 'Ví da dài cầm tay',
+      name: 'V� da d�i c?m tay',
       description:
-        'Ví da dài dạng cầm tay, khâu tay bằng chỉ sáp, có ngăn tiền, ngăn thẻ và ngăn khóa kéo nhỏ.',
+        'V� da d�i d?ng c?m tay, kh�u tay b?ng ch? s�p, c� ngan ti?n, ngan th? v� ngan kh�a k�o nh?.',
       price: '920000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2651,9 +2651,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-AIRPODS-CASE',
-      name: 'Bao AirPods da móc khóa',
+      name: 'Bao AirPods da m�c kh�a',
       description:
-        'Bao AirPods bằng da bò thật, có móc kim loại tiện gắn túi xách hoặc balo, nắp cài chắc chắn.',
+        'Bao AirPods b?ng da b� th?t, c� m�c kim lo?i ti?n g?n t�i x�ch ho?c balo, n?p c�i ch?c ch?n.',
       price: '280000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2665,9 +2665,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-WATCH-STRAP',
-      name: 'Dây đồng hồ da nâu cổ điển',
+      name: 'D�y d?ng h? da n�u c? di?n',
       description:
-        'Dây đồng hồ da bò màu nâu vintage, cắt và khâu tay theo size, phù hợp đồng hồ mặt tròn cổ điển.',
+        'D�y d?ng h? da b� m�u n�u vintage, c?t v� kh�u tay theo size, ph� h?p d?ng h? m?t tr�n c? di?n.',
       price: '450000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2679,9 +2679,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-PEN-SLEEVE',
-      name: 'Bao bút da đơn giản',
+      name: 'Bao b�t da don gi?n',
       description:
-        'Bao bút da dạng mỏng cho bút máy hoặc bút ký, viền đánh cạnh và phủ sáp để sử dụng lâu dài.',
+        'Bao b�t da d?ng m?ng cho b�t m�y ho?c b�t k�, vi?n d�nh c?nh v� ph? s�p d? s? d?ng l�u d�i.',
       price: '190000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2693,9 +2693,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-COASTER-SET',
-      name: 'Bộ lót ly da bò 4 chiếc',
+      name: 'B? l�t ly da b� 4 chi?c',
       description:
-        'Bộ 4 lót ly bằng da bò thật, bề mặt xử lý chống thấm nhẹ, phù hợp bàn làm việc hoặc bàn trà.',
+        'B? 4 l�t ly b?ng da b� th?t, b? m?t x? l� ch?ng th?m nh?, ph� h?p b�n l�m vi?c ho?c b�n tr�.',
       price: '240000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2707,9 +2707,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-TOTE-HANDLE-WRAP',
-      name: 'Bọc quai túi da khâu tay',
+      name: 'B?c quai t�i da kh�u tay',
       description:
-        'Bọc quai túi bằng da mềm, giúp cầm êm tay hơn và tạo điểm nhấn cho túi canvas hoặc tote hằng ngày.',
+        'B?c quai t�i b?ng da m?m, gi�p c?m �m tay hon v� t?o di?m nh?n cho t�i canvas ho?c tote h?ng ng�y.',
       price: '210000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2721,9 +2721,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-SUNGLASSES-CASE',
-      name: 'Bao kính da nắp gập',
+      name: 'Bao k�nh da n?p g?p',
       description:
-        'Bao kính bằng da bò dập form, nắp gập gọn nhẹ, bảo vệ kính râm hoặc kính cận khi mang trong túi.',
+        'Bao k�nh b?ng da b� d?p form, n?p g?p g?n nh?, b?o v? k�nh r�m ho?c k�nh c?n khi mang trong t�i.',
       price: '390000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2735,9 +2735,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-DESK-MAT',
-      name: 'Tấm lót bàn da handmade',
+      name: 'T?m l�t b�n da handmade',
       description:
-        'Tấm lót bàn da kích thước gọn, bề mặt mịn cho chuột và bàn phím, viền được đánh cạnh bằng tay.',
+        'T?m l�t b�n da k�ch thu?c g?n, b? m?t m?n cho chu?t v� b�n ph�m, vi?n du?c d�nh c?nh b?ng tay.',
       price: '780000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2749,9 +2749,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-CORD-ORGANIZER',
-      name: 'Dây quấn cáp da bấm nút',
+      name: 'D�y qu?n c�p da b?m n�t',
       description:
-        'Dây quấn cáp sạc bằng da nhỏ gọn, bấm nút kim loại, giúp sắp xếp dây tai nghe và cáp sạc trong túi.',
+        'D�y qu?n c�p s?c b?ng da nh? g?n, b?m n�t kim lo?i, gi�p s?p x?p d�y tai nghe v� c�p s?c trong t�i.',
       price: '85000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2763,9 +2763,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-LUGGAGE-TAG',
-      name: 'Thẻ hành lý da khắc tên',
+      name: 'Th? h�nh l� da kh?c t�n',
       description:
-        'Thẻ hành lý da thật có nắp che thông tin, có thể khắc tên hoặc ký hiệu ngắn theo yêu cầu.',
+        'Th? h�nh l� da th?t c� n?p che th�ng tin, c� th? kh?c t�n ho?c k� hi?u ng?n theo y�u c?u.',
       price: '180000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2777,9 +2777,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-BELT',
-      name: 'Thắt lưng da bò bản nhỏ',
+      name: 'Th?t lung da b� b?n nh?',
       description:
-        'Thắt lưng da bò bản nhỏ, mặt khóa kim loại tối giản, cắt theo size và hoàn thiện cạnh bằng sáp.',
+        'Th?t lung da b� b?n nh?, m?t kh�a kim lo?i t?i gi?n, c?t theo size v� ho�n thi?n c?nh b?ng s�p.',
       price: '740000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2791,9 +2791,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-CLUTCH',
-      name: 'Túi clutch da mỏng',
+      name: 'T�i clutch da m?ng',
       description:
-        'Túi clutch da dạng mỏng, có dây cài tay và ngăn trong đơn giản, phù hợp mang tài liệu nhỏ hoặc vật dụng cá nhân.',
+        'T�i clutch da d?ng m?ng, c� d�y c�i tay v� ngan trong don gi?n, ph� h?p mang t�i li?u nh? ho?c v?t d?ng c� nh�n.',
       price: '1050000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2805,9 +2805,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-BOOKMARK',
-      name: 'Bookmark da dập chữ',
+      name: 'Bookmark da d?p ch?',
       description:
-        'Bookmark da mỏng dập chữ cái, có dây tua nhỏ, món quà gọn cho người thích đọc sách và sổ tay.',
+        'Bookmark da m?ng d?p ch? c�i, c� d�y tua nh?, m�n qu� g?n cho ngu?i th�ch d?c s�ch v� s? tay.',
       price: '70000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2819,9 +2819,9 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-TOOL-ROLL',
-      name: 'Túi cuộn đựng dụng cụ da',
+      name: 'T�i cu?n d?ng d?ng c? da',
       description:
-        'Túi cuộn da có nhiều ngăn nhỏ để bút, dao craft hoặc dụng cụ vẽ, có dây cột giữ form chắc chắn.',
+        'T�i cu?n da c� nhi?u ngan nh? d? b�t, dao craft ho?c d?ng c? v?, c� d�y c?t gi? form ch?c ch?n.',
       price: '640000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2843,7 +2843,7 @@ async function main() {
   const activeVoucher = await ensureVoucher({
     code: 'HANDMADE10',
     name: 'Handmade Demo 10%',
-    description: 'Voucher local để demo checkout COD.',
+    description: 'Voucher local d? demo checkout COD.',
     categoryId: categoryIds.ceramics,
     isActive: true,
     endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
@@ -2851,8 +2851,8 @@ async function main() {
   });
   await ensureVoucher({
     code: 'EXPIRED5',
-    name: 'Voucher hết hạn demo',
-    description: 'Dùng để smoke test: không được apply khi đã hết hạn.',
+    name: 'Voucher h?t h?n demo',
+    description: 'D�ng d? smoke test: kh�ng du?c apply khi d� h?t h?n.',
     categoryId: categoryIds.candles,
     isActive: true,
     endDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
@@ -2860,9 +2860,9 @@ async function main() {
   });
   await ensureVoucher({
     code: 'INACTIVE15',
-    name: 'Voucher tạm tắt demo',
+    name: 'Voucher t?m t?t demo',
     description:
-      'Dùng để admin thấy voucher inactive và customer không apply được.',
+      'D�ng d? admin th?y voucher inactive v� customer kh�ng apply du?c.',
     categoryId: categoryIds.textiles,
     isActive: false,
     endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
@@ -3035,8 +3035,8 @@ async function main() {
       userId: customer.id,
       productId: mug.id,
       rating: 5,
-      comment: 'Sản phẩm đẹp, đóng gói cẩn thận và đúng như mô tả.',
-      sellerReply: 'Cảm ơn bạn đã ủng hộ Linh Ceramic Studio.',
+      comment: 'S?n ph?m d?p, d�ng g�i c?n th?n v� d�ng nhu m� t?.',
+      sellerReply: 'C?m on b?n d� ?ng h? Linh Ceramic Studio.',
     });
   }
 
@@ -3047,8 +3047,8 @@ async function main() {
       userId: customer3.id,
       productId: products.candleGiftSet.id,
       rating: 4,
-      comment: 'Set nến thơm xinh, mùi nhẹ và hộp quà rất chỉn chu.',
-      sellerReply: 'Cảm ơn bạn, shop sẽ tiếp tục hoàn thiện mùi hương mới.',
+      comment: 'Set n?n thom xinh, m�i nh? v� h?p qu� r?t ch?n chu.',
+      sellerReply: 'C?m on b?n, shop s? ti?p t?c ho�n thi?n m�i huong m?i.',
     });
   }
 
@@ -3060,9 +3060,9 @@ async function main() {
       productId: expandedProducts['DEMO-LEATHER-CARD-HOLDER'].id,
       rating: 5,
       comment:
-        'Đường khâu rất chắc, da thơm nhẹ và màu lên ngoài đời đẹp hơn ảnh.',
+        '�u?ng kh�u r?t ch?c, da thom nh? v� m�u l�n ngo�i d?i d?p hon ?nh.',
       sellerReply:
-        'Cảm ơn bạn đã tin Mộc Nhiên Studio, sản phẩm da dùng lâu sẽ lên màu tự nhiên hơn.',
+        'C?m on b?n d� tin M?c Nhi�n Studio, s?n ph?m da d�ng l�u s? l�n m�u t? nhi�n hon.',
     });
   }
 
@@ -3074,9 +3074,9 @@ async function main() {
       productId: expandedProducts['DEMO-LEMONGRASS-SOAP'].id,
       rating: 4,
       comment:
-        'Mùi sả chanh dễ chịu, đóng gói sạch sẽ. Bánh hơi nhỏ nhưng dùng ổn.',
+        'M�i s? chanh d? ch?u, d�ng g�i s?ch s?. B�nh hoi nh? nhung d�ng ?n.',
       sellerReply:
-        'Cảm ơn bạn, shop sẽ ghi chú rõ trọng lượng hơn trong lô tiếp theo.',
+        'C?m on b?n, shop s? ghi ch� r� tr?ng lu?ng hon trong l� ti?p theo.',
     });
   }
 
@@ -3084,56 +3084,56 @@ async function main() {
     productId: mug.id,
     userId: customer2.id,
     answeredById: seller.id,
-    question: 'Ly này có dùng được trong lò vi sóng không?',
+    question: 'Ly n�y c� d�ng du?c trong l� vi s�ng kh�ng?',
     answer:
-      'Sản phẩm dùng được trong lò vi sóng, nên rửa tay để giữ men lâu hơn.',
+      'S?n ph?m d�ng du?c trong l� vi s�ng, n�n r?a tay d? gi? men l�u hon.',
   });
   await ensureProductQuestion({
     productId: products.crochetCoaster.id,
     userId: customer.id,
     answeredById: seller2.id,
-    question: 'Bộ lót ly có giặt được không?',
-    answer: 'Có thể giặt tay nhẹ với nước lạnh và phơi nơi thoáng mát.',
+    question: 'B? l�t ly c� gi?t du?c kh�ng?',
+    answer: 'C� th? gi?t tay nh? v?i nu?c l?nh v� phoi noi tho�ng m�t.',
   });
   await ensureProductQuestion({
     productId: expandedProducts['DEMO-CROCHET-TULIP-BOUQUET'].id,
     userId: customer3.id,
     answeredById: seller4.id,
-    question: 'Shop có nhận đổi màu hoa tulip theo yêu cầu không?',
+    question: 'Shop c� nh?n d?i m�u hoa tulip theo y�u c?u kh�ng?',
     answer:
-      'Có bạn nhé, shop có bảng màu len cotton và sẽ xác nhận phối màu trước khi móc.',
+      'C� b?n nh�, shop c� b?ng m�u len cotton v� s? x�c nh?n ph?i m�u tru?c khi m�c.',
   });
   await ensureProductQuestion({
     productId: expandedProducts['DEMO-LAVENDER-SOY-CANDLE'].id,
     userId: customer2.id,
     answeredById: seller6.id,
-    question: 'Nến lavender đốt trong phòng ngủ nhỏ có bị nồng không?',
+    question: 'N?n lavender d?t trong ph�ng ng? nh? c� b? n?ng kh�ng?',
     answer:
-      'Mùi lavender của shop ở mức nhẹ, nên đốt 30-45 phút rồi tắt để phòng thơm vừa đủ.',
+      'M�i lavender c?a shop ? m?c nh?, n�n d?t 30-45 ph�t r?i t?t d? ph�ng thom v?a d?.',
   });
   await ensureProductQuestion({
     productId: expandedProducts['DEMO-LEATHER-MINI-WALLET'].id,
     userId: customer.id,
     answeredById: seller3.id,
-    question: 'Ví mini có khắc tên được không và mất bao lâu?',
+    question: 'V� mini c� kh?c t�n du?c kh�ng v� m?t bao l�u?',
     answer:
-      'Có thể khắc tối đa 10 ký tự, thời gian hoàn thiện thêm khoảng 1-2 ngày.',
+      'C� th? kh?c t?i da 10 k� t?, th?i gian ho�n thi?n th�m kho?ng 1-2 ng�y.',
   });
   await ensureProductQuestion({
     productId: expandedProducts['DEMO-PERSONALIZED-GIFT-BOX'].id,
     userId: customer2.id,
     answeredById: seller6.id,
-    question: 'Hộp quà có thể viết lời nhắn riêng không?',
+    question: 'H?p qu� c� th? vi?t l?i nh?n ri�ng kh�ng?',
     answer:
-      'Có, bạn nhập lời nhắn ở ghi chú đơn hàng, shop sẽ viết tay lên thiệp nhỏ.',
+      'C�, b?n nh?p l?i nh?n ? ghi ch� don h�ng, shop s? vi?t tay l�n thi?p nh?.',
   });
 
   const pendingProductReport = await ensureReport({
     reporterId: customer.id,
     targetProductId: mug.id,
     type: ReportType.PRODUCT,
-    reason: 'Báo cáo demo',
-    description: 'Báo cáo mẫu để admin có dữ liệu kiểm thử.',
+    reason: 'B�o c�o demo',
+    description: 'B�o c�o m?u d? admin c� d? li?u ki?m th?.',
     status: ReportStatus.PENDING,
   });
   const reviewingCustomerReport = await ensureReport({
@@ -3141,20 +3141,20 @@ async function main() {
     targetUserId: customer2.id,
     orderId: pendingOrder.id,
     type: ReportType.CUSTOMER,
-    reason: 'Khách yêu cầu đổi địa chỉ nhiều lần',
-    description: 'Báo cáo demo để seller gửi admin xem xét hành vi khách hàng.',
+    reason: 'Kh�ch y�u c?u d?i d?a ch? nhi?u l?n',
+    description: 'B�o c�o demo d? seller g?i admin xem x�t h�nh vi kh�ch h�ng.',
     status: ReportStatus.REVIEWING,
   });
   const resolvedShopReport = await ensureReport({
     reporterId: customer3.id,
     targetUserId: seller2.id,
     type: ReportType.SHOP,
-    reason: 'Đã xử lý trong demo',
+    reason: '�� x? l� trong demo',
     description:
-      'Báo cáo shop đã được admin xử lý để demo trạng thái resolved.',
+      'B�o c�o shop d� du?c admin x? l� d? demo tr?ng th�i resolved.',
     status: ReportStatus.RESOLVED,
     resolvedById: admin.id,
-    adminNote: 'Đã kiểm tra, chưa phát hiện vi phạm.',
+    adminNote: '�� ki?m tra, chua ph�t hi?n vi ph?m.',
   });
 
   await ensureChatConversation({
@@ -3164,46 +3164,46 @@ async function main() {
     messages: [
       {
         senderId: customer.id,
-        text: 'Shop ơi ly gốm này có thể gói quà được không?',
+        text: 'Shop oi ly g?m n�y c� th? g�i qu� du?c kh�ng?',
       },
       {
         senderId: seller.id,
-        text: 'Có bạn nhé, shop có hộp giấy kraft và thiệp nhỏ đi kèm.',
+        text: 'C� b?n nh�, shop c� h?p gi?y kraft v� thi?p nh? di k�m.',
       },
     ],
   });
 
   const quoteTemplate = await ensureQuoteTemplate({
     sellerId: seller.id,
-    name: 'Bộ ly gốm cá nhân hóa',
-    title: 'Bộ ly gốm khắc tên',
+    name: 'B? ly g?m c� nh�n h�a',
+    title: 'B? ly g?m kh?c t�n',
     description:
-      'Bộ ly gốm làm thủ công, có thể khắc tên hoặc vẽ ký hiệu nhỏ theo yêu cầu.',
+      'B? ly g?m l�m th? c�ng, c� th? kh?c t�n ho?c v? k� hi?u nh? theo y�u c?u.',
     estimatedPrice: '420000',
     minPrice: '350000',
     maxPrice: '600000',
-    estimatedLeadTime: '10-14 ngày',
+    estimatedLeadTime: '10-14 ng�y',
   });
 
   const craftingCustomOrder = await ensureCustomOrder({
     customerId: customer.id,
     sellerId: seller.id,
     quoteTemplateId: quoteTemplate.id,
-    title: 'Bộ ly gốm khắc tên Minh Anh',
+    title: 'B? ly g?m kh?c t�n Minh Anh',
     artisanNote:
-      'Shop đã lên phác thảo tông nâu đất, mỗi ly có một ký hiệu nhỏ riêng.',
+      'Shop d� l�n ph�c th?o t�ng n�u d?t, m?i ly c� m?t k� hi?u nh? ri�ng.',
     price: '420000',
-    leadTime: '12 ngày',
+    leadTime: '12 ng�y',
     sketchImageUrl: demoImages.ceramic,
     status: CustomOrderStatus.CRAFTING,
   });
   const shippedCustomOrder = await ensureCustomOrder({
     customerId: customer2.id,
     sellerId: seller2.id,
-    title: 'Hộp quà nến thơm cưới',
-    artisanNote: 'Hộp quà gồm 2 nến thơm, thiệp giấy ép hoa và túi vải linen.',
+    title: 'H?p qu� n?n thom cu?i',
+    artisanNote: 'H?p qu� g?m 2 n?n thom, thi?p gi?y �p hoa v� t�i v?i linen.',
     price: '520000',
-    leadTime: '7 ngày',
+    leadTime: '7 ng�y',
     sketchImageUrl: demoImages.candle,
     status: CustomOrderStatus.SHIPPED,
   });
@@ -3212,8 +3212,8 @@ async function main() {
     customOrderId: craftingCustomOrder.id,
     actorId: seller.id,
     status: CustomOrderStatus.PENDING_REVIEW,
-    title: 'Đã gửi bản phác thảo đầu tiên',
-    note: 'Shop chọn tông nâu đất và bố cục khắc tên nhẹ để bộ ly giữ cảm giác tối giản.',
+    title: '�� g?i b?n ph�c th?o d?u ti�n',
+    note: 'Shop ch?n t�ng n�u d?t v� b? c?c kh?c t�n nh? d? b? ly gi? c?m gi�c t?i gi?n.',
     imageUrl: demoImages.ceramic,
     createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
   });
@@ -3221,8 +3221,8 @@ async function main() {
     customOrderId: craftingCustomOrder.id,
     actorId: seller.id,
     status: CustomOrderStatus.CRAFTING,
-    title: 'Bắt đầu tạo dáng và xử lý bề mặt',
-    note: 'Phần thân ly đã được tạo dáng, shop đang hong khô chậm trước khi khắc tên.',
+    title: 'B?t d?u t?o d�ng v� x? l� b? m?t',
+    note: 'Ph?n th�n ly d� du?c t?o d�ng, shop dang hong kh� ch?m tru?c khi kh?c t�n.',
     imageUrl: demoImages.ceramic,
     createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
   });
@@ -3230,8 +3230,8 @@ async function main() {
     customOrderId: shippedCustomOrder.id,
     actorId: seller2.id,
     status: CustomOrderStatus.CRAFTING,
-    title: 'Chuẩn bị nguyên liệu hộp quà',
-    note: 'Nến thơm đã đổ khuôn, thiệp ép hoa và túi linen được chuẩn bị theo concept cưới.',
+    title: 'Chu?n b? nguy�n li?u h?p qu�',
+    note: 'N?n thom d� d? khu�n, thi?p �p hoa v� t�i linen du?c chu?n b? theo concept cu?i.',
     imageUrl: demoImages.candle,
     createdAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
   });
@@ -3239,8 +3239,8 @@ async function main() {
     customOrderId: shippedCustomOrder.id,
     actorId: seller2.id,
     status: CustomOrderStatus.FINISHING,
-    title: 'Hoàn thiện đóng gói quà tặng',
-    note: 'Shop đã kiểm tra mùi hương, buộc nơ linen và đặt thiệp viết tay trong hộp.',
+    title: 'Ho�n thi?n d�ng g�i qu� t?ng',
+    note: 'Shop d� ki?m tra m�i huong, bu?c no linen v� d?t thi?p vi?t tay trong h?p.',
     imageUrl: demoImages.gift,
     createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
   });
@@ -3248,8 +3248,8 @@ async function main() {
     customOrderId: shippedCustomOrder.id,
     actorId: seller2.id,
     status: CustomOrderStatus.SHIPPED,
-    title: 'Đã bàn giao đơn cho vận chuyển',
-    note: 'Hộp quà đã được chống sốc kỹ và chuyển sang giai đoạn giao hàng.',
+    title: '�� b�n giao don cho v?n chuy?n',
+    note: 'H?p qu� d� du?c ch?ng s?c k? v� chuy?n sang giai do?n giao h�ng.',
     imageUrl: demoImages.gift,
     createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
   });
@@ -3257,14 +3257,14 @@ async function main() {
   await ensureCommissionDemo({
     customerId: customer3.id,
     sellerId: seller2.id,
-    title: 'Đặt hộp quà sinh nhật handmade',
+    title: '�?t h?p qu� sinh nh?t handmade',
     referenceImage: demoImages.paper,
   });
 
   await ensureFlashSale({
-    name: 'Tuần lễ handmade local',
+    name: 'Tu?n l? handmade local',
     description:
-      'Flash sale active để demo trang admin và discount guardrails.',
+      'Flash sale active d? demo trang admin v� discount guardrails.',
     banner: demoImages.candle,
     startAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
     endAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
@@ -3274,8 +3274,8 @@ async function main() {
     discountPercent: '12',
   });
   await ensureFlashSale({
-    name: 'Flash sale sắp diễn ra',
-    description: 'Campaign future để admin thấy trạng thái upcoming.',
+    name: 'Flash sale s?p di?n ra',
+    description: 'Campaign future d? admin th?y tr?ng th�i upcoming.',
     banner: demoImages.decor,
     startAt: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
     endAt: new Date(now.getTime() + 17 * 24 * 60 * 60 * 1000),
@@ -3285,8 +3285,8 @@ async function main() {
     discountPercent: '8',
   });
   await ensureFlashSale({
-    name: 'Flash sale đã kết thúc',
-    description: 'Campaign ended để admin có dữ liệu lịch sử.',
+    name: 'Flash sale d� k?t th�c',
+    description: 'Campaign ended d? admin c� d? li?u l?ch s?.',
     banner: demoImages.paper,
     startAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
     endAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
@@ -3300,8 +3300,8 @@ async function main() {
     ensureNotification({
       userId: admin.id,
       type: NotificationType.PRODUCT_SUBMITTED,
-      title: 'Sản phẩm chờ duyệt',
-      message: `Sản phẩm "${products.crochetBearPending.name}" đang chờ admin duyệt.`,
+      title: 'S?n ph?m ch? duy?t',
+      message: `S?n ph?m "${products.crochetBearPending.name}" dang ch? admin duy?t.`,
       link: '/dashboard/products?status=PENDING',
       metadata: {
         productId: products.crochetBearPending.id,
@@ -3312,8 +3312,8 @@ async function main() {
     ensureNotification({
       userId: admin.id,
       type: NotificationType.REPORT_CREATED,
-      title: 'Có báo cáo mới',
-      message: `Báo cáo "${pendingProductReport.reason}" đang chờ xử lý.`,
+      title: 'C� b�o c�o m?i',
+      message: `B�o c�o "${pendingProductReport.reason}" dang ch? x? l�.`,
       link: '/dashboard/reports',
       metadata: {
         reportId: pendingProductReport.id,
@@ -3324,8 +3324,8 @@ async function main() {
     ensureNotification({
       userId: seller.id,
       type: NotificationType.ORDER_CREATED,
-      title: 'Có đơn hàng mới',
-      message: `Shop có kiện hàng mới từ đơn #${pendingOrder.id.slice(0, 8).toUpperCase()}.`,
+      title: 'C� don h�ng m?i',
+      message: `Shop c� ki?n h�ng m?i t? don #${pendingOrder.id.slice(0, 8).toUpperCase()}.`,
       link: '/dashboard/orders',
       metadata: {
         orderId: pendingOrder.id,
@@ -3336,8 +3336,8 @@ async function main() {
     ensureNotification({
       userId: seller.id,
       type: NotificationType.PRODUCT_APPROVED,
-      title: 'Sản phẩm đã được duyệt',
-      message: `Sản phẩm "${mug.name}" đang hiển thị cho khách hàng.`,
+      title: 'S?n ph?m d� du?c duy?t',
+      message: `S?n ph?m "${mug.name}" dang hi?n th? cho kh�ch h�ng.`,
       link: '/dashboard/products',
       metadata: {
         productId: mug.id,
@@ -3348,8 +3348,8 @@ async function main() {
     ensureNotification({
       userId: seller2.id,
       type: NotificationType.CUSTOM_ORDER_STATUS_UPDATED,
-      title: 'Đơn thiết kế riêng đang giao',
-      message: `Đơn "${shippedCustomOrder.title}" đang ở trạng thái đang giao.`,
+      title: '�on thi?t k? ri�ng dang giao',
+      message: `�on "${shippedCustomOrder.title}" dang ? tr?ng th�i dang giao.`,
       link: '/seller/custom-orders',
       metadata: {
         customOrderId: shippedCustomOrder.id,
@@ -3359,8 +3359,8 @@ async function main() {
     ensureNotification({
       userId: customer.id,
       type: NotificationType.ORDER_STATUS_UPDATED,
-      title: 'Đơn hàng đã giao',
-      message: `Đơn #${deliveredOrder.id.slice(0, 8).toUpperCase()} đã được giao thành công.`,
+      title: '�on h�ng d� giao',
+      message: `�on #${deliveredOrder.id.slice(0, 8).toUpperCase()} d� du?c giao th�nh c�ng.`,
       link: `/profile/orders/${deliveredOrder.id}`,
       metadata: {
         orderId: deliveredOrder.id,
@@ -3370,8 +3370,8 @@ async function main() {
     ensureNotification({
       userId: customer.id,
       type: NotificationType.CUSTOM_QUOTE_SENT,
-      title: 'Bạn nhận được báo giá mới',
-      message: `Báo giá "${craftingCustomOrder.title}" đã sẵn sàng để xem lại.`,
+      title: 'B?n nh?n du?c b�o gi� m?i',
+      message: `B�o gi� "${craftingCustomOrder.title}" d� s?n s�ng d? xem l?i.`,
       link: `/custom-orders/${craftingCustomOrder.id}/review`,
       metadata: {
         customOrderId: craftingCustomOrder.id,
@@ -3382,8 +3382,8 @@ async function main() {
     ensureNotification({
       userId: customer3.id,
       type: NotificationType.REPORT_STATUS_UPDATED,
-      title: 'Báo cáo đã được xử lý',
-      message: `Báo cáo "${resolvedShopReport.reason}" đã được admin xử lý.`,
+      title: 'B�o c�o d� du?c x? l�',
+      message: `B�o c�o "${resolvedShopReport.reason}" d� du?c admin x? l�.`,
       link: null,
       metadata: {
         reportId: resolvedShopReport.id,
@@ -3394,8 +3394,8 @@ async function main() {
     ensureNotification({
       userId: seller.id,
       type: NotificationType.REPORT_CREATED,
-      title: 'Báo cáo đang được xem xét',
-      message: `Báo cáo "${reviewingCustomerReport.reason}" đang được admin xem xét.`,
+      title: 'B�o c�o dang du?c xem x�t',
+      message: `B�o c�o "${reviewingCustomerReport.reason}" dang du?c admin xem x�t.`,
       link: '/dashboard/reports',
       metadata: {
         reportId: reviewingCustomerReport.id,
@@ -3423,7 +3423,7 @@ async function main() {
   console.log(`Password for all demo accounts: ${DEMO_PASSWORD}`);
   console.log('Admin: admin@ecommerce.com');
   console.log(
-    'Seller: seller@ecommerce.com, seller2@ecommerce.com, seller3@ecommerce.com, seller4@ecommerce.com, seller5@ecommerce.com, seller6@ecommerce.com, ebay.importer@local.dev',
+    'Seller: seller@ecommerce.com, seller2@ecommerce.com, seller3@ecommerce.com, seller4@ecommerce.com, seller5@ecommerce.com, seller6@ecommerce.com, seller7@ecommerce.com',
   );
   console.log(
     'Customer: customer@ecommerce.com through customer20@ecommerce.com',
