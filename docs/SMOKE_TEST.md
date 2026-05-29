@@ -18,7 +18,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Login seller: `seller@ecommerce.com / admin123`.
 - [ ] Login seller 2: `seller2@ecommerce.com / admin123`.
 - [ ] Login seller 3-6 nếu cần demo shop chuyên biệt: `seller3@ecommerce.com`, `seller4@ecommerce.com`, `seller5@ecommerce.com`, `seller6@ecommerce.com` cùng password `admin123`.
-- [ ] Login real importer nếu cần xem sản phẩm eBay JSON: `ebay.importer@local.dev / admin123`.
+- [ ] Login real importer nếu cần xem sản phẩm eBay JSON: `seller7@ecommerce.com / admin123`.
 - [ ] Login customer: `customer@ecommerce.com / admin123`.
 - [ ] Login customer 2/3: `customer2@ecommerce.com / admin123`, `customer3@ecommerce.com / admin123`.
 - [ ] Logout rồi login lại bằng role khác không bị giữ menu/session cũ.

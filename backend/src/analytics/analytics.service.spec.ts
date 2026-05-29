@@ -21,10 +21,18 @@ describe('AnalyticsService', () => {
     marketplaceLedgerEntry: {
       findMany: jest.fn(),
     },
+    subOrder: {
+      findMany: jest.fn(),
+    },
+    customOrder: {
+      findMany: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.subOrder.findMany.mockResolvedValue([]);
+    mockPrisma.customOrder.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -88,5 +96,24 @@ describe('AnalyticsService', () => {
     );
 
     expect(result).toEqual([{ name: 'Ceramics', value: 90000 }]);
+  });
+
+  it('adds paid sub-orders without posted seller earning ledger rows', async () => {
+    mockPrisma.marketplaceLedgerEntry.findMany.mockResolvedValue([]);
+    mockPrisma.subOrder.findMany.mockResolvedValue([
+      {
+        subTotal: 120000,
+        discountAmount: 20000,
+        createdAt: new Date('2026-05-02T10:00:00Z'),
+      },
+    ]);
+
+    const result = await service.getSellerRevenueOverTime(
+      'seller_1',
+      '2026-05-02',
+      '2026-05-02',
+    );
+
+    expect(result).toEqual([{ date: '2026-05-02', revenue: 100000 }]);
   });
 });

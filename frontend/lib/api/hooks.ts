@@ -13,7 +13,10 @@ import { cartApi } from "./cart";
 import { wishlistApi } from "./wishlist";
 import { shopFollowApi } from "./shop-follow";
 import { ordersApi } from "./orders";
-import type { AdminOrderFilters, OrderStatus as ApiOrderStatus } from "./orders";
+import type {
+  AdminOrderFilters,
+  OrderStatus as ApiOrderStatus,
+} from "./orders";
 import { analyticsApi } from "./analytics";
 import {
   reviewsApi,
@@ -50,10 +53,7 @@ import {
   type AdminReportsQuery,
   type CreateReportPayload,
 } from "./reports";
-import {
-  notificationsApi,
-  type NotificationsQuery,
-} from "./notifications";
+import { notificationsApi, type NotificationsQuery } from "./notifications";
 import {
   paymentReliabilityApi,
   type PaymentReliabilityAnomaliesQuery,
@@ -166,10 +166,7 @@ export function useSeller(id: string) {
   });
 }
 
-export function useSearchSellers(
-  params?: SellerSearchParams,
-  enabled = true,
-) {
+export function useSearchSellers(params?: SellerSearchParams, enabled = true) {
   return useQuery({
     queryKey: sellerKeys.search(params),
     queryFn: () => usersApi.searchSellers(params),
@@ -222,13 +219,8 @@ export function useCreateHomepageBanner() {
 export function useUpdateHomepageBanner() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: UpdateHomepageBannerDto;
-    }) => homepageApi.updateBanner(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateHomepageBannerDto }) =>
+      homepageApi.updateBanner(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: homepageKeys.all });
     },
@@ -1277,23 +1269,20 @@ export function useMarkConversationRead() {
       queryClient.setQueriesData<{
         data: ChatConversationSummary[];
         nextCursor: string | null;
-      }>(
-        { queryKey: [...chatKeys.all, "conversations"] },
-        (previous) => {
-          if (!previous) {
-            return previous;
-          }
+      }>({ queryKey: [...chatKeys.all, "conversations"] }, (previous) => {
+        if (!previous) {
+          return previous;
+        }
 
-          return {
-            ...previous,
-            data: previous.data.map((conversation) =>
-              conversation.id === conversationId
-                ? { ...conversation, unreadCount: 0 }
-                : conversation,
-            ),
-          };
-        },
-      );
+        return {
+          ...previous,
+          data: previous.data.map((conversation) =>
+            conversation.id === conversationId
+              ? { ...conversation, unreadCount: 0 }
+              : conversation,
+          ),
+        };
+      });
       if (readState.changed) {
         queryClient.invalidateQueries({ queryKey: chatKeys.unread() });
       }
@@ -1314,7 +1303,8 @@ export const orderKeys = {
   subOrderDetail: (id: string) => [...orderKeys.subOrderDetails(), id] as const,
   adminDetails: () => [...orderKeys.all, "admin-detail"] as const,
   adminDetail: (id: string) => [...orderKeys.adminDetails(), id] as const,
-  adminLedger: (id: string) => [...orderKeys.adminDetail(id), "ledger"] as const,
+  adminLedger: (id: string) =>
+    [...orderKeys.adminDetail(id), "ledger"] as const,
 };
 
 export const paymentKeys = {
@@ -1412,10 +1402,7 @@ export const notificationKeys = {
   unread: () => [...notificationKeys.all, "unread"] as const,
 };
 
-export function useNotifications(
-  params?: NotificationsQuery,
-  enabled = true,
-) {
+export function useNotifications(params?: NotificationsQuery, enabled = true) {
   return useQuery({
     queryKey: notificationKeys.list(params),
     queryFn: () => notificationsApi.getNotifications(params),
@@ -1526,6 +1513,7 @@ export function useUpdateSubOrderStatus() {
       ordersApi.updateSubOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
     },
   });
@@ -1538,6 +1526,7 @@ export function useUpdateAdminOrderStatus() {
       ordersApi.updateAdminOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
     },
@@ -1556,6 +1545,7 @@ export function useRefundAdminOrder() {
     }) => ordersApi.refundAdminOrder(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminLedger(id) });
@@ -1636,7 +1626,8 @@ export const customOrderKeys = {
   all: ["customOrders"] as const,
   seller: () => [...customOrderKeys.all, "seller"] as const,
   detail: (id: string) => ["customOrder", id] as const,
-  progress: (id: string) => [...customOrderKeys.detail(id), "progress"] as const,
+  progress: (id: string) =>
+    [...customOrderKeys.detail(id), "progress"] as const,
   adminLedger: (id: string) =>
     [...customOrderKeys.detail(id), "admin-ledger"] as const,
 };
@@ -1837,7 +1828,8 @@ export function useSellerRevenueByCategory(
 // Reviews hooks
 export const reviewKeys = {
   all: ["reviews"] as const,
-  product: (productId: string) => [...reviewKeys.all, "product", productId] as const,
+  product: (productId: string) =>
+    [...reviewKeys.all, "product", productId] as const,
   seller: () => [...reviewKeys.all, "seller"] as const,
   shopBase: (sellerId: string) =>
     [...reviewKeys.all, "shop", sellerId] as const,
@@ -1862,7 +1854,9 @@ export function useCreateReview() {
   return useMutation({
     mutationFn: (data: CreateReviewDto) => reviewsApi.createReview(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: reviewKeys.product(variables.productId) });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.product(variables.productId),
+      });
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
     },
   });
@@ -1871,10 +1865,15 @@ export function useCreateReview() {
 export function useSellerReply() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { reviewId: string; reply: string; productId: string }) => 
-      reviewsApi.sellerReply(data.reviewId, data.reply),
+    mutationFn: (data: {
+      reviewId: string;
+      reply: string;
+      productId: string;
+    }) => reviewsApi.sellerReply(data.reviewId, data.reply),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: reviewKeys.product(variables.productId) });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.product(variables.productId),
+      });
     },
   });
 }

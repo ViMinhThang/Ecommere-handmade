@@ -17,8 +17,8 @@ const zlib = require('zlib');
 const prisma = new PrismaClient();
 
 const SKU_PREFIX = 'EBAY-';
-const IMPORTER_EMAIL = 'ebay.importer@local.dev';
-const IMPORTER_SHOP_NAME = 'Ebay Handmade Import';
+const IMPORTER_EMAIL = 'seller7@ecommerce.com';
+const IMPORTER_SHOP_NAME = 'Đồ Gốm Bát Tràng Minh Khang';
 const DEFAULT_CATEGORY_SLUG = 'gom-su-handmade';
 const DEFAULT_LOCAL_SOURCE_FILE = path.join('crawl', 'data', 'product.csv');
 const REQUIRED_SOURCE_COLUMNS = ['itemId', 'title', 'priceValue', 'imageUrl'];
