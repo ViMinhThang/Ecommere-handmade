@@ -75,6 +75,7 @@ interface ExecuteCheckoutTransactionParams {
   cart: EnrichedCart;
   sellerGroups: Map<string, SubOrderGroup>;
   shippingAddress: Record<string, unknown>;
+  giftOptions: GiftOptions;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   paymentIntentId?: string | null;
@@ -88,12 +89,14 @@ interface CheckoutFingerprintContext {
   paymentMethod: PaymentMethod;
   cart: EnrichedCart;
   shippingAddress: Record<string, unknown>;
+  giftOptions: GiftOptions;
   rewardRedemption: RewardRedemption;
 }
 
 interface CheckoutReuseValidationContext {
   expectedFingerprint?: string;
   shippingAddressHash?: string;
+  giftOptionsHash?: string;
   currentCartItems?: CheckoutCartComparisonItem[];
 }
 
@@ -114,6 +117,12 @@ interface CheckoutFlashSalePricingSnapshot {
 interface RewardRedemption {
   points: number;
   discountAmount: number;
+}
+
+interface GiftOptions {
+  giftWrap: boolean;
+  giftCard: boolean;
+  giftMessage: string | null;
 }
 
 interface CheckoutVoucherSnapshot {
@@ -372,6 +381,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       userId,
       checkoutDto,
     );
+    const giftOptions = this.normalizeCheckoutGiftOptions(checkoutDto);
     let currentCartItemsForProvidedKey:
       | CheckoutCartComparisonItem[]
       | undefined;
@@ -387,6 +397,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           normalizedPaymentMethod,
           {
             shippingAddressHash: this.hashCheckoutValue(shippingAddress),
+            giftOptionsHash: this.hashCheckoutValue(giftOptions),
           },
         );
         if (reusableCheckout) {
@@ -415,6 +426,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       paymentMethod: normalizedPaymentMethod,
       cart: checkoutCart,
       shippingAddress,
+      giftOptions,
       rewardRedemption,
     });
     const idempotencyKey =
@@ -423,6 +435,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const reuseValidation: CheckoutReuseValidationContext = {
       expectedFingerprint: checkoutFingerprint,
       shippingAddressHash: this.hashCheckoutValue(shippingAddress),
+      giftOptionsHash: this.hashCheckoutValue(giftOptions),
       currentCartItems:
         currentCartItemsForProvidedKey ??
         this.getCartComparisonItems(cart.items),
@@ -446,6 +459,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           cart: checkoutCart,
           sellerGroups,
           shippingAddress,
+          giftOptions,
           paymentMethod: PaymentMethod.COD,
           paymentStatus: PaymentStatus.COD_PENDING,
           idempotencyKey,
@@ -495,6 +509,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         cart: checkoutCart,
         sellerGroups,
         shippingAddress,
+        giftOptions,
         paymentMethod: PaymentMethod.STRIPE,
         paymentStatus: PaymentStatus.UNPAID,
         paymentIntentId: paymentIntent.id,
@@ -643,6 +658,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (
+      validation.giftOptionsHash &&
+      this.hashCheckoutValue(this.getOrderGiftOptions(order)) !==
+        validation.giftOptionsHash
+    ) {
+      throw new BadRequestException(
+        'Idempotency key was used with another checkout payload',
+      );
+    }
+
+    if (
       validation.expectedFingerprint &&
       this.buildExistingOrderFingerprint(order) !==
         validation.expectedFingerprint
@@ -724,6 +749,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           }
         : {}),
       shippingAddressHash: this.hashCheckoutValue(context.shippingAddress),
+      giftOptions: context.giftOptions,
       items: this.getCheckoutFingerprintItems(context.cart.items),
     });
   }
@@ -746,6 +772,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       shippingAddressHash: this.hashCheckoutValue(
         order.shippingAddress ?? null,
       ),
+      giftOptions: this.getOrderGiftOptions(order),
       items: this.getExistingOrderFingerprintItems(order),
     });
   }
@@ -917,6 +944,45 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     throw new BadRequestException('Shipping address is required');
   }
 
+  private normalizeCheckoutGiftOptions(checkoutDto: CheckoutDto): GiftOptions {
+    const giftWrap = checkoutDto.giftWrap === true;
+    const rawMessage =
+      typeof checkoutDto.giftMessage === 'string'
+        ? checkoutDto.giftMessage
+        : '';
+    const giftMessage = rawMessage
+      .replace(/<\s*(script|style)[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+
+    if (giftMessage.length > 500) {
+      throw new BadRequestException(
+        'Gift message must be at most 500 characters',
+      );
+    }
+
+    const giftCard = checkoutDto.giftCard === true || giftMessage.length > 0;
+
+    return {
+      giftWrap,
+      giftCard,
+      giftMessage: giftCard && giftMessage ? giftMessage : null,
+    };
+  }
+
+  private getOrderGiftOptions(
+    order: Pick<Order, 'giftWrap' | 'giftCard' | 'giftMessage'>,
+  ): GiftOptions {
+    return {
+      giftWrap: Boolean(order.giftWrap),
+      giftCard: Boolean(order.giftCard),
+      giftMessage:
+        typeof order.giftMessage === 'string' && order.giftMessage.trim()
+          ? order.giftMessage.trim()
+          : null,
+    };
+  }
+
   private validateCart(cart: EnrichedCart) {
     if (!cart || cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
@@ -992,6 +1058,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       paymentExpiresAt,
       idempotencyKey,
       rewardRedemption,
+      giftOptions,
     } = params;
 
     return this.prisma.$transaction(async (tx) => {
@@ -1032,6 +1099,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           shippingAddress: shippingAddress
             ? (shippingAddress as Prisma.InputJsonValue)
             : undefined,
+          giftWrap: giftOptions.giftWrap,
+          giftCard: giftOptions.giftCard,
+          giftMessage: giftOptions.giftMessage,
           status: OrderStatus.PENDING,
         },
       });
@@ -2149,6 +2219,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       select: {
         createdAt: true,
         shippingAddress: true,
+        giftWrap: true,
+        giftCard: true,
+        giftMessage: true,
         paymentMethod: true,
         paymentStatus: true,
       },
@@ -2160,6 +2233,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       select: {
         createdAt: true,
         shippingAddress: true,
+        giftWrap: true,
+        giftCard: true,
+        giftMessage: true,
         paymentMethod: true,
         paymentStatus: true,
         customer: { select: this.customerSelect },

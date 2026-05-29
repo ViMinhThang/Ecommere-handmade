@@ -62,7 +62,7 @@ function NewListingContent() {
       setFormData({
         name: existingProduct.name || '',
         description: existingProduct.description || '',
-        price: existingProduct.price || 0,
+        price: Number(existingProduct.price || 0),
         categoryId: existingProduct.categoryId || existingProduct.category?.id || '',
         images: existingProduct.images?.map(img => ({ url: img.url, isMain: img.isMain })) || [],
         descriptionImages: existingProduct.descriptionImages || [],

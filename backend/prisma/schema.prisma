@@ -690,6 +690,9 @@ model Order {
   checkoutIdempotencyKey String?
   currency               String                   @default("vnd")
   shippingAddress        Json?
+  giftWrap               Boolean                  @default(false)
+  giftCard               Boolean                  @default(false)
+  giftMessage            String?                  @db.Text
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   subOrders              SubOrder[]

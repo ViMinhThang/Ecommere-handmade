@@ -8,6 +8,7 @@ import Link from "next/link";
 import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import { SafeImage } from "@/components/ui/safe-image";
+import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
 
 function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
   if (!value) {
@@ -189,6 +190,12 @@ export default function OrderConfirmationPage() {
                 )}
               </div>
             </div>
+            <GiftOptionsNote
+              giftWrap={order.giftWrap}
+              giftCard={order.giftCard}
+              giftMessage={order.giftMessage}
+              className="summary-card border-stone-200/50 bg-[#F2F0EB]"
+            />
           </div>
         </div>
         <section className="mt-6 summary-card p-8 border border-stone-200/50 lg:max-w-md lg:ml-auto">

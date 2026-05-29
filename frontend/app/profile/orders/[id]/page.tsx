@@ -41,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { mediaApi } from "@/lib/api/media";
 import { PersonalizationNote } from "@/components/storefront/personalization-note";
+import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
 
 type ReviewableOrderItem = OrderItem & {
   review?: { rating: number } | null;
@@ -600,6 +601,13 @@ export default function OrderDetailPage() {
               </p>
             </div>
           </div>
+
+          <GiftOptionsNote
+            giftWrap={subOrder.order.giftWrap}
+            giftCard={subOrder.order.giftCard}
+            giftMessage={subOrder.order.giftMessage}
+            className="rounded-2xl border-border/60 bg-card p-8 text-card-foreground shadow-sm"
+          />
         </div>
       </div>
 
