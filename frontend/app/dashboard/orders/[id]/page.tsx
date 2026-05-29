@@ -47,6 +47,7 @@ import {
   getPersonalizationText,
   PersonalizationNote,
 } from '@/components/storefront/personalization-note'
+import { GiftOptionsNote } from '@/components/storefront/gift-options-note'
 
 const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
   'PENDING',
@@ -349,6 +350,13 @@ export default function DashboardOrderDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <GiftOptionsNote
+        giftWrap={order?.giftWrap ?? subOrder?.order?.giftWrap}
+        giftCard={order?.giftCard ?? subOrder?.order?.giftCard}
+        giftMessage={order?.giftMessage ?? subOrder?.order?.giftMessage}
+        className="bg-card text-card-foreground"
+      />
 
       {isAdmin && order && (
         <FinancialSummaryPanel

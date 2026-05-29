@@ -96,6 +96,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Customer, seller, and admin do not see menu actions outside their role.
 - [ ] Checkout defaults to COD; Stripe option is disabled when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is not configured.
 - [ ] Checkout summary shows subtotal, voucher discount if applied, shipping fee, total, payment method, and shipping address.
+- [ ] Checkout can save `Gói quà`, `Thiệp viết tay`, and `Lời nhắn`; confirmation, customer order detail, and seller/admin order detail show the same gift snapshot.
 - [ ] Product images render on home/discovery/category/product detail/cart/wishlist/profile orders/seller products; missing images show a clean fallback instead of a broken image icon.
 - [ ] Profile order detail opens when an order item has no product image; the fallback icon renders instead of an empty `next/image` source.
 - [ ] Seller can open `/dashboard/orders`, update a standard shop sub-order, and see Vietnamese success/error messages.

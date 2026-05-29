@@ -32,7 +32,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, MapPin, Plus, Tag, Ticket, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  CheckCircle2,
+  Gift,
+  MapPin,
+  MessageSquareText,
+  Plus,
+  Tag,
+  Ticket,
+  X,
+} from "lucide-react";
 
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
@@ -142,6 +152,11 @@ export default function CheckoutPage() {
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
   const [isRemovingVoucher, setIsRemovingVoucher] = useState(false);
+  const [giftOptions, setGiftOptions] = useState({
+    giftWrap: false,
+    giftCard: false,
+    giftMessage: "",
+  });
 
   const savedAddresses = addresses || [];
   const selectedAddress =
@@ -338,6 +353,10 @@ export default function CheckoutPage() {
           ward: formData.ward,
           address: formData.street,
         },
+        giftWrap: giftOptions.giftWrap,
+        giftCard:
+          giftOptions.giftCard || giftOptions.giftMessage.trim().length > 0,
+        giftMessage: giftOptions.giftMessage.trim() || undefined,
         paymentMethod,
       });
 
@@ -404,6 +423,10 @@ export default function CheckoutPage() {
   const baseTotal = (cart?.total || 0) + shipping;
   const total = baseTotal;
   const isVoucherActionPending = isApplyingVoucher || isRemovingVoucher;
+  const hasGiftSelection =
+    giftOptions.giftWrap ||
+    giftOptions.giftCard ||
+    giftOptions.giftMessage.trim().length > 0;
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -669,6 +692,82 @@ export default function CheckoutPage() {
 
               <section>
                 <h2 className="font-headline text-3xl italic mb-8">
+                  Gói quà / thiệp
+                </h2>
+                <div className="space-y-4 rounded-sm border border-stone-200 bg-white/70 p-5">
+                  <label className="flex cursor-pointer items-start gap-4 rounded-sm border border-stone-200 bg-[#F8F6F1]/60 p-4">
+                    <input
+                      type="checkbox"
+                      checked={giftOptions.giftWrap}
+                      onChange={(event) =>
+                        setGiftOptions((current) => ({
+                          ...current,
+                          giftWrap: event.target.checked,
+                        }))
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-stone-900">
+                        <Gift className="h-4 w-4 text-[#8B4513]" />
+                        Gói quà thủ công
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Shop sẽ đóng gói sản phẩm theo kiểu quà tặng phù hợp với đồ handmade.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex cursor-pointer items-start gap-4 rounded-sm border border-stone-200 bg-[#F8F6F1]/60 p-4">
+                    <input
+                      type="checkbox"
+                      checked={giftOptions.giftCard}
+                      onChange={(event) =>
+                        setGiftOptions((current) => ({
+                          ...current,
+                          giftCard: event.target.checked,
+                        }))
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-stone-900">
+                        <MessageSquareText className="h-4 w-4 text-[#8B4513]" />
+                        Thiệp viết tay
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Thêm thiệp nhỏ kèm lời nhắn cho người nhận.
+                      </p>
+                    </div>
+                  </label>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gift-message">Lời nhắn tặng kèm</Label>
+                    <Textarea
+                      id="gift-message"
+                      value={giftOptions.giftMessage}
+                      maxLength={500}
+                      rows={4}
+                      placeholder="Ví dụ: Chúc mừng sinh nhật, mong món quà nhỏ này làm bạn vui..."
+                      onChange={(event) => {
+                        const value = event.target.value.slice(0, 500);
+                        setGiftOptions((current) => ({
+                          ...current,
+                          giftCard: current.giftCard || value.trim().length > 0,
+                          giftMessage: value,
+                        }));
+                      }}
+                      className="bg-white"
+                    />
+                    <p className="text-right text-[11px] text-stone-500">
+                      {giftOptions.giftMessage.length}/500 ký tự
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <h2 className="font-headline text-3xl italic mb-8">
                   Phương thức thanh toán
                 </h2>
                 <div className="space-y-4">
@@ -924,6 +1023,27 @@ export default function CheckoutPage() {
                   </form>
                 )}
               </div>
+
+              {hasGiftSelection && (
+                <div className="rounded-sm border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-950">
+                  <div className="mb-2 flex items-center gap-2 font-semibold">
+                    <Gift className="h-4 w-4" />
+                    Gói quà / thiệp tặng kèm
+                  </div>
+                  <div className="space-y-1 text-amber-900/80">
+                    {giftOptions.giftWrap ? <p>Gói quà thủ công</p> : null}
+                    {(giftOptions.giftCard ||
+                      giftOptions.giftMessage.trim().length > 0) && (
+                      <p>Thiệp viết tay</p>
+                    )}
+                    {giftOptions.giftMessage.trim() ? (
+                      <p className="break-words">
+                        Lời nhắn: {giftOptions.giftMessage.trim()}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              )}
 
               {flashSaleDiscountAmount > 0 && (
                 <div className="flex items-center justify-between gap-4 text-emerald-700">

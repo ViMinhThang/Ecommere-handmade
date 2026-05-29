@@ -265,7 +265,7 @@ export default function ProductsPage() {
                     <TableCell className='font-medium'>{product.name}</TableCell>
                     <TableCell>{product.seller?.shopName || '-'}</TableCell>
                     <TableCell>{product.category?.name || '-'}</TableCell>
-                    <TableCell>{formatCurrency(product.price)}</TableCell>
+                    <TableCell>{formatCurrency(Number(product.price))}</TableCell>
                     <TableCell>{getStatusBadge(product.status)}</TableCell>
                     <TableCell>{new Date(product.createdAt).toLocaleDateString('vi-VN')}</TableCell>
                     <TableCell>

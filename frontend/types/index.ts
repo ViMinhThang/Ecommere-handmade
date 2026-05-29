@@ -308,6 +308,9 @@ export interface Order {
     | "REFUNDED";
   paymentIntentId?: string;
   shippingAddress?: string | OrderShippingAddress | null;
+  giftWrap?: boolean;
+  giftCard?: boolean;
+  giftMessage?: string | null;
   createdAt: Date;
   subOrders?: SubOrder[];
   financialSummary?: FinancialSummary;
