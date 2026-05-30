@@ -1188,11 +1188,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException(VOUCHER_INVALID_MESSAGE);
     }
 
-    await this.vouchersService.assertVoucherUsageAvailable(
-      voucher,
-      userId,
-      tx,
-    );
+    await this.vouchersService.assertVoucherUsageAvailable(voucher, userId, tx);
 
     const eligibleSubtotal = this.calculateVoucherEligibleSubtotal(
       cart.items,
@@ -1621,7 +1617,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       groups.map(([sellerId, data]) => [
         sellerId,
         cart.appliedVoucher
-          ? this.calculateVoucherEligibleSubtotal(data.items, cart.appliedVoucher)
+          ? this.calculateVoucherEligibleSubtotal(
+              data.items,
+              cart.appliedVoucher,
+            )
           : data.subTotal,
       ]),
     );
@@ -1643,7 +1642,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         cart.discountAmount > 0 && discountBase > 0 && totalDiscountBase > 0
           ? sellerId === lastDiscountableSellerId
             ? remainingDiscount
-            : Math.round(cart.discountAmount * (discountBase / totalDiscountBase))
+            : Math.round(
+                cart.discountAmount * (discountBase / totalDiscountBase),
+              )
           : 0;
 
       remainingDiscount -= subOrderDiscount;

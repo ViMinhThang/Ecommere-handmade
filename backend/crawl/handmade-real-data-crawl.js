@@ -283,8 +283,12 @@ function normalizeShopify(rawProducts) {
 
       const title = String(product.title || '').trim();
       const description = stripHtml(product.body_html);
-      const priceUsd = Number(variant.price);
+      let priceUsd = Number(variant.price);
       if (!title || !priceUsd) return null;
+
+      if (source.slug === 'pegandawl' && priceUsd > 1000) {
+        priceUsd = priceUsd / 100000;
+      }
 
       const categorySlug = detectCategory({
         source,
@@ -296,6 +300,7 @@ function normalizeShopify(rawProducts) {
       const colors = detectColors(`${title} ${description}`);
       const styles = styleTags(`${title} ${description} ${(product.tags || []).join(' ')}`);
       const sourceUrl = `${source.baseUrl.replace(/\/$/, '')}/products/${product.handle}`;
+      const priceVnd = Math.max(30000, Math.round((priceUsd * VND_PER_USD) / 1000) * 1000);
 
       return {
         externalId: `${source.slug}:${product.id}`,
@@ -304,8 +309,8 @@ function normalizeShopify(rawProducts) {
         description:
           description ||
           `${title}. Real title, price, image URL and product URL are preserved from public Shopify products.json.`,
-        priceVnd: Math.max(30000, Math.round((priceUsd * VND_PER_USD) / 1000) * 1000),
-        priceText: `${priceUsd.toFixed(2)} USD`,
+        priceVnd,
+        priceText: `${priceVnd.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")} đ`,
         categorySlug,
         sellerEmail: source.email,
         status: 'APPROVED',

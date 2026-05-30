@@ -275,9 +275,7 @@ export class ProductsService {
 
     const searchTerm = query?.q?.trim();
     if (searchTerm) {
-      where.OR = [
-        { name: { contains: searchTerm, mode: 'insensitive' } },
-      ];
+      where.OR = [{ name: { contains: searchTerm, mode: 'insensitive' } }];
     }
 
     // Advanced filters from query DTO

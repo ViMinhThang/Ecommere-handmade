@@ -51,10 +51,7 @@ export class VouchersController {
     @Request() req: AuthenticatedRequest,
     @Body() createVoucherDto: CreateVoucherDto,
   ) {
-    return this.vouchersService.createForSeller(
-      req.user.id,
-      createVoucherDto,
-    );
+    return this.vouchersService.createForSeller(req.user.id, createVoucherDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

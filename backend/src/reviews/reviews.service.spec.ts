@@ -166,9 +166,14 @@ describe('ReviewsService', () => {
 
     it('rejects seller self-review', async () => {
       await expect(
-        service.createShopReview('seller_1', ['ROLE_USER', 'ROLE_SELLER'], 'seller_1', {
-          rating: 5,
-        }),
+        service.createShopReview(
+          'seller_1',
+          ['ROLE_USER', 'ROLE_SELLER'],
+          'seller_1',
+          {
+            rating: 5,
+          },
+        ),
       ).rejects.toThrow(BadRequestException);
 
       expect(mockPrisma.subOrder.findFirst).not.toHaveBeenCalled();
