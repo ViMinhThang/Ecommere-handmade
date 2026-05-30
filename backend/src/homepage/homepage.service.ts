@@ -3,11 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  CategoryStatus,
-  Prisma,
-  ProductStatus,
-} from '@prisma/client';
+import { CategoryStatus, Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FlashSalesService } from '../flash-sales/flash-sales.service';
 import { CreateHomepageBannerDto } from './dto/create-homepage-banner.dto';

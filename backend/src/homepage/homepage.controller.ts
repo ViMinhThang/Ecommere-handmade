@@ -45,10 +45,7 @@ export class AdminHomepageController {
 
   @Patch('banners/:id')
   @Roles('ROLE_ADMIN')
-  updateBanner(
-    @Param('id') id: string,
-    @Body() data: UpdateHomepageBannerDto,
-  ) {
+  updateBanner(@Param('id') id: string, @Body() data: UpdateHomepageBannerDto) {
     return this.homepageService.updateBanner(id, data);
   }
 

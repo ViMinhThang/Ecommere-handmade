@@ -340,7 +340,8 @@ export class VouchersService {
       throw new NotFoundException(`Voucher with ID ${id} not found`);
     }
 
-    const { sellerId: _ignoredSellerId, ...safeUpdate } = updateVoucherDto;
+    const safeUpdate = { ...updateVoucherDto };
+    delete safeUpdate.sellerId;
     return this.update(id, safeUpdate);
   }
 
@@ -398,10 +399,7 @@ export class VouchersService {
   }
 
   async assertVoucherUsageAvailable(
-    voucher: Pick<
-      Voucher,
-      'id' | 'usageLimit' | 'perUserLimit' | 'usedCount'
-    >,
+    voucher: Pick<Voucher, 'id' | 'usageLimit' | 'perUserLimit' | 'usedCount'>,
     userId: string,
     tx: VoucherUsageReader = this.prisma,
   ) {
@@ -435,7 +433,9 @@ export class VouchersService {
       dto.maxDiscountAmount !== null &&
       dto.maxDiscountAmount < 0
     ) {
-      throw new BadRequestException('maxDiscountAmount must be greater than or equal to 0');
+      throw new BadRequestException(
+        'maxDiscountAmount must be greater than or equal to 0',
+      );
     }
 
     if (

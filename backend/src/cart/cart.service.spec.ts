@@ -22,10 +22,7 @@ describe('CartService voucher range matching', () => {
   });
 
   it('matches voucher ranges inclusively at maxPrice boundary', () => {
-    const match = service['findMatchingVoucherRange'](
-      [buildRange()],
-      1000,
-    );
+    const match = service['findMatchingVoucherRange']([buildRange()], 1000);
 
     expect(match?.id).toBe('range-1');
   });
@@ -71,7 +68,12 @@ describe('CartService personalization', () => {
       categoryId: 'cat_1',
       images: [],
       category: { id: 'cat_1', name: 'Trang sức' },
-      seller: { id: 'seller_1', name: 'Seller', shopName: 'Shop', avatar: null },
+      seller: {
+        id: 'seller_1',
+        name: 'Seller',
+        shopName: 'Shop',
+        avatar: null,
+      },
     },
     ...overrides,
   });
@@ -109,7 +111,11 @@ describe('CartService personalization', () => {
     };
 
     return {
-      service: new CartService(prisma as never, vouchers as never, flashSales as never),
+      service: new CartService(
+        prisma as never,
+        vouchers as never,
+        flashSales as never,
+      ),
       prisma,
       flashSales,
     };

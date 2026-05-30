@@ -151,7 +151,9 @@ export class UsersService {
         craftExperienceYears: isSellerAccount
           ? createUserDto.craftExperienceYears
           : undefined,
-        craftMaterials: isSellerAccount ? (createUserDto.craftMaterials ?? []) : [],
+        craftMaterials: isSellerAccount
+          ? (createUserDto.craftMaterials ?? [])
+          : [],
         verificationNote: isSellerAccount
           ? createUserDto.verificationNote
           : undefined,
