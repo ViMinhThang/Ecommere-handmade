@@ -87,10 +87,43 @@ export function NotificationBell({ className }: NotificationBellProps) {
       });
     };
 
+    const handleOrderUpdated = (orderUpdate: any) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+      const statusMap: Record<string, string> = {
+        PENDING: "đang chờ xử lý",
+        CONFIRMED: "đã được xác nhận",
+        SHIPPED: "đang được giao",
+        DELIVERED: "đã giao thành công",
+        CANCELLED: "đã bị hủy",
+        REFUNDED: "đã được hoàn tiền",
+      };
+
+      const statusText = statusMap[orderUpdate.status] || "được cập nhật";
+      const displayId = orderUpdate.subOrderId
+        ? orderUpdate.subOrderId.slice(-8).toUpperCase()
+        : (orderUpdate.orderId ? orderUpdate.orderId.slice(-8).toUpperCase() : "");
+
+      toast.info(`Đơn hàng #${displayId}`, {
+        description: `Trạng thái đơn hàng của quý khách đã ${statusText}.`,
+        action: {
+          label: "Xem",
+          onClick: () => {
+            const redirectUrl = orderUpdate.subOrderId
+              ? `/profile/orders/${orderUpdate.subOrderId}`
+              : (orderUpdate.orderId ? `/profile/orders/${orderUpdate.orderId}` : "/profile/orders");
+            router.push(redirectUrl);
+          }
+        }
+      });
+    };
+
     socket.on("notifications.created", handleNotificationCreated);
+    socket.on("order.updated", handleOrderUpdated);
 
     return () => {
       socket.off("notifications.created", handleNotificationCreated);
+      socket.off("order.updated", handleOrderUpdated);
     };
   }, [enabled, queryClient, router]);
   const {

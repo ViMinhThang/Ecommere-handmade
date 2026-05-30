@@ -206,7 +206,7 @@ export default function DashboardHomepagePage() {
 
   const bannersQuery = useAdminHomepageBanners();
   const featuredQuery = useAdminHomepageFeaturedProducts();
-  const productsQuery = useProducts({ status: "APPROVED", limit: 100 });
+  const productsQuery = useProducts({ status: "APPROVED", limit: 50 });
   const foldersQuery = useFolders(user?.id ?? "");
   const folders = foldersQuery.data ?? [];
   const activeFolderId = selectedFolderId || folders[0]?.id || "";
@@ -276,8 +276,8 @@ export default function DashboardHomepagePage() {
 
   const scheduleError =
     bannerForm.startAt &&
-    bannerForm.endAt &&
-    new Date(bannerForm.endAt) <= new Date(bannerForm.startAt)
+      bannerForm.endAt &&
+      new Date(bannerForm.endAt) <= new Date(bannerForm.startAt)
       ? "Thời gian kết thúc phải sau thời gian bắt đầu."
       : "";
   const titleError =
@@ -331,20 +331,20 @@ export default function DashboardHomepagePage() {
       template.data.startDaysFromNow === null
         ? ""
         : toDateTimeInput(
-            new Date(
-              now.getTime() +
-                template.data.startDaysFromNow * 24 * 60 * 60 * 1000,
-            ),
-          );
+          new Date(
+            now.getTime() +
+            template.data.startDaysFromNow * 24 * 60 * 60 * 1000,
+          ),
+        );
     const end =
       template.data.endDaysFromNow === null
         ? ""
         : toDateTimeInput(
-            new Date(
-              now.getTime() +
-                template.data.endDaysFromNow * 24 * 60 * 60 * 1000,
-            ),
-          );
+          new Date(
+            now.getTime() +
+            template.data.endDaysFromNow * 24 * 60 * 60 * 1000,
+          ),
+        );
     setBannerForm({
       title: template.data.title,
       subtitle: template.data.subtitle,
@@ -599,24 +599,24 @@ export default function DashboardHomepagePage() {
     label: string;
     count: number;
   }> = [
-    { value: "all", label: "Tất cả", count: banners.length },
-    { value: "live", label: STATUS_META.live.label, count: statusCounts.live },
-    {
-      value: "scheduled",
-      label: STATUS_META.scheduled.label,
-      count: statusCounts.scheduled,
-    },
-    {
-      value: "expired",
-      label: STATUS_META.expired.label,
-      count: statusCounts.expired,
-    },
-    {
-      value: "inactive",
-      label: STATUS_META.inactive.label,
-      count: statusCounts.inactive,
-    },
-  ];
+      { value: "all", label: "Tất cả", count: banners.length },
+      { value: "live", label: STATUS_META.live.label, count: statusCounts.live },
+      {
+        value: "scheduled",
+        label: STATUS_META.scheduled.label,
+        count: statusCounts.scheduled,
+      },
+      {
+        value: "expired",
+        label: STATUS_META.expired.label,
+        count: statusCounts.expired,
+      },
+      {
+        value: "inactive",
+        label: STATUS_META.inactive.label,
+        count: statusCounts.inactive,
+      },
+    ];
 
   return (
     <div className="space-y-7">
@@ -729,11 +729,10 @@ export default function DashboardHomepagePage() {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="banner-title">Tiêu đề</Label>
                       <span
-                        className={`text-xs ${
-                          titleError
+                        className={`text-xs ${titleError
                             ? "text-destructive"
                             : "text-muted-foreground"
-                        }`}
+                          }`}
                       >
                         {bannerForm.title.length}/{TITLE_MAX}
                       </span>
@@ -758,11 +757,10 @@ export default function DashboardHomepagePage() {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="banner-subtitle">Mô tả</Label>
                       <span
-                        className={`text-xs ${
-                          subtitleError
+                        className={`text-xs ${subtitleError
                             ? "text-destructive"
                             : "text-muted-foreground"
-                        }`}
+                          }`}
                       >
                         {bannerForm.subtitle.length}/{SUBTITLE_MAX}
                       </span>
@@ -831,11 +829,10 @@ export default function DashboardHomepagePage() {
                     <button
                       type="button"
                       onClick={() => setImageTab("library")}
-                      className={`rounded px-3 py-1.5 transition ${
-                        imageTab === "library"
+                      className={`rounded px-3 py-1.5 transition ${imageTab === "library"
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       <LibraryBig className="mr-1.5 inline h-3.5 w-3.5" />
                       Thư viện
@@ -843,11 +840,10 @@ export default function DashboardHomepagePage() {
                     <button
                       type="button"
                       onClick={() => setImageTab("upload")}
-                      className={`rounded px-3 py-1.5 transition ${
-                        imageTab === "upload"
+                      className={`rounded px-3 py-1.5 transition ${imageTab === "upload"
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       <Upload className="mr-1.5 inline h-3.5 w-3.5" />
                       Upload mới
@@ -1065,11 +1061,10 @@ export default function DashboardHomepagePage() {
                                     onClick={() =>
                                       handleSelectLibraryImage(image.path)
                                     }
-                                    className={`group overflow-hidden rounded-md border text-left transition ${
-                                      isSelected
+                                    className={`group overflow-hidden rounded-md border text-left transition ${isSelected
                                         ? "border-primary ring-2 ring-primary/20"
                                         : "border-border hover:border-primary/60"
-                                    }`}
+                                      }`}
                                   >
                                     <div className="relative aspect-[4/3] bg-muted">
                                       <SafeImage
@@ -1308,19 +1303,17 @@ export default function DashboardHomepagePage() {
                     key={chip.value}
                     type="button"
                     onClick={() => setStatusFilter(chip.value)}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
-                      isActive
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${isActive
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                    }`}
+                      }`}
                   >
                     {chip.label}
                     <span
-                      className={`rounded-full px-1.5 text-[10px] ${
-                        isActive
+                      className={`rounded-full px-1.5 text-[10px] ${isActive
                           ? "bg-primary-foreground/20"
                           : "bg-muted"
-                      }`}
+                        }`}
                     >
                       {chip.count}
                     </span>
@@ -1355,9 +1348,8 @@ export default function DashboardHomepagePage() {
             </div>
           ) : (
             <div
-              className={`relative rounded-md border ${
-                reordering ? "pointer-events-none opacity-70" : ""
-              }`}
+              className={`relative rounded-md border ${reordering ? "pointer-events-none opacity-70" : ""
+                }`}
             >
               {reordering ? (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40 text-sm text-muted-foreground backdrop-blur-sm">
@@ -1390,21 +1382,18 @@ export default function DashboardHomepagePage() {
                         onDragOver={handleDragOver(index)}
                         onDrop={handleDrop(index)}
                         onDragEnd={handleDragEnd}
-                        className={`transition-colors ${
-                          isDragging ? "opacity-40" : ""
-                        } ${
-                          isHover
+                        className={`transition-colors ${isDragging ? "opacity-40" : ""
+                          } ${isHover
                             ? "border-t-2 border-t-primary"
                             : ""
-                        }`}
+                          }`}
                       >
                         <TableCell>
                           <div
-                            className={`flex h-8 w-8 items-center justify-center rounded text-muted-foreground ${
-                              statusFilter === "all"
+                            className={`flex h-8 w-8 items-center justify-center rounded text-muted-foreground ${statusFilter === "all"
                                 ? "cursor-grab hover:bg-muted active:cursor-grabbing"
                                 : "cursor-not-allowed opacity-40"
-                            }`}
+                              }`}
                             title={
                               statusFilter === "all"
                                 ? "Kéo để đổi thứ tự"

@@ -7,6 +7,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
   Optional,
+  Logger,
 } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,6 +43,7 @@ import { SettingsService } from '../settings/settings.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { VouchersService } from '../vouchers/vouchers.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 const SHIPPING_FEE = 25000;
 const CURRENCY = 'vnd';
@@ -232,6 +234,7 @@ type CustomOrderSummary = {
 @Injectable()
 export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private expiredOrderSweepTimer?: NodeJS.Timeout;
+  private readonly logger = new Logger(OrdersService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -242,7 +245,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     private readonly vouchersService: VouchersService,
     @Optional()
     private readonly notificationsService?: NotificationsService,
-  ) {}
+    @Optional()
+    private readonly notificationsGateway?: NotificationsGateway,
+  ) { }
 
   onModuleInit() {
     this.expiredOrderSweepTimer = setInterval(
@@ -650,7 +655,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (
       validation.shippingAddressHash &&
       this.hashCheckoutValue(order.shippingAddress ?? null) !==
-        validation.shippingAddressHash
+      validation.shippingAddressHash
     ) {
       throw new BadRequestException(
         'Idempotency key was used with another checkout payload',
@@ -660,7 +665,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (
       validation.giftOptionsHash &&
       this.hashCheckoutValue(this.getOrderGiftOptions(order)) !==
-        validation.giftOptionsHash
+      validation.giftOptionsHash
     ) {
       throw new BadRequestException(
         'Idempotency key was used with another checkout payload',
@@ -670,7 +675,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (
       validation.expectedFingerprint &&
       this.buildExistingOrderFingerprint(order) !==
-        validation.expectedFingerprint
+      validation.expectedFingerprint
     ) {
       throw new BadRequestException(
         'Idempotency key was used with another checkout payload',
@@ -740,13 +745,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       orderTotal: this.toCheckoutMoney(context.cart.total + SHIPPING_FEE),
       discountAmount: this.toCheckoutMoney(context.cart.discountAmount),
       ...(context.rewardRedemption.points > 0 ||
-      context.rewardRedemption.discountAmount > 0
+        context.rewardRedemption.discountAmount > 0
         ? {
-            rewardPointsRedeemed: context.rewardRedemption.points,
-            rewardDiscountAmount: this.toCheckoutMoney(
-              context.rewardRedemption.discountAmount,
-            ),
-          }
+          rewardPointsRedeemed: context.rewardRedemption.points,
+          rewardDiscountAmount: this.toCheckoutMoney(
+            context.rewardRedemption.discountAmount,
+          ),
+        }
         : {}),
       shippingAddressHash: this.hashCheckoutValue(context.shippingAddress),
       giftOptions: context.giftOptions,
@@ -1618,9 +1623,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         sellerId,
         cart.appliedVoucher
           ? this.calculateVoucherEligibleSubtotal(
-              data.items,
-              cart.appliedVoucher,
-            )
+            data.items,
+            cart.appliedVoucher,
+          )
           : data.subTotal,
       ]),
     );
@@ -1643,8 +1648,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           ? sellerId === lastDiscountableSellerId
             ? remainingDiscount
             : Math.round(
-                cart.discountAmount * (discountBase / totalDiscountBase),
-              )
+              cart.discountAmount * (discountBase / totalDiscountBase),
+            )
           : 0;
 
       remainingDiscount -= subOrderDiscount;
@@ -1678,10 +1683,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
               : undefined,
             ...(flashSaleSnapshots
               ? {
-                  flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
-                  flashSaleDiscountPercent:
-                    flashSaleSnapshot?.discountPercent ?? 0,
-                }
+                flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
+                flashSaleDiscountPercent:
+                  flashSaleSnapshot?.discountPercent ?? 0,
+              }
               : {}),
           };
         }),
@@ -2412,9 +2417,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       : order.subOrders;
     const targetPaidTotal = subOrderId
       ? targetSubOrders.reduce(
-          (sum, subOrder) => sum + this.calculateSubOrderCustomerPaid(subOrder),
-          0,
-        )
+        (sum, subOrder) => sum + this.calculateSubOrderCustomerPaid(subOrder),
+        0,
+      )
       : Number(order.totalAmount);
     const ratio =
       targetPaidTotal > 0 ? Math.min(refundAmount / targetPaidTotal, 1) : 0;
@@ -2698,35 +2703,35 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     );
     const directTargetRefundedAmount = dto.subOrderId
       ? order.refunds
-          .filter(
-            (refund) =>
-              refund.status === RefundStatus.SUCCEEDED &&
-              refund.subOrderId === dto.subOrderId,
-          )
-          .reduce((sum, refund) => sum + Number(refund.amount), 0)
+        .filter(
+          (refund) =>
+            refund.status === RefundStatus.SUCCEEDED &&
+            refund.subOrderId === dto.subOrderId,
+        )
+        .reduce((sum, refund) => sum + Number(refund.amount), 0)
       : refundedAmount;
     const allocatedOrderWideRefundAmount =
       targetSubOrder && productPaidTotal > 0
         ? order.refunds
-            .filter(
-              (refund) =>
-                refund.status === RefundStatus.SUCCEEDED && !refund.subOrderId,
-            )
-            .reduce(
-              (sum, refund) =>
-                sum +
-                Number(refund.amount) *
-                  (this.calculateSubOrderCustomerPaid(targetSubOrder) /
-                    productPaidTotal),
-              0,
-            )
+          .filter(
+            (refund) =>
+              refund.status === RefundStatus.SUCCEEDED && !refund.subOrderId,
+          )
+          .reduce(
+            (sum, refund) =>
+              sum +
+              Number(refund.amount) *
+              (this.calculateSubOrderCustomerPaid(targetSubOrder) /
+                productPaidTotal),
+            0,
+          )
         : 0;
     const targetRefundedAmount = targetSubOrder
       ? directTargetRefundedAmount + allocatedOrderWideRefundAmount
       : directTargetRefundedAmount;
     const targetRefundableBalance = targetSubOrder
       ? this.calculateSubOrderCustomerPaid(targetSubOrder) -
-        targetRefundedAmount
+      targetRefundedAmount
       : refundableBalance;
     const amount = this.roundMoney(dto.amount ?? targetRefundableBalance);
 
@@ -2892,6 +2897,20 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       })),
     });
 
+    if (this.notificationsGateway) {
+      try {
+        for (const subOrder of order.subOrders) {
+          this.notificationsGateway.emitOrderUpdated(order.customerId, subOrder.sellerId, {
+            orderId: order.id,
+            subOrderId: subOrder.id,
+            status: OrderStatus.CANCELLED,
+          });
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to emit cancelOrder socket events: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
     return result;
   }
 
@@ -2984,6 +3003,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       notifySeller: this.isAdmin(roles) && subOrder.sellerId !== actorId,
     });
 
+    if (this.notificationsGateway) {
+      try {
+        this.notificationsGateway.emitOrderUpdated(
+          subOrder.order.customerId,
+          subOrder.sellerId,
+          {
+            orderId: subOrder.orderId,
+            subOrderId: subOrder.id,
+            status,
+          },
+        );
+      } catch (error) {
+        this.logger.warn(`Failed to emit updateSubOrderStatus socket events: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
     return updatedSubOrder;
   }
 
@@ -3070,6 +3105,20 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         }),
       ),
     );
+
+    if (this.notificationsGateway) {
+      try {
+        for (const subOrder of updatableSubOrders) {
+          this.notificationsGateway.emitOrderUpdated(order.customerId, subOrder.sellerId, {
+            orderId,
+            subOrderId: subOrder.id,
+            status,
+          });
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to emit updateAdminOrderStatus socket events: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
 
     return result;
   }

@@ -48,7 +48,7 @@ export class NotificationsGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   async handleConnection(client: NotificationsSocket): Promise<void> {
     const requestId = extractRequestIdFromHeaders(
@@ -88,6 +88,15 @@ export class NotificationsGateway implements OnGatewayConnection {
     this.server
       .to(this.getUserRoom(userId))
       .emit('notifications.created', notification);
+  }
+
+  emitOrderUpdated(customerId: string, sellerId: string, payload: any): void {
+    this.server
+      .to(this.getUserRoom(customerId))
+      .emit('order.updated', payload);
+    this.server
+      .to(this.getUserRoom(sellerId))
+      .emit('order.updated', payload);
   }
 
   private getUserRoom(userId: string) {

@@ -21,7 +21,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private readonly userSelect = {
     id: true,
@@ -467,7 +467,7 @@ export class UsersService {
 
   async listFollowedShops(customerId: string, roles: string[]) {
     if (!roles.includes(Role.ROLE_USER)) {
-      throw new ForbiddenException('Customer role is required');
+      return [];
     }
 
     const follows = await this.prisma.shopFollow.findMany({
@@ -595,9 +595,8 @@ export class UsersService {
         AND u.status = ${UserStatus.ACTIVE}::"UserStatus"
         AND u.roles @> ARRAY[${Role.ROLE_SELLER}]::"Role"[]
         AND NOT (u.roles @> ARRAY[${Role.ROLE_ADMIN}]::"Role"[])
-        ${
-          trimmedQuery
-            ? Prisma.sql`
+        ${trimmedQuery
+        ? Prisma.sql`
               AND (
                 u.name ILIKE ${searchPattern}
                 OR COALESCE(u."shopName", '') ILIKE ${searchPattern}
@@ -606,8 +605,8 @@ export class UsersService {
                 OR COALESCE(u."craftSpecialty", '') ILIKE ${searchPattern}
               )
             `
-            : Prisma.empty
-        }
+        : Prisma.empty
+      }
       GROUP BY u.id
       ${orderBySql}
       LIMIT ${limit}
@@ -811,20 +810,20 @@ export class UsersService {
       phone,
       ...(isSellerAccount
         ? {
-            shopName,
-            sellerTitle,
-            sellerBio,
-            sellerAbout,
-            sellerHeroImage,
-            sellerAboutImage,
-            sellerStat1Label,
-            sellerStat1Value,
-            sellerStat2Label,
-            sellerStat2Value,
-            craftSpecialty,
-            craftExperienceYears,
-            craftMaterials,
-          }
+          shopName,
+          sellerTitle,
+          sellerBio,
+          sellerAbout,
+          sellerHeroImage,
+          sellerAboutImage,
+          sellerStat1Label,
+          sellerStat1Value,
+          sellerStat2Label,
+          sellerStat2Value,
+          craftSpecialty,
+          craftExperienceYears,
+          craftMaterials,
+        }
         : {}),
     };
 
