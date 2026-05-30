@@ -101,28 +101,6 @@ export function Sidebar() {
           )
         })}
       </nav>
-
-      <div className="p-4 border-t border-sidebar-border/70 space-y-2.5">
-        {(isAdmin || isSeller) && (
-          <Link
-            href="/dashboard/new-listing"
-            className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold shadow-[0_14px_24px_-18px_rgba(133,55,36,0.65)] hover:brightness-[1.03] transition-all"
-          >
-            <FilePlus2 className="h-4 w-4" />
-            Đăng sản phẩm mới
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            void logout()
-          }}
-          className="flex w-full items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-150"
-        >
-          <LogOut className="h-4 w-4" />
-          Đăng xuất
-        </button>
-      </div>
     </aside>
   )
 }

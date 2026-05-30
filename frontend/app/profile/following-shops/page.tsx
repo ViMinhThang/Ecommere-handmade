@@ -36,13 +36,14 @@ function FollowedShopsSkeleton() {
 }
 
 export default function ProfileFollowingShopsPage() {
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
+  const isCustomer = isAuthenticated && user?.roles?.includes("ROLE_CUSTOMER");
   const {
     data: follows = [],
     isLoading,
     isError,
     refetch,
-  } = useFollowedShops(isAuthenticated);
+  } = useFollowedShops(isCustomer);
   const unfollowShop = useUnfollowShop();
 
   const handleUnfollow = async (sellerId: string) => {
@@ -74,6 +75,26 @@ export default function ProfileFollowingShopsPage() {
           className="mt-8 inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground transition-all hover:brightness-105 active:scale-[0.98]"
         >
           Đăng nhập
+        </Link>
+      </div>
+    );
+  }
+
+  if (!isAuthLoading && isAuthenticated && !user?.roles?.includes("ROLE_CUSTOMER")) {
+    return (
+      <div className="rounded-xl border border-dashed border-border/60 bg-card p-12 text-center text-card-foreground shadow-sm">
+        <Store className="mx-auto mb-5 h-14 w-14 text-muted-foreground/30" />
+        <h1 className="font-serif text-3xl font-bold text-primary">
+          Tính năng dành riêng cho Khách hàng
+        </h1>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+          Chỉ các tài khoản Khách hàng mới có thể theo dõi các nghệ nhân và xem danh sách các gian hàng yêu thích ở đây.
+        </p>
+        <Link
+          href="/"
+          className="mt-8 inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground transition-all hover:brightness-105 active:scale-[0.98]"
+        >
+          Trở về trang chủ
         </Link>
       </div>
     );
