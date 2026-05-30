@@ -10,6 +10,8 @@ import {
   Inbox,
   Loader2,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -19,6 +21,7 @@ import {
   useUnreadNotificationCount,
 } from "@/lib/api/hooks";
 import type { NotificationItem } from "@/lib/api/notifications";
+import { ensureNotificationsSocketConnected } from "@/lib/notifications/socket";
 import { cn } from "@/lib/utils";
 
 interface NotificationBellProps {
@@ -57,9 +60,39 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const queryClient = useQueryClient();
 
   const enabled = isAuthenticated && !isLoading;
   const { data: unreadResponse } = useUnreadNotificationCount(enabled);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const socket = ensureNotificationsSocketConnected();
+    if (!socket) {
+      return;
+    }
+
+    const handleNotificationCreated = (notification: any) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+      toast.success(notification.title || "Thông báo mới", {
+        description: notification.message,
+        action: notification.link ? {
+          label: "Xem",
+          onClick: () => router.push(notification.link)
+        } : undefined
+      });
+    };
+
+    socket.on("notifications.created", handleNotificationCreated);
+
+    return () => {
+      socket.off("notifications.created", handleNotificationCreated);
+    };
+  }, [enabled, queryClient, router]);
   const {
     data: notificationsResponse,
     isLoading: isLoadingNotifications,

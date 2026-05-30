@@ -1417,7 +1417,7 @@ export function useUnreadNotificationCount(enabled = true) {
     queryFn: () => notificationsApi.getUnreadCount(),
     enabled,
     staleTime: 10000,
-    refetchInterval: enabled ? 30000 : false,
+    refetchInterval: false,
   });
 }
 
