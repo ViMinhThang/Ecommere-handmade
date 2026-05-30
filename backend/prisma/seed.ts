@@ -773,7 +773,7 @@ async function seedReviewsForCeramicPurchaseHistory() {
     'Màu men ngoài đời ấm hơn ảnh, shop gói hàng cẩn thận.',
     'Đường nét thủ công có nét riêng, đặt trên bàn rất xinh.',
     'Giao hàng nhanh, món gốm không sứt mẻ và chất lượng tốt.',
-    'Kiểu dáng tối giản, phù hợp làm quà tặng cho người thích đồ handmade.',
+    'Kiểu dáng tối giản, phù hợp làm quà tặng cho người thích đồ thủ công.',
     'Lớp men đẹp, hơi khác nhẹ giữa từng sản phẩm nhưng rất có duyên.',
     'Sản phẩm chắc chắn, giá hợp lý so với độ hoàn thiện.',
   ];
@@ -1257,7 +1257,7 @@ async function ensureCommissionDemo(input: {
   });
   const postData = {
     description:
-      'Khách muốn đặt một món quà handmade có nhân hóa để tặng sinh nhật.',
+      'Khách muốn đặt một món quà thủ công có cá nhân hóa để tặng sinh nhật.',
     budgetMin: '250000',
     budgetMax: '600000',
     desiredTimeline: '2 tuần',
@@ -1368,13 +1368,13 @@ async function main() {
     where: { id: 'platform' },
     update: {
       platformName: 'HandCraft Market',
-      platformDescription: 'Marketplace cho sản phẩm handmade',
+      platformDescription: 'Sàn thương mại cho sản phẩm thủ công',
       commissionBps: 1000,
     },
     create: {
       id: 'platform',
       platformName: 'HandCraft Market',
-      platformDescription: 'Marketplace cho sản phẩm handmade',
+      platformDescription: 'Sàn thương mại cho sản phẩm thủ công',
       commissionBps: 1000,
     },
   });
@@ -1387,7 +1387,7 @@ async function main() {
       image: demoImages.ceramic,
     },
     {
-      name: 'Vải và túi handmade',
+      name: 'Vải và túi thủ công',
       slug: 'textiles',
       description: 'Túi vải, phụ kiện và sản phẩm may thủ công.',
       image: demoImages.linen,
@@ -1424,21 +1424,21 @@ async function main() {
       image: demoImages.decor,
     },
     {
-      name: 'Nến thơm handmade',
+      name: 'Nến thơm thủ công',
       slug: 'candles',
       description:
         'Nến sáp đậu nành, nến thơm thư giãn và set quà hương liệu làm thủ công.',
       image: demoImages.candle,
     },
     {
-      name: 'Xà phòng và mỹ phẩm handmade',
+      name: 'Xà phòng và mỹ phẩm thủ công',
       slug: 'soap-cosmetics',
       description:
         'Xà phòng cold process, son dưỡng, muối tắm và chăm sóc cơ thể từ nguyên liệu lành tính.',
       image: demoImages.soap,
     },
     {
-      name: 'Phụ kiện tóc handmade',
+      name: 'Phụ kiện tóc thủ công',
       slug: 'hair-accessories',
       description:
         'Kẹp tóc, scrunchie, băng đô và phụ kiện tóc may hoặc đính thủ công.',
@@ -1573,7 +1573,7 @@ async function main() {
     craftExperienceYears: 4,
     craftMaterials: ['Sáp đậu nành', 'Vải linen', 'Giấy kraft'],
     verificationNote:
-      'Đã xác minh studio quà tặng handmade, phù hợp demo verified artisan.',
+      'Đã xác minh xưởng quà tặng thủ công, phù hợp demo nghệ nhân đã xác minh.',
     avatar: demoImages.candle,
   });
 
@@ -1654,7 +1654,7 @@ async function main() {
     shopName: 'Nến Thơm Hoa Cỏ',
     sellerTitle: 'Nến thơm và chăm sóc cơ thể',
     sellerBio:
-      'Nến sáp đậu nành, xà phòng handmade và set thư giãn từ hương hoa cỏ.',
+      'Nến sáp đậu nành, xà phòng thủ công và bộ thư giãn từ hương hoa cỏ.',
     sellerAbout:
       'Nến Thơm Hoa Cỏ dùng sáp thực vật, tinh dầu dịu nhẹ và bao bì giấy tái chế để tạo quà tặng chăm sóc bản thân.',
     sellerHeroImage: demoImages.candle,
@@ -1663,7 +1663,7 @@ async function main() {
     sellerStat1Value: '16+',
     sellerStat2Label: 'Lưu hương',
     sellerStat2Value: 'Nhẹ dịu',
-    craftSpecialty: 'Nến thơm thực vật và xà phòng handmade',
+    craftSpecialty: 'Nến thơm thực vật và xà phòng thủ công',
     craftExperienceYears: 4,
     craftMaterials: ['Sáp đậu nành', 'Tinh dầu', 'Dầu dừa'],
     avatar: demoImages.soap,
@@ -1868,7 +1868,7 @@ async function main() {
     sku: 'DEMO-PAPER-CARD',
     name: 'Thiệp giấy ép hoa khô',
     description:
-      'Thiệp handmade ép hoa khô, có phong bì kèm theo, phù hợp sinh nhật và kỷ niệm.',
+      'Thiệp thủ công ép hoa khô, có phong bì kèm theo, phù hợp sinh nhật và kỷ niệm.',
     price: '65000',
     categoryId: categoryIds['paper-art'],
     sellerId: seller2.id,
@@ -2030,9 +2030,9 @@ async function main() {
     }),
     scrapbookKit: await upsertProduct({
       sku: 'DEMO-SCRAPBOOK-KIT',
-      name: 'Bộ scrapbook kỷ niệm handmade',
+      name: 'Bộ sổ lưu niệm thủ công',
       description:
-        'Bộ giấy, sticker và thiệp nhỏ để tự làm scrapbook lưu giữ ảnh và lời nhắn.',
+        'Bộ giấy, hình dán và thiệp nhỏ để tự làm sổ lưu niệm gắn ảnh và lời nhắn.',
       price: '135000',
       categoryId: categoryIds['paper-art'],
       sellerId: seller2.id,
@@ -2206,7 +2206,7 @@ async function main() {
       sku: 'DEMO-MINI-GIFT-TAG-SET',
       name: 'Set tag quà mini viết tay',
       description:
-        'Bộ 12 tag quà mini bằng giấy mỹ thuật, viền xé tay nhẹ, thích hợp dùng cho tiệc nhỏ hoặc gói quà handmade.',
+        'Bộ 12 thẻ quà tặng mini bằng giấy mỹ thuật, viền xé tay nhẹ, thích hợp dùng cho tiệc nhỏ hoặc gói quà thủ công.',
       price: '55000',
       categoryId: categoryIds.candles,
       sellerId: seller2.id,
@@ -2427,7 +2427,7 @@ async function main() {
       sku: 'DEMO-LEMONGRASS-SOAP',
       name: 'Xà phòng sả chanh quy trình lạnh',
       description:
-        'Bánh xà phòng 95g làm theo phương pháp cold process, hương sả chanh sạch mát, thích hợp da thường.',
+        'Bánh xà phòng 95g làm theo phương pháp ép lạnh, hương sả chanh sạch mát, thích hợp da thường.',
       price: '85000',
       categoryId: categoryIds['soap-cosmetics'],
       sellerId: seller6.id,
@@ -2440,7 +2440,7 @@ async function main() {
       sku: 'DEMO-OAT-HONEY-SOAP',
       name: 'Xà phòng yến mạch mật ong',
       description:
-        'Xà phòng yến mạch và mật ong có hạt scrub mịn, mùi dịu, dùng tốt cho routine tắm thư giãn.',
+        'Xà phòng yến mạch và mật ong có hạt tẩy da chết mịn, mùi dịu, phù hợp dùng cho thói quen tắm thư giãn hằng ngày.',
       price: '95000',
       categoryId: categoryIds['soap-cosmetics'],
       sellerId: seller6.id,
@@ -2451,7 +2451,7 @@ async function main() {
     },
     {
       sku: 'DEMO-COCOA-LIP-BALM',
-      name: 'Son dưỡng cacao handmade',
+      name: 'Son dưỡng cacao thủ công',
       description:
         'Son dưỡng dạng thỏi với bơ cacao và dầu hạnh nhân, không màu, phù hợp dùng hằng ngày.',
       price: '65000',
@@ -2613,7 +2613,7 @@ async function main() {
       sku: 'DEMO-LEATHER-NOTEBOOK-COVER',
       name: 'Bìa sổ da thay ruột',
       description:
-        'Bìa sổ da handmade dùng được với ruột A6, có dây cột và ngăn nhỏ để card.',
+        'Bìa sổ da thủ công dùng được với ruột A6, có dây buộc và ngăn nhỏ để thẻ.',
       price: '520000',
       categoryId: categoryIds['leather-goods'],
       sellerId: seller3.id,
@@ -2625,7 +2625,7 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-PASSPORT-HOLDER',
-      name: 'Bao hộ chiếu da sáp handmade',
+      name: 'Bao hộ chiếu da sáp thủ công',
       description:
         'Bao hộ chiếu da sáp khâu tay, có ngăn để passport, vé máy bay và thẻ thành viên khi đi du lịch.',
       price: '560000',
@@ -2737,7 +2737,7 @@ async function main() {
     },
     {
       sku: 'DEMO-LEATHER-DESK-MAT',
-      name: 'Tấm lót bàn da handmade',
+      name: 'Tấm lót bàn da thủ công',
       description:
         'Tấm lót bàn da kích thước gọn, bề mặt mịn cho chuột và bàn phím, viền được đánh cạnh bằng tay.',
       price: '780000',
@@ -2844,7 +2844,7 @@ async function main() {
   const now = new Date();
   const activeVoucher = await ensureVoucher({
     code: 'HANDMADE10',
-    name: 'Handmade Demo 10%',
+    name: 'Mã giảm giá Thủ Công 10%',
     description: 'Voucher local để demo checkout COD.',
     categoryId: categoryIds.ceramics,
     isActive: true,
@@ -3259,12 +3259,12 @@ async function main() {
   await ensureCommissionDemo({
     customerId: customer3.id,
     sellerId: seller2.id,
-    title: 'Đặt hộp quà sinh nhật handmade',
+    title: 'Đặt hộp quà sinh nhật thủ công',
     referenceImage: demoImages.paper,
   });
 
   await ensureFlashSale({
-    name: 'Tuần lễ handmade local',
+    name: 'Tuần lễ thủ công địa phương',
     description:
       'Flash sale active để demo trang admin và discount guardrails.',
     banner: demoImages.candle,
