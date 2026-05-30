@@ -311,8 +311,8 @@ export const mockCustomers: Customer[] = [
 export const mockCategories: Category[] = [
   {
     id: "1",
-    name: "Ceramics",
-    description: "Handcrafted ceramic products including vases, mugs, and plates",
+    name: "Đồ gốm",
+    description: "Các sản phẩm gốm sứ nghệ thuật làm tay tinh tế bao gồm bình hoa, ly nước và bát đĩa ăn.",
     image: "https://picsum.photos/seed/ceramics/400/300",
     productsCount: 45,
     status: "ACTIVE",
@@ -321,8 +321,8 @@ export const mockCategories: Category[] = [
   },
   {
     id: "2",
-    name: "Textiles",
-    description: "Woven fabrics, blankets, clothing and textile art",
+    name: "Đồ dệt may",
+    description: "Vải dệt tay, chăn len, trang phục thủ công và các tác phẩm nghệ thuật từ sợi tự nhiên.",
     image: "https://picsum.photos/seed/textiles/400/300",
     productsCount: 38,
     status: "ACTIVE",
@@ -331,8 +331,8 @@ export const mockCategories: Category[] = [
   },
   {
     id: "3",
-    name: "Woodwork",
-    description: "Hand-carved wooden items, furniture and cutting boards",
+    name: "Đồ gỗ mỹ nghệ",
+    description: "Vật dụng gỗ chạm khắc thủ công, đồ nội thất gỗ tự nhiên và thớt gỗ chất lượng cao.",
     image: "https://picsum.photos/seed/woodwork/400/300",
     productsCount: 32,
     status: "ACTIVE",
@@ -341,8 +341,8 @@ export const mockCategories: Category[] = [
   },
   {
     id: "4",
-    name: "Jewelry",
-    description: "Handmade jewelry including rings, necklaces and bracelets",
+    name: "Trang sức",
+    description: "Trang sức thiết kế tinh xảo làm bằng tay bao gồm nhẫn, dây chuyền và vòng tay khắc tên.",
     image: "https://picsum.photos/seed/jewelry/400/300",
     productsCount: 25,
     status: "ACTIVE",
@@ -351,8 +351,8 @@ export const mockCategories: Category[] = [
   },
   {
     id: "5",
-    name: "Art",
-    description: "Original artwork, paintings, drawings and prints",
+    name: "Tranh nghệ thuật",
+    description: "Tác phẩm tranh nghệ thuật nguyên bản, tranh sơn dầu vẽ tay và tranh in độc quyền.",
     image: "https://picsum.photos/seed/art/400/300",
     productsCount: 18,
     status: "ACTIVE",
@@ -361,8 +361,8 @@ export const mockCategories: Category[] = [
   },
   {
     id: "6",
-    name: "Paper Crafts",
-    description: "Paper art, origami, and stationery items",
+    name: "Thủ công giấy",
+    description: "Nghệ thuật xếp giấy origami, thiệp thủ công và đồ dùng văn phòng phẩm handmade.",
     image: "https://picsum.photos/seed/papercrafts/400/300",
     productsCount: 0,
     status: "INACTIVE",
@@ -382,10 +382,10 @@ const createProductImage = (productId: string, seed: string, createdAt: Date) =>
 export const mockProducts: Product[] = [
   {
     id: "1",
-    name: "Handcrafted Ceramic Vase",
-    description: "Beautiful handmade ceramic vase",
+    name: "Bình hoa gốm thủ công nghệ thuật",
+    description: "Bình hoa gốm sứ nghệ thuật độc bản được vuốt tay tỉ mỉ, phù hợp decor bàn trà hoặc làm quà tặng.",
     images: [createProductImage("1", "vase1", new Date("2024-05-10"))],
-    price: 89,
+    price: 89000,
     categoryId: "1",
     category: mockCategories[0],
     sellerId: mockUsers[1].id,
@@ -398,10 +398,10 @@ export const mockProducts: Product[] = [
   },
   {
     id: "2",
-    name: "Oak Wood Cutting Board",
-    description: "Premium oak wood cutting board",
+    name: "Thớt gỗ sồi tự nhiên chế tác tay",
+    description: "Thớt gỗ sồi tự nhiên nguyên tấm, được chà nhám bóng mịn, an toàn tuyệt đối và thích hợp decor bàn ăn.",
     images: [createProductImage("2", "wood1", new Date("2024-05-12"))],
-    price: 65,
+    price: 65000,
     categoryId: "3",
     category: mockCategories[2],
     sellerId: mockUsers[2].id,
@@ -414,10 +414,10 @@ export const mockProducts: Product[] = [
   },
   {
     id: "3",
-    name: "Woven Wool Blanket",
-    description: "Soft woven wool blanket",
+    name: "Chăn len dệt thủ công ấm áp",
+    description: "Chăn len dệt sợi tự nhiên siêu mềm mịn, giữ ấm tốt và mang phong cách trang nhã thanh lịch.",
     images: [createProductImage("3", "blanket1", new Date("2024-05-15"))],
-    price: 180,
+    price: 180000,
     categoryId: "2",
     category: mockCategories[1],
     sellerId: mockUsers[3].id,
@@ -430,10 +430,10 @@ export const mockProducts: Product[] = [
   },
   {
     id: "4",
-    name: "Ceramic Coffee Mug Set",
-    description: "Set of 4 ceramic coffee mugs",
+    name: "Bộ ly gốm uống cà phê (Set 4 cái)",
+    description: "Bộ 4 ly gốm uống cà phê phủ men màu pastel cao cấp, dung tích vừa phải cho bữa sáng tràn ngập cảm hứng.",
     images: [createProductImage("4", "mug1", new Date("2024-06-01"))],
-    price: 120,
+    price: 120000,
     categoryId: "1",
     category: mockCategories[0],
     sellerId: mockUsers[1].id,
@@ -446,10 +446,10 @@ export const mockProducts: Product[] = [
   },
   {
     id: "5",
-    name: "Handmade Silver Ring",
-    description: "Sterling silver handcrafted ring",
+    name: "Nhẫn bạc khắc hoa văn thủ công",
+    description: "Nhẫn bạc ta cao cấp chế tác thủ công, khắc chìm hoa văn tinh tế và có thể điều chỉnh ni tay linh hoạt.",
     images: [createProductImage("5", "ring1", new Date("2024-05-20"))],
-    price: 245,
+    price: 245000,
     categoryId: "4",
     category: mockCategories[3],
     sellerId: mockUsers[5].id,
@@ -468,7 +468,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[0],
     seller: mockSellers[0],
     products: [mockProducts[0]],
-    totalAmount: 89,
+    totalAmount: 89000,
     status: "DELIVERED",
     createdAt: new Date("2024-05-15")
   },
@@ -477,7 +477,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[1],
     seller: mockSellers[1],
     products: [mockProducts[1]],
-    totalAmount: 65,
+    totalAmount: 65000,
     status: "SHIPPED",
     createdAt: new Date("2024-05-20")
   },
@@ -486,7 +486,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[2],
     seller: mockSellers[2],
     products: [mockProducts[2]],
-    totalAmount: 180,
+    totalAmount: 180000,
     status: "PROCESSING",
     createdAt: new Date("2024-05-25")
   },
@@ -495,7 +495,7 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[3],
     seller: mockSellers[0],
     products: [mockProducts[0], mockProducts[3]],
-    totalAmount: 209,
+    totalAmount: 209000,
     status: "PENDING",
     createdAt: new Date("2024-06-01")
   },
@@ -504,14 +504,14 @@ export const mockOrders: Order[] = [
     customer: mockCustomers[4],
     seller: mockSellers[2],
     products: [mockProducts[2]],
-    totalAmount: 180,
+    totalAmount: 180000,
     status: "CANCELLED",
     createdAt: new Date("2024-05-18")
   }
 ];
 
 export const mockDashboardStats: DashboardStats = {
-  totalRevenue: 45230,
+  totalRevenue: 45230000,
   revenueGrowth: 12.5,
   activeSellers: 3,
   sellersGrowth: 8.3,
@@ -522,27 +522,27 @@ export const mockDashboardStats: DashboardStats = {
 };
 
 export const mockRevenueData: RevenueData[] = [
-  { month: "Jan", revenue: 12500 },
-  { month: "Feb", revenue: 15800 },
-  { month: "Mar", revenue: 14200 },
-  { month: "Apr", revenue: 18500 },
-  { month: "May", revenue: 21000 },
-  { month: "Jun", revenue: 24500 }
+  { month: "Th1", revenue: 12500000 },
+  { month: "Th2", revenue: 15800000 },
+  { month: "Th3", revenue: 14200000 },
+  { month: "Th4", revenue: 18500000 },
+  { month: "Th5", revenue: 21000000 },
+  { month: "Th6", revenue: 24500000 }
 ];
 
 export const mockCategoryData: CategoryData[] = [
-  { category: "Ceramics", count: 45 },
-  { category: "Textiles", count: 38 },
-  { category: "Woodwork", count: 32 },
-  { category: "Jewelry", count: 25 },
-  { category: "Other", count: 18 }
+  { category: "Đồ gốm", count: 45 },
+  { category: "Đồ dệt may", count: 38 },
+  { category: "Đồ gỗ mỹ nghệ", count: 32 },
+  { category: "Trang sức", count: 25 },
+  { category: "Khác", count: 18 }
 ];
 
 
 
 export const mockPlatformSettings = {
-  platformName: "HandCraft Market",
-  platformDescription: "A marketplace for handmade artisan products",
+  platformName: "Chợ Thủ Công",
+  platformDescription: "Sàn thương mại điện tử dành riêng cho các tác phẩm thủ công nghệ thuật độc đáo",
   commissionRate: 10,
-  categories: ["Ceramics", "Textiles", "Woodwork", "Jewelry", "Art", "Other"]
+  categories: ["Đồ gốm", "Đồ dệt may", "Đồ gỗ mỹ nghệ", "Trang sức", "Tranh nghệ thuật", "Khác"]
 };

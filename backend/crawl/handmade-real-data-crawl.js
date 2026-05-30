@@ -245,7 +245,7 @@ function normalizeEbay(rawItems) {
         sku: `EBAY-${String(item.itemId).replace(/[^a-zA-Z0-9]/g, '-').slice(0, 80)}`,
         name: title.slice(0, 255),
         description: `${title}. Real title, price, image URL and source URL are preserved from the local eBay crawl dated ${item.crawledAt}.`,
-        priceVnd: Math.max(30000, Math.round(Number(item.priceValue))),
+        priceVnd: Math.max(30000, Math.round(Number(item.priceValue) / 1000) * 1000),
         priceText: item.priceText,
         categorySlug: 'ceramics',
         sellerEmail: 'seller7@ecommerce.com',
@@ -304,7 +304,7 @@ function normalizeShopify(rawProducts) {
         description:
           description ||
           `${title}. Real title, price, image URL and product URL are preserved from public Shopify products.json.`,
-        priceVnd: Math.max(30000, Math.round(priceUsd * VND_PER_USD)),
+        priceVnd: Math.max(30000, Math.round((priceUsd * VND_PER_USD) / 1000) * 1000),
         priceText: `${priceUsd.toFixed(2)} USD`,
         categorySlug,
         sellerEmail: source.email,

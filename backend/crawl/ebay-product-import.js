@@ -485,7 +485,7 @@ function toProductSeedData(item, categoryId, sellerId) {
     data: {
       name: title.slice(0, 255),
       description,
-      price: new Prisma.Decimal(price.toFixed(2)),
+      price: new Prisma.Decimal((Math.round(price / 1000) * 1000).toFixed(2)),
       status: ProductStatus.APPROVED,
       stock: randomInt(3, 25),
       lowStockThreshold: 3,
