@@ -565,6 +565,8 @@ export interface Cart {
     code: string;
     discountAmount: number;
     discountPercent: number;
+    categoryId?: string;
+    sellerId?: string | null;
   } | null;
   createdAt?: Date;
   updatedAt?: Date;

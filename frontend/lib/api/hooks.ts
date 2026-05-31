@@ -780,6 +780,8 @@ export const voucherKeys = {
     [...voucherKeys.all, "admin-list", params ?? {}] as const,
   sellerLists: (params?: { page?: number; limit?: number }) =>
     [...voucherKeys.all, "seller-list", params ?? {}] as const,
+  sellerPublic: (sellerId: string, params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "seller-public", sellerId, params ?? {}] as const,
   details: () => [...voucherKeys.all, "detail"] as const,
   detail: (id: string) => [...voucherKeys.details(), id] as const,
   byCode: (code: string) => [...voucherKeys.all, "code", code] as const,
@@ -812,6 +814,17 @@ export function useSellerVouchers(params?: { page?: number; limit?: number }) {
   return useQuery({
     queryKey: voucherKeys.sellerLists(params),
     queryFn: () => vouchersApi.getSellerMine(params),
+  });
+}
+
+export function usePublicSellerVouchers(
+  sellerId: string,
+  params?: { page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: voucherKeys.sellerPublic(sellerId, params),
+    queryFn: () => vouchersApi.getPublicBySeller(sellerId, params),
+    enabled: !!sellerId,
   });
 }
 

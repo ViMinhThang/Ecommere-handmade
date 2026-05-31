@@ -79,6 +79,14 @@ export class VouchersController {
     return this.vouchersService.removeForSeller(req.user.id, id);
   }
 
+  @Get('seller/:sellerId/public')
+  findPublicSellerVouchers(
+    @Param('sellerId') sellerId: string,
+    @Query() pagination?: PaginationDto,
+  ) {
+    return this.vouchersService.findPublicForSeller(sellerId, pagination);
+  }
+
   @Get('code/:code')
   findByCode(@Param('code') code: string) {
     return this.vouchersService.findByCode(code);

@@ -23,20 +23,25 @@ interface VoucherRange {
   endDate: string
 }
 
+export interface VoucherDialogSavePayload {
+  name: string
+  description?: string
+  code: string
+  categoryId: string
+  isActive: boolean
+  endDate: string
+  maxDiscountAmount?: number | null
+  usageLimit?: number | null
+  perUserLimit?: number | null
+  ranges: VoucherRange[]
+}
+
 interface VoucherDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   voucher?: Voucher | null
   categories: Category[]
-  onSave: (voucher: {
-    name: string
-    description?: string
-    code: string
-    categoryId: string
-    isActive: boolean
-    endDate: string
-    ranges: VoucherRange[]
-  }) => void
+  onSave: (voucher: VoucherDialogSavePayload) => void
 }
 
 export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave }: VoucherDialogProps) {
@@ -47,6 +52,9 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
     categoryId: '',
     isActive: true,
     endDate: '',
+    maxDiscountAmount: '',
+    usageLimit: '',
+    perUserLimit: '',
   })
 
   const [ranges, setRanges] = useState<VoucherRange[]>([])
@@ -64,6 +72,11 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
           categoryId: voucher.categoryId || '',
           isActive: voucher.isActive,
           endDate: voucher.endDate ? new Date(voucher.endDate).toISOString().split('T')[0] : '',
+          maxDiscountAmount:
+            voucher.maxDiscountAmount != null ? String(voucher.maxDiscountAmount) : '',
+          usageLimit: voucher.usageLimit != null ? String(voucher.usageLimit) : '',
+          perUserLimit:
+            voucher.perUserLimit != null ? String(voucher.perUserLimit) : '',
         })
         setRanges(
           voucher.ranges.map((r) => ({
@@ -82,6 +95,9 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
           categoryId: '',
           isActive: true,
           endDate: '',
+          maxDiscountAmount: '',
+          usageLimit: '',
+          perUserLimit: '',
         })
         setRanges([])
       }
@@ -111,6 +127,11 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
     setRanges(newRanges)
   }
 
+  const parseOptionalNumber = (value: string) => {
+    const trimmed = value.trim()
+    return trimmed === '' ? null : Number(trimmed)
+  }
+
   const validate = (): boolean => {
     const newErrors: string[] = []
 
@@ -118,6 +139,29 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
     if (!formData.code.trim()) newErrors.push('Mã không được để trống')
     if (!formData.categoryId) newErrors.push('Danh mục không được để trống')
     if (!formData.endDate) newErrors.push('Ngày kết thúc không được để trống')
+
+    const maxDiscountAmount = parseOptionalNumber(formData.maxDiscountAmount)
+    const usageLimit = parseOptionalNumber(formData.usageLimit)
+    const perUserLimit = parseOptionalNumber(formData.perUserLimit)
+
+    if (
+      maxDiscountAmount != null &&
+      (!Number.isFinite(maxDiscountAmount) || maxDiscountAmount < 0)
+    ) {
+      newErrors.push('Mức giảm tối đa phải là số không âm')
+    }
+    if (
+      usageLimit != null &&
+      (!Number.isInteger(usageLimit) || usageLimit <= 0)
+    ) {
+      newErrors.push('Giới hạn lượt dùng phải là số nguyên lớn hơn 0')
+    }
+    if (
+      perUserLimit != null &&
+      (!Number.isInteger(perUserLimit) || perUserLimit <= 0)
+    ) {
+      newErrors.push('Giới hạn mỗi khách phải là số nguyên lớn hơn 0')
+    }
 
     if (ranges.length === 0) {
       newErrors.push('Vui lòng thêm ít nhất một khoảng giá')
@@ -142,9 +186,14 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
+    const { maxDiscountAmount, usageLimit, perUserLimit, ...baseFormData } =
+      formData
 
     onSave({
-      ...formData,
+      ...baseFormData,
+      maxDiscountAmount: parseOptionalNumber(maxDiscountAmount),
+      usageLimit: parseOptionalNumber(usageLimit),
+      perUserLimit: parseOptionalNumber(perUserLimit),
       ranges,
     })
     onOpenChange(false)
@@ -245,6 +294,53 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
                 onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
               />
               <Label htmlFor="isActive">Hoạt động</Label>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="grid gap-2">
+                <Label htmlFor="maxDiscountAmount">Mức giảm tối đa (VND)</Label>
+                <Input
+                  id="maxDiscountAmount"
+                  type="number"
+                  min={0}
+                  value={formData.maxDiscountAmount}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      maxDiscountAmount: e.target.value,
+                    })
+                  }
+                  placeholder="Bỏ trống nếu không giới hạn"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="usageLimit">Tổng lượt dùng</Label>
+                <Input
+                  id="usageLimit"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={formData.usageLimit}
+                  onChange={(e) =>
+                    setFormData({ ...formData, usageLimit: e.target.value })
+                  }
+                  placeholder="Không giới hạn"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="perUserLimit">Lượt dùng mỗi khách</Label>
+                <Input
+                  id="perUserLimit"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={formData.perUserLimit}
+                  onChange={(e) =>
+                    setFormData({ ...formData, perUserLimit: e.target.value })
+                  }
+                  placeholder="Không giới hạn"
+                />
+              </div>
             </div>
 
             <div className="border-t pt-4">

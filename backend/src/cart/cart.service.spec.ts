@@ -35,6 +35,34 @@ describe('CartService voucher range matching', () => {
 
     expect(match?.id).toBe('range-1');
   });
+
+  it('matches shop vouchers only against items from the same seller', () => {
+    const item = {
+      product: {
+        categoryId: 'cat_1',
+        sellerId: 'seller_1',
+      },
+    };
+
+    expect(
+      service['isVoucherItemEligible'](item as never, {
+        categoryId: 'cat_1',
+        sellerId: 'seller_1',
+      }),
+    ).toBe(true);
+    expect(
+      service['isVoucherItemEligible'](item as never, {
+        categoryId: 'cat_1',
+        sellerId: 'seller_2',
+      }),
+    ).toBe(false);
+    expect(
+      service['isVoucherItemEligible'](item as never, {
+        categoryId: 'cat_1',
+        sellerId: null,
+      }),
+    ).toBe(true);
+  });
 });
 
 describe('CartService personalization', () => {
@@ -273,6 +301,7 @@ describe('CartService personalization', () => {
     expect(flashSales.calculateEffectivePrice).toHaveBeenCalledWith(
       100000,
       'cat_1',
+      'product_1',
     );
   });
 });
