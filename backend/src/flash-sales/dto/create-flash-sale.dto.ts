@@ -72,6 +72,11 @@ export class CreateFlashSaleDto {
   categoryIds: string[];
 
   @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  productIds?: string[];
+
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateFlashSaleRangeDto)
   ranges: CreateFlashSaleRangeDto[];

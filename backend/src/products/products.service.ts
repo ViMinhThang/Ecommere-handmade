@@ -317,6 +317,7 @@ export class ProductsService {
         const pricing = await this.flashSalesService.calculateEffectivePrice(
           Number(product.price),
           product.categoryId,
+          product.id,
         );
         return { ...product, pricing };
       }),
@@ -360,6 +361,7 @@ export class ProductsService {
     const pricing = await this.flashSalesService.calculateEffectivePrice(
       Number(product.price),
       product.categoryId,
+      product.id,
     );
 
     return { ...product, pricing };

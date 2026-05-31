@@ -312,6 +312,7 @@ model Product {
   questions                   ProductQuestion[]
   wishlistItems               WishlistItem[]
   homepageFeaturedProducts    HomepageFeaturedProduct[]
+  flashSaleProducts           FlashSaleProduct[]
   reports                     Report[]
 
   @@index([sellerId])
@@ -581,6 +582,7 @@ model FlashSale {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   categories         FlashSaleCategory[]
+  products           FlashSaleProduct[]
   ranges             FlashSaleRange[]
   userUsages         FlashSaleUserUsage[]
 
@@ -599,6 +601,19 @@ model FlashSaleCategory {
   @@unique([flashSaleId, categoryId])
   @@index([flashSaleId])
   @@index([categoryId])
+}
+
+model FlashSaleProduct {
+  id          String    @id @default(uuid())
+  flashSaleId String
+  flashSale   FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  deletedAt   DateTime?
+
+  @@unique([flashSaleId, productId])
+  @@index([flashSaleId])
+  @@index([productId])
 }
 
 model FlashSaleRange {

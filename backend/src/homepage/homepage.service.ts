@@ -196,6 +196,7 @@ export class HomepageService {
         pricing: await this.flashSalesService.calculateEffectivePrice(
           Number(product.price),
           product.categoryId,
+          product.id,
         ),
       })),
     );

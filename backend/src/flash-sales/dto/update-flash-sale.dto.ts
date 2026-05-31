@@ -76,6 +76,11 @@ export class UpdateFlashSaleDto {
   categoryIds?: string[];
 
   @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  productIds?: string[];
+
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateFlashSaleRangeDto)
   @IsOptional()
