@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { VoucherDialog } from '@/components/dashboard/voucher-dialog'
+import { VoucherDialog, type VoucherDialogSavePayload } from '@/components/dashboard/voucher-dialog'
 import { useAdminVouchers, useCreateVoucher, useUpdateVoucher, useDeleteVoucher, useCategories } from '@/lib/api/hooks'
 import { Voucher, Category } from '@/types'
 import { formatCurrency } from '@/lib/utils'
@@ -69,27 +69,11 @@ export default function VouchersPage() {
   const activeVouchers = vouchers.filter((v) => v.isActive && new Date(v.endDate) > new Date()).length
   const expiredVouchers = vouchers.filter((v) => new Date(v.endDate) <= new Date()).length
 
-  const handleAddVoucher = (voucherData: {
-    name: string
-    description?: string
-    code: string
-    categoryId: string
-    isActive: boolean
-    endDate: string
-    ranges: { minPrice: number; maxPrice: number; discountPercent: number; endDate: string }[]
-  }) => {
+  const handleAddVoucher = (voucherData: VoucherDialogSavePayload) => {
     createVoucher.mutate(voucherData)
   }
 
-  const handleEditVoucher = (voucherData: {
-    name: string
-    description?: string
-    code: string
-    categoryId: string
-    isActive: boolean
-    endDate: string
-    ranges: { minPrice: number; maxPrice: number; discountPercent: number; endDate: string }[]
-  }) => {
+  const handleEditVoucher = (voucherData: VoucherDialogSavePayload) => {
     if (!selectedVoucher) return
     updateVoucher.mutate({
       id: selectedVoucher.id,

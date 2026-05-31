@@ -10,6 +10,7 @@ import {
   useCreateReport,
   useCreateShopReview,
   useMyShopReviewStatus,
+  usePublicSellerVouchers,
   useShopReviewSummary,
   useShopReviews,
 } from "@/lib/api/hooks";
@@ -29,7 +30,9 @@ import {
   ChevronDown,
   Flag,
   BadgeCheck,
+  Copy,
   Star,
+  Ticket,
 } from "lucide-react";
 import { ImageSelector } from "@/components/dashboard/image-selector";
 import { Button } from "@/components/ui/button";
@@ -124,6 +127,10 @@ function SellerProfilePageContent() {
     sortBy,
     order,
   });
+  const {
+    data: sellerVouchersData,
+    isLoading: sellerVouchersLoading,
+  } = usePublicSellerVouchers(sellerId, { page: 1, limit: 3 });
   const {
     data: shopReviewSummary,
     isLoading: shopReviewSummaryLoading,
@@ -314,12 +321,21 @@ function SellerProfilePageContent() {
   }
 
   const products = productsData?.data || [];
+  const sellerVouchers = sellerVouchersData?.data ?? [];
   const shopReviewCount =
     shopReviewSummary?.totalReviews ?? seller.shopReviewCount ?? 0;
   const shopAverageRating =
     shopReviewSummary?.averageRating ?? seller.shopAverageRating ?? null;
   const shopReviews = shopReviewsData?.data ?? [];
   const myShopReview = myShopReviewStatus?.review ?? null;
+  const handleCopyVoucher = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success("Đã sao chép mã voucher.");
+    } catch {
+      toast.error("Không thể sao chép mã voucher.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#fdf9f3] text-[#1c1c18] font-body">
@@ -746,6 +762,85 @@ function SellerProfilePageContent() {
             </div>
           </div>
         </section>
+
+        {(sellerVouchersLoading || sellerVouchers.length > 0) && (
+          <section className="px-8 py-16 md:px-12">
+            <div className="mx-auto max-w-7xl">
+              <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                    Ưu đãi của shop
+                  </p>
+                  <h2 className="mt-3 font-headline text-4xl italic text-primary">
+                    Voucher riêng cho gian hàng
+                  </h2>
+                </div>
+                <p className="max-w-xl text-sm leading-6 text-[#54433c]">
+                  Mã chỉ áp dụng cho sản phẩm phù hợp của {seller.shopName || seller.name}.
+                </p>
+              </div>
+
+              {sellerVouchersLoading ? (
+                <div className="grid gap-4 md:grid-cols-3">
+                  {[1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="h-36 animate-pulse rounded-lg bg-primary/10"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-3">
+                  {sellerVouchers.map((voucher) => (
+                    <div
+                      key={voucher.id}
+                      className="rounded-lg border border-primary/10 bg-white p-5 shadow-sm"
+                    >
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div>
+                          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-primary">
+                            <Ticket className="h-3.5 w-3.5" />
+                            {voucher.code}
+                          </div>
+                          <h3 className="mt-3 text-lg font-semibold text-primary">
+                            {voucher.name}
+                          </h3>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleCopyVoucher(voucher.code)}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Sao chép
+                        </Button>
+                      </div>
+                      {voucher.description ? (
+                        <p className="line-clamp-2 text-sm text-muted-foreground">
+                          {voucher.description}
+                        </p>
+                      ) : null}
+                      <div className="mt-4 space-y-2 text-xs text-[#54433c]">
+                        <p>Danh mục: {voucher.category?.name ?? "Sản phẩm phù hợp"}</p>
+                        {voucher.maxDiscountAmount != null ? (
+                          <p>
+                            Giảm tối đa:{" "}
+                            {formatCurrency(Number(voucher.maxDiscountAmount))}
+                          </p>
+                        ) : null}
+                        <p>
+                          Hạn dùng:{" "}
+                          {new Date(voucher.endDate).toLocaleDateString("vi-VN")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Collection Section */}
         <section className="py-24 px-8 md:px-12 max-w-[1600px] mx-auto">

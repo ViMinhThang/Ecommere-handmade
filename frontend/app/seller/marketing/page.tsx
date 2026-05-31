@@ -21,7 +21,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { VoucherDialog } from "@/components/dashboard/voucher-dialog"
+import {
+  VoucherDialog,
+  type VoucherDialogSavePayload,
+} from "@/components/dashboard/voucher-dialog"
 import {
   useCategories,
   useCreateSellerVoucher,
@@ -46,20 +49,7 @@ type CategoriesResponse = {
   data?: Category[]
 }
 
-type VoucherFormData = {
-  name: string
-  description?: string
-  code: string
-  categoryId: string
-  isActive: boolean
-  endDate: string
-  ranges: {
-    minPrice: number
-    maxPrice: number
-    discountPercent: number
-    endDate: string
-  }[]
-}
+type VoucherFormData = VoucherDialogSavePayload
 
 export default function SellerMarketingPage() {
   const [searchQuery, setSearchQuery] = useState("")

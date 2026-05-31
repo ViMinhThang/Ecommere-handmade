@@ -304,6 +304,38 @@ describe('VouchersService visibility', () => {
     );
   });
 
+  it('lists only public active vouchers for a seller storefront', async () => {
+    await service.findPublicForSeller('seller-1', { page: 1, limit: 8 });
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'seller-1',
+          deletedAt: null,
+          status: 'ACTIVE',
+          roles: { has: 'ROLE_SELLER' },
+        }),
+      }),
+    );
+    expect(prisma.voucher.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sellerId: 'seller-1',
+          deletedAt: null,
+          isActive: true,
+          endDate: { gt: expect.any(Date) },
+        }),
+        take: 8,
+      }),
+    );
+    expect(prisma.voucher.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        sellerId: 'seller-1',
+        isActive: true,
+      }),
+    });
+  });
+
   it('keeps seller voucher ownership scoped to the current seller on update', async () => {
     prisma.voucher.findFirst.mockResolvedValue({ id: 'voucher-1' });
 

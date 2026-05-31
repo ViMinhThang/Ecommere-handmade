@@ -193,22 +193,21 @@ export default function CartPage() {
   const applicableVouchers = useMemo(() => {
     if (!allVouchersData || items.length === 0) return [];
 
-    // Extract unique category IDs from cart items
-    const cartCategoryIds = new Set(
-      items.map((item) => item.product.categoryId),
-    );
-
     const vouchers = Array.isArray(allVouchersData)
       ? allVouchersData
       : ((allVouchersData as { data?: Voucher[] } | undefined)?.data ?? []);
 
-    // Filter vouchers where categoryId matches any in cart
-    return vouchers.filter(
-      (v: Voucher) =>
-        v.isActive &&
-        new Date(v.endDate) > new Date() &&
-        cartCategoryIds.has(v.categoryId),
-    );
+    return vouchers.filter((voucher: Voucher) => {
+      if (!voucher.isActive || new Date(voucher.endDate) <= new Date()) {
+        return false;
+      }
+
+      return items.some(
+        (item) =>
+          item.product.categoryId === voucher.categoryId &&
+          (!voucher.sellerId || item.product.sellerId === voucher.sellerId),
+      );
+    });
   }, [allVouchersData, items]);
 
   return (
@@ -329,6 +328,13 @@ export default function CartPage() {
                                         {v.code}
                                       </span>
                                       <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                        {v.sellerId
+                                          ? v.seller?.shopName ||
+                                            v.seller?.name ||
+                                            "Voucher shop"
+                                          : "Toàn sàn"}
+                                      </span>
+                                      <span className="text-[10px] bg-background text-muted-foreground px-1.5 py-0.5 rounded">
                                         {v.category?.name}
                                       </span>
                                     </div>

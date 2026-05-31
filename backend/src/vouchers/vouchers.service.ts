@@ -236,6 +236,40 @@ export class VouchersService {
     };
   }
 
+  async findPublicForSeller(sellerId: string, pagination?: PaginationDto) {
+    await this.assertActiveSeller(sellerId);
+
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const now = new Date();
+    const where: Prisma.VoucherWhereInput = {
+      ...this.getPublicVoucherWhere(now),
+      sellerId,
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.voucher.findMany({
+        where,
+        include: this.getVoucherInclude(false, now),
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.voucher.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findByCode(code: string, options: VoucherVisibilityOptions = {}) {
     const now = new Date();
     const includeInactive = options.includeInactive ?? false;
