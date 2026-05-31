@@ -21,6 +21,7 @@ import { CreateCustomOrderDto } from './dto/create-custom-order.dto';
 import { UpdateSketchDto } from './dto/update-sketch.dto';
 import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto';
 import { CreateCustomOrderProgressEventDto } from './dto/create-custom-order-progress-event.dto';
+import { CreateCustomOrderReviewDto } from './dto/create-custom-order-review.dto';
 import { SettingsService } from '../settings/settings.service';
 
 const CURRENCY = 'vnd';
@@ -1028,5 +1029,160 @@ export class CustomOrdersService {
       ...this.attachFinancialSummary(o),
       specifications: this.parseSpecifications(o.specifications),
     }));
+  }
+
+  async createCustomOrderReview(
+    userId: string,
+    customOrderId: string,
+    data: CreateCustomOrderReviewDto,
+  ) {
+    const customOrder = await this.prisma.customOrder.findUnique({
+      where: { id: customOrderId },
+      include: {
+        customer: true,
+        seller: true,
+      },
+    });
+
+    if (!customOrder) {
+      throw new NotFoundException('Không tìm thấy đơn hàng custom');
+    }
+
+    if (customOrder.customerId !== userId) {
+      throw new ForbiddenException(
+        'Bạn không có quyền đánh giá đơn hàng này',
+      );
+    }
+
+    if (customOrder.status !== CustomOrderStatus.DELIVERED) {
+      throw new BadRequestException(
+        'Bạn chỉ có thể đánh giá sau khi nhận được hàng',
+      );
+    }
+
+    const existingReview = await this.prisma.customOrderReview.findUnique({
+      where: { customOrderId },
+    });
+
+    if (existingReview) {
+      throw new BadRequestException('Bạn đã đánh giá đơn hàng này rồi');
+    }
+
+    const review = await this.prisma.customOrderReview.create({
+      data: {
+        rating: data.rating,
+        comment: data.comment,
+        images: data.images || [],
+        userId,
+        customOrderId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return review;
+  }
+
+  async getCustomOrderReview(customOrderId: string) {
+    const review = await this.prisma.customOrderReview.findUnique({
+      where: { customOrderId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return review;
+  }
+
+  async sellerReplyToCustomOrderReview(
+    sellerId: string,
+    roles: string[],
+    reviewId: string,
+    reply: string,
+  ) {
+    const review = await this.prisma.customOrderReview.findUnique({
+      where: { id: reviewId },
+      include: {
+        customOrder: {
+          include: {
+            seller: true,
+          },
+        },
+      },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Không tìm thấy đánh giá');
+    }
+
+    const isOwner = review.customOrder.sellerId === sellerId;
+    const isAdminRole = this.isAdmin(roles);
+
+    if (!isOwner && !isAdminRole) {
+      throw new ForbiddenException(
+        'Bạn không có quyền trả lời đánh giá này',
+      );
+    }
+
+    const updatedReview = await this.prisma.customOrderReview.update({
+      where: { id: reviewId },
+      data: { sellerReply: reply },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return updatedReview;
+  }
+
+  async getSellerLatestCustomOrderReviews(sellerId: string) {
+    const reviews = await this.prisma.customOrderReview.findMany({
+      where: {
+        customOrder: {
+          sellerId,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        customOrder: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 10,
+    });
+
+    return reviews;
   }
 }

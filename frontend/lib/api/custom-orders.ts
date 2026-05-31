@@ -76,6 +76,29 @@ export interface CreateCustomOrderProgressEventPayload {
   status?: CustomOrder['status'];
 }
 
+export interface CustomOrderReview {
+  id: string;
+  rating: number;
+  comment?: string;
+  images: string[];
+  sellerReply?: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  customOrderId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCustomOrderReviewDto {
+  rating: number;
+  comment?: string;
+  images?: string[];
+}
+
 export const customOrdersApi = {
   create: (data: CreateCustomOrderPayload) => {
     return apiClient.post<CustomOrder>('/custom-orders', data);
@@ -143,6 +166,32 @@ export const customOrdersApi = {
   getAdminCustomOrderLedger: (id: string) => {
     return apiClient.get<MarketplaceLedgerEntry[]>(
       `/custom-orders/admin/${id}/ledger`,
+    );
+  },
+
+  createReview: (customOrderId: string, data: CreateCustomOrderReviewDto) => {
+    return apiClient.post<CustomOrderReview>(
+      `/custom-orders/${customOrderId}/review`,
+      data,
+    );
+  },
+
+  getReview: (customOrderId: string) => {
+    return apiClient.get<CustomOrderReview | null>(
+      `/custom-orders/${customOrderId}/review`,
+    );
+  },
+
+  sellerReplyToReview: (reviewId: string, reply: string) => {
+    return apiClient.patch<CustomOrderReview>(
+      `/custom-orders/reviews/${reviewId}/reply`,
+      { reply },
+    );
+  },
+
+  getSellerLatestReviews: () => {
+    return apiClient.get<CustomOrderReview[]>(
+      '/custom-orders/seller/reviews/latest',
     );
   },
 };

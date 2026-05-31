@@ -64,6 +64,17 @@ export class FlashSalesService {
             },
             include: { category: true },
           },
+      products: includeInactive
+        ? { include: { product: true } }
+        : {
+            where: {
+              deletedAt: null,
+              product: {
+                deletedAt: null,
+              },
+            },
+            include: { product: true },
+          },
       ranges: includeInactive
         ? true
         : {
@@ -94,6 +105,15 @@ export class FlashSalesService {
       throw new NotFoundException('One or more categories not found');
     }
 
+    if (createFlashSaleDto.productIds && createFlashSaleDto.productIds.length > 0) {
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: createFlashSaleDto.productIds } },
+      });
+      if (products.length !== createFlashSaleDto.productIds.length) {
+        throw new NotFoundException('One or more products not found');
+      }
+    }
+
     return this.prisma.flashSale.create({
       data: {
         name: createFlashSaleDto.name,
@@ -113,6 +133,13 @@ export class FlashSalesService {
             categoryId,
           })),
         },
+        products: createFlashSaleDto.productIds
+          ? {
+              create: createFlashSaleDto.productIds.map((productId) => ({
+                productId,
+              })),
+            }
+          : undefined,
         ranges: {
           create: createFlashSaleDto.ranges.map((range) => ({
             minPrice: range.minPrice,
@@ -124,6 +151,7 @@ export class FlashSalesService {
       },
       include: {
         categories: { include: { category: true } },
+        products: { include: { product: true } },
         ranges: true,
       },
     });
@@ -177,8 +205,43 @@ export class FlashSalesService {
     });
   }
 
-  async calculateEffectivePrice(price: number, categoryId: string) {
-    const flashSale = await this.getActiveFlashSaleForCategory(categoryId);
+  async getActiveFlashSaleForProduct(productId: string) {
+    const now = new Date();
+    return this.prisma.flashSale.findFirst({
+      where: {
+        ...this.getActiveFlashSaleWhere(now),
+        products: {
+          some: {
+            productId,
+            deletedAt: null,
+            product: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+      include: {
+        ranges: {
+          where: {
+            deletedAt: null,
+            endDate: { gt: now },
+          },
+        },
+      },
+    });
+  }
+
+  async calculateEffectivePrice(price: number, categoryId: string, productId?: string) {
+    let flashSale = null;
+
+    if (productId) {
+      flashSale = await this.getActiveFlashSaleForProduct(productId);
+    }
+
+    if (!flashSale) {
+      flashSale = await this.getActiveFlashSaleForCategory(categoryId);
+    }
+
     if (!flashSale) {
       return {
         originalPrice: price,
@@ -285,13 +348,26 @@ export class FlashSalesService {
       }
     }
 
-    const { categoryIds, ranges, ...flashSaleData } = updateFlashSaleDto;
+    if (updateFlashSaleDto.productIds !== undefined && updateFlashSaleDto.productIds.length > 0) {
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: updateFlashSaleDto.productIds } },
+      });
+      if (products.length !== updateFlashSaleDto.productIds.length) {
+        throw new NotFoundException('One or more products not found');
+      }
+    }
+
+    const { categoryIds, productIds, ranges, ...flashSaleData } = updateFlashSaleDto;
     const shouldReplaceCategories = categoryIds !== undefined;
+    const shouldReplaceProducts = productIds !== undefined;
     const shouldReplaceRanges = ranges !== undefined;
 
     return this.prisma.$transaction(async (tx) => {
       if (shouldReplaceCategories) {
         await tx.flashSaleCategory.deleteMany({ where: { flashSaleId: id } });
+      }
+      if (shouldReplaceProducts) {
+        await tx.flashSaleProduct.deleteMany({ where: { flashSaleId: id } });
       }
       if (shouldReplaceRanges) {
         await tx.flashSaleRange.deleteMany({ where: { flashSaleId: id } });
@@ -310,6 +386,9 @@ export class FlashSalesService {
           categories: shouldReplaceCategories
             ? { create: categoryIds.map((categoryId) => ({ categoryId })) }
             : undefined,
+          products: shouldReplaceProducts
+            ? { create: productIds.map((productId) => ({ productId })) }
+            : undefined,
           ranges: shouldReplaceRanges
             ? {
                 create: ranges.map((range) => ({
@@ -323,6 +402,7 @@ export class FlashSalesService {
         },
         include: {
           categories: { include: { category: true } },
+          products: { include: { product: true } },
           ranges: true,
         },
       });

@@ -1441,7 +1441,7 @@ async function main() {
       name: 'Phụ kiện tóc thủ công',
       slug: 'hair-accessories',
       description:
-        'Kẹp tóc, scrunchie, băng đô và phụ kiện tóc may hoặc đính thủ công.',
+        'Kẹp tóc, dây buộc tóc vải, băng đô và phụ kiện tóc may hoặc đính thủ công.',
       image: demoImages.hair,
     },
     {
@@ -2490,15 +2490,15 @@ async function main() {
     },
     {
       sku: 'DEMO-SILK-SCRUNCHIE-SET',
-      name: 'Set scrunchie lụa to 3 màu',
+      name: 'Bộ dây buộc tóc lụa to 3 màu',
       description:
-        'Bộ 3 scrunchie may từ vải lụa mềm, ít hằn tóc, phối màu kem, hồng đất và xanh rêu.',
+        'Bộ 3 dây buộc tóc vải lụa mềm, ít hằn tóc, phối màu kem, hồng đất và xanh rêu.',
       price: '120000',
       categoryId: categoryIds['hair-accessories'],
       sellerId: seller4.id,
       stock: 35,
       lowStockThreshold: 8,
-      tags: ['scrunchie', 'phu-kien-toc', 'lua'],
+      tags: ['day-buoc-toc-vai', 'phu-kien-toc', 'lua'],
       image: demoImages.hair,
     },
     {
@@ -2845,7 +2845,7 @@ async function main() {
   const activeVoucher = await ensureVoucher({
     code: 'HANDMADE10',
     name: 'Mã giảm giá Thủ Công 10%',
-    description: 'Voucher local để demo checkout COD.',
+    description: 'Mã giảm giá dùng cho demo thanh toán khi nhận hàng.',
     categoryId: categoryIds.ceramics,
     isActive: true,
     endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
@@ -2854,7 +2854,7 @@ async function main() {
   await ensureVoucher({
     code: 'EXPIRED5',
     name: 'Voucher hết hạn demo',
-    description: 'Dùng để smoke test: không được apply khi đã hết hạn.',
+    description: 'Dùng để kiểm thử: không thể áp dụng khi đã hết hạn.',
     categoryId: categoryIds.candles,
     isActive: true,
     endDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
@@ -2864,7 +2864,7 @@ async function main() {
     code: 'INACTIVE15',
     name: 'Voucher tạm tắt demo',
     description:
-      'Dùng để admin thấy voucher inactive và customer không apply được.',
+      'Dùng để quản trị viên thấy voucher đã tắt và khách hàng không thể áp dụng.',
     categoryId: categoryIds.textiles,
     isActive: false,
     endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
@@ -3266,7 +3266,7 @@ async function main() {
   await ensureFlashSale({
     name: 'Tuần lễ thủ công địa phương',
     description:
-      'Flash sale active để demo trang admin và discount guardrails.',
+      'Chương trình đang hoạt động để demo quản lý flash sale và giới hạn giảm giá.',
     banner: demoImages.candle,
     startAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
     endAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
@@ -3277,7 +3277,7 @@ async function main() {
   });
   await ensureFlashSale({
     name: 'Flash sale sắp diễn ra',
-    description: 'Campaign future để admin thấy trạng thái upcoming.',
+    description: 'Chương trình sắp diễn ra để quản trị viên kiểm tra trạng thái chờ mở bán.',
     banner: demoImages.decor,
     startAt: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
     endAt: new Date(now.getTime() + 17 * 24 * 60 * 60 * 1000),
@@ -3288,7 +3288,7 @@ async function main() {
   });
   await ensureFlashSale({
     name: 'Flash sale đã kết thúc',
-    description: 'Campaign ended để admin có dữ liệu lịch sử.',
+    description: 'Chương trình đã kết thúc để quản trị viên có dữ liệu lịch sử.',
     banner: demoImages.paper,
     startAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
     endAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),

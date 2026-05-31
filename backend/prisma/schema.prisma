@@ -232,6 +232,7 @@ model User {
   commissionProposals   CommissionProposal[]        @relation("CommissionProposalSeller")
   notifications         Notification[]              @relation("UserNotifications")
   customOrderProgress   CustomOrderProgressEvent[]  @relation("CustomOrderProgressActor")
+  customOrderReviews    CustomOrderReview[]         @relation("CustomOrderReviews")
 
   @@index([status])
 }
@@ -312,6 +313,7 @@ model Product {
   questions                   ProductQuestion[]
   wishlistItems               WishlistItem[]
   homepageFeaturedProducts    HomepageFeaturedProduct[]
+  flashSaleProducts           FlashSaleProduct[]
   reports                     Report[]
 
   @@index([sellerId])
@@ -581,6 +583,7 @@ model FlashSale {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   categories         FlashSaleCategory[]
+  products           FlashSaleProduct[]
   ranges             FlashSaleRange[]
   userUsages         FlashSaleUserUsage[]
 
@@ -599,6 +602,19 @@ model FlashSaleCategory {
   @@unique([flashSaleId, categoryId])
   @@index([flashSaleId])
   @@index([categoryId])
+}
+
+model FlashSaleProduct {
+  id          String    @id @default(uuid())
+  flashSaleId String
+  flashSale   FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  deletedAt   DateTime?
+
+  @@unique([flashSaleId, productId])
+  @@index([flashSaleId])
+  @@index([productId])
 }
 
 model FlashSaleRange {
@@ -769,6 +785,26 @@ model Review {
   @@index([userId])
 }
 
+model CustomOrderReview {
+  id          String   @id @default(uuid())
+  rating      Int      @default(5)
+  comment     String?  @db.Text
+  images      String[] @default([])
+  sellerReply String?  @db.Text
+
+  userId String
+  user   User   @relation("CustomOrderReviews", fields: [userId], references: [id])
+
+  customOrderId String      @unique
+  customOrder   CustomOrder @relation(fields: [customOrderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customOrderId])
+  @@index([userId])
+}
+
 model ProductQuestion {
   id           String                @id @default(uuid())
   productId    String
@@ -849,6 +885,7 @@ model CustomOrder {
   ledgerEntries  MarketplaceLedgerEntry[]
   refunds        Refund[]
   progressEvents CustomOrderProgressEvent[]
+  review         CustomOrderReview?
 
   @@index([customerId])
   @@index([sellerId])

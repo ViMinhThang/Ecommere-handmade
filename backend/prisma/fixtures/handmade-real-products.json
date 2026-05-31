@@ -1,23 +1,24 @@
 {
   "meta": {
-    "name": "Real handmade product fixture for local MVP",
+    "name": "Bộ dữ liệu sản phẩm handmade đã Việt hóa cho local MVP",
     "version": 2,
     "generatedFrom": [
       "crawl/data/ebay-products-raw.json",
       "crawl/data/shopify-handmade-products-raw.json"
     ],
     "generatedAt": "2026-05-19T01:49:48.360Z",
-    "imageStrategy": "remote-url-only; no generated images; no downloaded images",
+    "imageStrategy": "chỉ lưu URL ảnh; không tạo ảnh; không tải ảnh về máy",
     "pricingPolicy": [
-      "eBay raw prices are already stored as VND in the source file.",
-      "Shopify source prices are preserved as USD in priceText and converted to VND with VND_PER_USD=25500 for local checkout compatibility."
+      "Giá eBay trong file nguồn đã được lưu theo VNĐ.",
+      "Giá Shopify được quy đổi sang VNĐ với VND_PER_USD=25500 để phù hợp checkout local.",
+      "Tất cả giá hiển thị được làm tròn đến hàng nghìn VNĐ."
     ],
     "dataPolicy": [
-      "Product title, price, imageUrl, itemWebUrl and crawledAt come from local raw crawl files.",
-      "Shopify product descriptions come from public products.json body_html after HTML stripping.",
-      "Product category/tags/attributes can include deterministic inference from title/type/tags and are marked in attributes.",
-      "Seller accounts are local importer wrappers because raw product feeds do not include full marketplace seller identities.",
-      "No customer PII, real orders, or real reviews are included."
+      "Tên, mô tả, danh mục và tag chính đã được Việt hóa cho giao diện người dùng.",
+      "URL ảnh và URL nguồn được giữ nguyên để tránh lỗi ảnh và giữ khả năng truy vết.",
+      "Danh mục, tag và thuộc tính có thể được suy luận từ tiêu đề, loại sản phẩm hoặc tag gốc.",
+      "Tài khoản người bán là wrapper local vì nguồn crawl không cung cấp đầy đủ danh tính marketplace.",
+      "Không chứa PII khách hàng, đơn thật hoặc đánh giá thật."
     ],
     "sourceCounts": {
       "ebay": 100,
@@ -38,7 +39,7 @@
     {
       "slug": "hair-accessories",
       "name": "Phụ kiện tóc handmade",
-      "description": "Kẹp tóc, scrunchie buộc tóc, băng đô vải cotton và các phụ kiện được may hoặc móc len thủ công tỉ mỉ.",
+      "description": "Kẹp tóc, day buoc toc vai buộc tóc, băng đô vải cotton và các phụ kiện được may hoặc móc len thủ công tỉ mỉ.",
       "status": "ACTIVE"
     }
   ],
@@ -151,8 +152,7 @@
         "thu-cong",
         "anh-goc",
         "phu-kien-toc",
-        "scrunchie",
-        "phu-kien-toc",
+        "day-buoc-toc-vai",
         "lua-to-tam"
       ],
       "attributes": {
@@ -238,7 +238,7 @@
         "anh-goc",
         "phu-kien-toc",
         "bang-do",
-        "cotton",
+        "vai-cotton",
         "hoa-nhi"
       ],
       "attributes": {
@@ -324,7 +324,7 @@
         "anh-goc",
         "phu-kien-toc",
         "day-buoc-toc",
-        "crochet-len",
+        "len-moc",
         "hoa-len"
       ],
       "attributes": {
@@ -366,7 +366,7 @@
         "thu-cong",
         "anh-goc",
         "phu-kien-toc",
-        "scrunchie",
+        "day-buoc-toc-vai",
         "linen-lanh",
         "theu-tay"
       ],
@@ -409,7 +409,7 @@
         "thu-cong",
         "anh-goc",
         "phu-kien-toc",
-        "scrunchie",
+        "day-buoc-toc-vai",
         "vai-nhung",
         "do-ruou"
       ],
@@ -539,7 +539,7 @@
         "anh-goc",
         "phu-kien-toc",
         "kep-no",
-        "crochet-len",
+        "len-moc",
         "hong-phan"
       ],
       "attributes": {
@@ -712,7 +712,7 @@
         "phu-kien-toc",
         "day-buoc-toc",
         "det-macrame",
-        "boho-vintage"
+        "phong-cach-boho-cu"
       ],
       "attributes": {
         "itemType": "Dây buộc tóc macrame tua rua",
@@ -839,7 +839,7 @@
         "thu-cong",
         "anh-goc",
         "phu-kien-toc",
-        "scrunchie",
+        "day-buoc-toc-vai",
         "denim-tai-che",
         "tai-che"
       ],
@@ -1008,7 +1008,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/WPMAAeSwHPhp6vGH/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1050,14 +1050,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/FngAAeSwx-Bp6plO/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
-        "cobalt-blue",
+        "gom-thu-cong",
+        "xanh-coban",
         "mau-xanh",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "nghe-thuat",
         "men-chay"
@@ -1066,8 +1066,8 @@
         "itemType": "Gốm nghệ thuật làm tay",
         "material": "Đất sét gốm nung",
         "colors": [
-          "cobalt blue",
-          "blue"
+          "xanh coban",
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -1100,7 +1100,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/cTAAAeSwMCZp5PNu/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1142,20 +1142,20 @@
       "imageUrl": "https://i.ebayimg.com/images/g/MygAAeSwHQBp6DEu/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "bat-dia-gom",
         "mau-xanh",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky"
       ],
       "attributes": {
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -1187,13 +1187,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/qBEAAeSwSYZpxfh8/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "mau-xanh",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "trang-men",
         "men-chay"
@@ -1202,7 +1202,7 @@
         "itemType": "Ly cốc gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -1236,7 +1236,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/CVoAAeSwSx9p6rP2/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1277,15 +1277,15 @@
       "imageUrl": "https://i.ebayimg.com/images/g/i7sAAeSwxYdp6tin/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "bat-dia-gom",
         "clay",
         "mau-xanh",
-        "artisan",
-        "rustic",
+        "nghe-nhan",
+        "moc-mac",
         "nghe-thuat",
         "hand-thrown"
       ],
@@ -1293,7 +1293,7 @@
         "itemType": "Bát đĩa gốm thủ công",
         "material": "clay",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -1327,14 +1327,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/36kAAeSw~8tpu3qh/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "neutral",
         "aqua",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "Ly cốc gốm thủ công",
@@ -1372,14 +1372,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/TVIAAeSw7ztp6pbK/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "mau-xanh",
         "co-dien",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "trang-men"
       ],
@@ -1387,7 +1387,7 @@
         "itemType": "Bình hoa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -1420,13 +1420,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/ryoAAeSwv7VpjB4A/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "bat-dia-gom",
         "gom-men",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat",
         "trang-men"
       ],
@@ -1465,7 +1465,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/smEAAeSw13Zp6tLM/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1494,8 +1494,8 @@
     {
       "externalId": "178074202571",
       "sku": "EBAY-178074202571",
-      "name": "Bình gốm thủ công vintage",
-      "description": "Bình gốm thủ công vintage. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công vintage mẫu 02",
+      "description": "Bình gốm thủ công vintage mẫu 02. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 158000,
       "priceText": "158.000 đ",
       "categorySlug": "ceramics",
@@ -1506,7 +1506,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/p9QAAeSwoJhp6tN9/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1535,8 +1535,8 @@
     {
       "externalId": "178074204384",
       "sku": "EBAY-178074204384",
-      "name": "Bình gốm thủ công vintage",
-      "description": "Bình gốm thủ công vintage. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công vintage mẫu 03",
+      "description": "Bình gốm thủ công vintage mẫu 03. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 158000,
       "priceText": "158.000 đ",
       "categorySlug": "ceramics",
@@ -1547,7 +1547,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/w0oAAeSw7pFp6tRT/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1588,7 +1588,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/X~8AAeSwPuhpVxQO/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1628,7 +1628,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/37oAAOSwW6RgxDzK/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1667,7 +1667,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/KmwAAOSwhMtmWZjY/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1706,14 +1706,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/GWEAAeSwSoFp6tQj/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
-        "raku-pottery",
+        "gom-raku",
         "mau-xanh",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "nghe-thuat"
       ],
@@ -1721,7 +1721,7 @@
         "itemType": "Bình hoa gốm thủ công",
         "material": "Gốm men Raku nghệ thuật",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -1753,14 +1753,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/N0AAAeSwIF9oYdOT/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "gom-sanh",
         "mau-xanh",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat",
         "hand-thrown",
         "trang-men",
@@ -1770,7 +1770,7 @@
         "itemType": "Ly cốc gốm thủ công",
         "material": "Gốm sành chịu lực",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -1792,7 +1792,7 @@
     {
       "externalId": "318195335797",
       "sku": "EBAY-318195335797",
-      "name": "Bát gốm thủ công có ký tên, tông xanh, họa tiết trang trí",
+      "name": "Bát gốm thủ công có ký tên, tông xanh, họa tiết trang trí mẫu 02",
       "description": "Bát gốm thủ công có ký tên tông xanh họa tiết trang trí. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 1185000,
       "priceText": "1.185.000 đ",
@@ -1804,7 +1804,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/N9AAAeSw8oNp6t5n/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -1847,11 +1847,11 @@
       "imageUrl": "https://i.ebayimg.com/images/g/pUEAAOSwKThhAV8W/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
+        "gom-thu-cong",
         "mau-xanh",
         "mau-be",
         "mau-do",
@@ -1863,7 +1863,7 @@
         "itemType": "Gốm nghệ thuật làm tay",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue",
+          "xanh dương",
           "beige",
           "red"
         ],
@@ -1886,8 +1886,8 @@
     {
       "externalId": "377137281740",
       "sku": "EBAY-377137281740",
-      "name": "Bình gốm thủ công",
-      "description": "Bình gốm thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công mẫu 02",
+      "description": "Bình gốm thủ công mẫu 02. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 1580000,
       "priceText": "1.580.000 đ",
       "categorySlug": "ceramics",
@@ -1898,13 +1898,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/w8IAAeSwE8Zp6qUA/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "gom-men",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
@@ -1940,20 +1940,20 @@
       "imageUrl": "https://i.ebayimg.com/images/g/9g8AAeSwFCdp6vBg/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "xanh-la",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
         "itemType": "Ly cốc gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "green"
+          "xanh lá"
         ],
         "size": null,
         "styleTags": [
@@ -1985,7 +1985,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/Y88AAeSwYOVpu-ra/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2023,12 +2023,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/Y~QAAeSwM0tplhpZ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky"
       ],
       "attributes": {
@@ -2053,8 +2053,8 @@
     {
       "externalId": "137252295637",
       "sku": "EBAY-137252295637",
-      "name": "Bình rót gốm thủ công có ký tên",
-      "description": "Bình rót gốm thủ công có ký tên. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình rót gốm thủ công có ký tên mẫu 02",
+      "description": "Bình rót gốm thủ công có ký tên mẫu 02. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 368000,
       "priceText": "368.000 đ",
       "categorySlug": "ceramics",
@@ -2065,12 +2065,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/HTYAAeSwws5plhou/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky"
       ],
       "attributes": {
@@ -2095,7 +2095,7 @@
     {
       "externalId": "127826584786",
       "sku": "EBAY-127826584786",
-      "name": "Bình gốm thủ công có ký tên, tông xanh, men thủ công",
+      "name": "Bình gốm thủ công có ký tên, tông xanh, men thủ công mẫu 02",
       "description": "Bình gốm thủ công có ký tên tông xanh men thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 820000,
       "priceText": "820.000 đ",
@@ -2107,7 +2107,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/wsMAAeSwpQZp6ppf/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2121,7 +2121,7 @@
         "itemType": "Bình hoa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -2153,12 +2153,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/--MAAeSwWz1p6tF6/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
-        "artisan",
+        "nghe-nhan",
         "trang-men"
       ],
       "attributes": {
@@ -2195,7 +2195,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/lTIAAeSwZeRp6kVb/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2237,7 +2237,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/XuIAAeSwXHVo6dmZ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2248,7 +2248,7 @@
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": "18 cm",
         "styleTags": [
@@ -2278,7 +2278,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/D1YAAeSwILhp6rKx/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2318,11 +2318,11 @@
       "imageUrl": "https://i.ebayimg.com/images/g/eH0AAOSwB91msCm3/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "decor-gom",
+        "trang-tri-gom",
         "gom-men"
       ],
       "attributes": {
@@ -2345,8 +2345,8 @@
     {
       "externalId": "406881933060",
       "sku": "EBAY-406881933060",
-      "name": "Bình gốm thủ công vintage",
-      "description": "Bình gốm thủ công vintage. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công vintage mẫu 04",
+      "description": "Bình gốm thủ công vintage mẫu 04. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 421000,
       "priceText": "421.000 đ",
       "categorySlug": "ceramics",
@@ -2357,13 +2357,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/lRMAAeSwNlBpnSN9/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "gom-men",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
@@ -2400,7 +2400,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/-0QAAeSwn8VpXs2R/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2440,11 +2440,11 @@
       "imageUrl": "https://i.ebayimg.com/images/g/2VEAAOSwLphmWgc7/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
+        "gom-thu-cong",
         "gray",
         "nghe-thuat",
         "trang-men",
@@ -2487,7 +2487,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/-tIAAeSwtppp6tZN/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2500,7 +2500,7 @@
         "itemType": "Bình hoa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -2519,8 +2519,8 @@
     {
       "externalId": "127827014230",
       "sku": "EBAY-127827014230",
-      "name": "Bình gốm thủ công",
-      "description": "Bình gốm thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công mẫu 03",
+      "description": "Bình gốm thủ công mẫu 03. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 1052000,
       "priceText": "1.052.000 đ",
       "categorySlug": "ceramics",
@@ -2531,12 +2531,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/wTwAAeSwVklpxdas/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
@@ -2572,7 +2572,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/STwAAeSwrW5pDNyP/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2613,7 +2613,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/rqgAAOSwnoVa-2yF/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2652,7 +2652,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/0I4AAeSwPL5p6sP3/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2660,14 +2660,14 @@
         "gom-sanh",
         "mau-xanh",
         "mau-nau",
-        "artisan",
+        "nghe-nhan",
         "trang-men"
       ],
       "attributes": {
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Gốm sành chịu lực",
         "colors": [
-          "blue",
+          "xanh dương",
           "brown"
         ],
         "size": null,
@@ -2700,7 +2700,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/N4IAAOSw~KNlKl~o/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2739,7 +2739,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/UiEAAeSwDeVp6tBT/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2775,7 +2775,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/YjMAAeSwHxpptuAZ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2787,7 +2787,7 @@
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Gốm sành chịu lực",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [],
@@ -2815,12 +2815,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/0XcAAeSwG6dp4spN/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
-        "cotton"
+        "gom-thu-cong",
+        "vai-cotton"
       ],
       "attributes": {
         "itemType": "Gốm nghệ thuật làm tay",
@@ -2840,7 +2840,7 @@
     {
       "externalId": "185849874347",
       "sku": "EBAY-185849874347",
-      "name": "Bát gốm thủ công tông xanh, họa tiết trang trí, men thủ công",
+      "name": "Bát gốm thủ công tông xanh, họa tiết trang trí, men thủ công mẫu 02",
       "description": "Bát gốm thủ công tông xanh họa tiết trang trí men thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 184000,
       "priceText": "184.000 đ",
@@ -2852,7 +2852,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/ZKUAAOSw9ulkM3IZ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2864,7 +2864,7 @@
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Gốm sành chịu lực",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [],
@@ -2892,7 +2892,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/aX8AAeSwtupntQi1/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -2916,8 +2916,8 @@
     {
       "externalId": "206036750513",
       "sku": "EBAY-206036750513",
-      "name": "Sản phẩm gốm thủ công",
-      "description": "Sản phẩm gốm thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Sản phẩm gốm thủ công mẫu 02",
+      "description": "Sản phẩm gốm thủ công mẫu 02. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 3949000,
       "priceText": "3.949.000 đ",
       "categorySlug": "ceramics",
@@ -2928,11 +2928,11 @@
       "imageUrl": "https://i.ebayimg.com/images/g/bSQAAeSw9Z5pfBt0/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery"
+        "gom-thu-cong"
       ],
       "attributes": {
         "itemType": "Gốm nghệ thuật làm tay",
@@ -2964,7 +2964,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/kvEAAOSw5jhnkyq0/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3007,7 +3007,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/8WsAAeSwPY9p6sd2/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3051,7 +3051,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/IEAAAeSwYdBo-BpQ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3066,7 +3066,7 @@
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Gốm sứ tráng men",
         "colors": [
-          "green",
+          "xanh lá",
           "red"
         ],
         "size": null,
@@ -3099,7 +3099,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/i0QAAeSwFo1pLmGX/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3139,7 +3139,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/F-AAAeSwANdp6vZq/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3176,13 +3176,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/Lt8AAeSwzmBp6r-H/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "co-dien",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "Ly cốc gốm thủ công",
@@ -3218,7 +3218,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/OzcAAeSwUONoT5ja/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3245,7 +3245,7 @@
     {
       "externalId": "406881977932",
       "sku": "EBAY-406881977932",
-      "name": "Ly gốm thủ công có ký tên, tông xanh, men thủ công",
+      "name": "Ly gốm thủ công có ký tên, tông xanh, men thủ công mẫu 02",
       "description": "Ly gốm thủ công có ký tên tông xanh men thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 632000,
       "priceText": "632.000 đ",
@@ -3257,7 +3257,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/Bf4AAeSwmmlp6t8P/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3270,7 +3270,7 @@
         "itemType": "Ly cốc gốm thủ công",
         "material": "Gốm sành chịu lực",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -3301,7 +3301,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/uNYAAeSwKHZoR15b/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3314,7 +3314,7 @@
         "material": "Đất sét gốm nung",
         "colors": [
           "turquoise",
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -3344,21 +3344,21 @@
       "imageUrl": "https://i.ebayimg.com/images/g/kz4AAeSwwP5p1F5y/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "gom-men",
         "xanh-la",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
         "itemType": "Bình hoa gốm thủ công",
         "material": "Gốm sứ tráng men",
         "colors": [
-          "green"
+          "xanh lá"
         ],
         "size": null,
         "styleTags": [
@@ -3390,13 +3390,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/kAkAAeSwfqVp6puQ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "gom-sanh",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "Ly cốc gốm thủ công",
@@ -3418,8 +3418,8 @@
     {
       "externalId": "318182755081",
       "sku": "EBAY-318182755081",
-      "name": "Bát gốm thủ công họa tiết trang trí",
-      "description": "Bát gốm thủ công họa tiết trang trí. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bát gốm thủ công họa tiết trang trí mẫu 02",
+      "description": "Bát gốm thủ công họa tiết trang trí mẫu 02. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 790000,
       "priceText": "790.000 đ",
       "categorySlug": "ceramics",
@@ -3430,7 +3430,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/hZoAAeSwxXhp3kle/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3470,13 +3470,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/HcwAAOSwE3lj4F1y/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "mau-do",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky"
       ],
       "attributes": {
@@ -3514,7 +3514,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/yD4AAeSwEeNp6qBb/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3554,11 +3554,11 @@
       "imageUrl": "https://i.ebayimg.com/images/g/f7IAAeSwHypplPHx/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
+        "gom-thu-cong",
         "gom-men",
         "xanh-la",
         "mau-nau",
@@ -3570,7 +3570,7 @@
         "itemType": "Gốm nghệ thuật làm tay",
         "material": "Gốm sứ tráng men",
         "colors": [
-          "green",
+          "xanh lá",
           "brown"
         ],
         "size": null,
@@ -3604,12 +3604,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/igkAAOSwMsBnUfd2/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "bat-dia-gom",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky"
       ],
       "attributes": {
@@ -3646,13 +3646,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/L4AAAeSwPgVpp2oJ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "bat-dia-gom",
         "gom-men",
-        "rustic",
+        "moc-mac",
         "nghe-thuat"
       ],
       "attributes": {
@@ -3689,12 +3689,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/chYAAeSw-odpO1Pn/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky"
       ],
       "attributes": {
@@ -3730,12 +3730,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/vu8AAOSwB-1Yz038/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
-        "raku-pottery",
+        "gom-thu-cong",
+        "gom-raku",
         "co-chu-ky",
         "nghe-thuat"
       ],
@@ -3761,7 +3761,7 @@
     {
       "externalId": "406880732605",
       "sku": "EBAY-406880732605",
-      "name": "Bình gốm thủ công vintage, có ký tên, men thủ công",
+      "name": "Bình gốm thủ công vintage, có ký tên, men thủ công mẫu 02",
       "description": "Bình gốm thủ công vintage có ký tên men thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 1483000,
       "priceText": "1.483.000 đ",
@@ -3773,12 +3773,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/Ni4AAeSw6Ydp6haj/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
-        "raku-pottery",
+        "gom-raku",
         "mau-do",
         "co-dien",
         "co-chu-ky"
@@ -3818,12 +3818,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/ygMAAeSwDBBprvsX/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "nghe-thuat",
         "hand-thrown"
@@ -3863,7 +3863,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/1UYAAOSwOexm8xwo/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3906,13 +3906,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/kUsAAeSwpEVoZ7md/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
+        "gom-thu-cong",
         "co-dien",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "Gốm nghệ thuật làm tay",
@@ -3936,7 +3936,7 @@
     {
       "externalId": "137250569677",
       "sku": "EBAY-137250569677",
-      "name": "Bình gốm thủ công có ký tên, tông xanh, men thủ công",
+      "name": "Bình gốm thủ công có ký tên, tông xanh, men thủ công mẫu 03",
       "description": "Bình gốm thủ công có ký tên tông xanh men thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 283000,
       "priceText": "283.000 đ",
@@ -3948,7 +3948,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/ZIcAAOSwJWRmCGFi/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -3963,7 +3963,7 @@
         "itemType": "Bình hoa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue",
+          "xanh dương",
           "yellow",
           "pink"
         ],
@@ -3997,7 +3997,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/LVwAAeSw~XFo~1Wl/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4036,13 +4036,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/BpMAAOSwgBtkd3rc/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "gom-sanh",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "nghe-thuat"
       ],
@@ -4081,7 +4081,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/JasAAOSwOrxlUe4p/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4120,7 +4120,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/dKoAAeSw27Bp3VVl/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4147,8 +4147,8 @@
     {
       "externalId": "375243743608",
       "sku": "EBAY-375243743608",
-      "name": "Bình gốm thủ công men thủ công",
-      "description": "Bình gốm thủ công men thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công men thủ công mẫu 02",
+      "description": "Bình gốm thủ công men thủ công mẫu 02. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 395000,
       "priceText": "395.000 đ",
       "categorySlug": "ceramics",
@@ -4159,7 +4159,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/IgQAAOSwE5NlxTHR/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4190,7 +4190,7 @@
     {
       "externalId": "157856561985",
       "sku": "EBAY-157856561985",
-      "name": "Bình gốm thủ công vintage, họa tiết trang trí",
+      "name": "Bình gốm thủ công vintage, họa tiết trang trí mẫu 02",
       "description": "Bình gốm thủ công vintage họa tiết trang trí. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 3291000,
       "priceText": "3.291.000 đ",
@@ -4202,7 +4202,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/6w8AAeSwh5lp6rum/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4241,20 +4241,20 @@
       "imageUrl": "https://i.ebayimg.com/images/g/pRAAAeSwv2hp6q~h/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "bat-dia-gom",
-        "cobalt-blue",
+        "xanh-coban",
         "mau-xanh"
       ],
       "attributes": {
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "cobalt blue",
-          "blue"
+          "xanh coban",
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -4284,7 +4284,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/dV4AAeSwldpp6rrm/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4324,7 +4324,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/UVgAAeSwTFBp6vJg/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4368,14 +4368,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/U-IAAeSw~9Bp6sDp/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "gom-sanh",
         "co-dien",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "nghe-thuat",
         "trang-men",
@@ -4407,7 +4407,7 @@
     {
       "externalId": "272597286070",
       "sku": "EBAY-272597286070",
-      "name": "Tranh treo tường gốm Raku có ký tên, họa tiết trang trí, men thủ công",
+      "name": "Tranh treo tường gốm Raku có ký tên, họa tiết trang trí, men thủ công mẫu 02",
       "description": "Tranh treo tường gốm Raku có ký tên họa tiết trang trí men thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 527000,
       "priceText": "527.000 đ",
@@ -4419,12 +4419,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/TB0AAOSw4CFYz0u6/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
-        "raku-pottery",
+        "gom-thu-cong",
+        "gom-raku",
         "co-chu-ky",
         "nghe-thuat"
       ],
@@ -4462,7 +4462,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/j3oAAeSwwv9p6rBT/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4474,7 +4474,7 @@
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -4493,8 +4493,8 @@
     {
       "externalId": "155477694299",
       "sku": "EBAY-155477694299",
-      "name": "Bình gốm thủ công",
-      "description": "Bình gốm thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công mẫu 04",
+      "description": "Bình gốm thủ công mẫu 04. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 790000,
       "priceText": "790.000 đ",
       "categorySlug": "ceramics",
@@ -4505,7 +4505,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/IqcAAOSwF2tkJHNU/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4547,13 +4547,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/KvMAAeSw6SNp6sml/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "gom-sanh",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
@@ -4590,7 +4590,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/DXYAAeSwQOlp6rcO/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4628,12 +4628,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/BdUAAOSwMNxXWkBf/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
-        "raku-pottery",
+        "gom-thu-cong",
+        "gom-raku",
         "co-chu-ky"
       ],
       "attributes": {
@@ -4669,7 +4669,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/J84AAeSwBxxp6qXn/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4683,7 +4683,7 @@
         "itemType": "Ly cốc gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "styleTags": [
@@ -4716,13 +4716,13 @@
       "imageUrl": "https://i.ebayimg.com/images/g/LMIAAeSwntxp6pfT/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "mau-nau",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "Ly cốc gốm thủ công",
@@ -4758,11 +4758,11 @@
       "imageUrl": "https://i.ebayimg.com/images/g/rFwAAeSwLSlp6qt2/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
+        "gom-thu-cong",
         "xanh-la",
         "co-chu-ky"
       ],
@@ -4770,7 +4770,7 @@
         "itemType": "Gốm nghệ thuật làm tay",
         "material": "Đất sét gốm nung",
         "colors": [
-          "green"
+          "xanh lá"
         ],
         "size": null,
         "styleTags": [
@@ -4801,7 +4801,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/k6cAAeSwMqRo0EDl/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4841,7 +4841,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/VpoAAeSwN-lp58gr/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -4869,8 +4869,8 @@
     {
       "externalId": "364600171477",
       "sku": "EBAY-364600171477",
-      "name": "Sản phẩm gốm thủ công",
-      "description": "Sản phẩm gốm thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Sản phẩm gốm thủ công mẫu 03",
+      "description": "Sản phẩm gốm thủ công mẫu 03. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 769000,
       "priceText": "769.000 đ",
       "categorySlug": "ceramics",
@@ -4881,11 +4881,11 @@
       "imageUrl": "https://i.ebayimg.com/images/g/hugAAOSw36VlYr4w/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
-        "handmade-pottery",
+        "gom-thu-cong",
         "nghe-thuat"
       ],
       "attributes": {
@@ -4920,14 +4920,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/jJ0AAeSwZ3hpc-zQ/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "binh-hoa-gom",
         "gom-sanh",
         "mau-vang",
-        "rustic",
+        "moc-mac",
         "nghe-thuat",
         "trang-men"
       ],
@@ -4956,7 +4956,7 @@
     {
       "externalId": "146383773384",
       "sku": "EBAY-146383773384",
-      "name": "Bình gốm thủ công vintage, có ký tên",
+      "name": "Bình gốm thủ công vintage, có ký tên mẫu 02",
       "description": "Bình gốm thủ công vintage có ký tên. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 1900000,
       "priceText": "1.900.000 đ",
@@ -4968,7 +4968,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/oeIAAOSwrPFnq9At/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -5006,14 +5006,14 @@
       "imageUrl": "https://i.ebayimg.com/images/g/Og8AAOSwUdZlgjmv/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "bat-dia-gom",
         "mau-xanh",
         "mau-be",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky",
         "nghe-thuat",
         "trang-men"
@@ -5022,7 +5022,7 @@
         "itemType": "Bát đĩa gốm thủ công",
         "material": "Đất sét gốm nung",
         "colors": [
-          "blue",
+          "xanh dương",
           "beige"
         ],
         "size": null,
@@ -5045,8 +5045,8 @@
     {
       "externalId": "188309949371",
       "sku": "EBAY-188309949371",
-      "name": "Bình gốm thủ công có ký tên",
-      "description": "Bình gốm thủ công có ký tên. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công có ký tên mẫu 02",
+      "description": "Bình gốm thủ công có ký tên mẫu 02. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 3714000,
       "priceText": "3.714.000 đ",
       "categorySlug": "ceramics",
@@ -5057,7 +5057,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/IPUAAeSw8xFpQ9F9/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -5097,21 +5097,21 @@
       "imageUrl": "https://i.ebayimg.com/images/g/7CEAAeSwLqJp6saX/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
         "gom-sanh",
         "xanh-la",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
         "itemType": "Ly cốc gốm thủ công",
         "material": "Gốm sành chịu lực",
         "colors": [
-          "green"
+          "xanh lá"
         ],
         "size": null,
         "styleTags": [
@@ -5142,12 +5142,12 @@
       "imageUrl": "https://i.ebayimg.com/images/g/FIcAAeSwb99pYD8D/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
         "ly-coc-gom",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
@@ -5172,8 +5172,8 @@
     {
       "externalId": "276987446472",
       "sku": "EBAY-276987446472",
-      "name": "Bình gốm thủ công",
-      "description": "Bình gốm thủ công. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
+      "name": "Bình gốm thủ công mẫu 05",
+      "description": "Bình gốm thủ công mẫu 05. Tác phẩm gốm sứ thủ công mỹ nghệ độc bản được tuyển chọn kỹ lưỡng. Từng chi tiết, đường vân tráng men đều được nghệ nhân tạo tác tỉ mỉ bằng tay trên bàn xoay truyền thống, nung ở nhiệt độ cao mang lại chất lượng vượt trội và vẻ đẹp trường tồn cùng thời gian.",
       "priceVnd": 9214000,
       "priceText": "9.214.000 đ",
       "categorySlug": "ceramics",
@@ -5184,7 +5184,7 @@
       "imageUrl": "https://i.ebayimg.com/images/g/KH4AAOSwvhNn5yOY/s-l500.webp",
       "tags": [
         "du-lieu-that",
-        "ebay",
+        "nguon-ebay",
         "thu-cong",
         "anh-goc",
         "gom-su",
@@ -5225,19 +5225,18 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2281/6071/products/f4029aca975704eff0390ca89b988443a7f46a3c-2000x2000.webp?v=1655395755",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "eastfork",
         "gom-su",
-        "ceramics",
         "gom-sanh",
-        "first",
+        "bo-suu-tap-dau-tien",
         "mau-do",
         "trang-men"
       ],
       "attributes": {
-        "itemType": "Pottery",
+        "itemType": "Gốm sứ",
         "material": "Gốm sành chịu lực",
         "colors": [
           "red"
@@ -5279,13 +5278,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/LC-04_0328.jpg?v=1772734887",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
-        "ceramics",
+        "gom-heath",
+        "gom-su",
         "bar-pantry",
-        "glassware",
+        "do-thuy-tinh",
         "hh",
         "new",
         "out-of-stock",
@@ -5335,10 +5334,10 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/SS26_HH_MS-50_0263_DYarra_20260217_Webres.jpg?v=1773350886",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
+        "gom-heath",
         "textiles",
         "hh",
         "in-stock",
@@ -5348,7 +5347,7 @@
         "s26reporting",
         "shipping-light",
         "tea-towels",
-        "artisan",
+        "nghe-nhan",
         "co-chu-ky"
       ],
       "attributes": {
@@ -5392,10 +5391,10 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/20260122_DYarra_Heath_CC-135_1609__Webres.jpg?v=1771967260",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
+        "gom-heath",
         "textiles",
         "hh",
         "in-stock",
@@ -5449,10 +5448,10 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/TK-05_0250.jpg?v=1772739882",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
+        "gom-heath",
         "textiles",
         "hh",
         "in-stock",
@@ -5503,17 +5502,17 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/SS26_HH_SL-126_Vendor_Web.jpg?v=1778777562",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
-        "paper-art",
+        "gom-heath",
+        "giay-nghe-thuat",
         "nghe-thuat",
         "hh",
         "in-stock",
         "s26",
         "s26reporting",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "paper-art",
@@ -5556,17 +5555,17 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/SS26_HH_SL-125_Vendor_Web.jpg?v=1778777442",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
-        "paper-art",
+        "gom-heath",
+        "giay-nghe-thuat",
         "nghe-thuat",
         "hh",
         "in-stock",
         "s26",
         "s26reporting",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "paper-art",
@@ -5609,17 +5608,17 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/SS26_HH_SL-124_Vendor_Web.jpg?v=1778777290",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
-        "paper-art",
+        "gom-heath",
+        "giay-nghe-thuat",
         "nghe-thuat",
         "hh",
         "in-stock",
         "s26",
         "s26reporting",
-        "artisan"
+        "nghe-nhan"
       ],
       "attributes": {
         "itemType": "paper-art",
@@ -5662,20 +5661,20 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/20250707_DYarra_HeathCeramics_hcs-045-glacier_13976_webres.jpg?v=1756158660",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
-        "ceramics",
+        "gom-heath",
+        "gom-su",
         "gmc-feed-include",
         "hcs-objects",
-        "heath-clay-studio",
+        "xuong-gom-heath",
         "holiday-25",
         "mgm",
         "out-of-stock",
         "w25",
         "w25web",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
@@ -5719,10 +5718,10 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/RD-301_0261.jpg?v=1772735063",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
+        "gom-heath",
         "textiles",
         "in-stock",
         "kitchen-basics",
@@ -5777,10 +5776,10 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/WEB_SS26_HH_SD-54_kmcclellan_41526.jpg?v=1777048886",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
+        "gom-heath",
         "textiles",
         "in-stock",
         "runners-tablecloths",
@@ -5788,7 +5787,7 @@
         "s26reporting",
         "mau-hong",
         "mau-do",
-        "artisan",
+        "nghe-nhan",
         "nghe-thuat"
       ],
       "attributes": {
@@ -5835,10 +5834,10 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/2116/7717/files/WEB_SS26_HH_AR-217_kmcclellan_41526.jpg?v=1777047243",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "heathceramics",
+        "gom-heath",
         "textiles",
         "in-stock",
         "runners-tablecloths",
@@ -5887,21 +5886,20 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/FrameBracelet-Square-Elastic-Main.jpg?v=1761681939",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
-        "bracelet",
-        "bracelet-fundraiser",
+        "vong-tay",
+        "vong-tay-gay-quy",
         "bulk",
         "bulk-discount",
         "bulk2023",
         "bulk2026",
-        "bulk72",
-        "bulkbracelets2023"
+        "bulk72"
       ],
       "attributes": {
         "itemType": "Vòng tay thủ công dệt sợi",
@@ -5944,21 +5942,20 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/FrameBracelet-Rectangle-Elastic-Greennotext.jpg?v=1761677505",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
-        "bracelet",
-        "bracelet-fundraiser",
+        "vong-tay",
+        "vong-tay-gay-quy",
         "bulk",
         "bulk-discount",
         "bulk2023",
         "bulk2026",
-        "bulk72",
-        "bulkbracelets2023"
+        "bulk72"
       ],
       "attributes": {
         "itemType": "Vòng tay thủ công dệt sợi",
@@ -6001,18 +5998,17 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Lovely-Woven-Main.jpg?v=1758303728",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
         "bulk",
         "bulk2023",
         "bulk2026",
-        "bulk74",
-        "bulkbracelets2023"
+        "bulk74"
       ],
       "attributes": {
         "itemType": "Vòng tay thủ công dệt sợi",
@@ -6055,7 +6051,7 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/PR_-_be_incredible.jpg?v=1749495751",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
@@ -6114,12 +6110,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Beacon-Active-Ziptag-lightgray-Main.jpg?v=1764106871",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
         "bulk-beacon",
-        "paper-art",
+        "giay-nghe-thuat",
         "gom-sanh",
         "beacon",
         "beaconaccessorybulk",
@@ -6173,12 +6169,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Keychain-Beacon-glacier-Main.jpg?v=1764106668",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
         "bulk-beacon",
-        "paper-art",
+        "giay-nghe-thuat",
         "gom-sanh",
         "beacon",
         "beaconaccessorybulk",
@@ -6232,7 +6228,7 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Beacon-Woven-Mocha-Main.jpg?v=1758119949",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
@@ -6244,7 +6240,7 @@
         "bulk2023",
         "bulk2026",
         "bulk74",
-        "bulkbracelets2023",
+        "vong-tay-so-luong-lon",
         "logicbroker",
         "printed"
       ],
@@ -6291,7 +6287,7 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Beacon-Active-Bracelet-Navyblue-Main.jpg?v=1764106096",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
@@ -6303,7 +6299,7 @@
         "bulk2023",
         "bulk2026",
         "bulk78",
-        "bulkbracelets2023",
+        "vong-tay-so-luong-lon",
         "logicbroker",
         "printed"
       ],
@@ -6350,11 +6346,11 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Friendship-Eclipse-Woven-Wildberry_bc5fe936-f09e-4491-ab33-5d56aff16ccf.jpg?v=1764104979",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
         "bitty-beads",
@@ -6362,7 +6358,6 @@
         "bulk2023",
         "bulk2026",
         "bulk72",
-        "bulkbracelets2023",
         "mau-den"
       ],
       "attributes": {
@@ -6408,17 +6403,16 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Friendship-Eclipse-Elastic-Red-Main.png?v=1764080044",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
         "bulk2023",
         "bulk2026",
         "bulk72",
-        "bulkbracelets2023",
         "mau-den"
       ],
       "attributes": {
@@ -6464,17 +6458,16 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Friendship-Elastic-blue-main.jpg?v=1764105730",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
         "bulk2023",
         "bulk2026",
         "bulk72",
-        "bulkbracelets2023",
         "logicbroker",
         "neutral",
         "mau-do",
@@ -6524,17 +6517,16 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/VIONASGrandePile.jpg?v=1752238918",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
         "bulk2023",
         "bulk2026",
         "bulk78",
-        "bulkbracelets2023",
         "keep2023",
         "sale2023"
       ],
@@ -6579,11 +6571,11 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Friendship-Woven-Satellite_960ccdb8-bbee-4bfe-96a5-95cf23f6074f.jpg?v=1764105282",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
         "bitty-beads",
@@ -6592,7 +6584,6 @@
         "bulk2023",
         "bulk2026",
         "bulk72",
-        "bulkbracelets2023",
         "logicbroker"
       ],
       "attributes": {
@@ -6639,21 +6630,20 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Lovely-Custom-Turquoise-Main.jpg?v=1764101526",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
-        "bracelet",
-        "bracelet-fundraiser",
+        "vong-tay",
+        "vong-tay-gay-quy",
         "bulk",
         "bulk-discount",
         "bulk2023",
         "bulk2026",
-        "bulk78",
-        "bulkbracelets2023"
+        "bulk78"
       ],
       "attributes": {
         "itemType": "Vòng tay thủ công dệt sợi",
@@ -6696,21 +6686,20 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0555/2337/7314/files/Original-Custom-Black-Main.jpg?v=1764105595",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "mudlove",
-        "bulk-bracelets",
+        "vong-tay-so-luong-lon",
         "jewelry",
         "gom-sanh",
-        "bracelet",
-        "bracelet-fundraiser",
+        "vong-tay",
+        "vong-tay-gay-quy",
         "bulk",
         "bulk-discount",
         "bulk2023",
         "bulk2026",
-        "bulk78",
-        "bulkbracelets2023"
+        "bulk78"
       ],
       "attributes": {
         "itemType": "Vòng tay thủ công dệt sợi",
@@ -6753,13 +6742,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Trillium-No.2-7.jpg?v=1748539688",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -6810,13 +6799,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Trillium-No.1-2.jpg?v=1748539841",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -6867,13 +6856,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Totem-Bird-08.jpg?v=1748699952",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -6924,13 +6913,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Tiny-Flower-Pattern-No2-5.jpg?v=1748540384",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -6981,13 +6970,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Tiny-Flower-Pattern-No1-2.jpg?v=1748700107",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7038,13 +7027,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Three-Violets-3.jpg?v=1748541147",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7095,13 +7084,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Three-Tulips-4.jpg?v=1748541437",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7152,13 +7141,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/ThreeSpottedFruits_f68849c3-bfac-4124-8921-6288985694e0.jpg?v=1748547861",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7209,13 +7198,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Ungardener.jpg?v=1748700367",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7266,13 +7255,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/TheStone-4.jpg?v=1748548953",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7323,13 +7312,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/TheLongFruitandASpottedDog-5.jpg?v=1748549262",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7380,13 +7369,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/TheGoodSentinel-2.jpg?v=1748549484",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7437,13 +7426,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/SoMuchLivingUndertheMoon-5.jpg?v=1748632484",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7494,13 +7483,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Solomon_sSeal-3.jpg?v=1748700483",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7551,13 +7540,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/SilhouetteofAPearl.jpg?v=1748699861",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7608,13 +7597,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/Seaweed-3.jpg?v=1748633204",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7665,13 +7654,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/RatRoomFloor-3.jpg?v=1748633390",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7722,13 +7711,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/PlantWithAFace-2.jpg?v=1748633542",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7779,13 +7768,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/OysterShell-3.jpg?v=1748633782",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7836,13 +7825,13 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0104/5072/files/NotADuck-2.jpg?v=1748633886",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "pegandawl",
         "excluded",
-        "paper-art",
-        "wood",
+        "giay-nghe-thuat",
+        "go",
         "dry-point",
         "little-windows",
         "sale-ineligble",
@@ -7893,15 +7882,15 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/files/6609070-WEB-1_2_re.jpg?v=1753798516",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
         "migration-products",
-        "wall-decor",
+        "trang-tri-tuong",
         "3005",
         "alliance-account",
-        "artisan-partner",
+        "doi-tac-nghe-nhan",
         "kitchen-dining",
         "thanksgiving",
         "unlisted-2026-03-11",
@@ -7949,11 +7938,11 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/files/5905430_0001.jpg?v=1759158159",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
-        "ceramics",
+        "gom-su",
         "clay",
         "3265",
         "november-2025-collection",
@@ -7969,8 +7958,8 @@
         "itemType": "ceramics",
         "material": "clay",
         "colors": [
-          "blue",
-          "green",
+          "xanh dương",
+          "xanh lá",
           "red"
         ],
         "size": null,
@@ -8010,7 +7999,7 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/files/6896750_0003.jpg?v=1748616773",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
@@ -8065,7 +8054,7 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/files/6899600_001.jpg?v=1712600956",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
@@ -8117,14 +8106,14 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/products/6839350-WEB-1.jpg?v=1687767903",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
         "migration-products",
         "jewelry",
         "1320",
-        "artisan-partner",
+        "doi-tac-nghe-nhan",
         "els-pw-30407",
         "els-pw-30515",
         "june-2023-collection",
@@ -8176,15 +8165,15 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/products/6838810-WEB-10.jpg?v=1731091607",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
         "migration-products",
-        "wall-decor",
-        "cotton",
+        "trang-tri-tuong",
+        "vai-cotton",
         "4040",
-        "artisan-partner",
+        "doi-tac-nghe-nhan",
         "unlisted-2026-03-11",
         "mau-vang",
         "mau-do",
@@ -8236,7 +8225,7 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/files/RS65425_TTV_423_Lifestyle_0282_scr.jpg?v=1771427773",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
@@ -8244,9 +8233,9 @@
         "jewelry",
         "1305",
         "april-2023-collection",
-        "artisan-partner",
+        "doi-tac-nghe-nhan",
         "curios",
-        "gifts-for-mom",
+        "qua-tang-me",
         "stddisc",
         "unlisted-2026-03-11",
         "nghe-thuat",
@@ -8293,15 +8282,15 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0736/9356/1135/products/5911050-WEB-2.jpg?v=1728647920",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
         "tenthousandvillages",
         "migration-products",
-        "ceramics",
-        "wood",
+        "gom-su",
+        "go",
         "3215",
-        "artisan-partner",
+        "doi-tac-nghe-nhan",
         "board-store",
         "kitchen-dining",
         "pbp-dropship",
@@ -8313,7 +8302,7 @@
         "itemType": "Migration_Products",
         "material": "Gỗ tự nhiên nguyên khối",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": null,
         "vendor": "tenthousandvillagesus",
@@ -8352,15 +8341,15 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Small-Round-Capiz-Shell-Chime-Ombre-Spice.webp?v=1778885833",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "wall-decor",
+        "fair-trade-winds",
+        "trang-tri-tuong",
         "new"
       ],
       "attributes": {
-        "itemType": "wall-decor",
+        "itemType": "đồ trang trí tường",
         "material": "Thủ công",
         "colors": [],
         "size": "5\"",
@@ -8400,16 +8389,16 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Small-Round-Capiz-Shell-Chime-Ombre-Turquoise.webp?v=1778885833",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "wall-decor",
+        "fair-trade-winds",
+        "trang-tri-tuong",
         "new",
         "turquoise"
       ],
       "attributes": {
-        "itemType": "wall-decor",
+        "itemType": "đồ trang trí tường",
         "material": "Thủ công",
         "colors": [
           "turquoise"
@@ -8451,15 +8440,15 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Small-Round-Capiz-Shell-Chime-Ombre-Lavender.webp?v=1778885833",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "wall-decor",
+        "fair-trade-winds",
+        "trang-tri-tuong",
         "new"
       ],
       "attributes": {
-        "itemType": "wall-decor",
+        "itemType": "đồ trang trí tường",
         "material": "Thủ công",
         "colors": [],
         "size": "5\"",
@@ -8499,17 +8488,17 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Chandelier-Capiz-Shell-Chime-Ombre-Spice.webp?v=1778885660",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "wall-decor",
+        "fair-trade-winds",
+        "trang-tri-tuong",
         "new",
         "mau-do",
         "co-chu-ky"
       ],
       "attributes": {
-        "itemType": "wall-decor",
+        "itemType": "đồ trang trí tường",
         "material": "Thủ công",
         "colors": [
           "red"
@@ -8551,18 +8540,18 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Chandelier-Capiz-Shell-Chime-Ombre-Turquoise.webp?v=1778885661",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "wall-decor",
+        "fair-trade-winds",
+        "trang-tri-tuong",
         "new",
         "turquoise",
         "mau-do",
         "co-chu-ky"
       ],
       "attributes": {
-        "itemType": "wall-decor",
+        "itemType": "đồ trang trí tường",
         "material": "Thủ công",
         "colors": [
           "turquoise",
@@ -8605,17 +8594,17 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Chandelier-Capiz-Shell-Chime-Ombre-Lavender.webp?v=1778885660",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "wall-decor",
+        "fair-trade-winds",
+        "trang-tri-tuong",
         "new",
         "mau-do",
         "co-chu-ky"
       ],
       "attributes": {
-        "itemType": "wall-decor",
+        "itemType": "đồ trang trí tường",
         "material": "Thủ công",
         "colors": [
           "red"
@@ -8657,14 +8646,14 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/capiz-shell-strand-ombre-spice.webp?v=1778885262",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "gifts",
+        "fair-trade-winds",
+        "qua-tang",
         "new",
         "thuong-mai-cong-bang",
-        "wall-decor"
+        "trang-tri-tuong"
       ],
       "attributes": {
         "itemType": "gifts",
@@ -8707,15 +8696,15 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/capiz-shell-strand-ombre-turquoise.webp?v=1778885262",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "gifts",
+        "fair-trade-winds",
+        "qua-tang",
         "new",
         "turquoise",
         "thuong-mai-cong-bang",
-        "wall-decor"
+        "trang-tri-tuong"
       ],
       "attributes": {
         "itemType": "gifts",
@@ -8760,14 +8749,14 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/capiz-shell-strand-ombre-lavender.webp?v=1778885262",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "gifts",
+        "fair-trade-winds",
+        "qua-tang",
         "new",
         "thuong-mai-cong-bang",
-        "wall-decor"
+        "trang-tri-tuong"
       ],
       "attributes": {
         "itemType": "gifts",
@@ -8810,23 +8799,23 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/ButterflyTableLamp-Blue_bc011b1d-d31a-4fcb-986a-407292225ce3.jpg?v=1778104566",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "gifts",
+        "fair-trade-winds",
+        "qua-tang",
         "new",
         "mau-xanh",
         "co-chu-ky",
         "nghe-thuat",
         "thuong-mai-cong-bang",
-        "wall-decor"
+        "trang-tri-tuong"
       ],
       "attributes": {
         "itemType": "gifts",
         "material": "Thủ công",
         "colors": [
-          "blue"
+          "xanh dương"
         ],
         "size": "27 in",
         "vendor": "Eangee",
@@ -8853,8 +8842,8 @@
     {
       "externalId": "fairtradewinds:10482802032942",
       "sku": "SHOPIFY-fairtradewinds-10482802032942",
-      "name": "Nến Amber Sandalwood 3oz",
-      "description": "Nến Amber Sandalwood 3oz. Nến và quà tặng thủ công sử dụng sáp đậu nành, tinh dầu thiên nhiên và hương liệu nhẹ nhàng. Đốt cháy đều, ít khói, mang lại không gian thư giãn và ấm áp cho gia đình.",
+      "name": "Nến thơm hổ phách gỗ đàn hương 3oz",
+      "description": "Nến thơm hổ phách gỗ đàn hương 3oz. Nến và quà tặng thủ công sử dụng sáp đậu nành, tinh dầu thiên nhiên và hương liệu nhẹ nhàng. Đốt cháy đều, ít khói, mang lại không gian thư giãn và ấm áp cho gia đình.",
       "priceVnd": 458000,
       "priceText": "458.000 đ",
       "categorySlug": "candles",
@@ -8865,12 +8854,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/AmberSandalwood3ozCandle_dbf9bdce-e2f6-42be-8b2d-77d89ebe5075.jpg?v=1775065470",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "neutral",
         "nghe-thuat"
@@ -8918,12 +8907,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/LavenderCyprus3ozCandle.jpg?v=1775065120",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "nghe-thuat"
       ],
@@ -8968,12 +8957,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/CardamomSpice3ozCandle_ddef16dc-0693-422f-b568-c0e57cacbedd.jpg?v=1775064999",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "neutral",
         "mau-do",
@@ -9023,12 +9012,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/BloodOrangeVetiver3ozCandle_e4df2aa1-9b8f-4132-859c-de0f26c20315.jpg?v=1775064789",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "orange",
         "nghe-thuat"
@@ -9064,8 +9053,8 @@
     {
       "externalId": "fairtradewinds:10465526513966",
       "sku": "SHOPIFY-fairtradewinds-10465526513966",
-      "name": "Nến ly thủy tinh Citronella Mint 8oz",
-      "description": "Nến ly thủy tinh Citronella Mint 8oz. Nến và quà tặng thủ công sử dụng sáp đậu nành, tinh dầu thiên nhiên và hương liệu nhẹ nhàng. Đốt cháy đều, ít khói, mang lại không gian thư giãn và ấm áp cho gia đình.",
+      "name": "Nến ly thủy tinh hương sả bạc hà 8oz",
+      "description": "Nến ly thủy tinh hương sả bạc hà 8oz. Nến và quà tặng thủ công sử dụng sáp đậu nành, tinh dầu thiên nhiên và hương liệu nhẹ nhàng. Đốt cháy đều, ít khói, mang lại không gian thư giãn và ấm áp cho gia đình.",
       "priceVnd": 738000,
       "priceText": "738.000 đ",
       "categorySlug": "candles",
@@ -9076,12 +9065,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/CitronellaMint8ozGlassCandle.jpg?v=1774973218",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "nghe-thuat"
       ],
@@ -9126,12 +9115,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/LavenderCyprus8ozGlassCandle.jpg?v=1774972908",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "nghe-thuat"
       ],
@@ -9176,12 +9165,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/CardamomSpice8ozGlassCandle.jpg?v=1774972637",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "neutral",
         "mau-do",
@@ -9231,12 +9220,12 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/BloodOrangeVetiver8ozGlassCandle.jpg?v=1774971373",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "candles",
-        "cotton",
+        "fair-trade-winds",
+        "nen-thom",
+        "vai-cotton",
         "new",
         "orange",
         "nghe-thuat"
@@ -9284,15 +9273,15 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0973/8960/9262/files/Little-Daisies-Felt-Flower-Bouquet.jpg?v=1773854374",
       "tags": [
         "du-lieu-that",
-        "shopify",
+        "nguon-shopify",
         "thu-cong",
         "anh-goc",
-        "fairtradewinds",
-        "gifts",
+        "fair-trade-winds",
+        "qua-tang",
         "new",
         "co-chu-ky",
         "nghe-thuat",
-        "wall-decor"
+        "trang-tri-tuong"
       ],
       "attributes": {
         "itemType": "gifts",

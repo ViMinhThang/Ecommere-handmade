@@ -3,9 +3,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useState } from 'react'
-import { FlashSale, Category, Image, ImageFolder } from '@/types'
+import { FlashSale, Category, Image, ImageFolder, Product } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { mediaApi } from '@/lib/api/media'
+import { productsApi } from '@/lib/api/products'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -38,6 +39,7 @@ interface FlashSaleFormPayload {
   reserveStock?: number
   autoPauseThreshold?: number | null
   categoryIds: string[]
+  productIds?: string[]
   ranges: FlashSaleRange[]
 }
 
@@ -102,6 +104,7 @@ export function FlashSaleDialog({
     autoPauseThreshold: '',
   })
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([])
   const [ranges, setRanges] = useState<FlashSaleRange[]>([])
   const [selectedBanner, setSelectedBanner] = useState<SelectedBanner | null>(null)
   const [errors, setErrors] = useState<string[]>([])
@@ -109,6 +112,8 @@ export function FlashSaleDialog({
   const [images, setImages] = useState<Image[]>([])
   const [selectedFolderId, setSelectedFolderId] = useState('')
   const [bannerLoading, setBannerLoading] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [productsLoading, setProductsLoading] = useState(false)
 
   const isEdit = !!flashSale
   const soldUnits = flashSale?.soldUnits ?? 0
@@ -130,6 +135,19 @@ export function FlashSaleDialog({
         }
       })
       .catch(console.error)
+
+    setProductsLoading(true)
+    productsApi
+      .getAll({ status: 'APPROVED', limit: 50 })
+      .then((response) => {
+        console.log('Products response:', response)
+        setProducts(response.data || [])
+      })
+      .catch((error) => {
+        console.error('Error loading products:', error)
+        setProducts([])
+      })
+      .finally(() => setProductsLoading(false))
   }, [open, userId])
 
   useEffect(() => {
@@ -160,6 +178,7 @@ export function FlashSaleDialog({
         autoPauseThreshold: optionalNumberToInput(flashSale.autoPauseThreshold),
       })
       setSelectedCategoryIds(flashSale.categories.map((c) => c.categoryId))
+      setSelectedProductIds(flashSale.products?.map((p) => p.productId) || [])
       setRanges(
         flashSale.ranges.map((r) => ({
           id: r.id,
@@ -193,6 +212,7 @@ export function FlashSaleDialog({
         autoPauseThreshold: '',
       })
       setSelectedCategoryIds([])
+      setSelectedProductIds([])
       setRanges([])
       setSelectedBanner(null)
     }
@@ -225,6 +245,14 @@ export function FlashSaleDialog({
       prev.includes(categoryId)
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId],
+    )
+  }
+
+  const toggleProduct = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId],
     )
   }
 
@@ -338,6 +366,7 @@ export function FlashSaleDialog({
       reserveStock,
       autoPauseThreshold: parseNullableInteger(formData.autoPauseThreshold),
       categoryIds: selectedCategoryIds,
+      productIds: selectedProductIds.length > 0 ? selectedProductIds : undefined,
       ranges,
     })
   }
@@ -556,6 +585,42 @@ export function FlashSaleDialog({
                   </Badge>
                 ))}
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Sản phẩm cụ thể (tùy chọn)</Label>
+              <p className="text-xs text-muted-foreground">
+                Nếu chọn sản phẩm cụ thể, flash sale sẽ ưu tiên áp dụng cho các sản phẩm này trước, sau đó mới áp dụng theo danh mục.
+              </p>
+              {productsLoading ? (
+                <div className="rounded-md border bg-muted/10 p-4 text-center text-sm text-muted-foreground">
+                  Đang tải sản phẩm...
+                </div>
+              ) : products.length === 0 ? (
+                <div className="rounded-md border bg-muted/10 p-4 text-center text-sm text-muted-foreground">
+                  Không có sản phẩm nào
+                </div>
+              ) : (
+                <div className="flex max-h-[200px] flex-wrap gap-2 overflow-y-auto rounded-md border bg-muted/10 p-2">
+                  {products.map((product) => (
+                    <Badge
+                      key={product.id}
+                      variant={
+                        selectedProductIds.includes(product.id) ? 'default' : 'outline'
+                      }
+                      className="cursor-pointer select-none"
+                      onClick={() => toggleProduct(product.id)}
+                    >
+                      {product.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              {selectedProductIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Đã chọn {selectedProductIds.length} sản phẩm
+                </p>
+              )}
             </div>
 
             <div className="rounded-md border p-4">

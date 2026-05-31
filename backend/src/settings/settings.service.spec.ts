@@ -19,7 +19,7 @@ describe('SettingsService', () => {
     platformSetting.upsert.mockResolvedValue({
       id: 'platform',
       platformName: 'HandCraft Market',
-      platformDescription: 'Marketplace for handmade products',
+      platformDescription: 'Marketplace sản phẩm thủ công và quà tặng handmade',
       commissionBps: 1250,
     });
 
@@ -38,14 +38,14 @@ describe('SettingsService', () => {
     platformSetting.upsert.mockResolvedValue({
       id: 'platform',
       platformName: 'Maker Market',
-      platformDescription: 'Curated handmade goods',
+      platformDescription: 'Bộ sưu tập sản phẩm thủ công tuyển chọn',
       commissionBps: 1750,
     });
 
     await service.updatePlatformSettings(
       {
         platformName: 'Maker Market',
-        platformDescription: 'Curated handmade goods',
+        platformDescription: 'Bộ sưu tập sản phẩm thủ công tuyển chọn',
         commissionBps: 1750,
       },
       'admin_1',

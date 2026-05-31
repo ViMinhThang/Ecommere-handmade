@@ -27,7 +27,7 @@ const SHOPIFY_SOURCES = [
     shopName: 'East Fork',
     email: 'eastfork.importer@local.dev',
     defaultCategorySlug: 'ceramics',
-    specialty: 'Pottery and ceramic tableware',
+    specialty: 'Bát đĩa và đồ gốm gia dụng thủ công',
   },
   {
     slug: 'heathceramics',
@@ -35,7 +35,7 @@ const SHOPIFY_SOURCES = [
     shopName: 'Heath Ceramics',
     email: 'heathceramics.importer@local.dev',
     defaultCategorySlug: 'ceramics',
-    specialty: 'Ceramic dinnerware and home goods',
+    specialty: 'Đồ dùng bàn ăn và đồ trang trí gốm cao cấp',
   },
   {
     slug: 'mudlove',
@@ -43,7 +43,7 @@ const SHOPIFY_SOURCES = [
     shopName: 'MudLOVE',
     email: 'mudlove.importer@local.dev',
     defaultCategorySlug: 'jewelry',
-    specialty: 'Bracelets, mugs and small handmade gifts',
+    specialty: 'Vòng tay, ly sứ và quà tặng thủ công nhỏ',
   },
   {
     slug: 'pegandawl',
@@ -51,7 +51,7 @@ const SHOPIFY_SOURCES = [
     shopName: 'Peg and Awl',
     email: 'pegandawl.importer@local.dev',
     defaultCategorySlug: 'paper-art',
-    specialty: 'Prints, stationery and handmade goods',
+    specialty: 'Tranh in, văn phòng phẩm và đồ thủ công',
   },
   {
     slug: 'tenthousandvillages',
@@ -59,7 +59,7 @@ const SHOPIFY_SOURCES = [
     shopName: 'Ten Thousand Villages',
     email: 'tenthousandvillages.importer@local.dev',
     defaultCategorySlug: 'wall-decor',
-    specialty: 'Fair trade artisan decor and gifts',
+    specialty: 'Đồ trang trí và quà tặng thủ công thương mại công bằng',
   },
   {
     slug: 'fairtradewinds',
@@ -67,31 +67,103 @@ const SHOPIFY_SOURCES = [
     shopName: 'Fair Trade Winds',
     email: 'fairtradewinds.importer@local.dev',
     defaultCategorySlug: 'gifts',
-    specialty: 'Fair trade handmade gifts and decor',
+    specialty: 'Quà tặng và đồ trang trí handmade thương mại công bằng',
   },
 ];
 
 const colorMap = [
-  ['cobalt', 'cobalt blue'],
-  ['turquoise', 'turquoise'],
-  ['blue', 'blue'],
-  ['green', 'green'],
-  ['yellow', 'yellow'],
-  ['brown', 'brown'],
-  ['beige', 'beige'],
-  ['white', 'white'],
-  ['black', 'black'],
-  ['multicolor', 'multicolor'],
-  ['multi color', 'multicolor'],
-  ['neutral', 'neutral'],
-  ['aqua', 'aqua'],
-  ['cream', 'cream'],
-  ['pink', 'pink'],
-  ['red', 'red'],
-  ['orange', 'orange'],
-  ['gray', 'gray'],
-  ['grey', 'gray'],
+  ['cobalt', 'xanh cobalt'],
+  ['turquoise', 'xanh ngọc'],
+  ['blue', 'xanh dương'],
+  ['green', 'xanh lá'],
+  ['yellow', 'vàng'],
+  ['brown', 'nâu'],
+  ['beige', 'be'],
+  ['white', 'trắng'],
+  ['black', 'đen'],
+  ['multicolor', 'nhiều màu'],
+  ['multi color', 'nhiều màu'],
+  ['neutral', 'màu trung tính'],
+  ['aqua', 'xanh nước biển'],
+  ['cream', 'kem'],
+  ['pink', 'hồng'],
+  ['red', 'đỏ'],
+  ['orange', 'cam'],
+  ['gray', 'xám'],
+  ['grey', 'xám'],
 ];
+
+const categoryCopy = {
+  ceramics: {
+    name: 'Gốm sứ thủ công mỹ nghệ',
+    description:
+      'Cốc, bát, bình hoa và đồ trang trí gốm được làm tay, phù hợp dùng hằng ngày hoặc làm quà tặng.',
+  },
+  jewelry: {
+    name: 'Trang sức thủ công',
+    description:
+      'Vòng tay, dây chuyền và phụ kiện nhỏ được chế tác thủ công, dễ phối đồ và phù hợp làm quà.',
+  },
+  'wall-decor': {
+    name: 'Tranh và đồ trang trí thủ công',
+    description:
+      'Tranh, đồ treo tường, chuông gió và vật trang trí làm tay cho không gian sống ấm cúng.',
+  },
+  textiles: {
+    name: 'Vải và túi thủ công',
+    description:
+      'Túi vải, phụ kiện may, vải dệt và sản phẩm textile được làm thủ công.',
+  },
+  candles: {
+    name: 'Nến thơm thủ công',
+    description:
+      'Nến sáp đậu nành, nến thơm thư giãn và set quà hương liệu làm thủ công.',
+  },
+  'soap-cosmetics': {
+    name: 'Xà phòng và mỹ phẩm thủ công',
+    description:
+      'Xà phòng, son dưỡng, muối tắm và sản phẩm chăm sóc cơ thể từ nguyên liệu lành tính.',
+  },
+  'wood-decor': {
+    name: 'Đồ gỗ trang trí',
+    description:
+      'Khay gỗ, kệ nhỏ và đồ decor nhà cửa được làm tay từ chất liệu gỗ mộc.',
+  },
+  'leather-goods': {
+    name: 'Đồ da thủ công',
+    description:
+      'Ví da, bao thẻ, móc khóa và phụ kiện da làm tay theo phong cách bền vững.',
+  },
+  'paper-art': {
+    name: 'Thiệp và giấy nghệ thuật',
+    description:
+      'Thiệp, tranh in, sổ tay, scrapbook và sản phẩm giấy thủ công.',
+  },
+  'hair-accessories': {
+    name: 'Phụ kiện tóc handmade',
+    description:
+      'Kẹp tóc, dây buộc tóc, băng đô và phụ kiện được may hoặc móc thủ công tỉ mỉ.',
+  },
+  gifts: {
+    name: 'Quà tặng thủ công',
+    description:
+      'Các món quà handmade được chọn lọc cho sinh nhật, kỷ niệm và dịp đặc biệt.',
+  },
+};
+
+const categoryItemNames = {
+  ceramics: 'Sản phẩm gốm thủ công',
+  jewelry: 'Trang sức thủ công',
+  'wall-decor': 'Đồ trang trí thủ công',
+  textiles: 'Sản phẩm vải thủ công',
+  candles: 'Nến thơm thủ công',
+  'soap-cosmetics': 'Xà phòng thủ công',
+  'wood-decor': 'Đồ gỗ thủ công',
+  'leather-goods': 'Đồ da thủ công',
+  'paper-art': 'Sản phẩm giấy thủ công',
+  'hair-accessories': 'Phụ kiện tóc handmade',
+  gifts: 'Quà tặng handmade',
+};
 
 function ensureDir(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -109,7 +181,7 @@ function writeJson(filePath, data) {
 }
 
 function stripHtml(input) {
-  return String(input || '')
+  return cleanSourceText(input)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
@@ -123,10 +195,78 @@ function stripHtml(input) {
 
 function slugPart(value) {
   return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
+}
+
+function cleanSourceText(input) {
+  const mojibake = (codes) => String.fromCodePoint(...codes);
+  return String(input || '')
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00ee]), '—')
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00f4]), "'")
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00fa]), '"')
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00f9]), '"')
+    .replaceAll(mojibake([0x00c2, 0x00a0]), ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function vietnameseNameFromSource(title, categorySlug, fallbackType) {
+  const sourceTitle = cleanSourceText(title);
+  const lower = sourceTitle.toLowerCase();
+  const categoryName = categoryItemNames[categorySlug] || fallbackType || 'Sản phẩm handmade';
+  const details = [];
+
+  if (/mug|cup|coffee|tea\b|cups\b|kulhad|kulhar/.test(lower)) details.push('ly');
+  if (/bowl|dish|plate/.test(lower)) details.push('bát đĩa');
+  if (/vase|jug|pitcher|pot\b|planter|crock/.test(lower)) details.push('bình');
+  if (/bracelet/.test(lower)) details.push('vòng tay');
+  if (/necklace/.test(lower)) details.push('vòng cổ');
+  if (/earring/.test(lower)) details.push('bông tai');
+  if (/candle|wax/.test(lower)) details.push('nến thơm');
+  if (/card|print|journal|notebook|stationery/.test(lower)) details.push('giấy nghệ thuật');
+  if (/bag|tote|pouch/.test(lower)) details.push('túi vải');
+  if (/signed|signature/.test(lower)) details.push('có ký tên');
+  if (/vintage|antique/.test(lower)) details.push('phong cách vintage');
+  if (/personalized|custom/.test(lower)) details.push('cá nhân hóa');
+  if (/small|mini|miniature/.test(lower)) details.push('cỡ nhỏ');
+  if (/large|wide/.test(lower)) details.push('cỡ lớn');
+
+  const color = detectColors(sourceTitle)[0];
+  if (color) details.push(color);
+
+  return [categoryName, ...details]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 255);
+}
+
+function vietnameseDescription({ name, categorySlug, material, colors, size, sourceLabel }) {
+  const category = categoryCopy[categorySlug];
+  const parts = [
+    `${name}.`,
+    category?.description ||
+      'Sản phẩm handmade được tuyển chọn cho marketplace đồ thủ công local MVP.',
+  ];
+
+  if (material) parts.push(`Chất liệu chính: ${material}.`);
+  if (colors?.length) parts.push(`Tông màu: ${colors.join(', ')}.`);
+  if (size) parts.push(`Kích thước tham khảo: ${size}.`);
+  if (sourceLabel) {
+    parts.push(
+      `Dữ liệu được Việt hóa từ nguồn ${sourceLabel}; ảnh và liên kết nguồn được giữ nguyên để tránh ảnh lỗi.`,
+    );
+  }
+
+  return parts.join(' ').slice(0, 2000);
 }
 
 function httpsUrl(value) {
@@ -144,26 +284,26 @@ function detectColors(text) {
 
 function detectEbayItemType(title) {
   const lower = title.toLowerCase();
-  if (/mug|coffee|cup|tea\b|cups\b|kulhad|kulhar/.test(lower)) return 'pottery mug/cup';
-  if (/bowl|dish|plate/.test(lower)) return 'pottery bowl/dish';
-  if (/vase|jug|pitcher|pot\b|planter|crock/.test(lower)) return 'pottery vase/jar/planter';
-  if (/ornament|decor|figurine|sculpture|bell|face/.test(lower)) return 'pottery decor';
-  return 'handmade pottery';
+  if (/mug|coffee|cup|tea\b|cups\b|kulhad|kulhar/.test(lower)) return 'ly cốc gốm';
+  if (/bowl|dish|plate/.test(lower)) return 'bát đĩa gốm';
+  if (/vase|jug|pitcher|pot\b|planter|crock/.test(lower)) return 'bình lọ gốm';
+  if (/ornament|decor|figurine|sculpture|bell|face/.test(lower)) return 'đồ trang trí gốm';
+  return 'gốm thủ công';
 }
 
 function detectMaterial(text) {
   const lower = text.toLowerCase();
-  if (lower.includes('stoneware')) return 'stoneware';
-  if (lower.includes('ceramic')) return 'ceramic';
-  if (lower.includes('clay')) return 'clay';
-  if (lower.includes('raku')) return 'raku pottery';
-  if (lower.includes('leather')) return 'leather';
-  if (lower.includes('cotton')) return 'cotton';
-  if (lower.includes('wool')) return 'wool';
-  if (lower.includes('wood')) return 'wood';
-  if (lower.includes('paper')) return 'paper';
-  if (lower.includes('pottery')) return 'pottery';
-  return 'handmade';
+  if (lower.includes('stoneware')) return 'đất sét nung';
+  if (lower.includes('ceramic')) return 'gốm sứ';
+  if (lower.includes('clay')) return 'đất sét';
+  if (lower.includes('raku')) return 'gốm raku';
+  if (lower.includes('leather')) return 'da thật';
+  if (lower.includes('cotton')) return 'vải cotton';
+  if (lower.includes('wool')) return 'len';
+  if (lower.includes('wood')) return 'gỗ';
+  if (lower.includes('paper')) return 'giấy thủ công';
+  if (lower.includes('pottery')) return 'gốm';
+  return 'chất liệu thủ công';
 }
 
 function detectCategory({ source, title, productType, tags }) {
@@ -189,16 +329,16 @@ function styleTags(text) {
   const lower = text.toLowerCase();
   return [
     ['vintage', 'vintage'],
-    ['studio', 'studio'],
-    ['signed', 'signed'],
-    ['rustic', 'rustic'],
-    ['art', 'art'],
-    ['hand thrown', 'hand-thrown'],
-    ['handmade', 'handmade'],
-    ['hand made', 'handmade'],
-    ['glaze', 'glazed'],
-    ['drip', 'drip-glaze'],
-    ['fair trade', 'fair-trade'],
+    ['studio', 'xưởng thủ công'],
+    ['signed', 'có ký tên'],
+    ['rustic', 'mộc mạc'],
+    ['art', 'nghệ thuật'],
+    ['hand thrown', 'vuốt tay'],
+    ['handmade', 'thủ công'],
+    ['hand made', 'thủ công'],
+    ['glaze', 'men gốm'],
+    ['drip', 'men chảy'],
+    ['fair trade', 'thương mại công bằng'],
   ]
     .filter(([key]) => lower.includes(key))
     .map(([, value]) => value);
@@ -235,16 +375,25 @@ function normalizeEbay(rawItems) {
   return rawItems
     .filter((item) => item?.itemId && item?.title && item?.priceValue && httpsUrl(item?.imageUrl))
     .map((item, index) => {
-      const title = String(item.title).trim();
+      const title = cleanSourceText(item.title);
       const itemType = detectEbayItemType(title);
       const material = detectMaterial(title);
       const colors = detectColors(title);
       const styles = styleTags(title);
+      const size = detectSize(title);
+      const name = vietnameseNameFromSource(title, 'ceramics', itemType);
       return {
         externalId: String(item.itemId),
         sku: `EBAY-${String(item.itemId).replace(/[^a-zA-Z0-9]/g, '-').slice(0, 80)}`,
-        name: title.slice(0, 255),
-        description: `${title}. Real title, price, image URL and source URL are preserved from the local eBay crawl dated ${item.crawledAt}.`,
+        name,
+        description: vietnameseDescription({
+          name,
+          categorySlug: 'ceramics',
+          material,
+          colors,
+          size,
+          sourceLabel: 'eBay crawl local',
+        }),
         priceVnd: Math.max(30000, Math.round(Number(item.priceValue) / 1000) * 1000),
         priceText: item.priceText,
         categorySlug: 'ceramics',
@@ -253,14 +402,20 @@ function normalizeEbay(rawItems) {
         stock: 4 + (index % 18),
         lowStockThreshold: 3,
         imageUrl: httpsUrl(item.imageUrl),
-        tags: buildTags(['real-data', 'ebay', 'handmade', 'remote-image', 'pottery'], [itemType, material], colors, styles),
+        tags: buildTags(
+          ['du-lieu-that', 'ebay', 'thu-cong', 'anh-url', 'gom-su'],
+          [itemType, material],
+          colors,
+          styles,
+        ),
         attributes: {
           itemType,
           material,
           colors,
-          size: detectSize(title),
+          size,
           styleTags: styles,
           inferredFromTitle: true,
+          originalTitle: title,
         },
         source: {
           name: item.source || 'ebay-web-search',
@@ -281,7 +436,7 @@ function normalizeShopify(rawProducts) {
       const imageUrl = firstShopifyImage(product);
       if (!variant || !imageUrl) return null;
 
-      const title = String(product.title || '').trim();
+      const title = cleanSourceText(product.title);
       const description = stripHtml(product.body_html);
       let priceUsd = Number(variant.price);
       if (!title || !priceUsd) return null;
@@ -301,14 +456,21 @@ function normalizeShopify(rawProducts) {
       const styles = styleTags(`${title} ${description} ${(product.tags || []).join(' ')}`);
       const sourceUrl = `${source.baseUrl.replace(/\/$/, '')}/products/${product.handle}`;
       const priceVnd = Math.max(30000, Math.round((priceUsd * VND_PER_USD) / 1000) * 1000);
+      const size = detectSize(`${title} ${description}`);
+      const name = vietnameseNameFromSource(title, categorySlug, categoryItemNames[categorySlug]);
 
       return {
         externalId: `${source.slug}:${product.id}`,
         sku: `SHOPIFY-${source.slug}-${product.id}`,
-        name: title.slice(0, 255),
-        description:
-          description ||
-          `${title}. Real title, price, image URL and product URL are preserved from public Shopify products.json.`,
+        name,
+        description: vietnameseDescription({
+          name,
+          categorySlug,
+          material,
+          colors,
+          size,
+          sourceLabel: 'Shopify products.json công khai',
+        }),
         priceVnd,
         priceText: `${priceVnd.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")} đ`,
         categorySlug,
@@ -318,7 +480,7 @@ function normalizeShopify(rawProducts) {
         lowStockThreshold: 3,
         imageUrl,
         tags: buildTags(
-          ['real-data', 'shopify', 'handmade', 'remote-image'],
+          ['du-lieu-that', 'shopify', 'thu-cong', 'anh-url'],
           [source.slug, product.product_type, categorySlug, material],
           product.tags || [],
           colors,
@@ -328,12 +490,13 @@ function normalizeShopify(rawProducts) {
           itemType: product.product_type || categorySlug,
           material,
           colors,
-          size: detectSize(`${title} ${description}`),
+          size,
           vendor: product.vendor || source.shopName,
           variantTitle: variant.title,
           sourceCurrency: 'USD',
           vndPerUsd: VND_PER_USD,
           inferredFields: ['categorySlug', 'material', 'colors', 'size', 'stock'],
+          originalTitle: title,
         },
         source: {
           name: 'shopify-products-json',
@@ -355,24 +518,24 @@ function buildFixture({ ebayItems, shopifyRawProducts, generatedAt }) {
 
   return {
     meta: {
-      name: 'Real handmade product fixture for local MVP',
+      name: 'Bộ dữ liệu sản phẩm handmade đã Việt hóa cho local MVP',
       version: 2,
       generatedFrom: [
         path.relative(ROOT_DIR, EBAY_RAW_FILE).replace(/\\/g, '/'),
         path.relative(ROOT_DIR, SHOPIFY_RAW_FILE).replace(/\\/g, '/'),
       ],
       generatedAt,
-      imageStrategy: 'remote-url-only; no generated images; no downloaded images',
+      imageStrategy: 'chỉ lưu URL ảnh; không tạo ảnh; không tải ảnh về máy',
       pricingPolicy: [
-        'eBay raw prices are already stored as VND in the source file.',
-        `Shopify source prices are preserved as USD in priceText and converted to VND with VND_PER_USD=${VND_PER_USD} for local checkout compatibility.`,
+        'Giá eBay trong file nguồn đã được lưu theo VNĐ.',
+        `Giá Shopify được quy đổi sang VNĐ với VND_PER_USD=${VND_PER_USD} để phù hợp checkout local.`,
       ],
       dataPolicy: [
-        'Product title, price, imageUrl, itemWebUrl and crawledAt come from local raw crawl files.',
-        'Shopify product descriptions come from public products.json body_html after HTML stripping.',
-        'Product category/tags/attributes can include deterministic inference from title/type/tags and are marked in attributes.',
-        'Seller accounts are local importer wrappers because raw product feeds do not include full marketplace seller identities.',
-        'No customer PII, real orders, or real reviews are included.',
+        'Tên và mô tả sản phẩm đã được Việt hóa; URL ảnh, URL nguồn và thời điểm crawl vẫn giữ để truy vết.',
+        'Mô tả Shopify được làm sạch HTML trước khi tạo mô tả tiếng Việt cho demo.',
+        'Danh mục, tag và thuộc tính có thể được suy luận từ tiêu đề, loại sản phẩm hoặc tag gốc.',
+        'Tài khoản người bán là wrapper local vì nguồn crawl không cung cấp đầy đủ danh tính marketplace.',
+        'Không chứa PII khách hàng, đơn thật hoặc đánh giá thật.',
       ],
       sourceCounts: {
         ebay: ebayProducts.length,
@@ -383,8 +546,8 @@ function buildFixture({ ebayItems, shopifyRawProducts, generatedAt }) {
     categories: [
       {
         slug: 'ceramics',
-        name: 'Handmade pottery and ceramics',
-        description: 'Pottery, mugs, bowls, vases and handmade ceramic decor from real product records.',
+        name: categoryCopy.ceramics.name,
+        description: categoryCopy.ceramics.description,
         status: 'ACTIVE',
       },
     ],
@@ -393,11 +556,11 @@ function buildFixture({ ebayItems, shopifyRawProducts, generatedAt }) {
         email: 'seller7@ecommerce.com',
         name: 'Đồ Gốm Bát Tràng Minh Khang',
         shopName: 'Đồ Gốm Bát Tràng Minh Khang',
-        sellerTitle: 'Real handmade product source from local eBay crawl',
+        sellerTitle: 'Nguồn sản phẩm gốm thủ công từ crawl local',
         sellerBio:
-          'Local importer account for real products that preserve source URLs. The raw file does not include real seller username.',
+          'Tài khoản import local cho sản phẩm gốm thủ công đã Việt hóa, giữ nguyên URL ảnh và liên kết nguồn để tránh lỗi ảnh.',
         sellerAbout:
-          'The app uses this local account only to attach product ownership in the demo marketplace. Product title, price, image and item URL remain sourced from the raw crawl file.',
+          'Ứng dụng dùng tài khoản này để gắn quyền sở hữu sản phẩm trong demo marketplace. Tên, mô tả và tag đã được Việt hóa cho người dùng.',
         avatar: ebayProducts[0]?.imageUrl || null,
         sellerHeroImage: ebayProducts[1]?.imageUrl || ebayProducts[0]?.imageUrl || null,
         sellerAboutImage: ebayProducts[2]?.imageUrl || ebayProducts[0]?.imageUrl || null,
@@ -410,9 +573,9 @@ function buildFixture({ ebayItems, shopifyRawProducts, generatedAt }) {
           shopName: source.shopName,
           sellerTitle: source.specialty,
           sellerBio:
-            'Local importer account for public Shopify product records. Product title, description, price, image URL and source URL are preserved.',
+            'Tài khoản import local cho dữ liệu Shopify công khai; tên và mô tả đã được Việt hóa, URL ảnh và nguồn được giữ nguyên.',
           sellerAbout:
-            'Used only for local MVP ownership mapping; product data remains tied to the original source URL in fixture metadata.',
+            'Chỉ dùng cho demo local MVP để gắn quyền sở hữu sản phẩm; dữ liệu vẫn có metadata nguồn để truy vết.',
           avatar: sourceProducts[0]?.imageUrl || null,
           sellerHeroImage: sourceProducts[1]?.imageUrl || sourceProducts[0]?.imageUrl || null,
           sellerAboutImage: sourceProducts[2]?.imageUrl || sourceProducts[0]?.imageUrl || null,

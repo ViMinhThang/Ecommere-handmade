@@ -135,6 +135,7 @@ export class CartService {
         const pricing = await this.flashSalesService.calculateEffectivePrice(
           Number(item.product.price),
           item.product.categoryId,
+          item.product.id,
         );
         return {
           ...item,
