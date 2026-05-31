@@ -24,6 +24,8 @@ import {
   RefundDialog,
 } from "@/components/dashboard/financial-operations";
 import { CustomOrderTimeline } from "@/components/custom-orders/custom-order-timeline";
+import { CustomOrderReviewForm } from "@/components/custom-orders/custom-order-review-form";
+import { CustomOrderReviewDisplay } from "@/components/custom-orders/custom-order-review-display";
 
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
@@ -272,6 +274,12 @@ export default function CustomOrderReviewPage() {
   const { data: order, isLoading } = useQuery({
     queryKey: ["customOrder", id],
     queryFn: () => customOrdersApi.getById(id),
+  });
+
+  const { data: review } = useQuery({
+    queryKey: ["custom-order-review", id],
+    queryFn: () => customOrdersApi.getReview(id),
+    enabled: order?.status === 'DELIVERED',
   });
 
   const redirectConfirmPayment = useMutation({
@@ -618,6 +626,23 @@ export default function CustomOrderReviewPage() {
                 <div className="p-8 bg-[#E6F0E9] text-[#4A7255] rounded-xl text-center border border-[#4A7255]/20">
                   <h3 className="font-serif text-2xl font-bold mb-2">Đơn hàng đang sản xuất</h3>
                   <p>Tác phẩm của bạn đang được chăm chút qua từng công đoạn nghệ thuật. Trạng thái hiện tại: <strong>{order.status}</strong></p>
+                </div>
+              )}
+
+              {order.status === 'DELIVERED' && isCustomer && (
+                <div className="mt-8">
+                  {!review ? (
+                    <div className="p-8 bg-[#E6F0E9] text-[#4A7255] rounded-xl border border-[#4A7255]/20">
+                      <h3 className="font-serif text-2xl font-bold mb-2">Đánh giá đơn hàng</h3>
+                      <p className="mb-6">Bạn đã nhận được sản phẩm. Hãy chia sẻ trải nghiệm của bạn!</p>
+                      <CustomOrderReviewForm customOrderId={order.id} />
+                    </div>
+                  ) : (
+                    <div className="p-8 bg-white rounded-xl border border-border/30">
+                      <h3 className="font-serif text-2xl font-bold mb-4 text-foreground">Đánh giá của bạn</h3>
+                      <CustomOrderReviewDisplay review={review} />
+                    </div>
+                  )}
                 </div>
               )}
           </div>

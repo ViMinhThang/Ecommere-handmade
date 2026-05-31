@@ -4,7 +4,7 @@ import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 
 const PLATFORM_SETTINGS_ID = 'platform';
 const DEFAULT_PLATFORM_NAME = 'HandCraft Market';
-const DEFAULT_PLATFORM_DESCRIPTION = 'Marketplace for handmade products';
+const DEFAULT_PLATFORM_DESCRIPTION = 'Marketplace sản phẩm thủ công và quà tặng handmade';
 const DEFAULT_PLATFORM_COMMISSION_BPS = 1000;
 
 @Injectable()
