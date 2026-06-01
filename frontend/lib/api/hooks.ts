@@ -15,6 +15,7 @@ import { shopFollowApi } from "./shop-follow";
 import { ordersApi } from "./orders";
 import type {
   AdminOrderFilters,
+  CreateShipmentTrackingEventPayload,
   OrderStatus as ApiOrderStatus,
 } from "./orders";
 import { analyticsApi } from "./analytics";
@@ -1314,6 +1315,8 @@ export const orderKeys = {
   orderDetail: (id: string) => [...orderKeys.orderDetails(), id] as const,
   subOrderDetails: () => [...orderKeys.all, "sub-order-detail"] as const,
   subOrderDetail: (id: string) => [...orderKeys.subOrderDetails(), id] as const,
+  subOrderTracking: (id: string) =>
+    [...orderKeys.subOrderDetail(id), "tracking"] as const,
   adminDetails: () => [...orderKeys.all, "admin-detail"] as const,
   adminDetail: (id: string) => [...orderKeys.adminDetails(), id] as const,
   adminLedger: (id: string) =>
@@ -1487,6 +1490,14 @@ export function useSubOrder(id: string, enabled = true) {
   });
 }
 
+export function useSubOrderTrackingEvents(id: string, enabled = true) {
+  return useQuery({
+    queryKey: orderKeys.subOrderTracking(id),
+    queryFn: () => ordersApi.getSubOrderTrackingEvents(id),
+    enabled: !!id && enabled,
+  });
+}
+
 export function useSellerOrders(enabled = true) {
   return useQuery({
     queryKey: orderKeys.seller(),
@@ -1528,6 +1539,24 @@ export function useUpdateSubOrderStatus() {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
       queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
+    },
+  });
+}
+
+export function useCreateSubOrderTrackingEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: CreateShipmentTrackingEventPayload;
+    }) => ordersApi.createSubOrderTrackingEvent(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.subOrderTracking(id) });
     },
   });
 }

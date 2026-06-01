@@ -4,6 +4,8 @@ import type {
   Order,
   Refund,
   RefundRequest,
+  ShipmentTrackingEvent,
+  ShipmentTrackingEventType,
   SubOrder,
 } from '@/types';
 
@@ -39,10 +41,24 @@ export interface ConfirmPaymentResponse {
   orderStatus: OrderStatus;
 }
 
+export interface CreateShipmentTrackingEventPayload {
+  status?: OrderStatus;
+  type?: ShipmentTrackingEventType;
+  title: string;
+  description?: string;
+  location?: string;
+  carrier?: string;
+  trackingCode?: string;
+  occurredAt?: string;
+}
+
 export const ordersApi = {
   getMyOrders: () => apiClient.get<SubOrder[]>('/orders/my-orders'),
 
   getSubOrder: (id: string) => apiClient.get<SubOrder>(`/orders/sub-order/${id}`),
+
+  getSubOrderTrackingEvents: (id: string) =>
+    apiClient.get<ShipmentTrackingEvent[]>(`/orders/sub-order/${id}/tracking`),
 
   getSellerOrders: () => apiClient.get<SubOrder[]>('/orders/seller-orders'),
 
@@ -73,6 +89,11 @@ export const ordersApi = {
 
   updateSubOrderStatus: (id: string, status: OrderStatus) =>
     apiClient.patch<SubOrder>(`/orders/sub-order/${id}/status`, { status }),
+
+  createSubOrderTrackingEvent: (
+    id: string,
+    data: CreateShipmentTrackingEventPayload,
+  ) => apiClient.post<ShipmentTrackingEvent>(`/orders/sub-order/${id}/tracking`, data),
 
   updateAdminOrderStatus: (id: string, status: OrderStatus) =>
     apiClient.patch<Order>(`/orders/admin/${id}/status`, { status }),

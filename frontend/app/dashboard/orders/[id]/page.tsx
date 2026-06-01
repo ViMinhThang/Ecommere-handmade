@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/auth-context'
 import {
   FinancialSummaryPanel,
@@ -29,6 +31,7 @@ import {
 import {
   useAdminOrder,
   useAdminOrderLedger,
+  useCreateSubOrderTrackingEvent,
   useRefundAdminOrder,
   useSubOrder,
   useUpdateAdminOrderStatus,
@@ -48,6 +51,7 @@ import {
   PersonalizationNote,
 } from '@/components/storefront/personalization-note'
 import { GiftOptionsNote } from '@/components/storefront/gift-options-note'
+import { ShipmentTrackingTimeline } from '@/components/orders/shipment-tracking-timeline'
 
 const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
   'PENDING',
@@ -129,6 +133,7 @@ export default function DashboardOrderDetailPage() {
   const sellerSubOrderQuery = useSubOrder(id, Boolean(!isAdmin && isSeller))
   const updateAdminOrderStatus = useUpdateAdminOrderStatus()
   const updateSubOrderStatus = useUpdateSubOrderStatus()
+  const createTrackingEvent = useCreateSubOrderTrackingEvent()
   const refundAdminOrder = useRefundAdminOrder()
 
   const order = isAdmin ? adminOrderQuery.data : undefined
@@ -139,6 +144,11 @@ export default function DashboardOrderDetailPage() {
   const [nextSubOrderStatus, setNextSubOrderStatus] =
     useState<ApiOrderStatus | null>(null)
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false)
+  const [trackingTitle, setTrackingTitle] = useState('')
+  const [trackingDescription, setTrackingDescription] = useState('')
+  const [trackingLocation, setTrackingLocation] = useState('')
+  const [trackingCarrier, setTrackingCarrier] = useState('')
+  const [trackingCode, setTrackingCode] = useState('')
 
   const activeStatus = useMemo(() => {
     if (order?.status) {
@@ -223,6 +233,44 @@ export default function DashboardOrderDetailPage() {
         mutationError instanceof Error
           ? mutationError.message
           : 'Không thể cập nhật trạng thái kiện hàng',
+      )
+    }
+  }
+
+  const handleCreateTrackingEvent = async () => {
+    if (!subOrder) {
+      return
+    }
+
+    const title = trackingTitle.trim()
+    if (!title) {
+      toast.error('Vui lòng nhập tiêu đề cập nhật vận chuyển')
+      return
+    }
+
+    try {
+      await createTrackingEvent.mutateAsync({
+        id: subOrder.id,
+        data: {
+          title,
+          description: trackingDescription.trim() || undefined,
+          location: trackingLocation.trim() || undefined,
+          carrier: trackingCarrier.trim() || undefined,
+          trackingCode: trackingCode.trim() || undefined,
+          type: 'INFO',
+        },
+      })
+      setTrackingTitle('')
+      setTrackingDescription('')
+      setTrackingLocation('')
+      setTrackingCarrier('')
+      setTrackingCode('')
+      toast.success('Đã thêm cập nhật vận chuyển')
+    } catch (mutationError: unknown) {
+      toast.error(
+        mutationError instanceof Error
+          ? mutationError.message
+          : 'Không thể thêm cập nhật vận chuyển',
       )
     }
   }
@@ -451,6 +499,28 @@ export default function DashboardOrderDetailPage() {
                 </TableBody>
               </Table>
             </div>
+            <div className="mt-6 space-y-4">
+              {order.subOrders?.map((row) => (
+                <div key={`${row.id}-tracking`} className="rounded-lg border p-4">
+                  <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="font-semibold">
+                        Theo dõi vận chuyển #{row.id.slice(0, 8)}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {row.seller?.shopName || row.seller?.name || '-'}
+                      </p>
+                    </div>
+                    <StatusBadge status={row.status} />
+                  </div>
+                  <ShipmentTrackingTimeline
+                    events={row.trackingEvents}
+                    status={row.status}
+                    emptyMessage="Chưa có cập nhật vận chuyển cho kiện hàng này."
+                  />
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -483,6 +553,72 @@ export default function DashboardOrderDetailPage() {
           entries={adminOrderLedgerQuery.data}
           isLoading={adminOrderLedgerQuery.isLoading}
         />
+      )}
+
+      {!isAdmin && subOrder && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Theo dõi vận chuyển</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <ShipmentTrackingTimeline
+              events={subOrder.trackingEvents}
+              status={subOrder.status}
+              emptyMessage="Chưa có cập nhật vận chuyển cho kiện hàng này."
+            />
+
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <h4 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Thêm cập nhật vận chuyển
+              </h4>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <Input
+                    value={trackingTitle}
+                    onChange={(event) => setTrackingTitle(event.target.value)}
+                    placeholder="Tiêu đề, ví dụ: Đã bàn giao cho đơn vị vận chuyển"
+                    maxLength={160}
+                  />
+                </div>
+                <Input
+                  value={trackingLocation}
+                  onChange={(event) => setTrackingLocation(event.target.value)}
+                  placeholder="Vị trí, ví dụ: Kho Hà Nội"
+                  maxLength={160}
+                />
+                <Input
+                  value={trackingCarrier}
+                  onChange={(event) => setTrackingCarrier(event.target.value)}
+                  placeholder="Đơn vị vận chuyển"
+                  maxLength={120}
+                />
+                <Input
+                  value={trackingCode}
+                  onChange={(event) => setTrackingCode(event.target.value)}
+                  placeholder="Mã vận đơn"
+                  maxLength={120}
+                />
+                <Textarea
+                  className="md:col-span-2"
+                  value={trackingDescription}
+                  onChange={(event) => setTrackingDescription(event.target.value)}
+                  placeholder="Ghi chú thêm cho khách"
+                  maxLength={1000}
+                />
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={handleCreateTrackingEvent}
+                  disabled={createTrackingEvent.isPending}
+                >
+                  {createTrackingEvent.isPending
+                    ? 'Đang lưu...'
+                    : 'Thêm cập nhật'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {!isAdmin && subOrder && (

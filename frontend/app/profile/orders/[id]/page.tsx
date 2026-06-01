@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { mediaApi } from "@/lib/api/media";
 import { PersonalizationNote } from "@/components/storefront/personalization-note";
 import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
+import { ShipmentTrackingTimeline } from "@/components/orders/shipment-tracking-timeline";
 
 type ReviewableOrderItem = OrderItem & {
   review?: { rating: number } | null;
@@ -375,6 +376,25 @@ export default function OrderDetailPage() {
               </div>
             </div>
           )}
+
+          <div className="bg-card rounded-2xl p-8 border border-border/60 text-card-foreground shadow-sm">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif italic text-2xl text-primary">
+                  Theo dõi vận chuyển
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Các cập nhật mới nhất từ shop và đơn vị vận chuyển.
+                </p>
+              </div>
+              <Truck className="h-6 w-6 text-primary/60" />
+            </div>
+            <ShipmentTrackingTimeline
+              events={subOrder.trackingEvents}
+              status={subOrder.status}
+              emptyMessage="Shop chưa thêm cập nhật vận chuyển cho kiện hàng này."
+            />
+          </div>
 
           {/* Items Detail */}
           <div className="bg-card rounded-2xl border border-border/60 text-card-foreground shadow-sm overflow-hidden">

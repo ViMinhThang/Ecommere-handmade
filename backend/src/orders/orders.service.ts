@@ -25,6 +25,7 @@ import {
   PaymentStatus,
   Prisma,
   SubOrder,
+  ShipmentTrackingEventType,
   ProductStatus,
   CategoryStatus,
   InventoryChangeReason,
@@ -39,6 +40,7 @@ import {
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
+import { CreateShipmentTrackingEventDto } from './dto/create-shipment-tracking-event.dto';
 import { SettingsService } from '../settings/settings.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -2210,6 +2212,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     email: true,
     avatar: true,
   };
+  private readonly trackingActorSelect = {
+    id: true,
+    name: true,
+    shopName: true,
+    avatar: true,
+  };
+  private readonly trackingEventActorInclude = {
+    createdBy: { select: this.trackingActorSelect },
+  };
+  private readonly trackingEventsInclude = {
+    include: this.trackingEventActorInclude,
+    orderBy: [
+      { occurredAt: 'asc' as const },
+      { createdAt: 'asc' as const },
+    ],
+  };
 
   private readonly userOrderInclude = {
     seller: { select: this.sellerSelect },
@@ -2261,6 +2279,18 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     refunds: true,
   };
 
+  private readonly adminOrderDetailInclude = {
+    customer: { select: this.customerSelect },
+    subOrders: {
+      include: {
+        seller: { select: this.sellerSelect },
+        items: { include: { product: { include: { images: true } } } },
+        trackingEvents: this.trackingEventsInclude,
+      },
+    },
+    refunds: true,
+  };
+
   private readonly subOrderDetailInclude = {
     order: {
       include: {
@@ -2271,6 +2301,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     items: {
       include: { product: { include: { images: true } }, review: true },
     },
+    trackingEvents: this.trackingEventsInclude,
   };
 
   private isAdmin(roles: string[]) {
@@ -2281,12 +2312,92 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return value?.trim() || undefined;
   }
 
+  private trimOptionalText(value?: string | null) {
+    const trimmed = value?.trim();
+    return trimmed || undefined;
+  }
+
   private canAdvanceFromPending(order: Order) {
     if (order.paymentMethod === PaymentMethod.COD) {
       return true;
     }
 
     return order.paymentStatus === PaymentStatus.PAID;
+  }
+
+  private getShipmentStatusEvent(status: OrderStatus) {
+    switch (status) {
+      case OrderStatus.PAID:
+        return {
+          type: ShipmentTrackingEventType.STATUS_UPDATED,
+          title: 'Đơn hàng đã thanh toán',
+          description: 'Thanh toán đã được xác nhận, shop sẽ chuẩn bị hàng.',
+        };
+      case OrderStatus.PROCESSING:
+        return {
+          type: ShipmentTrackingEventType.STATUS_UPDATED,
+          title: 'Shop đang chuẩn bị hàng',
+          description: 'Người bán đang đóng gói và chuẩn bị bàn giao vận chuyển.',
+        };
+      case OrderStatus.SHIPPED:
+        return {
+          type: ShipmentTrackingEventType.LOCATION,
+          title: 'Đơn hàng đang vận chuyển',
+          description: 'Kiện hàng đã được bàn giao cho đơn vị vận chuyển.',
+        };
+      case OrderStatus.DELIVERED:
+        return {
+          type: ShipmentTrackingEventType.DELIVERED,
+          title: 'Đã giao hàng thành công',
+          description: 'Khách hàng đã nhận kiện hàng.',
+        };
+      case OrderStatus.CANCELLED:
+        return {
+          type: ShipmentTrackingEventType.EXCEPTION,
+          title: 'Đơn hàng đã hủy',
+          description: 'Kiện hàng không tiếp tục được xử lý.',
+        };
+      case OrderStatus.PENDING:
+      default:
+        return {
+          type: ShipmentTrackingEventType.STATUS_UPDATED,
+          title: 'Đang chờ xác nhận',
+          description: 'Đơn hàng đang chờ shop xác nhận.',
+        };
+    }
+  }
+
+  private async safeCreateShipmentStatusEvent(params: {
+    subOrderId: string;
+    actorId?: string | null;
+    status: OrderStatus;
+    previousStatus?: OrderStatus;
+  }) {
+    if (params.previousStatus === params.status) {
+      return;
+    }
+
+    const event = this.getShipmentStatusEvent(params.status);
+
+    try {
+      await this.prisma.shipmentTrackingEvent.create({
+        data: {
+          subOrderId: params.subOrderId,
+          createdById: params.actorId || undefined,
+          status: params.status,
+          type: event.type,
+          title: event.title,
+          description: event.description,
+          occurredAt: new Date(),
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create shipment tracking event for subOrder ${params.subOrderId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private assertSubOrderStatusTransition(
@@ -2587,7 +2698,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   async findAdminOrderById(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: this.orderDetailInclude,
+      include: this.adminOrderDetailInclude,
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -2654,6 +2765,63 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
 
     return subOrder;
+  }
+
+  async findSubOrderTrackingEvents(
+    userId: string,
+    roles: string[],
+    subOrderId: string,
+  ) {
+    await this.findSubOrderById(userId, roles, subOrderId);
+
+    return this.prisma.shipmentTrackingEvent.findMany({
+      where: { subOrderId },
+      ...this.trackingEventsInclude,
+    });
+  }
+
+  async createSubOrderTrackingEvent(
+    actorId: string,
+    roles: string[],
+    subOrderId: string,
+    dto: CreateShipmentTrackingEventDto,
+  ) {
+    const subOrder = await this.prisma.subOrder.findUnique({
+      where: { id: subOrderId },
+      select: {
+        id: true,
+        sellerId: true,
+      },
+    });
+
+    if (!subOrder) {
+      throw new NotFoundException('SubOrder not found');
+    }
+
+    if (!this.isAdmin(roles) && subOrder.sellerId !== actorId) {
+      throw new ForbiddenException('Not your order');
+    }
+
+    const title = dto.title.trim();
+    if (!title) {
+      throw new BadRequestException('Tracking title is required');
+    }
+
+    return this.prisma.shipmentTrackingEvent.create({
+      data: {
+        subOrderId,
+        createdById: actorId,
+        status: dto.status,
+        type: dto.type ?? ShipmentTrackingEventType.INFO,
+        title,
+        description: this.trimOptionalText(dto.description),
+        location: this.trimOptionalText(dto.location),
+        carrier: this.trimOptionalText(dto.carrier),
+        trackingCode: this.trimOptionalText(dto.trackingCode),
+        occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : new Date(),
+      },
+      include: this.trackingEventActorInclude,
+    });
   }
 
   async refundOrder(orderId: string, dto: CreateRefundDto) {
@@ -2994,6 +3162,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       return updated;
     });
 
+    await this.safeCreateShipmentStatusEvent({
+      subOrderId,
+      actorId,
+      status,
+      previousStatus: subOrder.status,
+    });
+
     await this.notifySubOrderStatusChanged({
       orderId: subOrder.orderId,
       subOrderId: subOrder.id,
@@ -3022,7 +3197,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return updatedSubOrder;
   }
 
-  async updateAdminOrderStatus(orderId: string, status: OrderStatus) {
+  async updateAdminOrderStatus(
+    orderId: string,
+    status: OrderStatus,
+    actorId?: string,
+  ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -3087,11 +3266,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       const updatedOrder = await tx.order.findUnique({
         where: { id: orderId },
-        include: this.orderDetailInclude,
+        include: this.adminOrderDetailInclude,
       });
 
       return updatedOrder ? this.attachFinancialSummary(updatedOrder) : null;
     });
+
+    await Promise.all(
+      updatableSubOrders.map((subOrder) =>
+        this.safeCreateShipmentStatusEvent({
+          subOrderId: subOrder.id,
+          actorId,
+          status,
+          previousStatus: subOrder.status,
+        }),
+      ),
+    );
 
     await Promise.all(
       updatableSubOrders.map((subOrder) =>

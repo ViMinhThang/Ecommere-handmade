@@ -276,9 +276,12 @@ export default function OrdersPage() {
                 <div className="flex flex-wrap gap-4 pt-4 border-t border-border/20">
                   {subOrder.status === "SHIPPED" &&
                     subOrder.type !== "CUSTOM" && (
-                      <button className="btn-artisanal py-2.5 px-6 text-xs uppercase tracking-widest font-bold">
-                        Theo dõi đơn hàng
-                      </button>
+                      <Link
+                        href={`/profile/orders/${subOrder.id}`}
+                        className="btn-artisanal py-2.5 px-6 text-xs uppercase tracking-widest font-bold"
+                      >
+                        Theo dõi vận chuyển
+                      </Link>
                     )}
                   {subOrder.type === "CUSTOM" ? (
                     <Link

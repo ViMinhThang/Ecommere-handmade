@@ -372,6 +372,38 @@ export interface SubOrder {
   createdAt: Date;
   updatedAt: Date;
   items: OrderItem[];
+  trackingEvents?: ShipmentTrackingEvent[];
+}
+
+export type ShipmentTrackingEventType =
+  | "STATUS_UPDATED"
+  | "INFO"
+  | "LOCATION"
+  | "EXCEPTION"
+  | "DELIVERED";
+
+export interface ShipmentTrackingEventActor {
+  id: string;
+  name: string;
+  shopName?: string | null;
+  avatar?: string | null;
+}
+
+export interface ShipmentTrackingEvent {
+  id: string;
+  subOrderId: string;
+  createdById?: string | null;
+  createdBy?: ShipmentTrackingEventActor | null;
+  status?: SubOrder["status"] | null;
+  type: ShipmentTrackingEventType;
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  carrier?: string | null;
+  trackingCode?: string | null;
+  occurredAt: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface OrderItem {

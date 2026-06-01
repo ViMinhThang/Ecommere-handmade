@@ -66,9 +66,15 @@ export function ChatWidget() {
     if (!isOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        target.closest('[data-slot="dialog-content"]') ||
+        target.closest('[data-slot="dialog-overlay"]')
+      ) {
+        return;
+      }
+
       if (widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
-        // Only close if it's not the toggle button (which has its own handler)
-        const target = event.target as HTMLElement;
         if (!target.closest("#chat-widget-trigger")) {
           setIsOpen(false);
         }

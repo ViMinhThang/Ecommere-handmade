@@ -44,6 +44,8 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Sửa một sản phẩm của seller và kiểm tra status cần admin duyệt nếu flow yêu cầu.
 - [ ] Mở seller orders và thấy order COD seed.
 - [ ] Cập nhật order từ `PENDING` sang bước tiếp theo nếu action khả dụng.
+- [ ] Mở chi tiết kiện hàng seller, thêm cập nhật vận chuyển với tiêu đề, vị trí và mã vận đơn.
+- [ ] Đổi trạng thái kiện hàng sang `SHIPPED` và kiểm tra timeline tự có event trạng thái mới.
 - [ ] Mở reviews/questions nếu có dữ liệu.
 - [ ] Mở `/seller/custom-orders` và chuyển custom order `SHIPPED` sang `DELIVERED` nếu còn action.
 - [ ] Trong `/seller/custom-orders`, bấm `Tiến độ`, thêm một cập nhật tiến độ có tiêu đề và ghi chú.
@@ -62,6 +64,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Apply voucher `EXPIRED5` và xác nhận bị từ chối.
 - [ ] Checkout bằng COD.
 - [ ] Xem order trong profile orders.
+- [ ] Mở chi tiết order và kiểm tra mục “Theo dõi vận chuyển” hiển thị timeline theo kiện hàng.
 - [ ] Hủy pending order nếu action khả dụng.
 - [ ] Mở delivered order seed và kiểm tra review đã có hoặc tạo review nếu chưa có.
 - [ ] Mở chat với seller từ product detail nếu flow khả dụng.
