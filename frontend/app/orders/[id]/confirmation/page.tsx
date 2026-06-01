@@ -9,6 +9,7 @@ import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import { SafeImage } from "@/components/ui/safe-image";
 import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
+import { formatCurrency } from "@/lib/utils";
 
 function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
   if (!value) {
@@ -76,11 +77,19 @@ export default function OrderConfirmationPage() {
   const subtotal = itemSubtotal - discountAmount;
   const tax = 0;
   const paymentMethodLabel =
-    order.paymentMethod === "COD" ? "Cash on delivery" : "Card payment";
+    order.paymentMethod === "COD"
+      ? "Thanh toán khi nhận hàng"
+      : "Thanh toán thẻ";
+  const paymentStatusLabelMap: Record<string, string> = {
+    COD_PENDING: "Chờ thu COD",
+    UNPAID: "Chưa thanh toán",
+    PAID: "Đã thanh toán",
+    FAILED: "Thanh toán thất bại",
+    PARTIALLY_REFUNDED: "Đã hoàn tiền một phần",
+    REFUNDED: "Đã hoàn tiền",
+  };
   const paymentStatusLabel =
-    order.paymentStatus === "COD_PENDING"
-      ? "Pending cash collection"
-      : order.paymentStatus || "Unknown";
+    paymentStatusLabelMap[order.paymentStatus || ""] || "Chưa rõ";
 
   return (
     <div className="text-stone-800 min-h-screen flex flex-col bg-[#F8F6F1] font-body">
@@ -199,27 +208,27 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
         <section className="mt-6 summary-card p-8 border border-stone-200/50 lg:max-w-md lg:ml-auto">
-          <h3 className="font-headline text-2xl italic mb-6">Payment Details</h3>
+          <h3 className="font-headline text-2xl italic mb-6">Thông tin thanh toán</h3>
           <div className="space-y-4 text-sm text-stone-600">
             <div className="flex justify-between gap-4">
-              <span className="font-medium tracking-tight">Payment method</span>
+              <span className="font-medium tracking-tight">Phương thức thanh toán</span>
               <span className="font-bold text-stone-700 text-right">{paymentMethodLabel}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="font-medium tracking-tight">Payment status</span>
+              <span className="font-medium tracking-tight">Trạng thái thanh toán</span>
               <span className="font-bold text-stone-700 text-right">{paymentStatusLabel}</span>
             </div>
             {order.voucherCode && (
               <div className="flex justify-between gap-4">
-                <span className="font-medium tracking-tight">Voucher</span>
+                <span className="font-medium tracking-tight">Mã giảm giá</span>
                 <span className="font-bold text-stone-700 text-right">{order.voucherCode}</span>
               </div>
             )}
             {discountAmount > 0 && (
               <div className="flex justify-between gap-4">
-                <span className="font-medium tracking-tight">Discount</span>
+                <span className="font-medium tracking-tight">Số tiền giảm</span>
                 <span className="font-bold text-stone-700 text-right">
-                  -{discountAmount.toLocaleString('vi-VN')} VND
+                  -{formatCurrency(discountAmount)}
                 </span>
               </div>
             )}

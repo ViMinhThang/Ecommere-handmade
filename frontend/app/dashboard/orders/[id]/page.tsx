@@ -62,6 +62,71 @@ const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
   'CANCELLED',
 ]
 
+const CARRIER_OPTIONS = [
+  { value: 'GHN', label: 'GHN - Giao Hàng Nhanh' },
+  { value: 'GHTK', label: 'GHTK - Giao Hàng Tiết Kiệm' },
+  { value: 'Viettel Post', label: 'Viettel Post' },
+  { value: 'J&T Express', label: 'J&T Express' },
+  { value: 'Ninja Van', label: 'Ninja Van' },
+  { value: 'SPX Express', label: 'SPX Express' },
+]
+
+const TRACKING_PRESETS = [
+  {
+    value: 'preparing',
+    label: 'Shop đang chuẩn bị hàng',
+    title: 'Shop đang chuẩn bị hàng',
+    description: 'Sản phẩm đang được kiểm tra, đóng gói và chuẩn bị bàn giao vận chuyển.',
+  },
+  {
+    value: 'packed',
+    label: 'Đã đóng gói',
+    title: 'Đã đóng gói sản phẩm',
+    description: 'Kiện hàng đã được đóng gói cẩn thận, sẵn sàng bàn giao cho đơn vị vận chuyển.',
+  },
+  {
+    value: 'handover',
+    label: 'Đã bàn giao vận chuyển',
+    title: 'Đã bàn giao cho đơn vị vận chuyển',
+    description: 'Kiện hàng đã được bàn giao cho đơn vị vận chuyển. Khách có thể theo dõi bằng mã vận đơn nếu có.',
+  },
+  {
+    value: 'in_transit',
+    label: 'Đang trung chuyển',
+    title: 'Kiện hàng đang trung chuyển',
+    description: 'Kiện hàng đang được vận chuyển giữa các kho xử lý.',
+  },
+  {
+    value: 'out_for_delivery',
+    label: 'Đang giao đến khách',
+    title: 'Đơn hàng đang được giao',
+    description: 'Đơn vị vận chuyển đang giao kiện hàng đến địa chỉ nhận hàng.',
+  },
+  {
+    value: 'delivered',
+    label: 'Đã giao thành công',
+    title: 'Đã giao hàng thành công',
+    description: 'Kiện hàng đã được giao thành công đến khách hàng.',
+  },
+  {
+    value: 'delayed',
+    label: 'Giao hàng bị chậm',
+    title: 'Giao hàng bị chậm',
+    description: 'Kiện hàng bị chậm hơn dự kiến. Shop sẽ tiếp tục theo dõi và cập nhật cho khách.',
+  },
+]
+
+const LOCATION_OPTIONS = [
+  'Shop đang chuẩn bị hàng',
+  'Kho shop',
+  'Kho Hà Nội',
+  'Kho TP. Hồ Chí Minh',
+  'Kho Đà Nẵng',
+  'Kho phân loại',
+  'Đang giao đến khách',
+  'Đã giao thành công',
+]
+
 const statusClasses: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200',
   PAID: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200',
@@ -149,6 +214,17 @@ export default function DashboardOrderDetailPage() {
   const [trackingLocation, setTrackingLocation] = useState('')
   const [trackingCarrier, setTrackingCarrier] = useState('')
   const [trackingCode, setTrackingCode] = useState('')
+  const [adminTrackingSubOrderId, setAdminTrackingSubOrderId] = useState('')
+
+  const applyTrackingPreset = (presetValue: string | null) => {
+    const preset = TRACKING_PRESETS.find((item) => item.value === presetValue)
+    if (!preset) {
+      return
+    }
+
+    setTrackingTitle(preset.title)
+    setTrackingDescription(preset.description)
+  }
 
   const activeStatus = useMemo(() => {
     if (order?.status) {
@@ -179,6 +255,8 @@ export default function DashboardOrderDetailPage() {
   const selectedOrderStatus = nextOrderStatus ?? order?.status ?? 'PENDING'
   const selectedSubOrderStatus = nextSubOrderStatus ?? subOrder?.status ?? 'PENDING'
   const activePaymentStatus = order?.paymentStatus || subOrder?.order?.paymentStatus
+  const adminTrackingTargetId =
+    adminTrackingSubOrderId || order?.subOrders?.[0]?.id || ''
   const personalizedAdminItems = useMemo(() => {
     if (!order?.subOrders) {
       return []
@@ -237,8 +315,11 @@ export default function DashboardOrderDetailPage() {
     }
   }
 
-  const handleCreateTrackingEvent = async () => {
-    if (!subOrder) {
+  const handleCreateTrackingEvent = async (targetSubOrderId?: string) => {
+    const trackingSubOrderId = targetSubOrderId || subOrder?.id
+
+    if (!trackingSubOrderId) {
+      toast.error('Vui lòng chọn kiện hàng cần cập nhật')
       return
     }
 
@@ -250,7 +331,7 @@ export default function DashboardOrderDetailPage() {
 
     try {
       await createTrackingEvent.mutateAsync({
-        id: subOrder.id,
+        id: trackingSubOrderId,
         data: {
           title,
           description: trackingDescription.trim() || undefined,
@@ -265,6 +346,7 @@ export default function DashboardOrderDetailPage() {
       setTrackingLocation('')
       setTrackingCarrier('')
       setTrackingCode('')
+      setAdminTrackingSubOrderId('')
       toast.success('Đã thêm cập nhật vận chuyển')
     } catch (mutationError: unknown) {
       toast.error(
@@ -499,6 +581,103 @@ export default function DashboardOrderDetailPage() {
                 </TableBody>
               </Table>
             </div>
+            <div className="mt-6 rounded-lg border bg-muted/20 p-4">
+              <h4 className="mb-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Admin can thiệp vận chuyển
+              </h4>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Dùng khi cần hỗ trợ xử lý khiếu nại, bổ sung mã vận đơn hoặc sửa thông tin do người bán cập nhật thiếu. Luồng vận hành chính vẫn thuộc về người bán.
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Select
+                  value={adminTrackingTargetId}
+                  onValueChange={(value) => setAdminTrackingSubOrderId(value || '')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn kiện hàng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {order.subOrders?.map((row) => (
+                      <SelectItem key={row.id} value={row.id}>
+                        #{row.id.slice(0, 8)} - {row.seller?.shopName || row.seller?.name || 'Shop'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={trackingCarrier}
+                  onValueChange={(value) => setTrackingCarrier(value || '')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Đơn vị vận chuyển" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CARRIER_OPTIONS.map((carrier) => (
+                      <SelectItem key={carrier.value} value={carrier.value}>
+                        {carrier.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select onValueChange={applyTrackingPreset}>
+                  <SelectTrigger className="md:col-span-2">
+                    <SelectValue placeholder="Chọn mẫu cập nhật nhanh" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRACKING_PRESETS.map((preset) => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  className="md:col-span-2"
+                  value={trackingTitle}
+                  onChange={(event) => setTrackingTitle(event.target.value)}
+                  placeholder="Tiêu đề, ví dụ: Đã bàn giao cho đơn vị vận chuyển"
+                  maxLength={160}
+                />
+                <Select
+                  value={trackingLocation}
+                  onValueChange={(value) => setTrackingLocation(value || '')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vị trí xử lý" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATION_OPTIONS.map((location) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={trackingCode}
+                  onChange={(event) => setTrackingCode(event.target.value)}
+                  placeholder="Mã vận đơn"
+                  maxLength={120}
+                />
+                <Textarea
+                  className="md:col-span-2"
+                  value={trackingDescription}
+                  onChange={(event) => setTrackingDescription(event.target.value)}
+                  placeholder="Ghi chú thêm cho khách"
+                  maxLength={1000}
+                />
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={() => handleCreateTrackingEvent(adminTrackingTargetId)}
+                  disabled={createTrackingEvent.isPending || !adminTrackingTargetId}
+                >
+                  {createTrackingEvent.isPending
+                    ? 'Đang lưu...'
+                    : 'Thêm cập nhật hỗ trợ'}
+                </Button>
+              </div>
+            </div>
             <div className="mt-6 space-y-4">
               {order.subOrders?.map((row) => (
                 <div key={`${row.id}-tracking`} className="rounded-lg border p-4">
@@ -568,10 +747,25 @@ export default function DashboardOrderDetailPage() {
             />
 
             <div className="rounded-lg border bg-muted/20 p-4">
-              <h4 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-                Thêm cập nhật vận chuyển
+              <h4 className="mb-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Cập nhật vận chuyển cho khách
               </h4>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Người bán cập nhật các mốc đóng gói, bàn giao vận chuyển, mã vận đơn và tình trạng giao hàng của kiện hàng thuộc shop mình.
+              </p>
               <div className="grid gap-3 md:grid-cols-2">
+                <Select onValueChange={applyTrackingPreset}>
+                  <SelectTrigger className="md:col-span-2">
+                    <SelectValue placeholder="Chọn mẫu cập nhật nhanh" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRACKING_PRESETS.map((preset) => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div className="md:col-span-2">
                   <Input
                     value={trackingTitle}
@@ -580,18 +774,36 @@ export default function DashboardOrderDetailPage() {
                     maxLength={160}
                   />
                 </div>
-                <Input
+                <Select
                   value={trackingLocation}
-                  onChange={(event) => setTrackingLocation(event.target.value)}
-                  placeholder="Vị trí, ví dụ: Kho Hà Nội"
-                  maxLength={160}
-                />
-                <Input
+                  onValueChange={(value) => setTrackingLocation(value || '')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vị trí xử lý" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATION_OPTIONS.map((location) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
                   value={trackingCarrier}
-                  onChange={(event) => setTrackingCarrier(event.target.value)}
-                  placeholder="Đơn vị vận chuyển"
-                  maxLength={120}
-                />
+                  onValueChange={(value) => setTrackingCarrier(value || '')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Đơn vị vận chuyển" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CARRIER_OPTIONS.map((carrier) => (
+                      <SelectItem key={carrier.value} value={carrier.value}>
+                        {carrier.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   value={trackingCode}
                   onChange={(event) => setTrackingCode(event.target.value)}
@@ -608,12 +820,12 @@ export default function DashboardOrderDetailPage() {
               </div>
               <div className="mt-4 flex justify-end">
                 <Button
-                  onClick={handleCreateTrackingEvent}
+                  onClick={() => handleCreateTrackingEvent()}
                   disabled={createTrackingEvent.isPending}
                 >
                   {createTrackingEvent.isPending
                     ? 'Đang lưu...'
-                    : 'Thêm cập nhật'}
+                    : 'Gửi cập nhật cho khách'}
                 </Button>
               </div>
             </div>

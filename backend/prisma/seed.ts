@@ -16,6 +16,7 @@ import {
   ReportStatus,
   ReportType,
   Role,
+  ShipmentTrackingEventType,
   UserStatus,
 } from '@prisma/client';
 import { readFileSync } from 'fs';
@@ -606,6 +607,57 @@ async function ensureDemoOrder(input: {
       },
     },
     include,
+  });
+}
+
+async function ensureShipmentTrackingEvent(input: {
+  subOrderId?: string;
+  createdById?: string;
+  status?: OrderStatus;
+  type: ShipmentTrackingEventType;
+  title: string;
+  description?: string;
+  location?: string;
+  carrier?: string;
+  trackingCode?: string;
+  occurredAt?: Date;
+}) {
+  if (!input.subOrderId) {
+    return null;
+  }
+
+  const existing = await prisma.shipmentTrackingEvent.findFirst({
+    where: {
+      subOrderId: input.subOrderId,
+      title: input.title,
+      trackingCode: input.trackingCode ?? null,
+    },
+  });
+
+  const data = {
+    createdById: input.createdById,
+    status: input.status,
+    type: input.type,
+    description: input.description,
+    location: input.location,
+    carrier: input.carrier,
+    trackingCode: input.trackingCode,
+    occurredAt: input.occurredAt ?? new Date(),
+  };
+
+  if (existing) {
+    return prisma.shipmentTrackingEvent.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return prisma.shipmentTrackingEvent.create({
+    data: {
+      subOrderId: input.subOrderId,
+      title: input.title,
+      ...data,
+    },
   });
 }
 
@@ -3028,6 +3080,83 @@ async function main() {
     unitPrice: '320000',
     orderStatus: OrderStatus.PROCESSING,
     subOrderStatus: OrderStatus.PROCESSING,
+  });
+
+  const trackingNow = new Date();
+  const shippedSubOrder = shippedOrder.subOrders[0];
+  const deliveredSubOrder = deliveredOrder.subOrders[0];
+  const processingSubOrder = processingOrder.subOrders[0];
+
+  await ensureShipmentTrackingEvent({
+    subOrderId: processingSubOrder?.id,
+    createdById: seller2.id,
+    status: OrderStatus.PROCESSING,
+    type: ShipmentTrackingEventType.STATUS_UPDATED,
+    title: 'Shop đang chuẩn bị hàng',
+    description: 'Sản phẩm đang được kiểm tra và đóng gói trước khi bàn giao vận chuyển.',
+    location: 'Kho shop',
+    occurredAt: new Date(trackingNow.getTime() - 48 * 60 * 60 * 1000),
+  });
+
+  await ensureShipmentTrackingEvent({
+    subOrderId: shippedSubOrder?.id,
+    createdById: seller2.id,
+    status: OrderStatus.PROCESSING,
+    type: ShipmentTrackingEventType.STATUS_UPDATED,
+    title: 'Đã đóng gói sản phẩm',
+    description: 'Kiện hàng đã được đóng gói cẩn thận, sẵn sàng bàn giao cho đơn vị vận chuyển.',
+    location: 'Kho shop',
+    occurredAt: new Date(trackingNow.getTime() - 36 * 60 * 60 * 1000),
+  });
+
+  await ensureShipmentTrackingEvent({
+    subOrderId: shippedSubOrder?.id,
+    createdById: seller2.id,
+    status: OrderStatus.SHIPPED,
+    type: ShipmentTrackingEventType.LOCATION,
+    title: 'Đã bàn giao cho đơn vị vận chuyển',
+    description: 'Kiện hàng đã được bàn giao cho GHN. Khách có thể theo dõi bằng mã vận đơn.',
+    location: 'Kho TP. Hồ Chí Minh',
+    carrier: 'GHN',
+    trackingCode: 'GHN-DEMO-240529',
+    occurredAt: new Date(trackingNow.getTime() - 18 * 60 * 60 * 1000),
+  });
+
+  await ensureShipmentTrackingEvent({
+    subOrderId: deliveredSubOrder?.id,
+    createdById: seller.id,
+    status: OrderStatus.PROCESSING,
+    type: ShipmentTrackingEventType.STATUS_UPDATED,
+    title: 'Đã đóng gói sản phẩm',
+    description: 'Shop đã đóng gói sản phẩm gốm bằng vật liệu chống sốc.',
+    location: 'Kho shop',
+    occurredAt: new Date(trackingNow.getTime() - 72 * 60 * 60 * 1000),
+  });
+
+  await ensureShipmentTrackingEvent({
+    subOrderId: deliveredSubOrder?.id,
+    createdById: seller.id,
+    status: OrderStatus.SHIPPED,
+    type: ShipmentTrackingEventType.LOCATION,
+    title: 'Đang giao đến khách',
+    description: 'Đơn vị vận chuyển đang giao kiện hàng đến địa chỉ nhận hàng.',
+    location: 'Đang giao đến khách',
+    carrier: 'GHTK',
+    trackingCode: 'GHTK-DEMO-240530',
+    occurredAt: new Date(trackingNow.getTime() - 24 * 60 * 60 * 1000),
+  });
+
+  await ensureShipmentTrackingEvent({
+    subOrderId: deliveredSubOrder?.id,
+    createdById: seller.id,
+    status: OrderStatus.DELIVERED,
+    type: ShipmentTrackingEventType.DELIVERED,
+    title: 'Đã giao hàng thành công',
+    description: 'Khách hàng đã nhận kiện hàng.',
+    location: 'Đã giao thành công',
+    carrier: 'GHTK',
+    trackingCode: 'GHTK-DEMO-240530',
+    occurredAt: new Date(trackingNow.getTime() - 3 * 60 * 60 * 1000),
   });
 
   const deliveredItem = deliveredOrder.subOrders[0]?.items[0];

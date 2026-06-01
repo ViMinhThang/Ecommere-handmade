@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  ExternalLink,
   Info,
   MapPin,
   PackageCheck,
@@ -36,6 +37,76 @@ const typeIcons = {
   EXCEPTION: AlertTriangle,
   DELIVERED: CheckCircle2,
 } satisfies Record<ShipmentTrackingEvent["type"], typeof Info>;
+
+const carrierTrackingPages = [
+  {
+    keys: ["ghn", "giao hang nhanh", "giaohangnhanh"],
+    label: "GHN",
+    url: "https://donhang.ghn.vn/",
+  },
+  {
+    keys: ["ghtk", "giao hang tiet kiem", "giaohangtietkiem"],
+    label: "GHTK",
+    url: "https://i.ghtk.vn/",
+  },
+  {
+    keys: ["viettel", "viettel post", "viettelpost", "vtpost"],
+    label: "Viettel Post",
+    url: "https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/",
+  },
+  {
+    keys: ["j&t", "jt", "jtexpress", "j&t express"],
+    label: "J&T Express",
+    url: "https://jtexpress.vn/vi/tracking",
+  },
+  {
+    keys: ["ninja", "ninja van", "ninjavan"],
+    label: "Ninja Van",
+    url: "https://www.ninjavan.co/en-vn/tracking",
+  },
+  {
+    keys: ["spx", "spx express", "shopee express"],
+    label: "SPX Express",
+    url: "https://spx.vn/",
+  },
+];
+
+function normalizeCarrier(value?: string | null) {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getTrackingLink(carrier?: string | null, trackingCode?: string | null) {
+  const code = trackingCode?.trim();
+  if (!code) {
+    return null;
+  }
+
+  const normalizedCarrier = normalizeCarrier(carrier);
+  const matchedCarrier = carrierTrackingPages.find((candidate) =>
+    candidate.keys.some((key) => normalizedCarrier.includes(key)),
+  );
+
+  if (matchedCarrier) {
+    return {
+      label: `Tra cứu trên ${matchedCarrier.label}`,
+      url: matchedCarrier.url,
+    };
+  }
+
+  const query = encodeURIComponent(
+    [carrier, trackingCode, "tra cứu vận đơn"].filter(Boolean).join(" "),
+  );
+
+  return {
+    label: "Tra cứu vận đơn",
+    url: `https://www.google.com/search?q=${query}`,
+  };
+}
 
 function formatDateTime(value: Date | string) {
   return new Date(value).toLocaleString("vi-VN", {
@@ -85,6 +156,7 @@ export function ShipmentTrackingTimeline({
       {sortedEvents.map((event, index) => {
         const Icon = typeIcons[event.type] || Info;
         const isLatest = index === 0;
+        const trackingLink = getTrackingLink(event.carrier, event.trackingCode);
 
         return (
           <div key={event.id} className="relative flex gap-3">
@@ -134,8 +206,22 @@ export function ShipmentTrackingTimeline({
                     </span>
                   )}
                   {event.carrier && <span>Đơn vị: {event.carrier}</span>}
-                  {event.trackingCode && <span>Mã vận đơn: {event.trackingCode}</span>}
+                  {event.trackingCode && (
+                    <span>Mã vận đơn: {event.trackingCode}</span>
+                  )}
                 </div>
+              )}
+
+              {trackingLink && (
+                <a
+                  href={trackingLink.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                >
+                  {trackingLink.label}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               )}
 
               {event.createdBy && (

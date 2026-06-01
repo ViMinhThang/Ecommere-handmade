@@ -32,6 +32,8 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Tạo một category hoặc kiểm tra category seed.
 - [ ] Kiểm tra product status và approve/reject nếu có product pending.
 - [ ] Xem orders và reports.
+- [ ] Mở chi tiết một order đã có kiện hàng `SHIPPED`/`DELIVERED`; admin xem được timeline vận chuyển theo từng seller.
+- [ ] Trong chi tiết order admin, thêm cập nhật vận chuyển hỗ trợ cho một kiện hàng khi cần bổ sung mã vận đơn hoặc xử lý khiếu nại.
 - [ ] Xem settings/platform commission.
 - [ ] Xem voucher active `HANDMADE10`, expired `EXPIRED5`, inactive `INACTIVE15`.
 - [ ] Xem flash sale active/upcoming/ended trong admin flash sale page.
@@ -44,7 +46,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Sửa một sản phẩm của seller và kiểm tra status cần admin duyệt nếu flow yêu cầu.
 - [ ] Mở seller orders và thấy order COD seed.
 - [ ] Cập nhật order từ `PENDING` sang bước tiếp theo nếu action khả dụng.
-- [ ] Mở chi tiết kiện hàng seller, thêm cập nhật vận chuyển với tiêu đề, vị trí và mã vận đơn.
+- [ ] Mở chi tiết kiện hàng seller, chọn mẫu cập nhật vận chuyển, chọn vị trí/đơn vị vận chuyển và nhập mã vận đơn. Seller là người cập nhật vận chuyển chính cho kiện hàng của shop mình.
 - [ ] Đổi trạng thái kiện hàng sang `SHIPPED` và kiểm tra timeline tự có event trạng thái mới.
 - [ ] Mở reviews/questions nếu có dữ liệu.
 - [ ] Mở `/seller/custom-orders` và chuyển custom order `SHIPPED` sang `DELIVERED` nếu còn action.
@@ -117,6 +119,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seed tạo 11 category handmade active có slug và mô tả.
 - [ ] Seed tạo 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, có sản phẩm approved, pending, rejected và hết hàng.
 - [ ] Seed tạo order COD ở các trạng thái `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`.
+- [ ] Seed tạo shipment tracking events cho ít nhất một kiện hàng `PROCESSING`, một kiện hàng `SHIPPED` có mã vận đơn và một kiện hàng `DELIVERED`; người tạo event mặc định là seller của kiện hàng.
 - [ ] Customer chỉ thấy order của chính mình trong `/profile/orders`.
 - [ ] Seller chỉ thấy/cập nhật sub-order thuộc shop mình trong `/dashboard/orders`.
 - [ ] Admin thấy toàn bộ order trong `/dashboard/orders`.
