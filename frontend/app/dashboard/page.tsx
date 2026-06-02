@@ -61,6 +61,9 @@ const COLORS = [
   "#c2b2a3",
 ];
 
+const chartAxisColor = "var(--muted-foreground)";
+const chartGridColor = "var(--border)";
+
 type SellerDashboardOrder = NonNullable<
   ReturnType<typeof useSellerOrders>["data"]
 >[number];
@@ -72,6 +75,29 @@ function getOrderAmount(order: SellerDashboardOrder) {
 function getOrderCustomer(order: SellerDashboardOrder) {
   return (
     order.order?.customer ?? { id: order.id, name: "Khách hàng", email: "" }
+  );
+}
+
+function RevenueTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value?: number | string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="rounded-md border border-border bg-popover px-3 py-2 text-popover-foreground shadow-xl">
+      <p className="text-xs font-semibold">
+        {label ? format(new Date(label), "dd MMMM yyyy", { locale: vi }) : ""}
+      </p>
+      <p className="mt-1 text-sm font-medium text-primary">
+        Doanh thu: {formatCurrency(payload[0]?.value ?? 0)}
+      </p>
+    </div>
   );
 }
 
@@ -301,34 +327,25 @@ export default function DashboardPage() {
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
-                      stroke="#f0f0f0"
+                      stroke={chartGridColor}
+                      opacity={0.55}
                     />
                     <XAxis
                       dataKey="date"
                       tickFormatter={(str) => format(new Date(str), "dd/MM")}
-                      tick={{ fontSize: 10, fill: "#888" }}
+                      tick={{ fontSize: 10, fill: chartAxisColor }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
                       tickFormatter={formatShortCurrency}
-                      tick={{ fontSize: 10, fill: "#888" }}
+                      tick={{ fontSize: 10, fill: chartAxisColor }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <Tooltip
-                      formatter={(value: unknown) => [
-                        formatCurrency(Number(value)),
-                        "Doanh thu",
-                      ]}
-                      labelFormatter={(label) =>
-                        format(new Date(label), "dd MMMM yyyy", { locale: vi })
-                      }
-                      contentStyle={{
-                        borderRadius: "8px",
-                        border: "none",
-                        boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-                      }}
+                      content={<RevenueTooltip />}
+                      cursor={{ fill: "var(--muted)", opacity: 0.18 }}
                     />
                     <Bar
                       dataKey="revenue"
@@ -346,13 +363,13 @@ export default function DashboardPage() {
                       >
                         <stop
                           offset="5%"
-                          stopColor="#853724"
-                          stopOpacity={0.8}
+                          stopColor="#ffb4a2"
+                          stopOpacity={0.92}
                         />
                         <stop
                           offset="95%"
-                          stopColor="#a44e39"
-                          stopOpacity={0.8}
+                          stopColor="#853724"
+                          stopOpacity={0.82}
                         />
                       </linearGradient>
                     </defs>

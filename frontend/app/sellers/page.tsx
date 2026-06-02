@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
+import { FollowShopButton } from "@/components/sellers/follow-shop-button";
 import { useSearchSellers } from "@/lib/api/hooks";
 import { mediaApi } from "@/lib/api/media";
 import type {
@@ -374,14 +375,17 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
     .join("");
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-border/40 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-      <div className="relative aspect-[4/3] overflow-hidden bg-accent">
+    <article className="flex h-full min-h-[620px] flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+      <Link
+        href={seller.linkTarget}
+        className="relative block aspect-[4/3] overflow-hidden bg-accent"
+      >
         {seller.avatar ? (
           <SafeImage
             src={mediaApi.getImageUrl(seller.avatar)}
             alt={studioName}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-primary/10">
@@ -390,72 +394,90 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
             </span>
           </div>
         )}
-      </div>
+        {seller.artisanVerified ? (
+          <span className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full border border-white/60 bg-background/85 px-3 py-1 text-[11px] font-semibold text-primary shadow-sm backdrop-blur">
+            <BadgeCheck className="h-3.5 w-3.5 fill-emerald-600 text-white" />
+            Đã xác thực
+          </span>
+        ) : null}
+      </Link>
 
       <div className="flex flex-1 flex-col p-6">
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <h3 className="font-headline text-2xl italic text-primary">
-              {studioName}
-            </h3>
-            {seller.artisanVerified ? (
-              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
-                <BadgeCheck className="h-3.5 w-3.5 fill-emerald-600 text-white" />
-                Nghệ nhân đã xác thực
-              </span>
-            ) : null}
-            {seller.shopName ? (
-              <p className="text-sm text-muted-foreground">Bởi {seller.name}</p>
-            ) : null}
+        <div className="mb-4 space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <Link href={seller.linkTarget} className="min-w-0">
+              <h3 className="line-clamp-2 min-h-[3.5rem] font-headline text-2xl italic leading-7 text-primary transition hover:text-primary/75">
+                {studioName}
+              </h3>
+            </Link>
+            <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
+              {joinedLabel}
+            </span>
           </div>
-          <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-            Tham gia {joinedLabel}
-          </span>
+          <div className="min-h-5">
+            {seller.shopName ? (
+              <p className="line-clamp-1 text-sm text-muted-foreground">
+                Bởi {seller.name}
+              </p>
+            ) : (
+              <p className="line-clamp-1 text-sm text-muted-foreground">
+                {seller.sellerTitle || "Gian hàng thủ công"}
+              </p>
+            )}
+          </div>
         </div>
 
-        <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+        <p className="line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-muted-foreground">
           {seller.craftSpecialty ||
             seller.sellerBio ||
             seller.sellerTitle ||
             "Gian hàng đang cập nhật thêm câu chuyện và bộ sưu tập của mình."}
         </p>
 
-        <div className="mt-6 grid grid-cols-3 gap-3 rounded-2xl bg-accent/35 p-4 text-sm">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="mt-6 grid grid-cols-3 overflow-hidden rounded-2xl border border-border/40 bg-accent/25 text-sm">
+          <div className="border-r border-border/40 p-4">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Sản phẩm
             </p>
-            <p className="mt-2 flex items-center gap-2 font-medium text-foreground">
-              <Store className="h-4 w-4 text-primary" />
+            <p className="mt-2 flex items-center gap-2 font-semibold text-foreground">
+              <Store className="h-4 w-4 shrink-0 text-primary" />
               {seller.productCount}
             </p>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Đánh giá gian hàng
+          <div className="border-r border-border/40 p-4">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Đánh giá
             </p>
-            <p className="mt-2 flex items-center gap-2 font-medium text-foreground">
-              <Star className="h-4 w-4 fill-primary text-primary" />
-              {seller.shopAverageRating !== null
-                ? `${seller.shopAverageRating.toFixed(1)} · ${seller.shopReviewCount}`
-                : "Chưa có"}
+            <p className="mt-2 flex items-center gap-2 font-semibold text-foreground">
+              <Star className="h-4 w-4 shrink-0 fill-primary text-primary" />
+              <span className="truncate">
+                {seller.shopAverageRating !== null
+                  ? `${seller.shopAverageRating.toFixed(1)} · ${seller.shopReviewCount}`
+                  : "Chưa có"}
+              </span>
             </p>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="p-4">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Theo dõi
             </p>
-            <p className="mt-2 flex items-center gap-2 font-medium text-foreground">
-              <Heart className="h-4 w-4 text-primary" />
+            <p className="mt-2 flex items-center gap-2 font-semibold text-foreground">
+              <Heart className="h-4 w-4 shrink-0 text-primary" />
               {seller.followerCount}
             </p>
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-auto flex flex-col gap-3 pt-6 sm:flex-row sm:items-center">
+          <FollowShopButton
+            sellerId={seller.id}
+            initialFollowerCount={seller.followerCount}
+            redirectPath="/sellers"
+            className="min-h-12 flex-1 rounded-2xl px-4 py-3 text-xs"
+          />
           <Link
             href={seller.linkTarget}
-            className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 py-3 text-xs font-semibold text-foreground transition hover:border-primary hover:text-primary"
           >
             Xem gian hàng
             <ArrowRight className="h-4 w-4" />
