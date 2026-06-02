@@ -43,7 +43,7 @@ export class CommissionsController {
 
   @Get('my-proposals')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  @Roles('ROLE_SELLER')
   listMyProposals(@Request() req: AuthenticatedRequest) {
     return this.commissionsService.listMyProposals(req.user.id);
   }
@@ -60,7 +60,7 @@ export class CommissionsController {
 
   @Post(':id/proposals')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  @Roles('ROLE_SELLER')
   submitProposal(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -71,7 +71,7 @@ export class CommissionsController {
 
   @Patch('proposals/:proposalId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  @Roles('ROLE_SELLER')
   updateProposal(
     @Request() req: AuthenticatedRequest,
     @Param('proposalId') proposalId: string,
@@ -82,7 +82,7 @@ export class CommissionsController {
 
   @Patch('proposals/:proposalId/withdraw')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  @Roles('ROLE_SELLER')
   withdrawProposal(
     @Request() req: AuthenticatedRequest,
     @Param('proposalId') proposalId: string,

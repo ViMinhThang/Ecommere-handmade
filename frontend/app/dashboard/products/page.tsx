@@ -285,7 +285,12 @@ export default function ProductsPage() {
                     <TableCell>{new Date(product.createdAt).toLocaleDateString('vi-VN')}</TableCell>
                     <TableCell>
                       <div className='flex items-center gap-1'>
-                        <Button variant='ghost' size='icon'>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => router.push(`/products/${product.id}`)}
+                          aria-label={`Xem sản phẩm ${product.name}`}
+                        >
                           <Eye className='h-4 w-4' />
                         </Button>
                         {isSeller && product.sellerId === user?.id && (
@@ -331,6 +336,7 @@ export default function ProductsPage() {
         product={selectedProduct}
         categories={categories}
         sellerId={user?.id || ''}
+        canManageShipping={Boolean(isSeller && !isAdmin)}
         onSave={selectedProduct ? handleEditProduct : handleAddProduct}
       />
     </div>

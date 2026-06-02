@@ -167,7 +167,9 @@ export class ProductsService {
     }
 
     if (normalized.length > 20) {
-      throw new BadRequestException(`${fieldName} can contain at most 20 items`);
+      throw new BadRequestException(
+        `${fieldName} can contain at most 20 items`,
+      );
     }
 
     return normalized;

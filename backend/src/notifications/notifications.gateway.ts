@@ -48,7 +48,7 @@ export class NotificationsGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
-  ) { }
+  ) {}
 
   async handleConnection(client: NotificationsSocket): Promise<void> {
     const requestId = extractRequestIdFromHeaders(
@@ -56,11 +56,16 @@ export class NotificationsGateway implements OnGatewayConnection {
     );
     const token = this.extractAccessToken(client);
     if (!token) {
-      emitObservabilityEvent(this.logger, 'warn', 'notifications_socket_auth_failed', {
-        requestId,
-        socketId: client.id,
-        reason: 'missing_access_token',
-      });
+      emitObservabilityEvent(
+        this.logger,
+        'warn',
+        'notifications_socket_auth_failed',
+        {
+          requestId,
+          socketId: client.id,
+          reason: 'missing_access_token',
+        },
+      );
       client.disconnect();
       return;
     }
@@ -74,12 +79,17 @@ export class NotificationsGateway implements OnGatewayConnection {
       client.data.userId = user.id;
       await client.join(this.getUserRoom(user.id));
     } catch (error) {
-      emitObservabilityEvent(this.logger, 'warn', 'notifications_socket_auth_failed', {
-        requestId,
-        socketId: client.id,
-        reason: 'token_verification_failed',
-        ...describeErrorForObservability(error),
-      });
+      emitObservabilityEvent(
+        this.logger,
+        'warn',
+        'notifications_socket_auth_failed',
+        {
+          requestId,
+          socketId: client.id,
+          reason: 'token_verification_failed',
+          ...describeErrorForObservability(error),
+        },
+      );
       client.disconnect();
     }
   }
@@ -91,12 +101,8 @@ export class NotificationsGateway implements OnGatewayConnection {
   }
 
   emitOrderUpdated(customerId: string, sellerId: string, payload: any): void {
-    this.server
-      .to(this.getUserRoom(customerId))
-      .emit('order.updated', payload);
-    this.server
-      .to(this.getUserRoom(sellerId))
-      .emit('order.updated', payload);
+    this.server.to(this.getUserRoom(customerId)).emit('order.updated', payload);
+    this.server.to(this.getUserRoom(sellerId)).emit('order.updated', payload);
   }
 
   private getUserRoom(userId: string) {

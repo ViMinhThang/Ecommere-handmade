@@ -36,6 +36,7 @@ interface ProductDialogProps {
   product?: Product | null
   categories: Category[]
   sellerId: string
+  canManageShipping?: boolean
   onSave: (product: {
     name: string
     description: string
@@ -57,8 +58,17 @@ interface ProductDialogProps {
   }) => void
 }
 
-export function ProductDialog({ open, onOpenChange, product, categories, sellerId, onSave }: ProductDialogProps) {
-  const { data: shippingProfiles = [], isLoading: isShippingProfilesLoading } = useShippingProfiles()
+export function ProductDialog({
+  open,
+  onOpenChange,
+  product,
+  categories,
+  sellerId,
+  canManageShipping = true,
+  onSave,
+}: ProductDialogProps) {
+  const { data: shippingProfiles = [], isLoading: isShippingProfilesLoading } =
+    useShippingProfiles(open && canManageShipping)
   const [formData, setFormData] = useState<{
     name: string
     description: string
@@ -366,14 +376,16 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
               }
             />
 
-            <ShippingSection
-              shippingProfileId={formData.shippingProfileId}
-              shippingProfiles={shippingProfiles}
-              isLoading={isShippingProfilesLoading}
-              onChange={(field, value) =>
-                setFormData((current) => ({ ...current, [field]: value }))
-              }
-            />
+            {canManageShipping ? (
+              <ShippingSection
+                shippingProfileId={formData.shippingProfileId}
+                shippingProfiles={shippingProfiles}
+                isLoading={isShippingProfilesLoading}
+                onChange={(field, value) =>
+                  setFormData((current) => ({ ...current, [field]: value }))
+                }
+              />
+            ) : null}
 
             <div className="grid gap-2">
               <Label>Hình ảnh sản phẩm</Label>

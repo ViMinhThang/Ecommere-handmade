@@ -40,18 +40,24 @@ import type {
 } from "@/types"
 
 const ledgerTypeLabels: Record<MarketplaceLedgerEntry["type"], string> = {
-  PAYMENT_CAPTURE: "Payment capture",
-  SELLER_EARNING: "Seller earning",
-  PLATFORM_FEE: "Platform fee",
-  PLATFORM_DISCOUNT: "Platform discount",
-  REFUND: "Refund",
-  PAYOUT: "Payout",
+  PAYMENT_CAPTURE: "Thu tiền thanh toán",
+  SELLER_EARNING: "Ghi nhận doanh thu người bán",
+  PLATFORM_FEE: "Phí nền tảng",
+  PLATFORM_DISCOUNT: "Ưu đãi nền tảng",
+  REFUND: "Hoàn tiền",
+  PAYOUT: "Chi trả người bán",
 }
 
 const ledgerStatusClasses: Record<MarketplaceLedgerEntry["status"], string> = {
   PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200",
   POSTED: "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200",
   VOIDED: "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
+}
+
+const ledgerStatusLabels: Record<MarketplaceLedgerEntry["status"], string> = {
+  PENDING: "Chờ ghi nhận",
+  POSTED: "Đã ghi nhận",
+  VOIDED: "Đã hủy",
 }
 
 function toMoney(value?: number | string | null) {
@@ -65,19 +71,19 @@ function formatLedgerDate(value: MarketplaceLedgerEntry["createdAt"]) {
 export function FinancialSummaryPanel({
   summary,
   remainingRefundable,
-  title = "Financial summary",
+  title = "Tổng quan tài chính",
 }: {
   summary?: FinancialSummary | null
   remainingRefundable?: number
   title?: string
 }) {
   const rows = [
-    { label: "Gross", value: summary?.gross },
-    { label: "Customer paid", value: summary?.customerPaid },
-    { label: "Platform discount", value: summary?.platformDiscount },
-    { label: "Platform fee", value: summary?.platformFee },
-    { label: "Seller net", value: summary?.sellerNet },
-    { label: "Refunded", value: summary?.refundedAmount },
+    { label: "Giá trị gốc", value: summary?.gross },
+    { label: "Khách đã thanh toán", value: summary?.customerPaid },
+    { label: "Ưu đãi nền tảng", value: summary?.platformDiscount },
+    { label: "Phí nền tảng", value: summary?.platformFee },
+    { label: "Người bán nhận", value: summary?.sellerNet },
+    { label: "Đã hoàn tiền", value: summary?.refundedAmount },
   ]
 
   return (
@@ -88,7 +94,9 @@ export function FinancialSummaryPanel({
           {title}
         </CardTitle>
         {typeof remainingRefundable === "number" && (
-          <Badge variant="outline">Refundable: {toMoney(remainingRefundable)}</Badge>
+          <Badge variant="outline">
+            Có thể hoàn: {toMoney(remainingRefundable)}
+          </Badge>
         )}
       </CardHeader>
       <CardContent>
@@ -112,7 +120,7 @@ export function FinancialSummaryPanel({
 export function LedgerTable({
   entries,
   isLoading,
-  title = "Ledger audit",
+  title = "Sổ đối soát giao dịch",
 }: {
   entries?: MarketplaceLedgerEntry[]
   isLoading?: boolean
@@ -129,24 +137,24 @@ export function LedgerTable({
       <CardContent>
         {isLoading ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
-            Loading ledger...
+            Đang tải sổ giao dịch...
           </div>
         ) : !entries || entries.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
-            No ledger rows yet.
+            Chưa có dòng đối soát nào.
           </div>
         ) : (
           <div className="overflow-hidden rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Seller</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Refund</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Loại giao dịch</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Số tiền</TableHead>
+                  <TableHead>Người bán</TableHead>
+                  <TableHead>Khách hàng</TableHead>
+                  <TableHead>Hoàn tiền</TableHead>
+                  <TableHead>Ngày tạo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -166,7 +174,7 @@ export function LedgerTable({
                       <Badge
                         className={`${ledgerStatusClasses[entry.status]} border-0`}
                       >
-                        {entry.status}
+                        {ledgerStatusLabels[entry.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -202,7 +210,7 @@ export function RefundDialog({
   maxAmount,
   isSubmitting,
   subOrders,
-  title = "Create refund",
+  title = "Tạo hoàn tiền",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -241,7 +249,7 @@ export function RefundDialog({
     const parsedAmount = amount.trim() ? Number(amount) : undefined
 
     if (!trimmedReason) {
-      setError("Reason is required.")
+      setError("Vui lòng nhập lý do hoàn tiền.")
       return
     }
 
@@ -249,12 +257,12 @@ export function RefundDialog({
       parsedAmount !== undefined &&
       (!Number.isFinite(parsedAmount) || parsedAmount <= 0)
     ) {
-      setError("Amount must be greater than zero.")
+      setError("Số tiền hoàn phải lớn hơn 0.")
       return
     }
 
     if (parsedAmount !== undefined && parsedAmount > maxAmount) {
-      setError("Amount exceeds refundable balance.")
+      setError("Số tiền hoàn vượt quá số dư có thể hoàn.")
       return
     }
 
@@ -274,22 +282,22 @@ export function RefundDialog({
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
-              Refundable balance: {toMoney(maxAmount)}
+              Số dư có thể hoàn: {toMoney(maxAmount)}
             </DialogDescription>
           </DialogHeader>
 
           {subOrderOptions.length > 0 && (
             <div className="space-y-2">
-              <Label>Sub-order</Label>
+              <Label>Kiện hàng</Label>
               <Select
                 value={subOrderId}
                 onValueChange={(value) => setSubOrderId(value ?? "ALL")}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select sub-order" />
+                  <SelectValue placeholder="Chọn kiện hàng" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All sub-orders</SelectItem>
+                  <SelectItem value="ALL">Tất cả kiện hàng</SelectItem>
                   {subOrderOptions.map((subOrder) => (
                     <SelectItem key={subOrder.id} value={subOrder.id}>
                       {subOrder.seller?.shopName ||

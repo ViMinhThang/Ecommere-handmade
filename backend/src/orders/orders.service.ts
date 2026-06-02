@@ -331,7 +331,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     private readonly notificationsService?: NotificationsService,
     @Optional()
     private readonly notificationsGateway?: NotificationsGateway,
-  ) { }
+  ) {}
 
   onModuleInit() {
     this.expiredOrderSweepTimer = setInterval(
@@ -501,7 +501,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const rewardPointsToRedeem = this.rewardsService.normalizePoints(
       checkoutDto.rewardPointsToRedeem,
     );
-    const checkoutBaseTotal = cart.total + SHIPPING_FEE + giftOptions.giftWrapFee;
+    const checkoutBaseTotal =
+      cart.total + SHIPPING_FEE + giftOptions.giftWrapFee;
     const rewardRedemption = this.rewardsService.calculateRedemption(
       rewardPointsToRedeem,
       checkoutBaseTotal,
@@ -743,7 +744,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (
       validation.shippingAddressHash &&
       this.hashCheckoutValue(order.shippingAddress ?? null) !==
-      validation.shippingAddressHash
+        validation.shippingAddressHash
     ) {
       throw new BadRequestException(
         'Idempotency key was used with another checkout payload',
@@ -753,7 +754,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (
       validation.giftOptionsHash &&
       this.hashCheckoutValue(this.getOrderGiftOptions(order)) !==
-      validation.giftOptionsHash
+        validation.giftOptionsHash
     ) {
       throw new BadRequestException(
         'Idempotency key was used with another checkout payload',
@@ -763,7 +764,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (
       validation.expectedFingerprint &&
       this.buildExistingOrderFingerprint(order) !==
-      validation.expectedFingerprint
+        validation.expectedFingerprint
     ) {
       throw new BadRequestException(
         'Idempotency key was used with another checkout payload',
@@ -835,13 +836,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       ),
       discountAmount: this.toCheckoutMoney(context.cart.discountAmount),
       ...(context.rewardRedemption.points > 0 ||
-        context.rewardRedemption.discountAmount > 0
+      context.rewardRedemption.discountAmount > 0
         ? {
-          rewardPointsRedeemed: context.rewardRedemption.points,
-          rewardDiscountAmount: this.toCheckoutMoney(
-            context.rewardRedemption.discountAmount,
-          ),
-        }
+            rewardPointsRedeemed: context.rewardRedemption.points,
+            rewardDiscountAmount: this.toCheckoutMoney(
+              context.rewardRedemption.discountAmount,
+            ),
+          }
         : {}),
       shippingAddressHash: this.hashCheckoutValue(context.shippingAddress),
       giftOptions: context.giftOptions,
@@ -1798,9 +1799,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         sellerId,
         cart.appliedVoucher
           ? this.calculateVoucherEligibleSubtotal(
-            data.items,
-            cart.appliedVoucher,
-          )
+              data.items,
+              cart.appliedVoucher,
+            )
           : data.subTotal,
       ]),
     );
@@ -1829,8 +1830,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           ? sellerId === lastDiscountableSellerId
             ? remainingDiscount
             : Math.round(
-              cart.discountAmount * (discountBase / totalDiscountBase),
-            )
+                cart.discountAmount * (discountBase / totalDiscountBase),
+              )
           : 0;
 
       remainingDiscount -= subOrderDiscount;
@@ -1847,8 +1848,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             shippingEstimate.shippingProfileSnapshot as unknown as Prisma.InputJsonValue,
           estimatedShipStartAt: shippingEstimate.estimatedShipStartAt,
           estimatedShipEndAt: shippingEstimate.estimatedShipEndAt,
-          estimatedDeliveryStartAt:
-            shippingEstimate.estimatedDeliveryStartAt,
+          estimatedDeliveryStartAt: shippingEstimate.estimatedDeliveryStartAt,
           estimatedDeliveryEndAt: shippingEstimate.estimatedDeliveryEndAt,
         },
       });
@@ -1875,10 +1875,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
               : undefined,
             ...(flashSaleSnapshots
               ? {
-                flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
-                flashSaleDiscountPercent:
-                  flashSaleSnapshot?.discountPercent ?? 0,
-              }
+                  flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
+                  flashSaleDiscountPercent:
+                    flashSaleSnapshot?.discountPercent ?? 0,
+                }
               : {}),
           };
         }),
@@ -1892,8 +1892,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     items: EnrichedCartItem[],
     baseDate: Date,
   ): Promise<ShippingEstimate> {
-    const sellerDefaultProfile =
-      await this.getSellerDefaultShippingProfile(tx, sellerId);
+    const sellerDefaultProfile = await this.getSellerDefaultShippingProfile(
+      tx,
+      sellerId,
+    );
     const itemProfiles = items.map((item) => {
       const profile =
         this.normalizeShippingProfileSource(item.product.shippingProfile) ??
@@ -1929,8 +1931,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     );
     const singleProfile =
       uniqueProfileIds.length <= 1
-        ? itemProfiles.find((profile) => profile.id === uniqueProfileIds[0]) ??
-          itemProfiles[0]
+        ? (itemProfiles.find((profile) => profile.id === uniqueProfileIds[0]) ??
+          itemProfiles[0])
         : null;
 
     const shippingProfileSnapshot: ShippingProfileSnapshot = {
@@ -1941,7 +1943,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       trackingUrlTemplate:
         singleProfile?.trackingUrlTemplate ??
         (uniqueProfileIds.length <= 1
-          ? itemProfiles[0]?.trackingUrlTemplate ?? null
+          ? (itemProfiles[0]?.trackingUrlTemplate ?? null)
           : null),
       processingMinDays,
       processingMaxDays,
@@ -2590,10 +2592,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   };
   private readonly trackingEventsInclude = {
     include: this.trackingEventActorInclude,
-    orderBy: [
-      { occurredAt: 'asc' as const },
-      { createdAt: 'asc' as const },
-    ],
+    orderBy: [{ occurredAt: 'asc' as const }, { createdAt: 'asc' as const }],
   };
 
   private readonly userOrderInclude = {
@@ -2710,7 +2709,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         return {
           type: ShipmentTrackingEventType.STATUS_UPDATED,
           title: 'Shop đang chuẩn bị hàng',
-          description: 'Người bán đang đóng gói và chuẩn bị bàn giao vận chuyển.',
+          description:
+            'Người bán đang đóng gói và chuẩn bị bàn giao vận chuyển.',
         };
       case OrderStatus.SHIPPED:
         return {
@@ -2901,9 +2901,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       : order.subOrders;
     const targetPaidTotal = subOrderId
       ? targetSubOrders.reduce(
-        (sum, subOrder) => sum + this.calculateSubOrderCustomerPaid(subOrder),
-        0,
-      )
+          (sum, subOrder) => sum + this.calculateSubOrderCustomerPaid(subOrder),
+          0,
+        )
       : Number(order.totalAmount);
     const ratio =
       targetPaidTotal > 0 ? Math.min(refundAmount / targetPaidTotal, 1) : 0;
@@ -3244,35 +3244,35 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     );
     const directTargetRefundedAmount = dto.subOrderId
       ? order.refunds
-        .filter(
-          (refund) =>
-            refund.status === RefundStatus.SUCCEEDED &&
-            refund.subOrderId === dto.subOrderId,
-        )
-        .reduce((sum, refund) => sum + Number(refund.amount), 0)
+          .filter(
+            (refund) =>
+              refund.status === RefundStatus.SUCCEEDED &&
+              refund.subOrderId === dto.subOrderId,
+          )
+          .reduce((sum, refund) => sum + Number(refund.amount), 0)
       : refundedAmount;
     const allocatedOrderWideRefundAmount =
       targetSubOrder && productPaidTotal > 0
         ? order.refunds
-          .filter(
-            (refund) =>
-              refund.status === RefundStatus.SUCCEEDED && !refund.subOrderId,
-          )
-          .reduce(
-            (sum, refund) =>
-              sum +
-              Number(refund.amount) *
-              (this.calculateSubOrderCustomerPaid(targetSubOrder) /
-                productPaidTotal),
-            0,
-          )
+            .filter(
+              (refund) =>
+                refund.status === RefundStatus.SUCCEEDED && !refund.subOrderId,
+            )
+            .reduce(
+              (sum, refund) =>
+                sum +
+                Number(refund.amount) *
+                  (this.calculateSubOrderCustomerPaid(targetSubOrder) /
+                    productPaidTotal),
+              0,
+            )
         : 0;
     const targetRefundedAmount = targetSubOrder
       ? directTargetRefundedAmount + allocatedOrderWideRefundAmount
       : directTargetRefundedAmount;
     const targetRefundableBalance = targetSubOrder
       ? this.calculateSubOrderCustomerPaid(targetSubOrder) -
-      targetRefundedAmount
+        targetRefundedAmount
       : refundableBalance;
     const amount = this.roundMoney(dto.amount ?? targetRefundableBalance);
 
@@ -3441,14 +3441,20 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (this.notificationsGateway) {
       try {
         for (const subOrder of order.subOrders) {
-          this.notificationsGateway.emitOrderUpdated(order.customerId, subOrder.sellerId, {
-            orderId: order.id,
-            subOrderId: subOrder.id,
-            status: OrderStatus.CANCELLED,
-          });
+          this.notificationsGateway.emitOrderUpdated(
+            order.customerId,
+            subOrder.sellerId,
+            {
+              orderId: order.id,
+              subOrderId: subOrder.id,
+              status: OrderStatus.CANCELLED,
+            },
+          );
         }
       } catch (error) {
-        this.logger.warn(`Failed to emit cancelOrder socket events: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(
+          `Failed to emit cancelOrder socket events: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -3563,7 +3569,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           },
         );
       } catch (error) {
-        this.logger.warn(`Failed to emit updateSubOrderStatus socket events: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(
+          `Failed to emit updateSubOrderStatus socket events: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -3672,14 +3680,20 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (this.notificationsGateway) {
       try {
         for (const subOrder of updatableSubOrders) {
-          this.notificationsGateway.emitOrderUpdated(order.customerId, subOrder.sellerId, {
-            orderId,
-            subOrderId: subOrder.id,
-            status,
-          });
+          this.notificationsGateway.emitOrderUpdated(
+            order.customerId,
+            subOrder.sellerId,
+            {
+              orderId,
+              subOrderId: subOrder.id,
+              status,
+            },
+          );
         }
       } catch (error) {
-        this.logger.warn(`Failed to emit updateAdminOrderStatus socket events: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(
+          `Failed to emit updateAdminOrderStatus socket events: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 

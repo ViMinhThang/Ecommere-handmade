@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import {
   DollarSign,
+  Flag,
+  Package,
   ShoppingCart,
   Users,
   Calendar,
@@ -24,9 +26,13 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import {
   useMe,
+  useAdminOrders,
+  useAdminReports,
+  useProductStats,
   useSellerOrders,
   useSellerRevenueOverTime,
   useSellerRevenueByCategory,
+  useUserStats,
 } from "@/lib/api/hooks";
 import {
   BarChart,
@@ -104,6 +110,7 @@ function RevenueTooltip({
 export default function DashboardPage() {
   const { data: user, isLoading: isUserLoading } = useMe();
   const isSeller = user?.roles.includes("ROLE_SELLER") ?? false;
+  const isAdmin = user?.roles.includes("ROLE_ADMIN") ?? false;
 
   // Date Range State for Bar Chart
   const [dateRange, setDateRange] = useState({
@@ -123,6 +130,16 @@ export default function DashboardPage() {
     useSellerRevenueByCategory(selectedMonth, selectedYear, isSeller);
   const { data: recentOrders, isLoading: isOrdersLoading } =
     useSellerOrders(isSeller);
+  const { data: userStats, isLoading: isUserStatsLoading } =
+    useUserStats(isAdmin);
+  const { data: productStats, isLoading: isProductStatsLoading } =
+    useProductStats();
+  const { data: adminOrders, isLoading: isAdminOrdersLoading } = useAdminOrders(
+    undefined,
+    isAdmin,
+  );
+  const { data: pendingReports, isLoading: isPendingReportsLoading } =
+    useAdminReports({ status: "PENDING", page: 1, limit: 5 }, isAdmin);
 
   // Formatters
   const formatShortCurrency = (value: number) => {
@@ -213,6 +230,57 @@ export default function DashboardPage() {
     ];
   }, [recentOrders]);
 
+  const adminStats = useMemo(() => {
+    const orders = adminOrders ?? [];
+    const revenueStatuses = ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"];
+    const totalRevenue = orders
+      .filter((order) => revenueStatuses.includes(order.status))
+      .reduce((acc, order) => acc + Number(order.totalAmount ?? 0), 0);
+
+    return [
+      {
+        title: "Doanh thu sàn",
+        value: formatCurrency(totalRevenue),
+        icon: DollarSign,
+        iconColor: "text-[#853724]",
+      },
+      {
+        title: "Đơn hàng toàn sàn",
+        value: orders.length,
+        icon: ShoppingCart,
+        iconColor: "text-[#576957]",
+      },
+      {
+        title: "Sản phẩm chờ duyệt",
+        value: productStats?.pending ?? 0,
+        icon: Package,
+        iconColor: "text-[#7a2f1c]",
+      },
+      {
+        title: "Báo cáo mới",
+        value: pendingReports?.meta?.total ?? 0,
+        icon: Flag,
+        iconColor: "text-[#4f4537]",
+      },
+    ];
+  }, [adminOrders, pendingReports?.meta?.total, productStats?.pending]);
+
+  const adminRecentOrders = useMemo(() => {
+    return (adminOrders ?? [])
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 5);
+  }, [adminOrders]);
+
+  const adminOverviewLoading =
+    isAdminOrdersLoading ||
+    isProductStatsLoading ||
+    isUserStatsLoading ||
+    isPendingReportsLoading;
+
   const getStatusBadge = (status: string) => {
     const styleMap: Record<string, string> = {
       PENDING: "bg-[#fef3c7] text-[#92400e]",
@@ -245,6 +313,176 @@ export default function DashboardPage() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+      </div>
+    );
+  }
+
+  if (isAdmin) {
+    return (
+      <div className="space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="artisan-title text-5xl">Tổng quan vận hành sàn</h1>
+            <p className="artisan-subtitle mt-2 italic text-stone-500 dark:text-muted-foreground">
+              Theo dõi đơn hàng, sản phẩm chờ duyệt, người dùng và báo cáo mới trên marketplace.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-border/40 shadow-sm dark:bg-card">
+            <Calendar className="w-4 h-4 text-primary/50" />
+            <span className="text-xs font-bold uppercase tracking-widest text-primary/70">
+              Hôm nay, {format(new Date(), "dd/MM/yyyy")}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {adminOverviewLoading
+            ? Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-32 bg-white rounded-xl border border-border/40 animate-pulse dark:bg-card"
+                  />
+                ))
+            : adminStats.map((stat) => <StatCard key={stat.title} {...stat} />)}
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2 border-border/40 shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-serif italic text-2xl text-primary">
+                Đơn hàng gần đây
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">
+                      Đơn hàng
+                    </TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">
+                      Khách hàng
+                    </TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">
+                      Người bán
+                    </TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-right">
+                      Giá trị
+                    </TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest">
+                      Trạng thái
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isAdminOrdersLoading ? (
+                    Array(3)
+                      .fill(0)
+                      .map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell
+                            colSpan={5}
+                            className="h-12 bg-muted/10 animate-pulse"
+                          />
+                        </TableRow>
+                      ))
+                  ) : adminRecentOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="py-8 text-center text-sm text-muted-foreground"
+                      >
+                        Chưa có đơn hàng nào.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    adminRecentOrders.map((order) => (
+                      <TableRow
+                        key={order.id}
+                        className="hover:bg-muted/20 transition-colors"
+                      >
+                        <TableCell className="font-mono text-xs font-bold text-primary">
+                          #{order.id.slice(0, 8)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {order.customer?.name || "Khách hàng"}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground italic">
+                              {order.customer?.email || "-"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {(order.subOrders || [])
+                            .map(
+                              (subOrder) =>
+                                subOrder.seller?.shopName ||
+                                subOrder.seller?.name,
+                            )
+                            .filter(Boolean)
+                            .join(", ") || "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-serif italic text-lg text-primary">
+                          {formatCurrency(Number(order.totalAmount ?? 0))}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/40 shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-serif italic text-2xl text-primary">
+                Vận hành nhanh
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-border/50 p-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Người dùng
+                </p>
+                <p className="mt-2 text-3xl font-bold">
+                  {userStats?.total ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {userStats?.sellers ?? 0} người bán, {userStats?.customers ?? 0} khách hàng
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border/50 p-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Sản phẩm
+                </p>
+                <p className="mt-2 text-3xl font-bold">
+                  {productStats?.total ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {productStats?.approved ?? 0} đã duyệt, {productStats?.pending ?? 0} chờ duyệt
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border/50 p-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Báo cáo chờ xử lý
+                </p>
+                <p className="mt-2 text-3xl font-bold">
+                  {pendingReports?.meta?.total ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Dữ liệu lấy từ hàng đợi báo cáo admin.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

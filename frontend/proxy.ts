@@ -33,17 +33,42 @@ function decodeJwtPayload(token: string | undefined) {
   }
 }
 
-function getAuthenticatedLandingPath(accessToken: string | undefined) {
+function getRoleList(accessToken: string | undefined) {
   const roles = decodeJwtPayload(accessToken)?.roles;
-  const roleList = Array.isArray(roles)
+  return Array.isArray(roles)
     ? roles.filter((role): role is string => typeof role === "string")
     : [];
+}
 
+function getAuthenticatedLandingPath(accessToken: string | undefined) {
+  const roleList = getRoleList(accessToken);
   if (roleList.includes("ROLE_ADMIN") || roleList.includes("ROLE_SELLER")) {
     return "/dashboard";
   }
 
   return "/profile/settings";
+}
+
+function getRoleFallbackPath(pathname: string, accessToken: string | undefined) {
+  const roleList = getRoleList(accessToken);
+  const isAdmin = roleList.includes("ROLE_ADMIN");
+  const isSeller = roleList.includes("ROLE_SELLER");
+
+  if (pathname.startsWith("/dashboard") && !isAdmin && !isSeller) {
+    return "/profile/settings";
+  }
+
+  if (pathname.startsWith("/seller")) {
+    if (isAdmin) {
+      return "/dashboard";
+    }
+
+    if (!isSeller) {
+      return "/profile/settings";
+    }
+  }
+
+  return null;
 }
 
 function clearAuthCookies(response: NextResponse) {
@@ -129,6 +154,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(
       new URL(getAuthenticatedLandingPath(accessToken), request.url),
     );
+  }
+
+  if (isProtectedRoute && isAuthenticated) {
+    const roleFallbackPath = getRoleFallbackPath(pathname, accessToken);
+    if (roleFallbackPath && roleFallbackPath !== pathname) {
+      return NextResponse.redirect(new URL(roleFallbackPath, request.url));
+    }
   }
 
   return NextResponse.next();

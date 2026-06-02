@@ -36,6 +36,7 @@ export function Sidebar() {
 
   const isAdmin = user?.roles?.includes("ROLE_ADMIN");
   const isSeller = user?.roles?.includes("ROLE_SELLER");
+  const isSellerOnly = Boolean(isSeller && !isAdmin);
   const showAdvancedPaymentConsole = false;
 
   const navItems = [
@@ -44,7 +45,7 @@ export function Sidebar() {
       href: "/dashboard/new-listing",
       label: "Đăng sản phẩm",
       icon: FilePlus2,
-      show: isAdmin || isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/dashboard/products",
@@ -56,7 +57,7 @@ export function Sidebar() {
       href: "/dashboard/chat",
       label: "Tin nhắn",
       icon: MessageCircle,
-      show: isAdmin || isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/dashboard/orders",
@@ -68,7 +69,7 @@ export function Sidebar() {
       href: "/dashboard/reviews",
       label: "Đánh giá",
       icon: Star,
-      show: isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/dashboard/payments",
@@ -92,40 +93,50 @@ export function Sidebar() {
       href: "/dashboard/shipping-profiles",
       label: "Vận chuyển",
       icon: Truck,
-      show: isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/dashboard/inventory",
       label: "Kho hàng",
       icon: ClipboardList,
-      show: isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/seller/marketing",
       label: "Marketing",
       icon: Megaphone,
-      show: isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/commissions",
       label: "Yêu cầu thiết kế",
       icon: ClipboardList,
-      show: isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/seller/custom-orders",
       label: "Thiết kế riêng",
       icon: PenTool,
-      show: isSeller,
+      show: isSellerOnly,
     },
     {
       href: "/seller/quote-templates",
       label: "Mẫu báo giá",
       icon: FileText,
-      show: isSeller,
+      show: isSellerOnly,
     },
-    { href: "/dashboard/media", label: "Thư viện ảnh", icon: Image, show: true },
-    { href: "/dashboard/settings", label: "Cài đặt", icon: Settings, show: true },
+    {
+      href: "/dashboard/media",
+      label: "Thư viện ảnh",
+      icon: Image,
+      show: isAdmin || isSeller,
+    },
+    {
+      href: "/dashboard/settings",
+      label: "Cài đặt",
+      icon: Settings,
+      show: isAdmin,
+    },
   ].filter((item) => item.show);
 
   const isNavItemActive = (href: string) => {

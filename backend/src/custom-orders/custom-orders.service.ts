@@ -1049,9 +1049,7 @@ export class CustomOrdersService {
     }
 
     if (customOrder.customerId !== userId) {
-      throw new ForbiddenException(
-        'Bạn không có quyền đánh giá đơn hàng này',
-      );
+      throw new ForbiddenException('Bạn không có quyền đánh giá đơn hàng này');
     }
 
     if (customOrder.status !== CustomOrderStatus.DELIVERED) {
@@ -1132,9 +1130,7 @@ export class CustomOrdersService {
     const isAdminRole = this.isAdmin(roles);
 
     if (!isOwner && !isAdminRole) {
-      throw new ForbiddenException(
-        'Bạn không có quyền trả lời đánh giá này',
-      );
+      throw new ForbiddenException('Bạn không có quyền trả lời đánh giá này');
     }
 
     const updatedReview = await this.prisma.customOrderReview.update({
