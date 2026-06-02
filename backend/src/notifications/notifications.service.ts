@@ -36,7 +36,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsGateway: NotificationsGateway,
-  ) { }
+  ) {}
 
   async listMine(userId: string, query: ListNotificationsQueryDto) {
     const page = Math.max(Math.floor(Number(query.page) || 1), 1);
@@ -142,10 +142,14 @@ export class NotificationsService {
     });
 
     try {
-      this.notificationsGateway.emitNotification(notification.userId, notification);
+      this.notificationsGateway.emitNotification(
+        notification.userId,
+        notification,
+      );
     } catch (error) {
       this.logger.warn(
-        `Failed to emit web socket notification to user ${notification.userId}: ${error instanceof Error ? error.message : String(error)
+        `Failed to emit web socket notification to user ${notification.userId}: ${
+          error instanceof Error ? error.message : String(error)
         }`,
       );
     }
@@ -250,7 +254,8 @@ export class NotificationsService {
     }
 
     this.logger.warn(
-      `Notification create failed for ${type} (${dedupeKey ?? 'no-dedupe'}): ${error instanceof Error ? error.message : String(error)
+      `Notification create failed for ${type} (${dedupeKey ?? 'no-dedupe'}): ${
+        error instanceof Error ? error.message : String(error)
       }`,
     );
   }

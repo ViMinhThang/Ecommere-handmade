@@ -286,7 +286,8 @@ export class CartService {
     const shouldWritePersonalization =
       dto.personalization !== undefined || product.personalizationRequired;
     const shouldWriteSelectedOptions =
-      dto.selectedOptions !== undefined || this.productHasOptionMetadata(product);
+      dto.selectedOptions !== undefined ||
+      this.productHasOptionMetadata(product);
 
     const existingItem = await this.prisma.cartItem.findUnique({
       where: {

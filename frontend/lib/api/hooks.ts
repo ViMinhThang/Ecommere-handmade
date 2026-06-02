@@ -248,10 +248,11 @@ export function useSearchSellers(params?: SellerSearchParams, enabled = true) {
   });
 }
 
-export function useUserStats() {
+export function useUserStats(enabled = true) {
   return useQuery({
     queryKey: userKeys.stats(),
     queryFn: () => usersApi.getStats(),
+    enabled,
   });
 }
 
@@ -582,10 +583,11 @@ export function useProductStats() {
   });
 }
 
-export function useShippingProfiles() {
+export function useShippingProfiles(enabled = true) {
   return useQuery({
     queryKey: shippingProfileKeys.mine(),
     queryFn: () => shippingProfilesApi.listMine(),
+    enabled,
   });
 }
 

@@ -6,17 +6,18 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import Image from "next/image"
 import { mediaApi } from "@/lib/api/media"
-import { 
-  User as UserIcon, 
-  CreditCard, 
+import {
+  User as UserIcon,
+  CreditCard,
   ClipboardList,
-  ShoppingBag, 
-  Heart, 
+  ShoppingBag,
+  Heart,
   Store,
   Settings,
   ExternalLink,
   LogOut,
-  PenTool
+  PenTool,
+  ShieldCheck,
 } from "lucide-react"
 
 export function ProfileSidebar() {
@@ -44,7 +45,13 @@ export function ProfileSidebar() {
   const registrationYear =
     user && "createdAt" in user && user.createdAt
       ? new Date(user.createdAt as string | number | Date).getFullYear()
-      : 2023
+      : new Date().getFullYear()
+
+  const roleLabel = isAdmin
+    ? "Quản trị viên"
+    : isSeller
+      ? "Người bán"
+      : "Khách hàng"
 
   return (
     <aside className="w-full md:w-72 flex-shrink-0 bg-card min-h-[600px] rounded-lg overflow-hidden border border-border/60 shadow-[0_18px_40px_-30px_rgba(84,67,60,0.45)]">
@@ -52,27 +59,36 @@ export function ProfileSidebar() {
         <div className="mb-10">
           <div className="w-20 h-20 bg-accent rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-border/50 shadow-sm relative">
             {user?.avatar ? (
-              <Image 
-                src={mediaApi.getImageUrl(user.avatar)} 
-                alt={user.name || "Avatar"} 
-                fill 
-                className="object-cover" 
+              <Image
+                src={mediaApi.getImageUrl(user.avatar)}
+                alt={user.name || "Avatar"}
+                fill
+                className="object-cover"
               />
             ) : (
               <UserIcon className="w-10 h-10 text-muted-foreground/40" />
             )}
           </div>
-          <h2 className="font-serif font-bold text-primary text-xl tracking-tight">{user?.name || "Người bán"}</h2>
+          <h2 className="font-serif font-bold text-primary text-xl tracking-tight">
+            {user?.name || "Người dùng"}
+          </h2>
           <p className="text-xs text-muted-foreground mb-4 font-medium italic">
-            Người bán từ năm {registrationYear}
+            {roleLabel} từ năm {registrationYear}
           </p>
-          <Link 
-            href={`/sellers/${user?.id}`} 
-            className="inline-flex items-center gap-1.5 text-[10px] font-bold text-primary tracking-widest uppercase hover:underline transition-all"
-          >
-            Xem hồ sơ công khai
-            <ExternalLink className="h-3 w-3" />
-          </Link>
+          {isSeller ? (
+            <Link
+              href={`/sellers/${user?.id}`}
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-primary tracking-widest uppercase hover:underline transition-all"
+            >
+              Xem hồ sơ công khai
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          ) : isAdmin ? (
+            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-primary tracking-widest uppercase">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Khu quản trị hệ thống
+            </div>
+          ) : null}
         </div>
 
         <nav className="space-y-1 -mx-8">
@@ -89,7 +105,12 @@ export function ProfileSidebar() {
                     : "text-muted-foreground border-transparent hover:bg-accent/45 hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("w-4.5 h-4.5 mr-3.5 transition-colors", isActive ? "text-primary" : "text-muted-foreground/60")} />
+                <item.icon
+                  className={cn(
+                    "w-4.5 h-4.5 mr-3.5 transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground/60",
+                  )}
+                />
                 {item.label}
               </Link>
             )

@@ -21,7 +21,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   private readonly userSelect = {
     id: true,
@@ -645,8 +645,9 @@ export class UsersService {
         AND u.status = ${UserStatus.ACTIVE}::"UserStatus"
         AND u.roles @> ARRAY[${Role.ROLE_SELLER}]::"Role"[]
         AND NOT (u.roles @> ARRAY[${Role.ROLE_ADMIN}]::"Role"[])
-        ${trimmedQuery
-        ? Prisma.sql`
+        ${
+          trimmedQuery
+            ? Prisma.sql`
               AND (
                 u.name ILIKE ${searchPattern}
                 OR COALESCE(u."shopName", '') ILIKE ${searchPattern}
@@ -656,8 +657,8 @@ export class UsersService {
                 OR COALESCE(u."shopProcessingTime", '') ILIKE ${searchPattern}
               )
             `
-        : Prisma.empty
-      }
+            : Prisma.empty
+        }
       GROUP BY u.id
       ${orderBySql}
       LIMIT ${limit}
@@ -879,24 +880,24 @@ export class UsersService {
       phone,
       ...(isSellerAccount
         ? {
-          shopName,
-          sellerTitle,
-          sellerBio,
-          sellerAbout,
-          sellerHeroImage,
-          sellerAboutImage,
-          sellerStat1Label,
-          sellerStat1Value,
-          sellerStat2Label,
-          sellerStat2Value,
-          craftSpecialty,
-          craftExperienceYears,
-          craftMaterials,
-          shopReturnPolicy: normalizedShopReturnPolicy,
-          shopShippingPolicy: normalizedShopShippingPolicy,
-          shopProcessingTime: normalizedShopProcessingTime,
-          ...(shopPolicyChanged ? { shopPolicyUpdatedAt: new Date() } : {}),
-        }
+            shopName,
+            sellerTitle,
+            sellerBio,
+            sellerAbout,
+            sellerHeroImage,
+            sellerAboutImage,
+            sellerStat1Label,
+            sellerStat1Value,
+            sellerStat2Label,
+            sellerStat2Value,
+            craftSpecialty,
+            craftExperienceYears,
+            craftMaterials,
+            shopReturnPolicy: normalizedShopReturnPolicy,
+            shopShippingPolicy: normalizedShopShippingPolicy,
+            shopProcessingTime: normalizedShopProcessingTime,
+            ...(shopPolicyChanged ? { shopPolicyUpdatedAt: new Date() } : {}),
+          }
         : {}),
     };
 

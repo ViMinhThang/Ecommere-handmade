@@ -105,7 +105,10 @@ export class FlashSalesService {
       throw new NotFoundException('One or more categories not found');
     }
 
-    if (createFlashSaleDto.productIds && createFlashSaleDto.productIds.length > 0) {
+    if (
+      createFlashSaleDto.productIds &&
+      createFlashSaleDto.productIds.length > 0
+    ) {
       const products = await this.prisma.product.findMany({
         where: { id: { in: createFlashSaleDto.productIds } },
       });
@@ -231,7 +234,11 @@ export class FlashSalesService {
     });
   }
 
-  async calculateEffectivePrice(price: number, categoryId: string, productId?: string) {
+  async calculateEffectivePrice(
+    price: number,
+    categoryId: string,
+    productId?: string,
+  ) {
     let flashSale = null;
 
     if (productId) {
@@ -348,7 +355,10 @@ export class FlashSalesService {
       }
     }
 
-    if (updateFlashSaleDto.productIds !== undefined && updateFlashSaleDto.productIds.length > 0) {
+    if (
+      updateFlashSaleDto.productIds !== undefined &&
+      updateFlashSaleDto.productIds.length > 0
+    ) {
       const products = await this.prisma.product.findMany({
         where: { id: { in: updateFlashSaleDto.productIds } },
       });
@@ -357,7 +367,8 @@ export class FlashSalesService {
       }
     }
 
-    const { categoryIds, productIds, ranges, ...flashSaleData } = updateFlashSaleDto;
+    const { categoryIds, productIds, ranges, ...flashSaleData } =
+      updateFlashSaleDto;
     const shouldReplaceCategories = categoryIds !== undefined;
     const shouldReplaceProducts = productIds !== undefined;
     const shouldReplaceRanges = ranges !== undefined;
