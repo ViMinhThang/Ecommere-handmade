@@ -3,12 +3,19 @@
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { RoleRoute } from '@/components/role-route'
+import { usePathname } from 'next/navigation'
 
 export default function SellerLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
+
+  if (pathname === '/seller/commissions') {
+    return children
+  }
+
   return (
     <RoleRoute allowedRoles={['ROLE_SELLER', 'ROLE_ADMIN']}>
       <div className='flex min-h-screen bg-background'>

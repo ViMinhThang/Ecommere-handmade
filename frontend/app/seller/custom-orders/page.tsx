@@ -132,7 +132,7 @@ export default function SellerCustomOrdersPage() {
           <h1 className='artisan-title text-4xl'>Đơn hàng thiết kế</h1>
           <p className='artisan-subtitle mt-2'>Quản lý các bản thiết kế riêng và tiến độ sản phẩm độc bản.</p>
         </div>
-        <Link href="/seller/commissions">
+        <Link href="/commissions">
           <Button className="gap-2 bg-[#A35C3D] hover:bg-[#8a4d33]">
             <Plus className="h-4 w-4" />
             Tạo thiết kế mới

@@ -140,7 +140,7 @@ export class CommissionsService {
     }));
   }
 
-  async getPost(id: string, userId: string, roles: string[]) {
+  async getPost(id: string, userId?: string, roles: string[] = []) {
     const post = await this.prisma.commissionPost.findUnique({
       where: { id },
       include: POST_INCLUDE,
@@ -148,23 +148,16 @@ export class CommissionsService {
     if (!post) throw new NotFoundException('Commission post not found');
 
     const canSeeAllProposals =
-      post.customerId === userId || this.isAdmin(roles);
+      (Boolean(userId) && post.customerId === userId) || this.isAdmin(roles);
     const mapped = this.mapPost(post);
     if (canSeeAllProposals) return mapped;
 
-    if (this.isSeller(roles)) {
-      return {
-        ...mapped,
-        proposals: mapped.proposals.filter(
-          (proposal) =>
-            proposal.sellerId === userId ||
-            proposal.status === CommissionProposalStatus.ACCEPTED,
-        ),
-      };
-    }
-
-    if (post.status === CommissionPostStatus.OPEN) {
-      return { ...mapped, proposals: [] };
+    if (
+      post.status === CommissionPostStatus.OPEN ||
+      post.status === CommissionPostStatus.ASSIGNED ||
+      post.status === CommissionPostStatus.CLOSED
+    ) {
+      return mapped;
     }
 
     throw new ForbiddenException('Cannot access this commission');

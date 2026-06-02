@@ -92,6 +92,63 @@ describe('CommissionsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('returns open commission threads publicly with visible proposals', async () => {
+    prisma.commissionPost.findUnique.mockResolvedValue({
+      id: 'commission-1',
+      customerId: 'customer-1',
+      title: 'Custom vase',
+      description: 'A tall handmade vase',
+      budgetMin: null,
+      budgetMax: { toString: () => '200000' },
+      referenceImages: [],
+      status: CommissionPostStatus.OPEN,
+      proposals: [
+        {
+          id: 'proposal-1',
+          commissionId: 'commission-1',
+          sellerId: 'seller-1',
+          message: 'I can make this with walnut and brass.',
+          proposedPrice: { toString: () => '180000' },
+          proposedLeadTime: '2 weeks',
+          sketchImageUrl: null,
+          status: CommissionProposalStatus.PENDING,
+          seller: {
+            id: 'seller-1',
+            name: 'Studio One',
+            shopName: 'Walnut Studio',
+            avatar: null,
+          },
+        },
+      ],
+      selectedProposal: null,
+    });
+
+    const result = await service.getPost('commission-1');
+
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0].proposedPrice).toBe('180000');
+    expect(result.proposals[0].seller?.shopName).toBe('Walnut Studio');
+  });
+
+  it('keeps cancelled commissions private to unrelated visitors', async () => {
+    prisma.commissionPost.findUnique.mockResolvedValue({
+      id: 'commission-1',
+      customerId: 'customer-1',
+      title: 'Custom vase',
+      description: 'A tall handmade vase',
+      budgetMin: null,
+      budgetMax: null,
+      referenceImages: [],
+      status: CommissionPostStatus.CANCELLED,
+      proposals: [],
+      selectedProposal: null,
+    });
+
+    await expect(service.getPost('commission-1')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
   it('lets an active seller submit one proposal to an open commission', async () => {
     prisma.user.findFirst.mockResolvedValue({ id: 'seller-1' });
     prisma.commissionPost.findUnique.mockResolvedValue({

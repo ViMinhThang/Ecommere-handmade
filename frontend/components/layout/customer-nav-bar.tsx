@@ -68,6 +68,16 @@ export function CustomerNavBar() {
             >
               Gian hàng
             </Link>
+            <Link
+              href="/commissions"
+              className={`font-medium transition-colors duration-300 font-headline italic tracking-tight ${
+                pathname === "/commissions" || pathname.startsWith("/commissions/")
+                  ? "border-b-2 border-primary pb-1 text-primary"
+                  : "text-muted-foreground hover:text-primary"
+              }`}
+            >
+              Commission
+            </Link>
 
             <div className="relative group">
               <Link

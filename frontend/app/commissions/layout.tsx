@@ -5,7 +5,7 @@ export const metadata = tabMetadata(
   "Theo dõi các yêu cầu thiết kế riêng và đề xuất từ studio thủ công.",
 );
 
-export default function SellerCommissionsLayout({
+export default function CommissionsLayout({
   children,
 }: {
   children: React.ReactNode;

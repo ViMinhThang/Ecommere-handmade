@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 import { CommissionsService } from './commissions.service';
@@ -17,11 +18,11 @@ import { CreateCommissionProposalDto } from './dto/create-commission-proposal.dt
 import { UpdateCommissionProposalDto } from './dto/update-commission-proposal.dto';
 
 @Controller('commissions')
-@UseGuards(JwtAuthGuard)
 export class CommissionsController {
   constructor(private readonly commissionsService: CommissionsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   createPost(
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateCommissionPostDto,
@@ -30,31 +31,35 @@ export class CommissionsController {
   }
 
   @Get('my-posts')
+  @UseGuards(JwtAuthGuard)
   listMyPosts(@Request() req: AuthenticatedRequest) {
     return this.commissionsService.listMyPosts(req.user.id);
   }
 
   @Get('open')
-  @UseGuards(RolesGuard)
-  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   listOpenPosts() {
     return this.commissionsService.listOpenPosts();
   }
 
   @Get('my-proposals')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   listMyProposals(@Request() req: AuthenticatedRequest) {
     return this.commissionsService.listMyProposals(req.user.id);
   }
 
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   getPost(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.commissionsService.getPost(id, req.user.id, req.user.roles);
+    return this.commissionsService.getPost(
+      id,
+      req.user?.id,
+      req.user?.roles ?? [],
+    );
   }
 
   @Post(':id/proposals')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   submitProposal(
     @Request() req: AuthenticatedRequest,
@@ -65,7 +70,7 @@ export class CommissionsController {
   }
 
   @Patch('proposals/:proposalId')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   updateProposal(
     @Request() req: AuthenticatedRequest,
@@ -76,7 +81,7 @@ export class CommissionsController {
   }
 
   @Patch('proposals/:proposalId/withdraw')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ROLE_SELLER', 'ROLE_ADMIN')
   withdrawProposal(
     @Request() req: AuthenticatedRequest,
@@ -86,6 +91,7 @@ export class CommissionsController {
   }
 
   @Post(':id/proposals/:proposalId/choose')
+  @UseGuards(JwtAuthGuard)
   chooseProposal(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -95,6 +101,7 @@ export class CommissionsController {
   }
 
   @Patch(':id/close')
+  @UseGuards(JwtAuthGuard)
   closePost(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.commissionsService.closePost(id, req.user.id);
   }
