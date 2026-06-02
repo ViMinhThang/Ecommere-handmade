@@ -7,6 +7,8 @@ import {
   IsInt,
   IsBoolean,
   Min,
+  Max,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -65,4 +67,48 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   sku?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  personalizationEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  personalizationRequired?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  personalizationInstructions?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  personalizationMaxLength?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optionColors?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optionMaterials?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optionSizes?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  processingTime?: string;
+
+  @IsOptional()
+  @IsString()
+  shippingProfileId?: string;
 }

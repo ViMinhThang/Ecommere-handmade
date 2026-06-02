@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, History, Leaf } from "lucide-react";
+import { ChevronDown, Clock, History, Leaf, Palette, PencilLine } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
@@ -20,8 +20,56 @@ import { ProductStory } from "@/features/product/components/product-story";
 import { ProductReviews } from "@/features/product/components/product-reviews";
 import { ProductQuestionsSection } from "@/features/product/components/product-questions";
 import { RelatedProducts } from "@/features/product/components/related-products";
+import { ShippingEtaNote } from "@/components/storefront/shipping-eta-note";
+import { ShopPoliciesNote } from "@/components/storefront/shop-policies-note";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 type ProductReviewList = Parameters<typeof ProductReviews>[0]["reviews"];
+
+function OptionPicker({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  if (options.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </Label>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = option === value;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(option)}
+              className={`min-h-10 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                selected
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-foreground hover:border-primary/60"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -113,6 +161,37 @@ function ProductDetailContent({
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [personalizationText, setPersonalizationText] = useState("");
+  const [personalizationError, setPersonalizationError] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedMaterial, setSelectedMaterial] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
+  const [optionError, setOptionError] = useState("");
+
+  const personalizationEnabled = Boolean(product.personalizationEnabled);
+  const personalizationRequired = Boolean(product.personalizationRequired);
+  const personalizationMaxLength = Math.min(
+    500,
+    Math.max(1, Number(product.personalizationMaxLength || 120)),
+  );
+  const optionColors = useMemo(
+    () => (product.optionColors || []).filter((item) => item.trim().length > 0),
+    [product.optionColors],
+  );
+  const optionMaterials = useMemo(
+    () => (product.optionMaterials || []).filter((item) => item.trim().length > 0),
+    [product.optionMaterials],
+  );
+  const optionSizes = useMemo(
+    () => (product.optionSizes || []).filter((item) => item.trim().length > 0),
+    [product.optionSizes],
+  );
+  const processingTime = product.processingTime?.trim() || "";
+  const hasProductOptions =
+    optionColors.length > 0 ||
+    optionMaterials.length > 0 ||
+    optionSizes.length > 0 ||
+    processingTime.length > 0;
 
   const averageRating = useMemo(() => {
     if (!reviews?.length) return 0;
@@ -120,18 +199,78 @@ function ProductDetailContent({
     return sum / reviews.length;
   }, [reviews]);
 
+  const buildSelectedOptions = () => {
+    if (!hasProductOptions) {
+      return undefined;
+    }
+
+    if (optionColors.length > 0 && !selectedColor) {
+      setOptionError("Vui lòng chọn màu sắc.");
+      return null;
+    }
+
+    if (optionMaterials.length > 0 && !selectedMaterial) {
+      setOptionError("Vui lòng chọn chất liệu.");
+      return null;
+    }
+
+    if (optionSizes.length > 0 && !selectedSize) {
+      setOptionError("Vui lòng chọn kích thước.");
+      return null;
+    }
+
+    return {
+      ...(selectedColor ? { color: selectedColor } : {}),
+      ...(selectedMaterial ? { material: selectedMaterial } : {}),
+      ...(selectedSize ? { size: selectedSize } : {}),
+      ...(processingTime ? { processingTime } : {}),
+    };
+  };
+
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
       window.location.href = `/login?redirect=/products/${product.id}`;
       return;
     }
+
+    const trimmedPersonalization = personalizationText.trim();
+    if (personalizationEnabled) {
+      if (personalizationRequired && !trimmedPersonalization) {
+        setPersonalizationError("Vui lòng nhập nội dung cá nhân hóa.");
+        return;
+      }
+
+      if (trimmedPersonalization.length > personalizationMaxLength) {
+        setPersonalizationError(
+          `Nội dung cá nhân hóa không được vượt quá ${personalizationMaxLength} ký tự.`,
+        );
+        return;
+      }
+    }
+
+    const selectedOptions = buildSelectedOptions();
+    if (selectedOptions === null) {
+      return;
+    }
+
     setIsAdding(true);
     try {
-      await addItem(product.id, quantity);
+      await addItem(
+        product.id,
+        quantity,
+        personalizationEnabled && trimmedPersonalization
+          ? { text: trimmedPersonalization }
+          : undefined,
+        selectedOptions,
+      );
       setAddedSuccess(true);
       setTimeout(() => setAddedSuccess(false), 2500);
-    } catch {
-      // Error handled by mutation
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Không thể thêm sản phẩm vào giỏ hàng.";
+      toast.error(message);
     } finally {
       setIsAdding(false);
     }
@@ -158,6 +297,9 @@ function ProductDetailContent({
             />
 
             <div className="space-y-4 pt-4">
+              <ShippingEtaNote profile={product.shippingProfile} />
+              <ShopPoliciesNote seller={product.seller} compact />
+
               <div className="flex items-center gap-4 p-5 rounded-xl bg-card border border-border/20 shadow-[0_4px_20px_rgba(84,67,60,0.04)]">
                 <Leaf className="text-primary w-6 h-6 stroke-[1.5]" />
                 <div>
@@ -181,6 +323,102 @@ function ProductDetailContent({
                 </div>
               </div>
             </div>
+
+            {hasProductOptions && (
+              <div className="rounded-xl border border-amber-700/15 bg-amber-50/70 p-5">
+                <div className="mb-4 flex items-start gap-3">
+                  <Palette className="mt-0.5 h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">
+                      Tùy chọn sản phẩm
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Chọn màu, chất liệu hoặc kích thước trước khi thêm vào giỏ.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <OptionPicker
+                    label="Màu sắc"
+                    options={optionColors}
+                    value={selectedColor}
+                    onChange={(value) => {
+                      setSelectedColor(value);
+                      setOptionError("");
+                    }}
+                  />
+                  <OptionPicker
+                    label="Chất liệu"
+                    options={optionMaterials}
+                    value={selectedMaterial}
+                    onChange={(value) => {
+                      setSelectedMaterial(value);
+                      setOptionError("");
+                    }}
+                  />
+                  <OptionPicker
+                    label="Kích thước"
+                    options={optionSizes}
+                    value={selectedSize}
+                    onChange={(value) => {
+                      setSelectedSize(value);
+                      setOptionError("");
+                    }}
+                  />
+
+                  {processingTime && (
+                    <div className="flex items-center gap-2 rounded-md bg-background px-3 py-2 text-sm text-foreground">
+                      <Clock className="h-4 w-4 text-primary" />
+                      <span className="font-medium">Thời gian làm:</span>
+                      <span>{processingTime}</span>
+                    </div>
+                  )}
+
+                  {optionError && (
+                    <p className="text-xs text-destructive">{optionError}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {personalizationEnabled && (
+              <div className="rounded-xl border border-primary/15 bg-primary/5 p-5">
+                <div className="mb-4 flex items-start gap-3">
+                  <PencilLine className="mt-0.5 h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">
+                      Cá nhân hóa sản phẩm
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {product.personalizationInstructions ||
+                        "Nhập nội dung shop cần dùng để cá nhân hóa sản phẩm."}
+                    </p>
+                  </div>
+                </div>
+                <Label htmlFor="personalizationText">
+                  Nội dung cá nhân hóa
+                  {personalizationRequired ? " *" : ""}
+                </Label>
+                <Textarea
+                  id="personalizationText"
+                  value={personalizationText}
+                  maxLength={personalizationMaxLength}
+                  onChange={(event) => {
+                    setPersonalizationText(event.target.value);
+                    setPersonalizationError("");
+                  }}
+                  placeholder="Ví dụ: Khắc tên An, màu chữ nâu, kèm lời nhắn tặng sinh nhật."
+                  className="mt-2 min-h-28 bg-background"
+                />
+                <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                  <p className="text-destructive">{personalizationError}</p>
+                  <p className="ml-auto text-muted-foreground">
+                    {personalizationText.length}/{personalizationMaxLength} ký tự
+                  </p>
+                </div>
+              </div>
+            )}
 
             <ProductActions
               product={product}

@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
+import { CreateShipmentTrackingEventDto } from './dto/create-shipment-tracking-event.dto';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { PaymentReliabilityService } from './payment-reliability.service';
@@ -197,6 +198,7 @@ export class OrdersController {
   @Roles('ROLE_ADMIN')
   @Patch('admin/:id/status')
   async updateAdminOrderStatus(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body('status') status: string,
   ) {
@@ -206,7 +208,40 @@ export class OrdersController {
       throw new BadRequestException('Status is required');
     }
 
-    return this.ordersService.updateAdminOrderStatus(id, normalizedStatus);
+    return this.ordersService.updateAdminOrderStatus(
+      id,
+      normalizedStatus,
+      req.user.id,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('sub-order/:id/tracking')
+  async getSubOrderTracking(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.ordersService.findSubOrderTrackingEvents(
+      req.user.id,
+      req.user.roles,
+      id,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  @Post('sub-order/:id/tracking')
+  async createSubOrderTracking(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: CreateShipmentTrackingEventDto,
+  ) {
+    return this.ordersService.createSubOrderTrackingEvent(
+      req.user.id,
+      req.user.roles,
+      id,
+      dto,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

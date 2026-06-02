@@ -163,6 +163,88 @@ describe('FlashSalesService', () => {
     expect(tx.flashSale.update.mock.calls[0][0].data).not.toHaveProperty(
       'reservedUnits',
     );
+    expect(tx.flashSaleCategory.deleteMany).not.toHaveBeenCalled();
+    expect(tx.flashSaleRange.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps existing categories and ranges when updating fields without them', async () => {
+    prisma.flashSale.findUnique.mockResolvedValue(existingFlashSale());
+
+    await service.update('flash-sale-1', {
+      name: 'Updated Sale',
+      isActive: false,
+    });
+
+    expect(tx.flashSaleCategory.deleteMany).not.toHaveBeenCalled();
+    expect(tx.flashSaleRange.deleteMany).not.toHaveBeenCalled();
+    expect(tx.flashSale.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Updated Sale',
+          isActive: false,
+          categories: undefined,
+          ranges: undefined,
+        }),
+      }),
+    );
+  });
+
+  it('replaces categories only when categoryIds are provided', async () => {
+    prisma.flashSale.findUnique.mockResolvedValue(existingFlashSale());
+    prisma.category.findMany.mockResolvedValue([{ id: 'cat-2' }]);
+
+    await service.update('flash-sale-1', { categoryIds: ['cat-2'] });
+
+    expect(tx.flashSaleCategory.deleteMany).toHaveBeenCalledWith({
+      where: { flashSaleId: 'flash-sale-1' },
+    });
+    expect(tx.flashSaleRange.deleteMany).not.toHaveBeenCalled();
+    expect(tx.flashSale.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          categories: { create: [{ categoryId: 'cat-2' }] },
+          ranges: undefined,
+        }),
+      }),
+    );
+  });
+
+  it('replaces ranges only when ranges are provided', async () => {
+    prisma.flashSale.findUnique.mockResolvedValue(existingFlashSale());
+    const rangeEndDate = '2030-06-02T00:00:00.000Z';
+
+    await service.update('flash-sale-1', {
+      ranges: [
+        {
+          minPrice: 100,
+          maxPrice: 1000,
+          discountPercent: 15,
+          endDate: rangeEndDate,
+        },
+      ],
+    });
+
+    expect(tx.flashSaleCategory.deleteMany).not.toHaveBeenCalled();
+    expect(tx.flashSaleRange.deleteMany).toHaveBeenCalledWith({
+      where: { flashSaleId: 'flash-sale-1' },
+    });
+    expect(tx.flashSale.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          categories: undefined,
+          ranges: {
+            create: [
+              {
+                minPrice: 100,
+                maxPrice: 1000,
+                discountPercent: 15,
+                endDate: new Date(rangeEndDate),
+              },
+            ],
+          },
+        }),
+      }),
+    );
   });
 
   it('rejects update perUserLimit greater than existing maxUnits', async () => {
@@ -221,6 +303,54 @@ describe('FlashSalesService', () => {
       originalPrice: 500,
       discountedPrice: 500,
       discountPercent: 0,
+      flashSaleId: 'flash-sale-1',
+    });
+  });
+
+  it('applies flash sale ranges inclusively at maxPrice boundary', async () => {
+    prisma.flashSale.findFirst.mockResolvedValue({
+      id: 'flash-sale-1',
+      ranges: [
+        {
+          minPrice: 100,
+          maxPrice: 1000,
+          discountPercent: 10,
+          endDate: new Date('2030-01-01T00:00:00.000Z'),
+          deletedAt: null,
+        },
+      ],
+    });
+
+    const result = await service.calculateEffectivePrice(1000, 'cat-1');
+
+    expect(result).toEqual({
+      originalPrice: 1000,
+      discountedPrice: 900,
+      discountPercent: 10,
+      flashSaleId: 'flash-sale-1',
+    });
+  });
+
+  it('treats null maxPrice as no upper bound defensively', async () => {
+    prisma.flashSale.findFirst.mockResolvedValue({
+      id: 'flash-sale-1',
+      ranges: [
+        {
+          minPrice: 100,
+          maxPrice: null,
+          discountPercent: 10,
+          endDate: new Date('2030-01-01T00:00:00.000Z'),
+          deletedAt: null,
+        },
+      ],
+    });
+
+    const result = await service.calculateEffectivePrice(5000, 'cat-1');
+
+    expect(result).toEqual({
+      originalPrice: 5000,
+      discountedPrice: 4500,
+      discountPercent: 10,
       flashSaleId: 'flash-sale-1',
     });
   });

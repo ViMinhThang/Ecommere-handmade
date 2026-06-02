@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListNotificationsQueryDto } from './dto/list-notifications-query.dto';
+import { NotificationsGateway } from './notifications.gateway';
 
 export interface CreateNotificationInput {
   userId: string;
@@ -32,7 +33,10 @@ export interface CreateManyNotificationsInput extends Omit<
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsGateway: NotificationsGateway,
+  ) { }
 
   async listMine(userId: string, query: ListNotificationsQueryDto) {
     const page = Math.max(Math.floor(Number(query.page) || 1), 1);
@@ -124,7 +128,7 @@ export class NotificationsService {
   }
 
   async createForUser(input: CreateNotificationInput) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId: input.userId,
         type: input.type,
@@ -136,6 +140,17 @@ export class NotificationsService {
         readAt: input.readAt ?? null,
       },
     });
+
+    try {
+      this.notificationsGateway.emitNotification(notification.userId, notification);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to emit web socket notification to user ${notification.userId}: ${error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    return notification;
   }
 
   async createManyForUsers(input: CreateManyNotificationsInput) {
@@ -235,8 +250,7 @@ export class NotificationsService {
     }
 
     this.logger.warn(
-      `Notification create failed for ${type} (${dedupeKey ?? 'no-dedupe'}): ${
-        error instanceof Error ? error.message : String(error)
+      `Notification create failed for ${type} (${dedupeKey ?? 'no-dedupe'}): ${error instanceof Error ? error.message : String(error)
       }`,
     );
   }

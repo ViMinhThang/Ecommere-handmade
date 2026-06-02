@@ -40,6 +40,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { mediaApi } from "@/lib/api/media";
+import { PersonalizationNote } from "@/components/storefront/personalization-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
+import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
+import { ShipmentTrackingTimeline } from "@/components/orders/shipment-tracking-timeline";
+import { ShippingEtaNote } from "@/components/storefront/shipping-eta-note";
 
 type ReviewableOrderItem = OrderItem & {
   review?: { rating: number } | null;
@@ -374,6 +379,29 @@ export default function OrderDetailPage() {
             </div>
           )}
 
+          <div className="bg-card rounded-2xl p-8 border border-border/60 text-card-foreground shadow-sm">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif italic text-2xl text-primary">
+                  Theo dõi vận chuyển
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Các cập nhật mới nhất từ shop và đơn vị vận chuyển.
+                </p>
+              </div>
+              <Truck className="h-6 w-6 text-primary/60" />
+            </div>
+            <ShippingEtaNote subOrder={subOrder} className="mb-5" />
+            <ShipmentTrackingTimeline
+              events={subOrder.trackingEvents}
+              status={subOrder.status}
+              trackingUrlTemplate={
+                subOrder.shippingProfileSnapshot?.trackingUrlTemplate
+              }
+              emptyMessage="Shop chưa thêm cập nhật vận chuyển cho kiện hàng này."
+            />
+          </div>
+
           {/* Items Detail */}
           <div className="bg-card rounded-2xl border border-border/60 text-card-foreground shadow-sm overflow-hidden">
             <div className="p-8 border-b border-border/20 bg-muted/10">
@@ -426,6 +454,8 @@ export default function OrderDetailPage() {
                       <p className="text-sm text-muted-foreground line-clamp-2 italic leading-relaxed">
                         {item.product.description}
                       </p>
+                      <PersonalizationNote personalization={item.personalization} />
+                      <ProductOptionsNote selectedOptions={item.selectedOptions} />
 
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-6">
@@ -598,6 +628,15 @@ export default function OrderDetailPage() {
               </p>
             </div>
           </div>
+
+          <GiftOptionsNote
+            giftWrap={subOrder.order.giftWrap}
+            giftCard={subOrder.order.giftCard}
+            giftMessage={subOrder.order.giftMessage}
+            giftWrapTierSnapshot={subOrder.order.giftWrapTierSnapshot}
+            giftWrapFee={subOrder.order.giftWrapFee}
+            className="rounded-2xl border-border/60 bg-card p-8 text-card-foreground shadow-sm"
+          />
         </div>
       </div>
 

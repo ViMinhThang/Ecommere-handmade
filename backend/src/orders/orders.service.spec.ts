@@ -17,6 +17,7 @@ import { StripeService } from '../stripe/stripe.service';
 import { SettingsService } from '../settings/settings.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { OrdersService } from './orders.service';
+import { VouchersService } from '../vouchers/vouchers.service';
 
 type OrderFindUniqueArgs = {
   where: {
@@ -95,6 +96,18 @@ describe('OrdersService', () => {
       updateMany: jest.fn(),
       upsert: jest.fn(),
     },
+    voucher: {
+      findFirst: jest.fn(),
+    },
+    voucherUsage: {
+      count: jest.fn(),
+    },
+    shippingProfile: {
+      findFirst: jest.fn(),
+    },
+    giftWrapTier: {
+      findFirst: jest.fn(),
+    },
     inventoryLog: {
       create: jest.fn(),
     },
@@ -123,6 +136,11 @@ describe('OrdersService', () => {
     refundRedeemedPointsForOrder: jest.fn(),
     awardOrderCompletionPoints: jest.fn(),
   };
+  const mockVouchers = {
+    assertVoucherUsageAvailable: jest.fn(),
+    findMatchingRange: jest.fn(),
+    calculateDiscountAmount: jest.fn(),
+  };
 
   const shippingAddress = {
     fullName: 'Customer',
@@ -144,6 +162,8 @@ describe('OrdersService', () => {
       {
         productId: 'product_1',
         quantity: 1,
+        personalization: null,
+        selectedOptions: null,
         pricing: { discountedPrice: 100000, originalPrice: 100000 },
         product: {
           id: 'product_1',
@@ -163,6 +183,42 @@ describe('OrdersService', () => {
     ...overrides,
   });
 
+  const buildVoucherCart = (overrides: Record<string, unknown> = {}) =>
+    buildCart({
+      discountAmount: 10000,
+      total: 90000,
+      appliedVoucher: {
+        code: 'HANDMADE10',
+        discountAmount: 10000,
+        discountPercent: 10,
+        categoryId: 'cat_1',
+        sellerId: null,
+      },
+      ...overrides,
+    });
+
+  const buildVoucher = (overrides: Record<string, unknown> = {}) => ({
+    id: 'voucher_1',
+    code: 'HANDMADE10',
+    categoryId: 'cat_1',
+    isActive: true,
+    endDate: new Date(Date.now() + 60 * 60 * 1000),
+    maxDiscountAmount: null,
+    usageLimit: null,
+    perUserLimit: null,
+    usedCount: 0,
+    ranges: [
+      {
+        minPrice: 0,
+        maxPrice: 200000,
+        discountPercent: 10,
+        endDate: new Date(Date.now() + 60 * 60 * 1000),
+        deletedAt: null,
+      },
+    ],
+    ...overrides,
+  });
+
   const buildFlashSaleCart = (overrides: Record<string, unknown> = {}) =>
     buildCart({
       subtotal: 90000,
@@ -171,6 +227,8 @@ describe('OrdersService', () => {
         {
           productId: 'product_1',
           quantity: 1,
+          personalization: null,
+          selectedOptions: null,
           pricing: {
             originalPrice: 100000,
             discountedPrice: 90000,
@@ -256,6 +314,8 @@ describe('OrdersService', () => {
             price: 100000,
             originalPrice: 100000,
             platformDiscountAmount: 0,
+            personalization: null,
+            selectedOptions: null,
           },
         ],
       },
@@ -358,6 +418,10 @@ describe('OrdersService', () => {
     mockPrisma.flashSale.findFirst.mockResolvedValue(null);
     mockPrisma.flashSale.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.flashSaleUserUsage.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.voucher.findFirst.mockResolvedValue(null);
+    mockPrisma.voucherUsage.count.mockResolvedValue(0);
+    mockPrisma.shippingProfile.findFirst.mockResolvedValue(null);
+    mockPrisma.giftWrapTier.findFirst.mockResolvedValue(null);
     mockPrisma.inventoryLog.create.mockResolvedValue({ id: 'inv_1' });
     mockPrisma.$queryRaw.mockResolvedValue([{ id: 'flash_sale_1' }]);
     mockPrisma.cart.findUnique.mockResolvedValue(null);
@@ -387,6 +451,14 @@ describe('OrdersService', () => {
     mockRewards.redeemForOrder.mockResolvedValue(null);
     mockRewards.refundRedeemedPointsForOrder.mockResolvedValue(null);
     mockRewards.awardOrderCompletionPoints.mockResolvedValue(null);
+    mockVouchers.assertVoucherUsageAvailable.mockResolvedValue(undefined);
+    mockVouchers.findMatchingRange.mockImplementation((ranges) => ranges[0]);
+    mockVouchers.calculateDiscountAmount.mockImplementation(
+      (_voucher, range, eligibleSubtotal) =>
+        Math.round(
+          (Number(eligibleSubtotal) * Number(range.discountPercent)) / 100,
+        ),
+    );
     mockPrisma.$transaction.mockImplementation(
       (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma),
     );
@@ -399,6 +471,7 @@ describe('OrdersService', () => {
         { provide: CartService, useValue: mockCart },
         { provide: SettingsService, useValue: mockSettings },
         { provide: RewardsService, useValue: mockRewards },
+        { provide: VouchersService, useValue: mockVouchers },
       ],
     }).compile();
 
@@ -865,6 +938,98 @@ describe('OrdersService', () => {
     });
   });
 
+  it('copies cart item personalization into order item snapshots', async () => {
+    const cart = buildCart();
+    mockCart.getCart.mockResolvedValue({
+      ...cart,
+      items: [
+        {
+          ...cart.items[0],
+          personalization: { text: 'Khắc tên Linh' },
+          selectedOptions: {
+            color: 'Đỏ rượu',
+            material: 'Nhung',
+            size: 'M',
+            processingTime: '2-3 ngày',
+          },
+        },
+      ],
+    });
+
+    await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.COD,
+    );
+
+    const itemCreateCall =
+      mockPrisma.orderItem.createMany.mock.calls.at(-1)?.[0];
+    expect(itemCreateCall?.data[0]).toMatchObject({
+      productId: 'product_1',
+      quantity: 1,
+      personalization: { text: 'Khắc tên Linh' },
+      selectedOptions: {
+        color: 'Đỏ rượu',
+        material: 'Nhung',
+        size: 'M',
+        processingTime: '2-3 ngày',
+      },
+    });
+    expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('adds selected gift wrap tier fee and snapshot to checkout order', async () => {
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockPrisma.giftWrapTier.findFirst.mockResolvedValue({
+      id: 'gift_wrap_1',
+      name: 'Hộp quà cao cấp',
+      description: 'Hộp cứng và ruy băng',
+      price: 35000,
+      includesCard: true,
+    });
+
+    await service.checkout(
+      'customer_1',
+      {
+        shippingAddress,
+        giftWrap: true,
+        giftWrapTierId: 'gift_wrap_1',
+        giftMessage: 'Chúc mừng sinh nhật',
+      },
+      PaymentMethod.COD,
+    );
+
+    const orderCreateCall = mockPrisma.order.create.mock.calls.at(-1)?.[0];
+    expect(orderCreateCall?.data).toMatchObject({
+      totalAmount: 160000,
+      giftWrap: true,
+      giftCard: true,
+      giftMessage: 'Chúc mừng sinh nhật',
+      giftWrapTierId: 'gift_wrap_1',
+      giftWrapFee: 35000,
+      giftWrapTierSnapshot: expect.objectContaining({
+        tierId: 'gift_wrap_1',
+        name: 'Hộp quà cao cấp',
+        price: 35000,
+        includesCard: true,
+      }),
+    });
+  });
+
+  it('rejects checkout when gift wrap is selected without a tier', async () => {
+    mockCart.getCart.mockResolvedValue(buildCart());
+
+    await expect(
+      service.checkout(
+        'customer_1',
+        { shippingAddress, giftWrap: true },
+        PaymentMethod.COD,
+      ),
+    ).rejects.toThrow('Gift wrap tier is required');
+
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+  });
+
   it('reuses existing checkout for the same missing-key payload fallback', async () => {
     mockCart.getCart.mockResolvedValue(buildCart());
     mockPrisma.order.findFirst.mockResolvedValue(buildReusableOrder());
@@ -973,6 +1138,156 @@ describe('OrdersService', () => {
     expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
     expect(mockPrisma.product.updateMany).not.toHaveBeenCalled();
     expectNoFlashSaleCounterWrites();
+  });
+
+  it('records voucher usage when checkout succeeds with an applied voucher', async () => {
+    mockCart.getCart.mockResolvedValue(buildVoucherCart());
+    mockPrisma.voucher.findFirst.mockResolvedValue(buildVoucher());
+
+    const result = await service.checkout(
+      'customer_1',
+      { shippingAddress },
+      PaymentMethod.COD,
+    );
+
+    expect(result).toMatchObject({
+      orderId: 'order_1',
+      paymentMethod: PaymentMethod.COD,
+      requiresPayment: false,
+    });
+    expect(mockPrisma.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          voucherCode: 'HANDMADE10',
+          discountAmount: 10000,
+          totalAmount: 115000,
+        }),
+      }),
+    );
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(getRawSqlText(0)).toContain('INSERT INTO "VoucherUsage"');
+    expect(getRawSqlText(1)).toContain('UPDATE "Voucher"');
+    expect(mockPrisma.cartItem.deleteMany).toHaveBeenCalledWith({
+      where: { cartId: 'cart_1' },
+    });
+  });
+
+  it('rejects checkout when the applied voucher is no longer valid', async () => {
+    mockCart.getCart.mockResolvedValue(buildVoucherCart());
+    mockPrisma.voucher.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow('Voucher is no longer valid. Please refresh your cart.');
+
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('rejects checkout when voucher discount no longer matches the cart', async () => {
+    mockCart.getCart.mockResolvedValue(
+      buildVoucherCart({
+        appliedVoucher: {
+          code: 'HANDMADE10',
+          discountAmount: 15000,
+          discountPercent: 10,
+          categoryId: 'cat_1',
+          sellerId: null,
+        },
+        discountAmount: 15000,
+        total: 85000,
+      }),
+    );
+    mockPrisma.voucher.findFirst.mockResolvedValue(buildVoucher());
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow('Voucher discount changed. Please refresh your cart.');
+
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('rejects checkout when voucher usage limit reservation fails', async () => {
+    mockCart.getCart.mockResolvedValue(buildVoucherCart());
+    mockPrisma.voucher.findFirst.mockResolvedValue(buildVoucher());
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([{ id: 'usage_1' }])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow(
+      'Voucher usage limit has been reached. Please refresh your cart.',
+    );
+
+    expect(mockPrisma.cartItem.deleteMany).not.toHaveBeenCalled();
+    expect(mockPrisma.cart.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects checkout when per-user voucher usage reservation fails', async () => {
+    mockCart.getCart.mockResolvedValue(buildVoucherCart());
+    mockPrisma.voucher.findFirst.mockResolvedValue(buildVoucher());
+    mockPrisma.$queryRaw.mockResolvedValueOnce([]);
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow(
+      'Voucher usage limit has been reached. Please refresh your cart.',
+    );
+
+    expect(mockPrisma.cartItem.deleteMany).not.toHaveBeenCalled();
+    expect(mockPrisma.cart.update).not.toHaveBeenCalled();
+  });
+
+  it('does not record voucher usage when checkout transaction fails before order creation', async () => {
+    mockCart.getCart.mockResolvedValue(buildVoucherCart());
+    mockPrisma.voucher.findFirst.mockResolvedValue(buildVoucher());
+    mockPrisma.product.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.checkout('customer_1', { shippingAddress }, PaymentMethod.COD),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('does not double count voucher usage when an idempotent checkout is reused', async () => {
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    mockPrisma.order.findFirst.mockResolvedValue(
+      buildReusableOrder({
+        voucherCode: 'HANDMADE10',
+        discountAmount: 10000,
+        totalAmount: 115000,
+        paymentExpiresAt: expiresAt,
+      }),
+    );
+    mockStripe.retrievePaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'secret_1',
+      status: 'requires_payment_method',
+      amount: 115000,
+      currency: 'vnd',
+      metadata: {},
+    });
+
+    const result = await service.checkout(
+      'customer_1',
+      {
+        idempotencyKey: 'checkout-key-1',
+        shippingAddress,
+      },
+      PaymentMethod.STRIPE,
+    );
+
+    expect(result).toMatchObject({
+      orderId: 'order_1',
+      clientSecret: 'secret_1',
+      requiresPayment: true,
+    });
+    expect(mockCart.getCart).not.toHaveBeenCalled();
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('does not create an order when PaymentIntent creation fails', async () => {
@@ -1214,6 +1529,8 @@ describe('OrdersService', () => {
           {
             productId: 'product_1',
             quantity: 1,
+            personalization: null,
+            selectedOptions: null,
             pricing: {
               originalPrice: 100000,
               discountedPrice: 90000,

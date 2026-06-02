@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { apiClient } from "@/lib/api/client";
@@ -12,13 +13,18 @@ import {
   useAddresses,
   useAddAddress,
   useCart,
-  useRewardBalance,
+  useGiftWrapTiers,
+  cartKeys,
 } from "@/lib/api/hooks";
+import { cartApi } from "@/lib/api/cart";
 import { mediaApi } from "@/lib/api/media";
 import { formatCurrency } from "@/lib/utils";
 import type { Address } from "@/types";
 import { Button } from "@/components/ui/button";
 import { SafeImage } from "@/components/ui/safe-image";
+import { PersonalizationNote } from "@/components/storefront/personalization-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
+import { ShippingEtaNote } from "@/components/storefront/shipping-eta-note";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +35,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, MapPin, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  CheckCircle2,
+  Gift,
+  MapPin,
+  MessageSquareText,
+  Plus,
+  Tag,
+  Ticket,
+  X,
+} from "lucide-react";
 
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
@@ -65,16 +81,53 @@ const emptyAddressFormData: AddressFormData = {
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
+  const message = error instanceof Error ? error.message : fallback;
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("personalization")) {
+    return "Một sản phẩm cần nội dung cá nhân hóa. Vui lòng quay lại sản phẩm hoặc giỏ hàng để kiểm tra.";
+  }
+
+  return message;
+}
+
+function getVoucherErrorMessage(error: unknown) {
+  const message = getErrorMessage(error, "Không thể áp dụng mã giảm giá.");
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("expired")) {
+    return "Mã giảm giá đã hết hạn.";
+  }
+  if (normalized.includes("inactive") || normalized.includes("not found")) {
+    return "Mã giảm giá không hợp lệ hoặc chưa được kích hoạt.";
+  }
+  if (
+    normalized.includes("cannot be applied") ||
+    normalized.includes("category") ||
+    normalized.includes("range") ||
+    normalized.includes("min")
+  ) {
+    return "Đơn hàng chưa đủ điều kiện áp dụng mã giảm giá này.";
+  }
+  if (
+    normalized.includes("usage limit") ||
+    normalized.includes("limit has been reached")
+  ) {
+    return "Mã giảm giá đã hết lượt sử dụng.";
+  }
+
+  return message;
 }
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: user } = useMe();
   const { data: addresses } = useAddresses(user?.id || "");
   const { mutate: addAddress, isPending: isSavingAddress } = useAddAddress();
   const { data: cart } = useCart();
-  const rewardBalanceQuery = useRewardBalance(Boolean(user));
+  const { data: giftWrapTiers = [], isLoading: isGiftWrapTiersLoading } =
+    useGiftWrapTiers();
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [checkoutOrderId, setCheckoutOrderId] = useState("");
@@ -100,11 +153,50 @@ export default function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressFormData, setAddressFormData] =
     useState<AddressFormData>(emptyAddressFormData);
-  const [rewardPointsToRedeem, setRewardPointsToRedeem] = useState(0);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
+  const [isRemovingVoucher, setIsRemovingVoucher] = useState(false);
+  const [giftOptions, setGiftOptions] = useState({
+    giftWrap: false,
+    giftWrapTierId: "",
+    giftCard: false,
+    giftMessage: "",
+  });
 
   const savedAddresses = addresses || [];
   const selectedAddress =
     savedAddresses.find((address) => address.id === selectedAddressId) || null;
+  const selectedGiftWrapTier =
+    giftWrapTiers.find((tier) => tier.id === giftOptions.giftWrapTierId) ||
+    null;
+
+  useEffect(() => {
+    if (clientSecret || !giftOptions.giftWrap) {
+      return;
+    }
+
+    if (giftWrapTiers.length === 0) {
+      setGiftOptions((current) => ({
+        ...current,
+        giftWrapTierId: "",
+      }));
+      return;
+    }
+
+    if (!giftWrapTiers.some((tier) => tier.id === giftOptions.giftWrapTierId)) {
+      setGiftOptions((current) => ({
+        ...current,
+        giftWrapTierId: giftWrapTiers[0].id,
+        giftCard: current.giftCard || giftWrapTiers[0].includesCard,
+      }));
+    }
+  }, [
+    clientSecret,
+    giftOptions.giftWrap,
+    giftOptions.giftWrapTierId,
+    giftWrapTiers,
+  ]);
 
   useEffect(() => {
     if (!addresses || addresses.length === 0) {
@@ -217,6 +309,64 @@ export default function CheckoutPage() {
     }
   }, [formData.email, user]);
 
+  const handleApplyVoucher = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (clientSecret) {
+      toast.error("Không thể đổi mã giảm giá sau khi đã tạo phiên thanh toán.");
+      return;
+    }
+
+    const code = voucherCode.trim().toUpperCase();
+    if (!code) {
+      const message = "Vui lòng nhập mã giảm giá.";
+      setVoucherError(message);
+      toast.error(message);
+      return;
+    }
+
+    setIsApplyingVoucher(true);
+    setVoucherError(null);
+
+    try {
+      const updatedCart = await cartApi.applyVoucher(code);
+      queryClient.setQueryData(cartKeys.cart(), updatedCart);
+      await queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      setVoucherCode("");
+      toast.success(`Đã áp dụng mã ${updatedCart.appliedVoucher?.code || code}.`);
+    } catch (error) {
+      const message = getVoucherErrorMessage(error);
+      setVoucherError(message);
+      toast.error(message);
+    } finally {
+      setIsApplyingVoucher(false);
+    }
+  };
+
+  const handleRemoveVoucher = async () => {
+    if (clientSecret) {
+      toast.error("Không thể xóa mã giảm giá sau khi đã tạo phiên thanh toán.");
+      return;
+    }
+
+    setIsRemovingVoucher(true);
+    setVoucherError(null);
+
+    try {
+      const updatedCart = await cartApi.removeVoucher();
+      queryClient.setQueryData(cartKeys.cart(), updatedCart);
+      await queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      setVoucherCode("");
+      toast.success("Đã xóa mã giảm giá.");
+    } catch (error) {
+      const message = getVoucherErrorMessage(error);
+      setVoucherError(message);
+      toast.error(message);
+    } finally {
+      setIsRemovingVoucher(false);
+    }
+  };
+
   const handleInitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -224,6 +374,11 @@ export default function CheckoutPage() {
       toast.error(
         "Thanh toán thẻ trực tuyến chưa được cấu hình. Vui lòng chọn COD hoặc thiết lập khóa Stripe thử nghiệm.",
       );
+      return;
+    }
+
+    if (giftOptions.giftWrap && !selectedGiftWrapTier) {
+      toast.error("Vui lòng chọn mức gói quà trước khi đặt hàng.");
       return;
     }
 
@@ -239,8 +394,16 @@ export default function CheckoutPage() {
           ward: formData.ward,
           address: formData.street,
         },
+        giftWrap: giftOptions.giftWrap,
+        giftWrapTierId: giftOptions.giftWrap
+          ? giftOptions.giftWrapTierId
+          : undefined,
+        giftCard:
+          giftOptions.giftCard ||
+          giftOptions.giftMessage.trim().length > 0 ||
+          Boolean(selectedGiftWrapTier?.includesCard),
+        giftMessage: giftOptions.giftMessage.trim() || undefined,
         paymentMethod,
-        rewardPointsToRedeem: normalizedRewardPointsToRedeem,
       });
 
       if (!data?.orderId) {
@@ -288,35 +451,33 @@ export default function CheckoutPage() {
 
   const subtotal = cart?.subtotal || 0;
   const discountAmount = cart?.discountAmount || 0;
-  const shipping = 25000;
-  const baseTotal = (cart?.total || 0) + shipping;
-  const rewardBalance = rewardBalanceQuery.data;
-  const rewardVndPerPoint = rewardBalance?.redeemVndPerPoint || 0;
-  const maxRedeemByTotal =
-    rewardVndPerPoint > 0 && baseTotal > 1
-      ? Math.floor((baseTotal - 1) / rewardVndPerPoint)
-      : 0;
-  const maxRedeemPoints = Math.max(
+  const productOriginalSubtotal =
+    cart?.items.reduce(
+      (sum, item) =>
+        sum +
+        (item.pricing?.originalPrice ?? Number(item.product.price)) *
+          item.quantity,
+      0,
+    ) || subtotal;
+  const flashSaleDiscountAmount = Math.max(
     0,
-    Math.min(rewardBalance?.balance || 0, maxRedeemByTotal),
+    productOriginalSubtotal - subtotal,
   );
-  const normalizedRewardPointsToRedeem = Math.min(
-    Math.max(0, Math.floor(rewardPointsToRedeem || 0)),
-    maxRedeemPoints,
-  );
-  const rewardDiscountAmount =
-    normalizedRewardPointsToRedeem * rewardVndPerPoint;
-  const total = Math.max(0, baseTotal - rewardDiscountAmount);
-  const estimatedEarnPoints =
-    rewardBalance?.earnVndPerPoint && total > 0
-      ? Math.floor(total / rewardBalance.earnVndPerPoint)
+  const voucherDiscountAmount =
+    cart?.appliedVoucher?.discountAmount ?? discountAmount;
+  const shipping = 25000;
+  const giftWrapFee =
+    giftOptions.giftWrap && selectedGiftWrapTier
+      ? Number(selectedGiftWrapTier.price)
       : 0;
-
-  useEffect(() => {
-    if (rewardPointsToRedeem > maxRedeemPoints) {
-      setRewardPointsToRedeem(maxRedeemPoints);
-    }
-  }, [maxRedeemPoints, rewardPointsToRedeem]);
+  const baseTotal = (cart?.total || 0) + shipping + giftWrapFee;
+  const total = baseTotal;
+  const isVoucherActionPending = isApplyingVoucher || isRemovingVoucher;
+  const hasGiftSelection =
+    giftOptions.giftWrap ||
+    giftOptions.giftCard ||
+    giftOptions.giftMessage.trim().length > 0;
+  const isCheckoutLocked = Boolean(clientSecret);
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -582,6 +743,169 @@ export default function CheckoutPage() {
 
               <section>
                 <h2 className="font-headline text-3xl italic mb-8">
+                  Gói quà / thiệp
+                </h2>
+                <div className="space-y-4 rounded-sm border border-stone-200 bg-white/70 p-5">
+                  <label className="flex cursor-pointer items-start gap-4 rounded-sm border border-stone-200 bg-[#F8F6F1]/60 p-4">
+                    <input
+                      type="checkbox"
+                      checked={giftOptions.giftWrap}
+                      disabled={isCheckoutLocked}
+                      onChange={(event) =>
+                        setGiftOptions((current) => ({
+                          ...current,
+                          giftWrap: event.target.checked,
+                          giftWrapTierId: event.target.checked
+                            ? current.giftWrapTierId ||
+                              giftWrapTiers[0]?.id ||
+                              ""
+                            : "",
+                          giftCard: event.target.checked
+                            ? current.giftCard ||
+                              Boolean(giftWrapTiers[0]?.includesCard)
+                            : current.giftCard,
+                        }))
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-stone-900">
+                        <Gift className="h-4 w-4 text-[#8B4513]" />
+                        Gói quà thủ công
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Chọn kiểu gói quà phù hợp với sản phẩm handmade. Phí gói quà sẽ được cộng vào tổng thanh toán.
+                      </p>
+                    </div>
+                  </label>
+
+                  {giftOptions.giftWrap && (
+                    <div className="space-y-3 rounded-sm border border-amber-200 bg-amber-50/50 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-stone-900">
+                          Chọn mức gói quà
+                        </p>
+                        {giftWrapFee > 0 ? (
+                          <span className="text-xs font-semibold text-[#8B4513]">
+                            +{formatCurrency(giftWrapFee)}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {isGiftWrapTiersLoading ? (
+                        <p className="text-xs text-stone-500">
+                          Đang tải danh sách gói quà...
+                        </p>
+                      ) : giftWrapTiers.length === 0 ? (
+                        <p className="text-xs text-amber-700">
+                          Hiện chưa có mức gói quà khả dụng. Vui lòng bỏ chọn gói quà hoặc thử lại sau.
+                        </p>
+                      ) : (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {giftWrapTiers.map((tier) => {
+                            const selected =
+                              giftOptions.giftWrapTierId === tier.id;
+
+                            return (
+                              <button
+                                key={tier.id}
+                                type="button"
+                                disabled={isCheckoutLocked}
+                                onClick={() =>
+                                  setGiftOptions((current) => ({
+                                    ...current,
+                                    giftWrap: true,
+                                    giftWrapTierId: tier.id,
+                                    giftCard:
+                                      current.giftCard || tier.includesCard,
+                                  }))
+                                }
+                                className={`rounded-sm border p-4 text-left transition ${
+                                  selected
+                                    ? "border-[#8B4513] bg-white shadow-sm"
+                                    : "border-stone-200 bg-white/70 hover:border-[#8B4513]/50"
+                                } ${isCheckoutLocked ? "cursor-not-allowed opacity-70" : ""}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-stone-900">
+                                      {tier.name}
+                                    </p>
+                                    {tier.description ? (
+                                      <p className="mt-1 text-xs leading-5 text-stone-500">
+                                        {tier.description}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <span className="shrink-0 text-sm font-semibold text-[#8B4513]">
+                                    {formatCurrency(Number(tier.price))}
+                                  </span>
+                                </div>
+                                {tier.includesCard ? (
+                                  <p className="mt-2 text-[11px] font-medium text-amber-700">
+                                    Đã gồm thiệp viết tay
+                                  </p>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <label className="flex cursor-pointer items-start gap-4 rounded-sm border border-stone-200 bg-[#F8F6F1]/60 p-4">
+                    <input
+                      type="checkbox"
+                      checked={giftOptions.giftCard}
+                      disabled={isCheckoutLocked}
+                      onChange={(event) =>
+                        setGiftOptions((current) => ({
+                          ...current,
+                          giftCard: event.target.checked,
+                        }))
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-stone-900">
+                        <MessageSquareText className="h-4 w-4 text-[#8B4513]" />
+                        Thiệp viết tay
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Thêm thiệp nhỏ kèm lời nhắn cho người nhận.
+                      </p>
+                    </div>
+                  </label>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gift-message">Lời nhắn tặng kèm</Label>
+                    <Textarea
+                      id="gift-message"
+                      value={giftOptions.giftMessage}
+                      maxLength={500}
+                      rows={4}
+                      disabled={isCheckoutLocked}
+                      placeholder="Ví dụ: Chúc mừng sinh nhật, mong món quà nhỏ này làm bạn vui..."
+                      onChange={(event) => {
+                        const value = event.target.value.slice(0, 500);
+                        setGiftOptions((current) => ({
+                          ...current,
+                          giftCard: current.giftCard || value.trim().length > 0,
+                          giftMessage: value,
+                        }));
+                      }}
+                      className="bg-white"
+                    />
+                    <p className="text-right text-[11px] text-stone-500">
+                      {giftOptions.giftMessage.length}/500 ký tự
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <h2 className="font-headline text-3xl italic mb-8">
                   Phương thức thanh toán
                 </h2>
                 <div className="space-y-4">
@@ -736,6 +1060,21 @@ export default function CheckoutPage() {
                       <p className="mt-1 text-xs uppercase tracking-tight text-stone-500">
                         Mã sản phẩm: {item.product.sku || "Chưa có"}
                       </p>
+                      <PersonalizationNote
+                        personalization={item.personalization}
+                        compact
+                        className="bg-white/80"
+                      />
+                      <ProductOptionsNote
+                        selectedOptions={item.selectedOptions}
+                        compact
+                        className="bg-white/80"
+                      />
+                      <ShippingEtaNote
+                        profile={item.product.shippingProfile}
+                        compact
+                        className="bg-white/80"
+                      />
                     </div>
                     <p className="mt-2 inline-flex shrink-0 whitespace-nowrap text-right font-headline text-lg italic text-[#8B4513] sm:mt-0">
                       {formatCurrency(
@@ -749,64 +1088,140 @@ export default function CheckoutPage() {
             </div>
 
             <div className="space-y-4 pt-8 border-t border-stone-200/60 text-sm">
+              <div className="space-y-4 rounded-sm border border-[#8B4513]/15 bg-white/70 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="h-4 w-4 text-[#8B4513]" />
+                    <span className="font-semibold text-stone-900">
+                      Mã giảm giá
+                    </span>
+                  </div>
+                  {cart.appliedVoucher && (
+                    <span className="rounded-full bg-[#8B4513]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#8B4513]">
+                      Đang áp dụng
+                    </span>
+                  )}
+                </div>
+
+                {cart.appliedVoucher ? (
+                  <div className="rounded-sm border border-[#8B4513]/20 bg-[#8B4513]/5 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 shrink-0 text-[#8B4513]" />
+                          <span className="truncate font-bold uppercase text-[#8B4513]">
+                            {cart.appliedVoucher.code}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-stone-500">
+                          Đã giảm {formatCurrency(voucherDiscountAmount)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveVoucher}
+                        disabled={isVoucherActionPending || Boolean(clientSecret)}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-stone-200 bg-white text-stone-500 transition-colors hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Xóa mã giảm giá"
+                      >
+                        {isRemovingVoucher ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-[#8B4513]" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleApplyVoucher} className="space-y-3">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        value={voucherCode}
+                        onChange={(event) => {
+                          setVoucherCode(event.target.value.toUpperCase());
+                          setVoucherError(null);
+                        }}
+                        disabled={isVoucherActionPending || Boolean(clientSecret)}
+                        placeholder="Nhập mã giảm giá"
+                        className="h-11 bg-white"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={
+                          isVoucherActionPending ||
+                          Boolean(clientSecret) ||
+                          !voucherCode.trim()
+                        }
+                        className="h-11 shrink-0 rounded-sm bg-[#8B4513] px-5 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#6F3610]"
+                      >
+                        {isApplyingVoucher ? "Đang áp dụng..." : "Áp dụng"}
+                      </Button>
+                    </div>
+                    {voucherError && (
+                      <p className="text-xs font-medium text-red-600">
+                        {voucherError}
+                      </p>
+                    )}
+                    {clientSecret && (
+                      <p className="text-xs text-stone-500">
+                        Phiên thanh toán đã được tạo, không thể đổi mã giảm giá
+                        ở bước này.
+                      </p>
+                    )}
+                  </form>
+                )}
+              </div>
+
+              {hasGiftSelection && (
+                <div className="rounded-sm border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-950">
+                  <div className="mb-2 flex items-center gap-2 font-semibold">
+                    <Gift className="h-4 w-4" />
+                    Gói quà / thiệp tặng kèm
+                  </div>
+                  <div className="space-y-1 text-amber-900/80">
+                    {giftOptions.giftWrap && selectedGiftWrapTier ? (
+                      <p>
+                        {selectedGiftWrapTier.name} (+{formatCurrency(giftWrapFee)})
+                      </p>
+                    ) : giftOptions.giftWrap ? (
+                      <p>Gói quà thủ công</p>
+                    ) : null}
+                    {(giftOptions.giftCard ||
+                      giftOptions.giftMessage.trim().length > 0 ||
+                      selectedGiftWrapTier?.includesCard) && (
+                      <p>Thiệp viết tay</p>
+                    )}
+                    {giftOptions.giftMessage.trim() ? (
+                      <p className="break-words">
+                        Lời nhắn: {giftOptions.giftMessage.trim()}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {flashSaleDiscountAmount > 0 && (
+                <div className="flex items-center justify-between gap-4 text-emerald-700">
+                  <span className="font-medium">Ưu đãi Flash sale</span>
+                  <span className="shrink-0 whitespace-nowrap font-semibold">
+                    -{formatCurrency(flashSaleDiscountAmount)}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-4">
                 <span className="text-stone-500 font-medium">Tạm tính</span>
                 <span className="shrink-0 whitespace-nowrap font-semibold">
                   {formatCurrency(subtotal)}
                 </span>
               </div>
-              {discountAmount > 0 && (
+              {voucherDiscountAmount > 0 && (
                 <div className="flex items-center justify-between gap-4 text-[#8B4513]">
                   <span className="font-medium">
                     Giảm giá ({cart.appliedVoucher?.code})
                   </span>
                   <span className="shrink-0 whitespace-nowrap font-semibold">
-                    -{formatCurrency(discountAmount)}
+                    -{formatCurrency(voucherDiscountAmount)}
                   </span>
-                </div>
-              )}
-              {user && (
-                <div className="space-y-3 rounded-sm border border-[#8B4513]/15 bg-white/70 p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-stone-500 font-medium">
-                      Điểm thưởng
-                    </span>
-                    <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[#8B4513]">
-                      {rewardBalanceQuery.isLoading
-                        ? "Đang tải..."
-                        : `${rewardBalance?.balance || 0} điểm`}
-                    </span>
-                  </div>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={maxRedeemPoints}
-                    step={1}
-                    value={rewardPointsToRedeem}
-                    disabled={
-                      rewardBalanceQuery.isLoading || maxRedeemPoints === 0
-                    }
-                    onChange={(event) =>
-                      setRewardPointsToRedeem(
-                        Math.max(0, Math.floor(Number(event.target.value) || 0)),
-                      )
-                    }
-                    placeholder="Nhập số điểm muốn dùng"
-                  />
-                  <div className="flex items-center justify-between gap-4 text-xs text-stone-500">
-                    <span>Dùng tối đa {maxRedeemPoints} điểm</span>
-                    {rewardDiscountAmount > 0 && (
-                      <span className="font-semibold text-[#8B4513]">
-                        -{formatCurrency(rewardDiscountAmount)}
-                      </span>
-                    )}
-                  </div>
-                  {estimatedEarnPoints > 0 && (
-                    <p className="text-xs text-stone-500">
-                      Dự kiến nhận {estimatedEarnPoints} điểm sau khi đơn hàng
-                      hoàn tất.
-                    </p>
-                  )}
                 </div>
               )}
               <div className="flex items-center justify-between gap-4">
@@ -817,6 +1232,16 @@ export default function CheckoutPage() {
                   {formatCurrency(shipping)}
                 </span>
               </div>
+              {giftWrapFee > 0 && (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-stone-500 font-medium">
+                    Phí gói quà
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap font-semibold">
+                    {formatCurrency(giftWrapFee)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="pt-12 flex flex-col">
@@ -834,44 +1259,45 @@ export default function CheckoutPage() {
                 </span>
               </div>
             </div>
+
+            <div className="mt-8 space-y-3 border-t border-stone-200/60 pt-6">
+              <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-stone-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 shrink-0 text-[#8B4513]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+                <span>Thanh toán bảo mật và mã hóa</span>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-stone-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 shrink-0 text-[#8B4513]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+                <span>Vật liệu đóng gói bền vững</span>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-12 flex flex-col gap-6 px-4">
-            <div className="flex items-center text-[10px] text-stone-500 uppercase tracking-widest font-bold">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-3 text-[#8B4513]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              Thanh toán Bảo mật & Mã hóa
-            </div>
-            <div className="flex items-center text-[10px] text-stone-500 uppercase tracking-widest font-bold">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-3 text-[#8B4513]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
-              Vật liệu đóng gói bền vững
-            </div>
-          </div>
         </div>
       </main>
 

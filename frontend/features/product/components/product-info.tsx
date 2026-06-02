@@ -30,7 +30,7 @@ export function ProductInfo({
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-3.5 h-3.5 ${i < Math.round(averageRating) ? "fill-brand text-brand" : "text-stone-200"}`}
+                    className={`w-3.5 h-3.5 ${i < Math.round(averageRating) ? "fill-primary text-primary" : "text-muted"}`}
                   />
                 ))}
               </div>

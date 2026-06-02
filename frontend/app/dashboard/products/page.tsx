@@ -17,6 +17,26 @@ import { AlertCircle, Search, Plus, Pencil, Trash2, Eye, Check, X } from 'lucide
 import { formatCurrency } from '@/lib/utils'
 import { mediaApi } from '@/lib/api/media'
 
+interface ProductSavePayload {
+  name: string
+  description: string
+  price: number
+  categoryId: string
+  images: { url: string; isMain: boolean }[]
+  stock: number
+  lowStockThreshold: number
+  sku?: string
+  personalizationEnabled?: boolean
+  personalizationRequired?: boolean
+  personalizationInstructions?: string
+  personalizationMaxLength?: number
+  optionColors?: string[]
+  optionMaterials?: string[]
+  optionSizes?: string[]
+  processingTime?: string | null
+  shippingProfileId?: string | null
+}
+
 export default function ProductsPage() {
   const router = useRouter()
   const { user } = useAuth()
@@ -81,7 +101,7 @@ export default function ProductsPage() {
     return mainImage?.url || product.images?.[0]?.url || ''
   }
 
-  const handleAddProduct = (productData: { name: string; description: string; price: number; categoryId: string; images: { url: string; isMain: boolean }[]; stock: number; lowStockThreshold: number; sku?: string }) => {
+  const handleAddProduct = (productData: ProductSavePayload) => {
     createProduct.mutate({
       name: productData.name,
       description: productData.description,
@@ -91,10 +111,19 @@ export default function ProductsPage() {
       stock: productData.stock,
       lowStockThreshold: productData.lowStockThreshold,
       sku: productData.sku,
+      personalizationEnabled: productData.personalizationEnabled,
+      personalizationRequired: productData.personalizationRequired,
+      personalizationInstructions: productData.personalizationInstructions,
+      personalizationMaxLength: productData.personalizationMaxLength,
+      optionColors: productData.optionColors,
+      optionMaterials: productData.optionMaterials,
+      optionSizes: productData.optionSizes,
+      processingTime: productData.processingTime,
+      shippingProfileId: productData.shippingProfileId,
     })
   }
 
-  const handleEditProduct = (productData: { name: string; description: string; price: number; categoryId: string; images: { url: string; isMain: boolean }[]; stock: number; lowStockThreshold: number; sku?: string }) => {
+  const handleEditProduct = (productData: ProductSavePayload) => {
     if (!selectedProduct) return
     updateProduct.mutate({
       id: selectedProduct.id,
@@ -107,6 +136,15 @@ export default function ProductsPage() {
         stock: productData.stock,
         lowStockThreshold: productData.lowStockThreshold,
         sku: productData.sku,
+        personalizationEnabled: productData.personalizationEnabled,
+        personalizationRequired: productData.personalizationRequired,
+        personalizationInstructions: productData.personalizationInstructions,
+        personalizationMaxLength: productData.personalizationMaxLength,
+        optionColors: productData.optionColors,
+        optionMaterials: productData.optionMaterials,
+        optionSizes: productData.optionSizes,
+        processingTime: productData.processingTime,
+        shippingProfileId: productData.shippingProfileId,
       },
     })
     setSelectedProduct(null)
@@ -242,7 +280,7 @@ export default function ProductsPage() {
                     <TableCell className='font-medium'>{product.name}</TableCell>
                     <TableCell>{product.seller?.shopName || '-'}</TableCell>
                     <TableCell>{product.category?.name || '-'}</TableCell>
-                    <TableCell>{formatCurrency(product.price)}</TableCell>
+                    <TableCell>{formatCurrency(Number(product.price))}</TableCell>
                     <TableCell>{getStatusBadge(product.status)}</TableCell>
                     <TableCell>{new Date(product.createdAt).toLocaleDateString('vi-VN')}</TableCell>
                     <TableCell>

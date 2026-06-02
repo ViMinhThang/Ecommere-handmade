@@ -21,6 +21,8 @@ import Link from "next/link";
 import { OrderItem, Product, ProductImage, SubOrder } from "@/types";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
+import { PersonalizationNote } from "@/components/storefront/personalization-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
 
 type CustomerSubOrder = SubOrder & {
   type?: "CUSTOM";
@@ -262,6 +264,14 @@ export default function OrdersPage() {
                             </p>
                           )}
                         </div>
+                        <PersonalizationNote
+                          personalization={item.personalization}
+                          compact
+                        />
+                        <ProductOptionsNote
+                          selectedOptions={item.selectedOptions}
+                          compact
+                        />
                       </div>
                     </div>
                   ))}
@@ -271,9 +281,12 @@ export default function OrdersPage() {
                 <div className="flex flex-wrap gap-4 pt-4 border-t border-border/20">
                   {subOrder.status === "SHIPPED" &&
                     subOrder.type !== "CUSTOM" && (
-                      <button className="btn-artisanal py-2.5 px-6 text-xs uppercase tracking-widest font-bold">
-                        Theo dõi đơn hàng
-                      </button>
+                      <Link
+                        href={`/profile/orders/${subOrder.id}`}
+                        className="btn-artisanal py-2.5 px-6 text-xs uppercase tracking-widest font-bold"
+                      >
+                        Theo dõi vận chuyển
+                      </Link>
                     )}
                   {subOrder.type === "CUSTOM" ? (
                     <Link

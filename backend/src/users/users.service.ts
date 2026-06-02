@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Prisma, ProductStatus, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,7 +21,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private readonly userSelect = {
     id: true,
@@ -40,6 +41,15 @@ export class UsersService {
     sellerStat1Value: true,
     sellerStat2Label: true,
     sellerStat2Value: true,
+    artisanVerified: true,
+    craftSpecialty: true,
+    craftExperienceYears: true,
+    craftMaterials: true,
+    shopReturnPolicy: true,
+    shopShippingPolicy: true,
+    shopProcessingTime: true,
+    shopPolicyUpdatedAt: true,
+    verificationNote: true,
     isEmailVerified: true,
     rewardPointsBalance: true,
     createdAt: true,
@@ -61,8 +71,25 @@ export class UsersService {
     sellerStat1Value: true,
     sellerStat2Label: true,
     sellerStat2Value: true,
+    artisanVerified: true,
+    craftSpecialty: true,
+    craftExperienceYears: true,
+    craftMaterials: true,
+    shopReturnPolicy: true,
+    shopShippingPolicy: true,
+    shopProcessingTime: true,
+    shopPolicyUpdatedAt: true,
     createdAt: true,
     updatedAt: true,
+  } as const;
+
+  private readonly publicSellerWithFollowerCountSelect = {
+    ...this.publicSellerSelect,
+    _count: {
+      select: {
+        shopFollowers: true,
+      },
+    },
   } as const;
 
   private normalizeSellerSearchLimit(limit?: number) {
@@ -71,6 +98,28 @@ export class UsersService {
     }
 
     return Math.min(Math.max(Math.floor(limit), 1), 24);
+  }
+
+  private normalizeNullableText(value: string | undefined) {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private hasShopPolicyPatch(
+    dto: Pick<
+      UpdateProfileDto | CreateUserDto,
+      'shopReturnPolicy' | 'shopShippingPolicy' | 'shopProcessingTime'
+    >,
+  ) {
+    return (
+      Object.prototype.hasOwnProperty.call(dto, 'shopReturnPolicy') ||
+      Object.prototype.hasOwnProperty.call(dto, 'shopShippingPolicy') ||
+      Object.prototype.hasOwnProperty.call(dto, 'shopProcessingTime')
+    );
   }
 
   private processRoles(
@@ -95,6 +144,8 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     const roles = this.processRoles(createUserDto.roles);
+    const isSellerAccount =
+      roles.includes(Role.ROLE_SELLER) && !roles.includes(Role.ROLE_ADMIN);
     const password = createUserDto.password?.trim();
     if (!password) {
       throw new BadRequestException(
@@ -112,6 +163,43 @@ export class UsersService {
         avatar: createUserDto.avatar,
         phone: createUserDto.phone,
         shopName: createUserDto.shopName,
+        sellerTitle: createUserDto.sellerTitle,
+        sellerBio: createUserDto.sellerBio,
+        sellerAbout: createUserDto.sellerAbout,
+        sellerHeroImage: createUserDto.sellerHeroImage,
+        sellerAboutImage: createUserDto.sellerAboutImage,
+        sellerStat1Label: createUserDto.sellerStat1Label,
+        sellerStat1Value: createUserDto.sellerStat1Value,
+        sellerStat2Label: createUserDto.sellerStat2Label,
+        sellerStat2Value: createUserDto.sellerStat2Value,
+        artisanVerified: isSellerAccount
+          ? (createUserDto.artisanVerified ?? false)
+          : false,
+        craftSpecialty: isSellerAccount
+          ? createUserDto.craftSpecialty
+          : undefined,
+        craftExperienceYears: isSellerAccount
+          ? createUserDto.craftExperienceYears
+          : undefined,
+        craftMaterials: isSellerAccount
+          ? (createUserDto.craftMaterials ?? [])
+          : [],
+        shopReturnPolicy: isSellerAccount
+          ? this.normalizeNullableText(createUserDto.shopReturnPolicy)
+          : undefined,
+        shopShippingPolicy: isSellerAccount
+          ? this.normalizeNullableText(createUserDto.shopShippingPolicy)
+          : undefined,
+        shopProcessingTime: isSellerAccount
+          ? this.normalizeNullableText(createUserDto.shopProcessingTime)
+          : undefined,
+        shopPolicyUpdatedAt:
+          isSellerAccount && this.hasShopPolicyPatch(createUserDto)
+            ? new Date()
+            : undefined,
+        verificationNote: isSellerAccount
+          ? createUserDto.verificationNote
+          : undefined,
         status: createUserDto.status,
         isEmailVerified: createUserDto.isEmailVerified ?? false,
       },
@@ -155,6 +243,24 @@ export class UsersService {
           avatar: true,
           phone: true,
           shopName: true,
+          sellerTitle: true,
+          sellerBio: true,
+          sellerAbout: true,
+          sellerHeroImage: true,
+          sellerAboutImage: true,
+          sellerStat1Label: true,
+          sellerStat1Value: true,
+          sellerStat2Label: true,
+          sellerStat2Value: true,
+          artisanVerified: true,
+          craftSpecialty: true,
+          craftExperienceYears: true,
+          craftMaterials: true,
+          shopReturnPolicy: true,
+          shopShippingPolicy: true,
+          shopProcessingTime: true,
+          shopPolicyUpdatedAt: true,
+          verificationNote: true,
           isEmailVerified: true,
           createdAt: true,
           updatedAt: true,
@@ -166,9 +272,35 @@ export class UsersService {
       }),
       this.prisma.user.count({ where }),
     ]);
+    const usersWithMetrics = await Promise.all(
+      data.map(async (user) => {
+        const [ordersCount, totalSpent, sales] = await Promise.all([
+          this.prisma.order.count({
+            where: { customerId: user.id },
+          }),
+          this.prisma.order.aggregate({
+            where: {
+              customerId: user.id,
+              status: { not: 'CANCELLED' },
+            },
+            _sum: { totalAmount: true },
+          }),
+          this.prisma.subOrder.count({
+            where: { sellerId: user.id },
+          }),
+        ]);
+
+        return {
+          ...user,
+          ordersCount,
+          totalSpent: Number(totalSpent._sum.totalAmount ?? 0),
+          sales,
+        };
+      }),
+    );
 
     return {
-      data,
+      data: usersWithMetrics,
       meta: {
         page,
         limit,
@@ -290,19 +422,127 @@ export class UsersService {
       where: {
         id,
         deletedAt: null,
+        status: UserStatus.ACTIVE,
         roles: { has: Role.ROLE_SELLER },
         NOT: {
           roles: { has: Role.ROLE_ADMIN },
         },
       },
-      select: this.publicSellerSelect,
+      select: this.publicSellerWithFollowerCountSelect,
     });
 
     if (!seller) {
       throw new NotFoundException('Seller not found');
     }
 
-    return seller;
+    return {
+      ...this.formatPublicSeller(seller),
+      ...(await this.getShopRatingFields(id)),
+    };
+  }
+
+  async getShopFollowStatus(
+    customerId: string,
+    roles: string[],
+    sellerId: string,
+  ) {
+    this.assertCanUseShopFollow(customerId, roles, sellerId);
+    await this.assertFollowableSeller(sellerId);
+
+    const [existingFollow, followerCount] = await Promise.all([
+      this.prisma.shopFollow.findUnique({
+        where: {
+          customerId_sellerId: {
+            customerId,
+            sellerId,
+          },
+        },
+        select: { id: true },
+      }),
+      this.countShopFollowers(sellerId),
+    ]);
+
+    return {
+      sellerId,
+      isFollowing: Boolean(existingFollow),
+      followerCount,
+    };
+  }
+
+  async followShop(customerId: string, roles: string[], sellerId: string) {
+    this.assertCanUseShopFollow(customerId, roles, sellerId);
+    await this.assertFollowableSeller(sellerId);
+
+    await this.prisma.shopFollow.upsert({
+      where: {
+        customerId_sellerId: {
+          customerId,
+          sellerId,
+        },
+      },
+      update: {},
+      create: {
+        customerId,
+        sellerId,
+      },
+    });
+
+    return {
+      sellerId,
+      isFollowing: true,
+      followerCount: await this.countShopFollowers(sellerId),
+    };
+  }
+
+  async unfollowShop(customerId: string, roles: string[], sellerId: string) {
+    this.assertCanUseShopFollow(customerId, roles, sellerId);
+    await this.assertFollowableSeller(sellerId);
+
+    await this.prisma.shopFollow.deleteMany({
+      where: {
+        customerId,
+        sellerId,
+      },
+    });
+
+    return {
+      sellerId,
+      isFollowing: false,
+      followerCount: await this.countShopFollowers(sellerId),
+    };
+  }
+
+  async listFollowedShops(customerId: string, roles: string[]) {
+    if (!roles.includes(Role.ROLE_USER)) {
+      return [];
+    }
+
+    const follows = await this.prisma.shopFollow.findMany({
+      where: {
+        customerId,
+        seller: {
+          deletedAt: null,
+          status: UserStatus.ACTIVE,
+          roles: { has: Role.ROLE_SELLER },
+          NOT: {
+            roles: { has: Role.ROLE_ADMIN },
+          },
+        },
+      },
+      include: {
+        seller: {
+          select: this.publicSellerWithFollowerCountSelect,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return follows.map((follow) => ({
+      id: follow.id,
+      sellerId: follow.sellerId,
+      createdAt: follow.createdAt,
+      seller: this.formatPublicSeller(follow.seller),
+    }));
   }
 
   async searchSellers(query: SearchSellersQueryDto) {
@@ -328,6 +568,7 @@ export class UsersService {
         { shopName: { contains: trimmedQuery, mode: 'insensitive' } },
         { sellerBio: { contains: trimmedQuery, mode: 'insensitive' } },
         { sellerAbout: { contains: trimmedQuery, mode: 'insensitive' } },
+        { shopProcessingTime: { contains: trimmedQuery, mode: 'insensitive' } },
       ];
     }
 
@@ -352,10 +593,18 @@ export class UsersService {
       avatar: string | null;
       sellerTitle: string | null;
       sellerBio: string | null;
+      artisanVerified: boolean;
+      craftSpecialty: string | null;
+      craftExperienceYears: number | null;
+      craftMaterials: string[];
+      shopProcessingTime: string | null;
       createdAt: Date;
       productCount: number | bigint;
       averageRating: number | null;
       totalReviews: number | bigint;
+      followerCount: number | bigint;
+      shopAverageRating: number | null;
+      shopReviewCount: number | bigint;
     };
 
     const rows = await this.prisma.$queryRaw<SellerSearchRow[]>(Prisma.sql`
@@ -366,35 +615,49 @@ export class UsersService {
         u."shopName",
         u."sellerTitle",
         u."sellerBio",
+        u."artisanVerified",
+        u."craftSpecialty",
+        u."craftExperienceYears",
+        u."craftMaterials",
+        u."shopProcessingTime",
         u."createdAt",
         COUNT(DISTINCT p.id)::int AS "productCount",
+        COUNT(DISTINCT sf.id)::int AS "followerCount",
+        CASE
+          WHEN COUNT(sr.id) = 0 THEN NULL
+          ELSE ROUND(AVG(sr.rating)::numeric, 1)::double precision
+        END AS "shopAverageRating",
+        COUNT(DISTINCT sr.id)::int AS "shopReviewCount",
         CASE
           WHEN COUNT(r.id) = 0 THEN NULL
           ELSE ROUND(AVG(r.rating)::numeric, 1)::double precision
         END AS "averageRating",
-        COUNT(r.id)::int AS "totalReviews"
+        COUNT(DISTINCT r.id)::int AS "totalReviews"
       FROM "User" u
       LEFT JOIN "Product" p
         ON p."sellerId" = u.id
         AND p."deletedAt" IS NULL
         AND p.status = ${ProductStatus.APPROVED}::"ProductStatus"
       LEFT JOIN "Review" r ON r."productId" = p.id
+      LEFT JOIN "ShopFollow" sf ON sf."sellerId" = u.id
+      LEFT JOIN "ShopReview" sr ON sr."sellerId" = u.id
       WHERE u."deletedAt" IS NULL
         AND u.status = ${UserStatus.ACTIVE}::"UserStatus"
         AND u.roles @> ARRAY[${Role.ROLE_SELLER}]::"Role"[]
         AND NOT (u.roles @> ARRAY[${Role.ROLE_ADMIN}]::"Role"[])
-        ${
-          trimmedQuery
-            ? Prisma.sql`
+        ${trimmedQuery
+        ? Prisma.sql`
               AND (
                 u.name ILIKE ${searchPattern}
                 OR COALESCE(u."shopName", '') ILIKE ${searchPattern}
                 OR COALESCE(u."sellerBio", '') ILIKE ${searchPattern}
                 OR COALESCE(u."sellerAbout", '') ILIKE ${searchPattern}
+                OR COALESCE(u."craftSpecialty", '') ILIKE ${searchPattern}
+                OR COALESCE(u."shopProcessingTime", '') ILIKE ${searchPattern}
               )
             `
-            : Prisma.empty
-        }
+        : Prisma.empty
+      }
       GROUP BY u.id
       ${orderBySql}
       LIMIT ${limit}
@@ -409,9 +672,17 @@ export class UsersService {
         avatar: row.avatar,
         sellerTitle: row.sellerTitle,
         sellerBio: row.sellerBio,
+        artisanVerified: row.artisanVerified,
+        craftSpecialty: row.craftSpecialty,
+        craftExperienceYears: row.craftExperienceYears,
+        craftMaterials: row.craftMaterials,
+        shopProcessingTime: row.shopProcessingTime,
         productCount: Number(row.productCount),
         averageRating: row.averageRating,
         totalReviews: Number(row.totalReviews),
+        followerCount: Number(row.followerCount),
+        shopAverageRating: row.shopAverageRating,
+        shopReviewCount: Number(row.shopReviewCount),
         createdAt: row.createdAt,
         linkTarget: `/sellers/${row.id}`,
       })),
@@ -466,6 +737,7 @@ export class UsersService {
           WHEN u.name ILIKE ${searchPattern} THEN 3
           WHEN COALESCE(u."sellerBio", '') ILIKE ${searchPattern}
             OR COALESCE(u."sellerAbout", '') ILIKE ${searchPattern}
+            OR COALESCE(u."craftSpecialty", '') ILIKE ${searchPattern}
             THEN 4
           ELSE 5
         END ASC,
@@ -478,6 +750,82 @@ export class UsersService {
     return Prisma.sql`
       ORDER BY "productCount" DESC, u."createdAt" DESC, u.id ASC
     `;
+  }
+
+  private formatPublicSeller<T extends { _count?: { shopFollowers?: number } }>(
+    seller: T,
+  ) {
+    const { _count, ...publicSeller } = seller;
+
+    return {
+      ...publicSeller,
+      followerCount: _count?.shopFollowers ?? 0,
+    };
+  }
+
+  private async getShopRatingFields(sellerId: string) {
+    const aggregate = await this.prisma.shopReview.aggregate({
+      where: { sellerId },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
+    const averageRating = aggregate._avg.rating;
+
+    return {
+      shopAverageRating:
+        averageRating === null ? null : Math.round(averageRating * 10) / 10,
+      shopReviewCount: aggregate._count._all,
+    };
+  }
+
+  private assertCanUseShopFollow(
+    customerId: string,
+    roles: string[],
+    sellerId: string,
+  ) {
+    if (!roles.includes(Role.ROLE_USER)) {
+      throw new ForbiddenException('Customer role is required');
+    }
+
+    if (customerId === sellerId) {
+      throw new BadRequestException('You cannot follow your own shop');
+    }
+  }
+
+  private async assertFollowableSeller(sellerId: string) {
+    const seller = await this.prisma.user.findFirst({
+      where: {
+        id: sellerId,
+        deletedAt: null,
+        status: UserStatus.ACTIVE,
+        roles: { has: Role.ROLE_SELLER },
+        NOT: {
+          roles: { has: Role.ROLE_ADMIN },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
+  }
+
+  private countShopFollowers(sellerId: string) {
+    return this.prisma.shopFollow.count({
+      where: {
+        sellerId,
+        seller: {
+          deletedAt: null,
+          status: UserStatus.ACTIVE,
+          roles: { has: Role.ROLE_SELLER },
+          NOT: {
+            roles: { has: Role.ROLE_ADMIN },
+          },
+        },
+      },
+    });
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
@@ -500,25 +848,61 @@ export class UsersService {
       sellerStat1Value,
       sellerStat2Label,
       sellerStat2Value,
+      craftSpecialty,
+      craftExperienceYears,
+      craftMaterials,
+      shopReturnPolicy,
+      shopShippingPolicy,
+      shopProcessingTime,
     } = updateProfileDto;
+
+    const isSellerAccount =
+      user.roles.includes(Role.ROLE_SELLER) &&
+      !user.roles.includes(Role.ROLE_ADMIN);
+    const normalizedShopReturnPolicy =
+      this.normalizeNullableText(shopReturnPolicy);
+    const normalizedShopShippingPolicy =
+      this.normalizeNullableText(shopShippingPolicy);
+    const normalizedShopProcessingTime =
+      this.normalizeNullableText(shopProcessingTime);
+    const shopPolicyChanged =
+      isSellerAccount &&
+      ((shopReturnPolicy !== undefined &&
+        normalizedShopReturnPolicy !== user.shopReturnPolicy) ||
+        (shopShippingPolicy !== undefined &&
+          normalizedShopShippingPolicy !== user.shopShippingPolicy) ||
+        (shopProcessingTime !== undefined &&
+          normalizedShopProcessingTime !== user.shopProcessingTime));
+    const updateData: Prisma.UserUpdateInput = {
+      name,
+      avatar,
+      phone,
+      ...(isSellerAccount
+        ? {
+          shopName,
+          sellerTitle,
+          sellerBio,
+          sellerAbout,
+          sellerHeroImage,
+          sellerAboutImage,
+          sellerStat1Label,
+          sellerStat1Value,
+          sellerStat2Label,
+          sellerStat2Value,
+          craftSpecialty,
+          craftExperienceYears,
+          craftMaterials,
+          shopReturnPolicy: normalizedShopReturnPolicy,
+          shopShippingPolicy: normalizedShopShippingPolicy,
+          shopProcessingTime: normalizedShopProcessingTime,
+          ...(shopPolicyChanged ? { shopPolicyUpdatedAt: new Date() } : {}),
+        }
+        : {}),
+    };
 
     return this.prisma.user.update({
       where: { id },
-      data: {
-        name,
-        avatar,
-        phone,
-        shopName,
-        sellerTitle,
-        sellerBio,
-        sellerAbout,
-        sellerHeroImage,
-        sellerAboutImage,
-        sellerStat1Label,
-        sellerStat1Value,
-        sellerStat2Label,
-        sellerStat2Value,
-      },
+      data: updateData,
       select: this.userSelect,
     });
   }
@@ -567,17 +951,66 @@ export class UsersService {
       roles = this.processRoles(updateUserDto.roles);
     }
 
+    const isSellerAccount =
+      roles.includes(Role.ROLE_SELLER) && !roles.includes(Role.ROLE_ADMIN);
+
+    if (updateUserDto.artisanVerified && !isSellerAccount) {
+      throw new BadRequestException('Only seller accounts can be verified');
+    }
+
     const password = updateUserDto.password
       ? await bcrypt.hash(updateUserDto.password, 10)
       : undefined;
     const updateData: AdminUpdateUserDto = { ...updateUserDto };
     delete updateData.password;
 
+    if (!isSellerAccount) {
+      updateData.artisanVerified = false;
+      delete updateData.craftSpecialty;
+      delete updateData.craftExperienceYears;
+      delete updateData.craftMaterials;
+      delete updateData.shopReturnPolicy;
+      delete updateData.shopShippingPolicy;
+      delete updateData.shopProcessingTime;
+      delete updateData.verificationNote;
+    }
+
+    const normalizedShopReturnPolicy = this.normalizeNullableText(
+      updateUserDto.shopReturnPolicy,
+    );
+    const normalizedShopShippingPolicy = this.normalizeNullableText(
+      updateUserDto.shopShippingPolicy,
+    );
+    const normalizedShopProcessingTime = this.normalizeNullableText(
+      updateUserDto.shopProcessingTime,
+    );
+    const shopPolicyChanged =
+      isSellerAccount &&
+      ((updateUserDto.shopReturnPolicy !== undefined &&
+        normalizedShopReturnPolicy !== user.shopReturnPolicy) ||
+        (updateUserDto.shopShippingPolicy !== undefined &&
+          normalizedShopShippingPolicy !== user.shopShippingPolicy) ||
+        (updateUserDto.shopProcessingTime !== undefined &&
+          normalizedShopProcessingTime !== user.shopProcessingTime));
+
+    if (isSellerAccount) {
+      updateData.shopReturnPolicy = normalizedShopReturnPolicy as
+        | string
+        | undefined;
+      updateData.shopShippingPolicy = normalizedShopShippingPolicy as
+        | string
+        | undefined;
+      updateData.shopProcessingTime = normalizedShopProcessingTime as
+        | string
+        | undefined;
+    }
+
     return this.prisma.user.update({
       where: { id },
       data: {
         ...updateData,
         ...(password ? { password } : {}),
+        ...(shopPolicyChanged ? { shopPolicyUpdatedAt: new Date() } : {}),
         roles,
       },
       select: this.userSelect,
@@ -593,7 +1026,7 @@ export class UsersService {
   }
 
   async getStats() {
-    const [total, admins, sellers] = await Promise.all([
+    const [total, admins, sellers, customers] = await Promise.all([
       this.prisma.user.count({ where: { deletedAt: null } }),
       this.prisma.user.count({
         where: { roles: { has: 'ROLE_ADMIN' }, deletedAt: null },
@@ -601,8 +1034,17 @@ export class UsersService {
       this.prisma.user.count({
         where: { roles: { has: 'ROLE_SELLER' }, deletedAt: null },
       }),
+      this.prisma.user.count({
+        where: {
+          roles: { has: 'ROLE_USER' },
+          NOT: [
+            { roles: { has: 'ROLE_SELLER' } },
+            { roles: { has: 'ROLE_ADMIN' } },
+          ],
+          deletedAt: null,
+        },
+      }),
     ]);
-    const customers = total - sellers;
 
     return { total, admins, sellers, customers };
   }

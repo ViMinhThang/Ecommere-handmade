@@ -6,8 +6,12 @@ export interface CreateVoucherDto {
   description?: string;
   code: string;
   categoryId: string;
+  sellerId?: string | null;
   isActive?: boolean;
   endDate: string;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  perUserLimit?: number | null;
   ranges: {
     minPrice: number;
     maxPrice: number;
@@ -21,8 +25,12 @@ export interface UpdateVoucherDto {
   description?: string;
   code?: string;
   categoryId?: string;
+  sellerId?: string | null;
   isActive?: boolean;
   endDate?: string;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  perUserLimit?: number | null;
   ranges?: {
     minPrice: number;
     maxPrice: number;
@@ -56,6 +64,20 @@ export const vouchersApi = {
     return apiClient.get<PaginatedResponse<Voucher>>(`/vouchers/admin/all${query.toString() ? `?${query}` : ''}`);
   },
 
+  getSellerMine: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiClient.get<PaginatedResponse<Voucher>>(`/vouchers/seller/mine${query.toString() ? `?${query}` : ''}`);
+  },
+
+  getPublicBySeller: (sellerId: string, params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiClient.get<PaginatedResponse<Voucher>>(`/vouchers/seller/${sellerId}/public${query.toString() ? `?${query}` : ''}`);
+  },
+
   getById: (id: string) => apiClient.get<Voucher>(`/vouchers/${id}`),
 
   getByCode: (code: string) => apiClient.get<Voucher>(`/vouchers/code/${code}`),
@@ -65,4 +87,10 @@ export const vouchersApi = {
   update: (id: string, data: UpdateVoucherDto) => apiClient.patch<Voucher>(`/vouchers/${id}`, data),
 
   delete: (id: string) => apiClient.delete<void>(`/vouchers/${id}`),
+
+  createSeller: (data: CreateVoucherDto) => apiClient.post<Voucher>('/vouchers/seller', data),
+
+  updateSeller: (id: string, data: UpdateVoucherDto) => apiClient.patch<Voucher>(`/vouchers/seller/${id}`, data),
+
+  deleteSeller: (id: string) => apiClient.delete<void>(`/vouchers/seller/${id}`),
 };

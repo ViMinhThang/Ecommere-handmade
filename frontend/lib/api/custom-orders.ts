@@ -41,6 +41,24 @@ export interface CustomOrder {
   };
 }
 
+export interface CustomOrderProgressEvent {
+  id: string;
+  customOrderId: string;
+  actorId: string;
+  status: CustomOrder['status'] | null;
+  title: string;
+  note: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+  actor?: {
+    id: string;
+    name: string;
+    roles: string[];
+    avatar?: string | null;
+    shopName?: string | null;
+  };
+}
+
 export interface CreateCustomOrderPayload {
   customerId: string;
   title: string;
@@ -49,6 +67,36 @@ export interface CreateCustomOrderPayload {
   leadTime?: string;
   specifications?: string[];
   sketchImageUrl?: string;
+}
+
+export interface CreateCustomOrderProgressEventPayload {
+  title: string;
+  note?: string;
+  imageUrl?: string;
+  status?: CustomOrder['status'];
+}
+
+export interface CustomOrderReview {
+  id: string;
+  rating: number;
+  comment?: string;
+  images: string[];
+  sellerReply?: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  customOrderId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCustomOrderReviewDto {
+  rating: number;
+  comment?: string;
+  images?: string[];
 }
 
 export const customOrdersApi = {
@@ -66,6 +114,22 @@ export const customOrdersApi = {
 
   getById: (id: string) => {
     return apiClient.get<CustomOrder>(`/custom-orders/${id}`);
+  },
+
+  getProgressEvents: (id: string) => {
+    return apiClient.get<CustomOrderProgressEvent[]>(
+      `/custom-orders/${id}/progress`,
+    );
+  },
+
+  createProgressEvent: (
+    id: string,
+    data: CreateCustomOrderProgressEventPayload,
+  ) => {
+    return apiClient.post<CustomOrderProgressEvent>(
+      `/custom-orders/${id}/progress`,
+      data,
+    );
   },
 
   requestRevision: (id: string, revisionNote: string) => {
@@ -102,6 +166,32 @@ export const customOrdersApi = {
   getAdminCustomOrderLedger: (id: string) => {
     return apiClient.get<MarketplaceLedgerEntry[]>(
       `/custom-orders/admin/${id}/ledger`,
+    );
+  },
+
+  createReview: (customOrderId: string, data: CreateCustomOrderReviewDto) => {
+    return apiClient.post<CustomOrderReview>(
+      `/custom-orders/${customOrderId}/review`,
+      data,
+    );
+  },
+
+  getReview: (customOrderId: string) => {
+    return apiClient.get<CustomOrderReview | null>(
+      `/custom-orders/${customOrderId}/review`,
+    );
+  },
+
+  sellerReplyToReview: (reviewId: string, reply: string) => {
+    return apiClient.patch<CustomOrderReview>(
+      `/custom-orders/reviews/${reviewId}/reply`,
+      { reply },
+    );
+  },
+
+  getSellerLatestReviews: () => {
+    return apiClient.get<CustomOrderReview[]>(
+      '/custom-orders/seller/reviews/latest',
     );
   },
 };

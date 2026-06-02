@@ -46,6 +46,7 @@ import type { Order, SubOrder } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { AlertCircle, Eye, Flag, Loader2, Package, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { Pagination } from '@/components/ui/pagination'
 
 const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
   'PENDING',
@@ -150,6 +151,9 @@ export default function OrdersPage() {
   const [reportReason, setReportReason] = useState('')
   const [reportDescription, setReportDescription] = useState('')
 
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+
   const adminFilters: AdminOrderFilters = {
     status: statusFilter === 'ALL' ? undefined : statusFilter,
     paymentMethod:
@@ -193,6 +197,14 @@ export default function OrdersPage() {
       )
     })
   }, [searchQuery, sellerOrdersQuery.data])
+
+  const paginatedAdminOrders = useMemo(() => {
+    return adminOrders.slice((page - 1) * limit, page * limit)
+  }, [adminOrders, page, limit])
+
+  const paginatedSellerOrders = useMemo(() => {
+    return sellerOrders.slice((page - 1) * limit, page * limit)
+  }, [sellerOrders, page, limit])
 
   const stats = useMemo(() => {
     if (isAdmin) {
@@ -387,7 +399,10 @@ export default function OrdersPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value)
+                  setPage(1)
+                }}
                 placeholder={isAdmin ? 'Tìm mã đơn hàng...' : 'Tìm mã kiện hàng hoặc khách...'}
                 className="pl-9"
               />
@@ -398,19 +413,26 @@ export default function OrdersPage() {
             <div className="grid gap-3 md:grid-cols-5">
               <Input
                 value={customerFilter}
-                onChange={(event) => setCustomerFilter(event.target.value)}
+                onChange={(event) => {
+                  setCustomerFilter(event.target.value)
+                  setPage(1)
+                }}
                 placeholder="Lọc khách hàng"
               />
               <Input
                 value={sellerFilter}
-                onChange={(event) => setSellerFilter(event.target.value)}
+                onChange={(event) => {
+                  setSellerFilter(event.target.value)
+                  setPage(1)
+                }}
                 placeholder="Lọc người bán"
               />
               <Select
                 value={statusFilter}
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   setStatusFilter(value as 'ALL' | ApiOrderStatus)
-                }
+                  setPage(1)
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Status" />
@@ -426,9 +448,10 @@ export default function OrdersPage() {
               </Select>
               <Select
                 value={paymentMethodFilter}
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   setPaymentMethodFilter(value as 'ALL' | PaymentMethod)
-                }
+                  setPage(1)
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Payment method" />
@@ -444,9 +467,10 @@ export default function OrdersPage() {
               </Select>
               <Select
                 value={paymentStatusFilter}
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   setPaymentStatusFilter(value as 'ALL' | PaymentStatus)
-                }
+                  setPage(1)
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Payment status" />
@@ -471,76 +495,88 @@ export default function OrdersPage() {
                 <p>Không có đơn hàng khớp với bộ lọc hiện tại.</p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Đơn hàng</TableHead>
-                      <TableHead>Khách hàng</TableHead>
-                      <TableHead>Người bán</TableHead>
-                      <TableHead>Số món</TableHead>
-                      <TableHead>Tổng tiền</TableHead>
-                      <TableHead>Thanh toán</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead>Ngày tạo</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {adminOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-mono text-xs">
-                          #{order.id.slice(0, 8)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {getCustomerName(order)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {getCustomerEmail(order)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {getOrderSellerSummary(order)}
-                        </TableCell>
-                        <TableCell>{getOrderItemCount(order)}</TableCell>
-                        <TableCell className="font-medium">
-                          {formatCurrency(Number(order.totalAmount || 0))}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1 text-xs">
-                            <span>{order.paymentMethod || '-'}</span>
-                            <span className="text-muted-foreground">
-                              {order.paymentStatus
-                                ? paymentStatusLabels[order.paymentStatus]
-                                : '-'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={`${statusClasses[order.status] || ''} border-0`}
-                          >
-                            {statusLabels[order.status] || order.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(order.createdAt).toLocaleDateString('vi-VN')}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Link href={`/dashboard/orders/${order.id}`}>
-                            <Button variant="ghost" size="icon">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </TableCell>
+              <>
+                <div className="overflow-hidden rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Đơn hàng</TableHead>
+                        <TableHead>Khách hàng</TableHead>
+                        <TableHead>Người bán</TableHead>
+                        <TableHead>Số món</TableHead>
+                        <TableHead>Tổng tiền</TableHead>
+                        <TableHead>Thanh toán</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Ngày tạo</TableHead>
+                        <TableHead className="text-right">Thao tác</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedAdminOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-mono text-xs">
+                            #{order.id.slice(0, 8)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {getCustomerName(order)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {getCustomerEmail(order)}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {getOrderSellerSummary(order)}
+                          </TableCell>
+                          <TableCell>{getOrderItemCount(order)}</TableCell>
+                          <TableCell className="font-medium">
+                            {formatCurrency(Number(order.totalAmount || 0))}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 text-xs">
+                              <span>{order.paymentMethod || '-'}</span>
+                              <span className="text-muted-foreground">
+                                {order.paymentStatus
+                                  ? paymentStatusLabels[order.paymentStatus]
+                                  : '-'}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={`${statusClasses[order.status] || ''} border-0`}
+                            >
+                              {statusLabels[order.status] || order.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link href={`/dashboard/orders/${order.id}`}>
+                              <Button variant="ghost" size="icon">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <Pagination
+                  page={page}
+                  limit={limit}
+                  total={adminOrders.length}
+                  onPageChange={setPage}
+                  onLimitChange={(newLimit) => {
+                    setLimit(newLimit)
+                    setPage(1)
+                  }}
+                />
+              </>
             )
           ) : sellerOrders.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
@@ -548,98 +584,110 @@ export default function OrdersPage() {
               <p>Chưa có kiện hàng nào cho shop của bạn.</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Kiện hàng</TableHead>
-                    <TableHead>Khách hàng</TableHead>
-                    <TableHead>Thanh toán</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Giá trị</TableHead>
-                    <TableHead>Ngày tạo</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sellerOrders.map((subOrder) => (
-                    <TableRow key={subOrder.id}>
-                      <TableCell className="font-mono text-xs">
-                        #{subOrder.id.slice(0, 8)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {subOrder.order?.customer?.name || 'Khách hàng chưa rõ'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {subOrder.order?.customer?.email || '-'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1 text-xs">
-                          <span>{subOrder.order?.paymentMethod || '-'}</span>
-                          <span className="text-muted-foreground">
-                            {subOrder.order?.paymentStatus
-                              ? paymentStatusLabels[subOrder.order.paymentStatus]
-                              : '-'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`${statusClasses[subOrder.status] || ''} border-0`}
-                        >
-                          {statusLabels[subOrder.status] || subOrder.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(
-                          Number(subOrder.subTotal || 0) -
-                            Number(subOrder.discountAmount || 0),
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(subOrder.createdAt).toLocaleDateString('vi-VN')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openCustomerReportDialog(subOrder)}
-                            disabled={subOrder.type === 'CUSTOM'}
-                          >
-                            <Flag className="mr-1 h-4 w-4" />
-                            Báo cáo
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openSellerStatusDialog(subOrder)}
-                            disabled={subOrder.type === 'CUSTOM'}
-                          >
-                            Cập nhật
-                          </Button>
-                          <Link
-                            href={
-                              subOrder.type === 'CUSTOM'
-                                ? `/custom-orders/${subOrder.id}/review`
-                                : `/dashboard/orders/${subOrder.id}`
-                            }
-                          >
-                            <Button variant="ghost" size="icon">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </TableCell>
+            <>
+              <div className="overflow-hidden rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Kiện hàng</TableHead>
+                      <TableHead>Khách hàng</TableHead>
+                      <TableHead>Thanh toán</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>Giá trị</TableHead>
+                      <TableHead>Ngày tạo</TableHead>
+                      <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedSellerOrders.map((subOrder) => (
+                      <TableRow key={subOrder.id}>
+                        <TableCell className="font-mono text-xs">
+                          #{subOrder.id.slice(0, 8)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {subOrder.order?.customer?.name || 'Khách hàng chưa rõ'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {subOrder.order?.customer?.email || '-'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1 text-xs">
+                            <span>{subOrder.order?.paymentMethod || '-'}</span>
+                            <span className="text-muted-foreground">
+                              {subOrder.order?.paymentStatus
+                                ? paymentStatusLabels[subOrder.order.paymentStatus]
+                                : '-'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`${statusClasses[subOrder.status] || ''} border-0`}
+                          >
+                            {statusLabels[subOrder.status] || subOrder.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(
+                            Number(subOrder.subTotal || 0) -
+                            Number(subOrder.discountAmount || 0),
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(subOrder.createdAt).toLocaleDateString('vi-VN')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openCustomerReportDialog(subOrder)}
+                              disabled={subOrder.type === 'CUSTOM'}
+                            >
+                              <Flag className="mr-1 h-4 w-4" />
+                              Báo cáo
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openSellerStatusDialog(subOrder)}
+                              disabled={subOrder.type === 'CUSTOM'}
+                            >
+                              Cập nhật
+                            </Button>
+                            <Link
+                              href={
+                                subOrder.type === 'CUSTOM'
+                                  ? `/custom-orders/${subOrder.id}/review`
+                                  : `/dashboard/orders/${subOrder.id}`
+                              }
+                            >
+                              <Button variant="ghost" size="icon">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <Pagination
+                page={page}
+                limit={limit}
+                total={sellerOrders.length}
+                onPageChange={setPage}
+                onLimitChange={(newLimit) => {
+                  setLimit(newLimit)
+                  setPage(1)
+                }}
+              />
+            </>
           )}
         </CardContent>
       </Card>

@@ -1,23 +1,64 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { VouchersService } from './vouchers.service';
 
 describe('VouchersService visibility', () => {
   let service: VouchersService;
-  let prisma: {
+  let tx: {
+    voucherRange: {
+      deleteMany: jest.Mock;
+    };
     voucher: {
+      update: jest.Mock;
+    };
+  };
+  let prisma: {
+    category: {
+      findUnique: jest.Mock;
+    };
+    user: {
+      findFirst: jest.Mock;
+    };
+    voucher: {
+      create: jest.Mock;
       findMany: jest.Mock;
       count: jest.Mock;
       findFirst: jest.Mock;
+      findUnique: jest.Mock;
     };
+    voucherUsage: {
+      count: jest.Mock;
+    };
+    $transaction: jest.Mock;
   };
 
   beforeEach(() => {
-    prisma = {
+    tx = {
+      voucherRange: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
       voucher: {
+        update: jest.fn().mockResolvedValue({ id: 'voucher-1' }),
+      },
+    };
+
+    prisma = {
+      category: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'cat-1' }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'seller-1' }),
+      },
+      voucher: {
+        create: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
         findFirst: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({ id: 'voucher-1' }),
       },
+      voucherUsage: {
+        count: jest.fn().mockResolvedValue(0),
+      },
+      $transaction: jest.fn((callback) => callback(tx)),
     };
 
     service = new VouchersService(prisma as unknown as never);
@@ -59,10 +100,11 @@ describe('VouchersService visibility', () => {
     expect(prisma.voucher.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { deletedAt: null },
-        include: {
+        include: expect.objectContaining({
           category: true,
           ranges: true,
-        },
+          seller: expect.any(Object),
+        }),
       }),
     );
   });
@@ -80,6 +122,236 @@ describe('VouchersService visibility', () => {
           code: 'EXPIRED',
           isActive: true,
           endDate: { gt: expect.any(Date) },
+        }),
+      }),
+    );
+  });
+
+  it('keeps existing ranges when updating voucher fields without ranges', async () => {
+    await service.update('voucher-1', { name: 'Updated voucher' });
+
+    expect(tx.voucherRange.deleteMany).not.toHaveBeenCalled();
+    expect(tx.voucher.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Updated voucher',
+          ranges: undefined,
+        }),
+      }),
+    );
+  });
+
+  it('replaces ranges only when update payload includes ranges', async () => {
+    const endDate = '2030-06-01T00:00:00.000Z';
+
+    await service.update('voucher-1', {
+      ranges: [
+        {
+          minPrice: 100,
+          maxPrice: 1000,
+          discountPercent: 10,
+          endDate,
+        },
+      ],
+    });
+
+    expect(tx.voucherRange.deleteMany).toHaveBeenCalledWith({
+      where: { voucherId: 'voucher-1' },
+    });
+    expect(tx.voucher.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ranges: {
+            create: [
+              {
+                minPrice: 100,
+                maxPrice: 1000,
+                discountPercent: 10,
+                endDate: new Date(endDate),
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('caps voucher discount by maxDiscountAmount and subtotal', () => {
+    expect(
+      service.calculateDiscountAmount(
+        { maxDiscountAmount: 15000 } as never,
+        { discountPercent: 20 } as never,
+        100000,
+      ),
+    ).toBe(15000);
+
+    expect(
+      service.calculateDiscountAmount(
+        { maxDiscountAmount: 250000 } as never,
+        { discountPercent: 150 } as never,
+        100000,
+      ),
+    ).toBe(100000);
+  });
+
+  it('matches voucher ranges inclusively at maxPrice boundary', () => {
+    const range = {
+      minPrice: 100,
+      maxPrice: 1000,
+      discountPercent: 10,
+      endDate: new Date('2030-01-01T00:00:00.000Z'),
+      deletedAt: null,
+    };
+
+    expect(service.findMatchingRange([range] as never, 1000)).toBe(range);
+  });
+
+  it('rejects invalid voucher hardening limits', async () => {
+    await expect(
+      service.create({
+        name: 'Bad voucher',
+        code: 'BAD',
+        categoryId: 'cat-1',
+        endDate: '2030-01-01T00:00:00.000Z',
+        maxDiscountAmount: -1,
+        ranges: [
+          {
+            minPrice: 100,
+            maxPrice: 1000,
+            discountPercent: 10,
+            endDate: '2030-01-01T00:00:00.000Z',
+          },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.voucher.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects voucher application when global usage limit is reached', async () => {
+    await expect(
+      service.assertVoucherUsageAvailable(
+        {
+          id: 'voucher-1',
+          usageLimit: 5,
+          perUserLimit: null,
+          usedCount: 5,
+        } as never,
+        'user-1',
+        prisma as never,
+      ),
+    ).rejects.toThrow('Voucher usage limit has been reached');
+
+    expect(prisma.voucherUsage.count).not.toHaveBeenCalled();
+  });
+
+  it('rejects voucher application when per-user usage limit is reached', async () => {
+    prisma.voucherUsage.count.mockResolvedValue(2);
+
+    await expect(
+      service.assertVoucherUsageAvailable(
+        {
+          id: 'voucher-1',
+          usageLimit: null,
+          perUserLimit: 2,
+          usedCount: 1,
+        } as never,
+        'user-1',
+        prisma as never,
+      ),
+    ).rejects.toThrow('Voucher usage limit has been reached for this user');
+
+    expect(prisma.voucherUsage.count).toHaveBeenCalledWith({
+      where: { voucherId: 'voucher-1', userId: 'user-1' },
+    });
+  });
+
+  it('creates seller-owned vouchers for the current seller', async () => {
+    prisma.voucher.create.mockResolvedValue({ id: 'voucher-1' });
+
+    await service.createForSeller('seller-1', {
+      name: 'Shop voucher',
+      code: 'SHOP10',
+      categoryId: 'cat-1',
+      endDate: '2030-01-01T00:00:00.000Z',
+      ranges: [
+        {
+          minPrice: 100,
+          maxPrice: 1000,
+          discountPercent: 10,
+          endDate: '2030-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'seller-1',
+          deletedAt: null,
+          status: 'ACTIVE',
+          roles: { has: 'ROLE_SELLER' },
+        }),
+      }),
+    );
+    expect(prisma.voucher.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          code: 'SHOP10',
+          sellerId: 'seller-1',
+        }),
+      }),
+    );
+  });
+
+  it('lists only public active vouchers for a seller storefront', async () => {
+    await service.findPublicForSeller('seller-1', { page: 1, limit: 8 });
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'seller-1',
+          deletedAt: null,
+          status: 'ACTIVE',
+          roles: { has: 'ROLE_SELLER' },
+        }),
+      }),
+    );
+    expect(prisma.voucher.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sellerId: 'seller-1',
+          deletedAt: null,
+          isActive: true,
+          endDate: { gt: expect.any(Date) },
+        }),
+        take: 8,
+      }),
+    );
+    expect(prisma.voucher.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        sellerId: 'seller-1',
+        isActive: true,
+      }),
+    });
+  });
+
+  it('keeps seller voucher ownership scoped to the current seller on update', async () => {
+    prisma.voucher.findFirst.mockResolvedValue({ id: 'voucher-1' });
+
+    await service.updateForSeller('seller-1', 'voucher-1', {
+      name: 'Updated shop voucher',
+      sellerId: 'other-seller',
+    });
+
+    expect(prisma.voucher.findFirst).toHaveBeenCalledWith({
+      where: { id: 'voucher-1', sellerId: 'seller-1', deletedAt: null },
+      select: { id: true },
+    });
+    expect(tx.voucher.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({
+          sellerId: 'other-seller',
         }),
       }),
     );

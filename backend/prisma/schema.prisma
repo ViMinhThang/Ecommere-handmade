@@ -46,6 +46,14 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum ShipmentTrackingEventType {
+  STATUS_UPDATED
+  INFO
+  LOCATION
+  EXCEPTION
+  DELIVERED
+}
+
 enum PaymentMethod {
   STRIPE
   COD
@@ -166,60 +174,79 @@ enum CommissionProposalStatus {
 }
 
 model User {
-  id                    String                      @id @default(uuid())
-  name                  String
-  email                 String                      @unique
-  password              String
-  roles                 Role[]                      @default([ROLE_USER])
-  status                UserStatus                  @default(ACTIVE)
-  avatar                String?
-  phone                 String?
-  shopName              String?
-  sellerTitle           String?
-  sellerBio             String?
-  sellerAbout           String?
-  sellerHeroImage       String?
-  sellerAboutImage      String?
-  sellerStat1Label      String?
-  sellerStat1Value      String?
-  sellerStat2Label      String?
-  sellerStat2Value      String?
-  otpCode               String?
-  otpExpires            DateTime?
-  isEmailVerified       Boolean                     @default(false)
-  rewardPointsBalance   Int                         @default(0)
-  deletedAt             DateTime?
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  addresses             Address[]
-  sellerProducts        Product[]                   @relation("Product_sellerId_fkey")
-  folders               ImageFolder[]
-  refreshTokens         RefreshToken[]
-  cart                  Cart?
-  customerConversations ChatConversation[]          @relation("ChatConversationCustomer")
-  sellerConversations   ChatConversation[]          @relation("ChatConversationSeller")
-  sentChatMessages      ChatMessage[]               @relation("ChatMessageSender")
-  chatReadStates        ChatConversationReadState[] @relation("ChatConversationReadUser")
-  Order                 Order[]
-  SubOrder              SubOrder[]
-  customerCustomOrders  CustomOrder[]               @relation("CustomerCustomOrders")
-  sellerCustomOrders    CustomOrder[]               @relation("SellerCustomOrders")
-  quoteTemplates        CustomOrderQuoteTemplate[]  @relation("SellerQuoteTemplates")
-  reviews               Review[]
-  productQuestions      ProductQuestion[]           @relation("ProductQuestionUser")
-  answeredQuestions     ProductQuestion[]           @relation("ProductQuestionAnsweredBy")
-  wishlistItems         WishlistItem[]
-  customerLedgerEntries MarketplaceLedgerEntry[]    @relation("LedgerEntryCustomer")
-  sellerLedgerEntries   MarketplaceLedgerEntry[]    @relation("LedgerEntrySeller")
-  rewardPointLedger     RewardPointLedger[]         @relation("RewardPointLedgerUser")
-  reportsFiled          Report[]                    @relation("ReportReporter")
-  reportsTargetingUser  Report[]                    @relation("ReportTargetUser")
-  reportsResolved       Report[]                    @relation("ReportResolvedBy")
-  sellerPayouts         SellerPayout[]              @relation("SellerPayoutSeller")
-  flashSaleUsages       FlashSaleUserUsage[]
-  commissionPosts       CommissionPost[]            @relation("CommissionPostCustomer")
-  commissionProposals   CommissionProposal[]        @relation("CommissionProposalSeller")
-  notifications         Notification[]              @relation("UserNotifications")
+  id                     String                      @id @default(uuid())
+  name                   String
+  email                  String                      @unique
+  password               String
+  roles                  Role[]                      @default([ROLE_USER])
+  status                 UserStatus                  @default(ACTIVE)
+  avatar                 String?
+  phone                  String?
+  shopName               String?
+  sellerTitle            String?
+  sellerBio              String?
+  sellerAbout            String?
+  sellerHeroImage        String?
+  sellerAboutImage       String?
+  sellerStat1Label       String?
+  sellerStat1Value       String?
+  sellerStat2Label       String?
+  sellerStat2Value       String?
+  artisanVerified        Boolean                     @default(false)
+  craftSpecialty         String?
+  craftExperienceYears   Int?
+  craftMaterials         String[]                    @default([])
+  shopReturnPolicy       String?                     @db.Text
+  shopShippingPolicy     String?                     @db.Text
+  shopProcessingTime     String?
+  shopPolicyUpdatedAt    DateTime?
+  verificationNote       String?
+  otpCode                String?
+  otpExpires             DateTime?
+  isEmailVerified        Boolean                     @default(false)
+  rewardPointsBalance    Int                         @default(0)
+  deletedAt              DateTime?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  addresses              Address[]
+  sellerProducts         Product[]                   @relation("Product_sellerId_fkey")
+  shippingProfiles       ShippingProfile[]           @relation("ShippingProfileSeller")
+  folders                ImageFolder[]
+  refreshTokens          RefreshToken[]
+  cart                   Cart?
+  customerConversations  ChatConversation[]          @relation("ChatConversationCustomer")
+  sellerConversations    ChatConversation[]          @relation("ChatConversationSeller")
+  sentChatMessages       ChatMessage[]               @relation("ChatMessageSender")
+  chatReadStates         ChatConversationReadState[] @relation("ChatConversationReadUser")
+  Order                  Order[]
+  SubOrder               SubOrder[]
+  customerCustomOrders   CustomOrder[]               @relation("CustomerCustomOrders")
+  sellerCustomOrders     CustomOrder[]               @relation("SellerCustomOrders")
+  quoteTemplates         CustomOrderQuoteTemplate[]  @relation("SellerQuoteTemplates")
+  reviews                Review[]
+  productQuestions       ProductQuestion[]           @relation("ProductQuestionUser")
+  answeredQuestions      ProductQuestion[]           @relation("ProductQuestionAnsweredBy")
+  wishlistItems          WishlistItem[]
+  followedShops          ShopFollow[]                @relation("ShopFollowCustomer")
+  shopFollowers          ShopFollow[]                @relation("ShopFollowSeller")
+  shopReviewsWritten     ShopReview[]                @relation("ShopReviewsWritten")
+  shopReviewsReceived    ShopReview[]                @relation("ShopReviewsReceived")
+  customerLedgerEntries  MarketplaceLedgerEntry[]    @relation("LedgerEntryCustomer")
+  sellerLedgerEntries    MarketplaceLedgerEntry[]    @relation("LedgerEntrySeller")
+  rewardPointLedger      RewardPointLedger[]         @relation("RewardPointLedgerUser")
+  reportsFiled           Report[]                    @relation("ReportReporter")
+  reportsTargetingUser   Report[]                    @relation("ReportTargetUser")
+  reportsResolved        Report[]                    @relation("ReportResolvedBy")
+  sellerPayouts          SellerPayout[]              @relation("SellerPayoutSeller")
+  sellerVouchers         Voucher[]                   @relation("SellerVouchers")
+  voucherUsages          VoucherUsage[]              @relation("UserVoucherUsages")
+  flashSaleUsages        FlashSaleUserUsage[]
+  commissionPosts        CommissionPost[]            @relation("CommissionPostCustomer")
+  commissionProposals    CommissionProposal[]        @relation("CommissionProposalSeller")
+  notifications          Notification[]              @relation("UserNotifications")
+  customOrderProgress    CustomOrderProgressEvent[]  @relation("CustomOrderProgressActor")
+  customOrderReviews     CustomOrderReview[]         @relation("CustomOrderReviews")
+  shipmentTrackingEvents ShipmentTrackingEvent[]     @relation("ShipmentTrackingEventActor")
 
   @@index([status])
 }
@@ -269,37 +296,73 @@ model Category {
 }
 
 model Product {
-  id                       String             @id @default(uuid())
-  name                     String
-  description              String
-  price                    Decimal            @default(0)
-  categoryId               String
-  category                 Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  sellerId                 String
-  seller                   User               @relation("Product_sellerId_fkey", fields: [sellerId], references: [id], onDelete: Cascade)
-  status                   ProductStatus      @default(PENDING)
-  stock                    Int                @default(0)
-  lowStockThreshold        Int                @default(10)
-  sku                      String?
-  tags                     String[]           @default([])
-  descriptionImages        String[]           @default([])
-  viewCount                Int                @default(0)
-  deletedAt                DateTime?
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @updatedAt
-  images                   ProductImage[]
-  inventoryLogs            InventoryLog[]
-  cartItems                CartItem[]
-  chatContextConversations ChatConversation[]
-  OrderItem                OrderItem[]
-  reviews                  Review[]
-  questions                ProductQuestion[]
-  wishlistItems            WishlistItem[]
-  reports                  Report[]
+  id                          String                    @id @default(uuid())
+  name                        String
+  description                 String
+  price                       Decimal                   @default(0)
+  categoryId                  String
+  category                    Category                  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sellerId                    String
+  seller                      User                      @relation("Product_sellerId_fkey", fields: [sellerId], references: [id], onDelete: Cascade)
+  status                      ProductStatus             @default(PENDING)
+  stock                       Int                       @default(0)
+  lowStockThreshold           Int                       @default(10)
+  sku                         String?
+  tags                        String[]                  @default([])
+  descriptionImages           String[]                  @default([])
+  personalizationEnabled      Boolean                   @default(false)
+  personalizationRequired     Boolean                   @default(false)
+  personalizationInstructions String?                   @db.Text
+  personalizationMaxLength    Int                       @default(120)
+  optionColors                String[]                  @default([])
+  optionMaterials             String[]                  @default([])
+  optionSizes                 String[]                  @default([])
+  processingTime              String?
+  shippingProfileId           String?
+  shippingProfile             ShippingProfile?          @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
+  viewCount                   Int                       @default(0)
+  deletedAt                   DateTime?
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+  images                      ProductImage[]
+  inventoryLogs               InventoryLog[]
+  cartItems                   CartItem[]
+  chatContextConversations    ChatConversation[]
+  OrderItem                   OrderItem[]
+  reviews                     Review[]
+  questions                   ProductQuestion[]
+  wishlistItems               WishlistItem[]
+  homepageFeaturedProducts    HomepageFeaturedProduct[]
+  flashSaleProducts           FlashSaleProduct[]
+  reports                     Report[]
 
   @@index([sellerId])
   @@index([categoryId])
   @@index([status])
+  @@index([shippingProfileId])
+}
+
+model ShippingProfile {
+  id                  String     @id @default(uuid())
+  sellerId            String
+  seller              User       @relation("ShippingProfileSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  name                String
+  carrierName         String
+  trackingUrlTemplate String?
+  processingMinDays   Int        @default(1)
+  processingMaxDays   Int        @default(3)
+  transitMinDays      Int        @default(2)
+  transitMaxDays      Int        @default(5)
+  isDefault           Boolean    @default(false)
+  isActive            Boolean    @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  products            Product[]
+  subOrders           SubOrder[]
+
+  @@index([sellerId, isActive, isDefault])
+  @@index([sellerId, createdAt])
 }
 
 model WishlistItem {
@@ -314,6 +377,68 @@ model WishlistItem {
   @@unique([userId, productId])
   @@index([userId, createdAt])
   @@index([productId])
+}
+
+model ShopFollow {
+  id         String   @id @default(uuid())
+  customerId String
+  sellerId   String
+  customer   User     @relation("ShopFollowCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  seller     User     @relation("ShopFollowSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, sellerId])
+  @@index([customerId, createdAt])
+  @@index([sellerId, createdAt])
+}
+
+model ShopReview {
+  id         String   @id @default(uuid())
+  sellerId   String
+  seller     User     @relation("ShopReviewsReceived", fields: [sellerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   User     @relation("ShopReviewsWritten", fields: [customerId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, sellerId])
+  @@index([sellerId, createdAt])
+  @@index([sellerId, rating])
+  @@index([customerId, createdAt])
+}
+
+model HomepageBanner {
+  id        String    @id @default(uuid())
+  title     String
+  subtitle  String?
+  imageUrl  String
+  linkUrl   String?
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  startAt   DateTime?
+  endAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([startAt])
+  @@index([endAt])
+}
+
+model HomepageFeaturedProduct {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId])
+  @@index([isActive, sortOrder])
 }
 
 enum ChatMessageType {
@@ -426,21 +551,30 @@ model InventoryLog {
 }
 
 model Voucher {
-  id          String         @id @default(uuid())
-  name        String
-  description String?
-  code        String         @unique
-  categoryId  String
-  category    Category       @relation(fields: [categoryId], references: [id])
-  isActive    Boolean        @default(true)
-  endDate     DateTime
-  deletedAt   DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  ranges      VoucherRange[]
-  carts       Cart[]
+  id                String         @id @default(uuid())
+  name              String
+  description       String?
+  code              String         @unique
+  categoryId        String
+  category          Category       @relation(fields: [categoryId], references: [id])
+  sellerId          String?
+  seller            User?          @relation("SellerVouchers", fields: [sellerId], references: [id], onDelete: SetNull)
+  isActive          Boolean        @default(true)
+  endDate           DateTime
+  maxDiscountAmount Decimal?
+  usageLimit        Int?
+  perUserLimit      Int?
+  usedCount         Int            @default(0)
+  deletedAt         DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  ranges            VoucherRange[]
+  carts             Cart[]
+  usages            VoucherUsage[]
 
   @@index([categoryId])
+  @@index([sellerId, isActive, endDate])
+  @@index([isActive, endDate])
 }
 
 model VoucherRange {
@@ -456,6 +590,20 @@ model VoucherRange {
   updatedAt       DateTime  @updatedAt
 
   @@index([voucherId])
+}
+
+model VoucherUsage {
+  id        String   @id @default(uuid())
+  voucherId String
+  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("UserVoucherUsages", fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String?  @unique
+  order     Order?   @relation("OrderVoucherUsage", fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([voucherId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model FlashSale {
@@ -479,6 +627,7 @@ model FlashSale {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   categories         FlashSaleCategory[]
+  products           FlashSaleProduct[]
   ranges             FlashSaleRange[]
   userUsages         FlashSaleUserUsage[]
 
@@ -497,6 +646,19 @@ model FlashSaleCategory {
   @@unique([flashSaleId, categoryId])
   @@index([flashSaleId])
   @@index([categoryId])
+}
+
+model FlashSaleProduct {
+  id          String    @id @default(uuid())
+  flashSaleId String
+  flashSale   FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  deletedAt   DateTime?
+
+  @@unique([flashSaleId, productId])
+  @@index([flashSaleId])
+  @@index([productId])
 }
 
 model FlashSaleRange {
@@ -556,14 +718,16 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(uuid())
-  cartId    String
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(uuid())
+  cartId          String
+  cart            Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity        Int      @default(1)
+  personalization Json?
+  selectedOptions Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([cartId, productId])
   @@index([cartId])
@@ -587,6 +751,13 @@ model Order {
   checkoutIdempotencyKey String?
   currency               String                   @default("vnd")
   shippingAddress        Json?
+  giftWrap               Boolean                  @default(false)
+  giftCard               Boolean                  @default(false)
+  giftMessage            String?                  @db.Text
+  giftWrapTierId         String?
+  giftWrapTier           GiftWrapTier?            @relation(fields: [giftWrapTierId], references: [id], onDelete: SetNull)
+  giftWrapTierSnapshot   Json?
+  giftWrapFee            Decimal                  @default(0)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   subOrders              SubOrder[]
@@ -594,28 +765,79 @@ model Order {
   rewardPointLedger      RewardPointLedger[]
   refunds                Refund[]
   reports                Report[]
+  voucherUsage           VoucherUsage?            @relation("OrderVoucherUsage")
 
   @@unique([customerId, checkoutIdempotencyKey])
   @@index([customerId])
+  @@index([giftWrapTierId])
+}
+
+model GiftWrapTier {
+  id           String    @id @default(uuid())
+  name         String
+  description  String?   @db.Text
+  price        Decimal   @default(0)
+  includesCard Boolean   @default(false)
+  sortOrder    Int       @default(0)
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt])
 }
 
 model SubOrder {
-  id             String                   @id @default(uuid())
-  orderId        String
-  order          Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sellerId       String
-  seller         User                     @relation(fields: [sellerId], references: [id])
-  subTotal       Decimal
-  discountAmount Decimal                  @default(0)
-  status         OrderStatus              @default(PENDING)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  items          OrderItem[]
-  ledgerEntries  MarketplaceLedgerEntry[]
-  refunds        Refund[]
+  id                       String                   @id @default(uuid())
+  orderId                  String
+  order                    Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerId                 String
+  seller                   User                     @relation(fields: [sellerId], references: [id])
+  subTotal                 Decimal
+  discountAmount           Decimal                  @default(0)
+  status                   OrderStatus              @default(PENDING)
+  shippingProfileId        String?
+  shippingProfile          ShippingProfile?         @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
+  shippingProfileSnapshot  Json?
+  estimatedShipStartAt     DateTime?
+  estimatedShipEndAt       DateTime?
+  estimatedDeliveryStartAt DateTime?
+  estimatedDeliveryEndAt   DateTime?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  items                    OrderItem[]
+  ledgerEntries            MarketplaceLedgerEntry[]
+  refunds                  Refund[]
+  trackingEvents           ShipmentTrackingEvent[]
 
   @@index([orderId])
   @@index([sellerId])
+  @@index([shippingProfileId])
+  @@index([estimatedDeliveryStartAt, estimatedDeliveryEndAt])
+}
+
+model ShipmentTrackingEvent {
+  id           String                    @id @default(uuid())
+  subOrderId   String
+  subOrder     SubOrder                  @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+  createdById  String?
+  createdBy    User?                     @relation("ShipmentTrackingEventActor", fields: [createdById], references: [id], onDelete: SetNull)
+  status       OrderStatus?
+  type         ShipmentTrackingEventType @default(INFO)
+  title        String
+  description  String?                   @db.Text
+  location     String?
+  carrier      String?
+  trackingCode String?
+  occurredAt   DateTime                  @default(now())
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  @@index([subOrderId, occurredAt])
+  @@index([createdById, createdAt])
+  @@index([status, occurredAt])
 }
 
 model OrderItem {
@@ -630,6 +852,8 @@ model OrderItem {
   platformDiscountAmount   Decimal  @default(0)
   flashSaleId              String?
   flashSaleDiscountPercent Decimal?
+  personalization          Json?
+  selectedOptions          Json?
 
   review Review?
 
@@ -658,6 +882,26 @@ model Review {
   updatedAt DateTime @updatedAt
 
   @@index([productId])
+  @@index([userId])
+}
+
+model CustomOrderReview {
+  id          String   @id @default(uuid())
+  rating      Int      @default(5)
+  comment     String?  @db.Text
+  images      String[] @default([])
+  sellerReply String?  @db.Text
+
+  userId String
+  user   User   @relation("CustomOrderReviews", fields: [userId], references: [id])
+
+  customOrderId String      @unique
+  customOrder   CustomOrder @relation(fields: [customOrderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customOrderId])
   @@index([userId])
 }
 
@@ -734,12 +978,14 @@ model CustomOrder {
 
   status CustomOrderStatus @default(DRAFT)
 
-  cancelledAt   DateTime?
-  deliveredAt   DateTime?
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-  ledgerEntries MarketplaceLedgerEntry[]
-  refunds       Refund[]
+  cancelledAt    DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  ledgerEntries  MarketplaceLedgerEntry[]
+  refunds        Refund[]
+  progressEvents CustomOrderProgressEvent[]
+  review         CustomOrderReview?
 
   @@index([customerId])
   @@index([sellerId])
@@ -747,43 +993,60 @@ model CustomOrder {
   @@index([quoteTemplateId])
 }
 
+model CustomOrderProgressEvent {
+  id            String             @id @default(uuid())
+  customOrderId String
+  customOrder   CustomOrder        @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+  actorId       String
+  actor         User               @relation("CustomOrderProgressActor", fields: [actorId], references: [id], onDelete: Cascade)
+  status        CustomOrderStatus?
+  title         String
+  note          String?            @db.Text
+  imageUrl      String?
+  createdAt     DateTime           @default(now())
+
+  @@index([customOrderId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([status, createdAt])
+}
+
 model CommissionPost {
-  id                 String                 @id @default(uuid())
+  id                 String               @id @default(uuid())
   customerId         String
-  customer           User                   @relation("CommissionPostCustomer", fields: [customerId], references: [id], onDelete: Cascade)
-  selectedProposalId String?                @unique
-  selectedProposal   CommissionProposal?    @relation("SelectedCommissionProposal", fields: [selectedProposalId], references: [id], onDelete: SetNull)
+  customer           User                 @relation("CommissionPostCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  selectedProposalId String?              @unique
+  selectedProposal   CommissionProposal?  @relation("SelectedCommissionProposal", fields: [selectedProposalId], references: [id], onDelete: SetNull)
   customOrderId      String?
   title              String
-  description        String                 @db.Text
+  description        String               @db.Text
   budgetMin          Decimal?
   budgetMax          Decimal?
   desiredTimeline    String?
-  referenceImages    String[]               @default([])
-  status             CommissionPostStatus   @default(OPEN)
+  referenceImages    String[]             @default([])
+  status             CommissionPostStatus @default(OPEN)
   closedAt           DateTime?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  proposals          CommissionProposal[]   @relation("CommissionPostProposals")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  proposals          CommissionProposal[] @relation("CommissionPostProposals")
 
   @@index([customerId, createdAt])
   @@index([status, createdAt])
 }
 
 model CommissionProposal {
-  id             String                   @id @default(uuid())
-  commissionId   String
-  commission     CommissionPost           @relation("CommissionPostProposals", fields: [commissionId], references: [id], onDelete: Cascade)
-  sellerId       String
-  seller         User                     @relation("CommissionProposalSeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  selectedFor    CommissionPost?          @relation("SelectedCommissionProposal")
-  message        String                   @db.Text
-  proposedPrice  Decimal
+  id               String                   @id @default(uuid())
+  commissionId     String
+  commission       CommissionPost           @relation("CommissionPostProposals", fields: [commissionId], references: [id], onDelete: Cascade)
+  sellerId         String
+  seller           User                     @relation("CommissionProposalSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  selectedFor      CommissionPost?          @relation("SelectedCommissionProposal")
+  message          String                   @db.Text
+  proposedPrice    Decimal
   proposedLeadTime String
-  sketchImageUrl String?
-  status         CommissionProposalStatus @default(PENDING)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
+  sketchImageUrl   String?
+  status           CommissionProposalStatus @default(PENDING)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 
   @@unique([commissionId, sellerId])
   @@index([sellerId, createdAt])

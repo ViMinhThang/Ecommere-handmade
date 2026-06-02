@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
@@ -19,6 +20,8 @@ import {
 import { CreateCustomOrderDto } from './dto/create-custom-order.dto';
 import { UpdateSketchDto } from './dto/update-sketch.dto';
 import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto';
+import { CreateCustomOrderProgressEventDto } from './dto/create-custom-order-progress-event.dto';
+import { CreateCustomOrderReviewDto } from './dto/create-custom-order-review.dto';
 import { SettingsService } from '../settings/settings.service';
 
 const CURRENCY = 'vnd';
@@ -36,6 +39,8 @@ interface StripeWebhookPaymentPayload {
 
 @Injectable()
 export class CustomOrdersService {
+  private readonly logger = new Logger(CustomOrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
@@ -109,6 +114,38 @@ export class CustomOrdersService {
       ...order,
       financialSummary: this.getFinancialSummary(order),
     };
+  }
+
+  private getProgressStatusTitle(status: CustomOrderStatus) {
+    const titles: Record<CustomOrderStatus, string> = {
+      [CustomOrderStatus.DRAFT]: 'Đơn thiết kế đã được tạo nháp',
+      [CustomOrderStatus.PENDING_REVIEW]: 'Bản phác thảo đang chờ duyệt',
+      [CustomOrderStatus.REVISION_REQUESTED]: 'Khách hàng yêu cầu chỉnh sửa',
+      [CustomOrderStatus.AWAITING_PAYMENT]: 'Đơn thiết kế đang chờ thanh toán',
+      [CustomOrderStatus.CRAFTING]: 'Sản phẩm bắt đầu được chế tác',
+      [CustomOrderStatus.FINISHING]: 'Sản phẩm đang được hoàn thiện',
+      [CustomOrderStatus.SHIPPED]: 'Sản phẩm đã được bàn giao vận chuyển',
+      [CustomOrderStatus.DELIVERED]: 'Sản phẩm đã được giao',
+      [CustomOrderStatus.CANCELLED]: 'Đơn thiết kế đã hủy',
+    };
+
+    return titles[status] ?? 'Cập nhật tiến độ';
+  }
+
+  private getProgressStatusNote(status: CustomOrderStatus) {
+    const notes: Partial<Record<CustomOrderStatus, string>> = {
+      [CustomOrderStatus.CRAFTING]:
+        'Người bán đã bắt đầu chế tác sản phẩm handmade theo báo giá đã thống nhất.',
+      [CustomOrderStatus.FINISHING]:
+        'Sản phẩm đang được kiểm tra chi tiết, hoàn thiện bề mặt và chuẩn bị đóng gói.',
+      [CustomOrderStatus.SHIPPED]:
+        'Sản phẩm đã hoàn thiện và được chuyển sang giai đoạn giao hàng.',
+      [CustomOrderStatus.DELIVERED]:
+        'Sản phẩm đã được giao thành công cho khách hàng.',
+      [CustomOrderStatus.CANCELLED]: 'Đơn thiết kế riêng đã được hủy.',
+    };
+
+    return notes[status];
   }
 
   private isUniqueConstraintError(error: unknown) {
@@ -273,6 +310,107 @@ export class CustomOrdersService {
       ...this.attachFinancialSummary(order),
       specifications: this.parseSpecifications(order.specifications),
     };
+  }
+
+  async getProgressEvents(id: string, userId: string, roles: string[]) {
+    const order = await this.prisma.customOrder.findUnique({
+      where: { id },
+      select: { id: true, customerId: true, sellerId: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Custom Order not found');
+    }
+
+    if (!this.canAccessOrder(order, userId, roles)) {
+      throw new ForbiddenException('Not your order');
+    }
+
+    return this.prisma.customOrderProgressEvent.findMany({
+      where: { customOrderId: id },
+      include: {
+        actor: {
+          select: {
+            id: true,
+            name: true,
+            roles: true,
+            avatar: true,
+            shopName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async createProgressEvent(
+    id: string,
+    actorId: string,
+    roles: string[],
+    data: CreateCustomOrderProgressEventDto,
+  ) {
+    const order = await this.prisma.customOrder.findUnique({
+      where: { id },
+      select: { id: true, customerId: true, sellerId: true, status: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Custom Order not found');
+    }
+
+    if (!this.isAdmin(roles) && order.sellerId !== actorId) {
+      throw new ForbiddenException('Not your order');
+    }
+
+    return this.prisma.customOrderProgressEvent.create({
+      data: {
+        customOrderId: id,
+        actorId,
+        status: data.status ?? order.status,
+        title: data.title.trim(),
+        note: data.note?.trim() || null,
+        imageUrl: data.imageUrl?.trim() || null,
+      },
+      include: {
+        actor: {
+          select: {
+            id: true,
+            name: true,
+            roles: true,
+            avatar: true,
+            shopName: true,
+          },
+        },
+      },
+    });
+  }
+
+  private async safeCreateProgressEvent(data: {
+    customOrderId: string;
+    actorId: string;
+    status: CustomOrderStatus;
+    title?: string;
+    note?: string;
+    imageUrl?: string | null;
+  }) {
+    try {
+      await this.prisma.customOrderProgressEvent.create({
+        data: {
+          customOrderId: data.customOrderId,
+          actorId: data.actorId,
+          status: data.status,
+          title: data.title ?? this.getProgressStatusTitle(data.status),
+          note: data.note ?? this.getProgressStatusNote(data.status),
+          imageUrl: data.imageUrl ?? null,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create custom order progress event for ${data.customOrderId}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   private parseSpecifications(specs: Prisma.JsonValue | null): unknown[] {
@@ -461,7 +599,7 @@ export class CustomOrdersService {
 
     this.assertStatusTransition(order.status, status);
 
-    return this.prisma.customOrder.update({
+    const updated = await this.prisma.customOrder.update({
       where: { id },
       data: {
         status,
@@ -469,6 +607,14 @@ export class CustomOrdersService {
           status === CustomOrderStatus.DELIVERED ? new Date() : undefined,
       },
     });
+
+    await this.safeCreateProgressEvent({
+      customOrderId: id,
+      actorId,
+      status,
+    });
+
+    return updated;
   }
 
   async updateSketch(id: string, sellerId: string, data: UpdateSketchDto) {
@@ -883,5 +1029,160 @@ export class CustomOrdersService {
       ...this.attachFinancialSummary(o),
       specifications: this.parseSpecifications(o.specifications),
     }));
+  }
+
+  async createCustomOrderReview(
+    userId: string,
+    customOrderId: string,
+    data: CreateCustomOrderReviewDto,
+  ) {
+    const customOrder = await this.prisma.customOrder.findUnique({
+      where: { id: customOrderId },
+      include: {
+        customer: true,
+        seller: true,
+      },
+    });
+
+    if (!customOrder) {
+      throw new NotFoundException('Không tìm thấy đơn hàng custom');
+    }
+
+    if (customOrder.customerId !== userId) {
+      throw new ForbiddenException(
+        'Bạn không có quyền đánh giá đơn hàng này',
+      );
+    }
+
+    if (customOrder.status !== CustomOrderStatus.DELIVERED) {
+      throw new BadRequestException(
+        'Bạn chỉ có thể đánh giá sau khi nhận được hàng',
+      );
+    }
+
+    const existingReview = await this.prisma.customOrderReview.findUnique({
+      where: { customOrderId },
+    });
+
+    if (existingReview) {
+      throw new BadRequestException('Bạn đã đánh giá đơn hàng này rồi');
+    }
+
+    const review = await this.prisma.customOrderReview.create({
+      data: {
+        rating: data.rating,
+        comment: data.comment,
+        images: data.images || [],
+        userId,
+        customOrderId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return review;
+  }
+
+  async getCustomOrderReview(customOrderId: string) {
+    const review = await this.prisma.customOrderReview.findUnique({
+      where: { customOrderId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return review;
+  }
+
+  async sellerReplyToCustomOrderReview(
+    sellerId: string,
+    roles: string[],
+    reviewId: string,
+    reply: string,
+  ) {
+    const review = await this.prisma.customOrderReview.findUnique({
+      where: { id: reviewId },
+      include: {
+        customOrder: {
+          include: {
+            seller: true,
+          },
+        },
+      },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Không tìm thấy đánh giá');
+    }
+
+    const isOwner = review.customOrder.sellerId === sellerId;
+    const isAdminRole = this.isAdmin(roles);
+
+    if (!isOwner && !isAdminRole) {
+      throw new ForbiddenException(
+        'Bạn không có quyền trả lời đánh giá này',
+      );
+    }
+
+    const updatedReview = await this.prisma.customOrderReview.update({
+      where: { id: reviewId },
+      data: { sellerReply: reply },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return updatedReview;
+  }
+
+  async getSellerLatestCustomOrderReviews(sellerId: string) {
+    const reviews = await this.prisma.customOrderReview.findMany({
+      where: {
+        customOrder: {
+          sellerId,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        customOrder: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 10,
+    });
+
+    return reviews;
   }
 }

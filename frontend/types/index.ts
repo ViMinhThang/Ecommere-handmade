@@ -50,7 +50,18 @@ export interface User {
   sellerStat1Value?: string;
   sellerStat2Label?: string;
   sellerStat2Value?: string;
-  rewardPointsBalance?: number;
+  artisanVerified?: boolean;
+  craftSpecialty?: string | null;
+  craftExperienceYears?: number | null;
+  craftMaterials?: string[];
+  shopReturnPolicy?: string | null;
+  shopShippingPolicy?: string | null;
+  shopProcessingTime?: string | null;
+  shopPolicyUpdatedAt?: string | Date | null;
+  verificationNote?: string | null;
+  followerCount?: number;
+  shopAverageRating?: number | null;
+  shopReviewCount?: number;
   ordersCount: number;
   totalSpent: number;
   products?: number;
@@ -90,9 +101,17 @@ export interface SellerSearchResult {
   avatar?: string | null;
   sellerTitle?: string | null;
   sellerBio?: string | null;
+  artisanVerified?: boolean;
+  craftSpecialty?: string | null;
+  craftExperienceYears?: number | null;
+  craftMaterials?: string[];
+  shopProcessingTime?: string | null;
   productCount: number;
   averageRating: number | null;
   totalReviews: number;
+  followerCount: number;
+  shopAverageRating: number | null;
+  shopReviewCount: number;
   createdAt: Date | string;
   linkTarget: string;
 }
@@ -113,6 +132,57 @@ export interface ProductImage {
   isMain: boolean;
   productId: string;
   createdAt: Date;
+}
+
+export interface ProductPersonalization {
+  text?: string | null;
+}
+
+export interface ProductSelectedOptions {
+  color?: string | null;
+  material?: string | null;
+  size?: string | null;
+  processingTime?: string | null;
+}
+
+export interface ShippingProfile {
+  id: string;
+  sellerId: string;
+  name: string;
+  carrierName: string;
+  trackingUrlTemplate?: string | null;
+  processingMinDays: number;
+  processingMaxDays: number;
+  transitMinDays: number;
+  transitMaxDays: number;
+  isDefault: boolean;
+  isActive: boolean;
+  deletedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface ShippingProfileSnapshot {
+  version?: number;
+  profileId?: string | null;
+  name?: string | null;
+  carrierName?: string | null;
+  trackingUrlTemplate?: string | null;
+  processingMinDays?: number;
+  processingMaxDays?: number;
+  transitMinDays?: number;
+  transitMaxDays?: number;
+  itemProfiles?: Array<{
+    productId: string;
+    productName?: string;
+    profileId?: string | null;
+    name?: string | null;
+    carrierName?: string | null;
+    processingMinDays?: number;
+    processingMaxDays?: number;
+    transitMinDays?: number;
+    transitMaxDays?: number;
+  }>;
 }
 
 export interface Product {
@@ -136,6 +206,16 @@ export interface Product {
   stock: number;
   lowStockThreshold: number;
   sku?: string;
+  personalizationEnabled?: boolean;
+  personalizationRequired?: boolean;
+  personalizationInstructions?: string | null;
+  personalizationMaxLength?: number;
+  optionColors?: string[];
+  optionMaterials?: string[];
+  optionSizes?: string[];
+  processingTime?: string | null;
+  shippingProfileId?: string | null;
+  shippingProfile?: ShippingProfile | null;
   viewCount?: number;
   soldQuantity?: number;
   createdAt: Date;
@@ -274,8 +354,6 @@ export interface Order {
   products?: Product[];
   totalAmount: number;
   discountAmount?: number;
-  rewardPointsRedeemed?: number;
-  rewardDiscountAmount?: number;
   voucherCode?: string | null;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   paymentMethod?: "STRIPE" | "COD";
@@ -288,44 +366,37 @@ export interface Order {
     | "REFUNDED";
   paymentIntentId?: string;
   shippingAddress?: string | OrderShippingAddress | null;
+  giftWrap?: boolean;
+  giftCard?: boolean;
+  giftMessage?: string | null;
+  giftWrapTierId?: string | null;
+  giftWrapTierSnapshot?: GiftWrapTierSnapshot | null;
+  giftWrapFee?: number | string;
   createdAt: Date;
   subOrders?: SubOrder[];
   financialSummary?: FinancialSummary;
 }
 
-export type RewardPointLedgerType =
-  | "EARN"
-  | "REDEEM"
-  | "REFUND"
-  | "ADJUSTMENT"
-  | "EXPIRE";
-
-export interface RewardBalance {
-  balance: number;
-  redeemVndPerPoint: number;
-  earnVndPerPoint: number;
-}
-
-export interface RewardLedgerEntry {
+export interface GiftWrapTier {
   id: string;
-  userId: string;
-  orderId?: string | null;
-  type: RewardPointLedgerType;
-  points: number;
-  balanceAfter: number;
+  name: string;
   description?: string | null;
-  idempotencyKey: string;
-  createdAt: Date | string;
+  price: number | string;
+  includesCard: boolean;
+  sortOrder: number;
+  isActive: boolean;
+  deletedAt?: Date | string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
-export interface RewardLedgerResponse {
-  data: RewardLedgerEntry[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface GiftWrapTierSnapshot {
+  version: 1;
+  tierId: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  includesCard: boolean;
 }
 
 export type ReportType = "SHOP" | "CUSTOMER" | "PRODUCT" | "ORDER";
@@ -381,9 +452,47 @@ export interface SubOrder {
   subTotal: number;
   discountAmount?: number;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  shippingProfileId?: string | null;
+  shippingProfileSnapshot?: ShippingProfileSnapshot | null;
+  estimatedShipStartAt?: Date | string | null;
+  estimatedShipEndAt?: Date | string | null;
+  estimatedDeliveryStartAt?: Date | string | null;
+  estimatedDeliveryEndAt?: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
   items: OrderItem[];
+  trackingEvents?: ShipmentTrackingEvent[];
+}
+
+export type ShipmentTrackingEventType =
+  | "STATUS_UPDATED"
+  | "INFO"
+  | "LOCATION"
+  | "EXCEPTION"
+  | "DELIVERED";
+
+export interface ShipmentTrackingEventActor {
+  id: string;
+  name: string;
+  shopName?: string | null;
+  avatar?: string | null;
+}
+
+export interface ShipmentTrackingEvent {
+  id: string;
+  subOrderId: string;
+  createdById?: string | null;
+  createdBy?: ShipmentTrackingEventActor | null;
+  status?: SubOrder["status"] | null;
+  type: ShipmentTrackingEventType;
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  carrier?: string | null;
+  trackingCode?: string | null;
+  occurredAt: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface OrderItem {
@@ -395,6 +504,8 @@ export interface OrderItem {
   price: number;
   originalPrice?: number;
   platformDiscountAmount?: number;
+  personalization?: ProductPersonalization | null;
+  selectedOptions?: ProductSelectedOptions | null;
 }
 
 export interface Customer {
@@ -497,8 +608,14 @@ export interface Voucher {
   code: string;
   categoryId: string;
   category?: Category;
+  sellerId?: string | null;
+  seller?: Pick<User, "id" | "name" | "shopName" | "avatar" | "status"> | null;
   isActive: boolean;
   endDate: Date | string;
+  maxDiscountAmount?: number | string | null;
+  usageLimit?: number | null;
+  perUserLimit?: number | null;
+  usedCount?: number;
   ranges: VoucherRange[];
   createdAt: Date;
   updatedAt: Date;
@@ -521,6 +638,13 @@ export interface FlashSaleCategory {
   category?: Category;
 }
 
+export interface FlashSaleProduct {
+  id: string;
+  flashSaleId: string;
+  productId: string;
+  product?: Product;
+}
+
 export interface FlashSale {
   id: string;
   name: string;
@@ -538,6 +662,7 @@ export interface FlashSale {
   soldUnits?: number;
   reservedUnits?: number;
   categories: FlashSaleCategory[];
+  products?: FlashSaleProduct[];
   ranges: FlashSaleRange[];
   createdAt: Date;
   updatedAt: Date;
@@ -554,6 +679,8 @@ export interface CartItem {
     discountPercent: number;
     flashSaleId: string | null;
   };
+  personalization?: ProductPersonalization | null;
+  selectedOptions?: ProductSelectedOptions | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -569,6 +696,8 @@ export interface Cart {
     code: string;
     discountAmount: number;
     discountPercent: number;
+    categoryId?: string;
+    sellerId?: string | null;
   } | null;
   createdAt?: Date;
   updatedAt?: Date;

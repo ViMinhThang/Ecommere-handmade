@@ -10,6 +10,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { PaymentReliabilityService } from './payment-reliability.service';
 import { RewardsModule } from '../rewards/rewards.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { VouchersModule } from '../vouchers/vouchers.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     CustomOrdersModule,
     SettingsModule,
     RewardsModule,
+    VouchersModule,
     NotificationsModule,
   ],
   controllers: [OrdersController, StripeWebhookController],

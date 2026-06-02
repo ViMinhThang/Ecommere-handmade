@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCategories, useCreateProduct, useUpdateProduct, useProduct } from '@/lib/api/hooks'
+import { useCategories, useCreateProduct, useUpdateProduct, useProduct, useShippingProfiles } from '@/lib/api/hooks'
 import { Category } from '@/types'
 import { productsApi } from '@/lib/api/products'
 
@@ -13,12 +13,18 @@ import { BasicInfoSection } from '@/components/dashboard/product-form/basic-info
 import { MediaSection } from '@/components/dashboard/product-form/media-section'
 import { PricingSection } from '@/components/dashboard/product-form/pricing-section'
 import { InventorySection } from '@/components/dashboard/product-form/inventory-section'
+import { PersonalizationSection } from '@/components/dashboard/product-form/personalization-section'
+import { OptionsSection } from '@/components/dashboard/product-form/options-section'
+import { ShippingSection } from '@/components/dashboard/product-form/shipping-section'
 
 const SECTIONS = [
   { id: 'basic', label: 'Thông tin cơ bản' },
   { id: 'media', label: 'Hình ảnh' },
   { id: 'pricing', label: 'Giá & Khả dụng' },
   { id: 'inventory', label: 'Tồn kho' },
+  { id: 'options', label: 'Tùy chọn' },
+  { id: 'personalization', label: 'Cá nhân hóa' },
+  { id: 'shipping', label: 'Vận chuyển' },
 ]
 
 function NewListingContent() {
@@ -28,6 +34,7 @@ function NewListingContent() {
 
   const { data: categoriesData } = useCategories({ status: 'ACTIVE' })
   const { data: existingProduct } = useProduct(productId || '')
+  const { data: shippingProfiles = [], isLoading: isShippingProfilesLoading } = useShippingProfiles()
   
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
@@ -46,6 +53,15 @@ function NewListingContent() {
     lowStockThreshold: 5,
     sku: '',
     status: 'PENDING' as 'PENDING' | 'APPROVED' | 'REJECTED',
+    personalizationEnabled: false,
+    personalizationRequired: false,
+    personalizationInstructions: '',
+    personalizationMaxLength: 120,
+    optionColors: [] as string[],
+    optionMaterials: [] as string[],
+    optionSizes: [] as string[],
+    processingTime: '',
+    shippingProfileId: '',
   })
 
   const [isUploading, setIsUploading] = useState(false)
@@ -56,7 +72,7 @@ function NewListingContent() {
       setFormData({
         name: existingProduct.name || '',
         description: existingProduct.description || '',
-        price: existingProduct.price || 0,
+        price: Number(existingProduct.price || 0),
         categoryId: existingProduct.categoryId || existingProduct.category?.id || '',
         images: existingProduct.images?.map(img => ({ url: img.url, isMain: img.isMain })) || [],
         descriptionImages: existingProduct.descriptionImages || [],
@@ -64,6 +80,15 @@ function NewListingContent() {
         lowStockThreshold: existingProduct.lowStockThreshold || 0,
         sku: existingProduct.sku || '',
         status: existingProduct.status || 'PENDING',
+        personalizationEnabled: Boolean(existingProduct.personalizationEnabled),
+        personalizationRequired: Boolean(existingProduct.personalizationRequired),
+        personalizationInstructions: existingProduct.personalizationInstructions || '',
+        personalizationMaxLength: existingProduct.personalizationMaxLength || 120,
+        optionColors: existingProduct.optionColors || [],
+        optionMaterials: existingProduct.optionMaterials || [],
+        optionSizes: existingProduct.optionSizes || [],
+        processingTime: existingProduct.processingTime || '',
+        shippingProfileId: existingProduct.shippingProfileId || '',
       })
     }
   }, [existingProduct])
@@ -141,6 +166,42 @@ function NewListingContent() {
       return
     }
 
+    const personalizationMaxLength = Number(formData.personalizationMaxLength) || 120
+    if (formData.personalizationEnabled && (personalizationMaxLength < 1 || personalizationMaxLength > 500)) {
+      alert('Giới hạn ký tự cá nhân hóa phải từ 1 đến 500')
+      document.getElementById('personalization')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
+    if (formData.personalizationInstructions.length > 1000) {
+      alert('Hướng dẫn cá nhân hóa không được vượt quá 1000 ký tự')
+      document.getElementById('personalization')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
+    const optionLists = [
+      { label: 'Màu sắc', value: formData.optionColors },
+      { label: 'Chất liệu', value: formData.optionMaterials },
+      { label: 'Kích thước', value: formData.optionSizes },
+    ]
+    const invalidOptionList = optionLists.find(
+      (list) =>
+        list.value.length > 20 ||
+        list.value.some((item) => item.trim().length > 40),
+    )
+
+    if (invalidOptionList) {
+      alert(`${invalidOptionList.label} tối đa 20 lựa chọn, mỗi lựa chọn tối đa 40 ký tự`)
+      document.getElementById('options')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
+    if (formData.processingTime.length > 120) {
+      alert('Thời gian làm không được vượt quá 120 ký tự')
+      document.getElementById('options')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
     setIsSubmitting(true)
 
     const productData = {
@@ -153,6 +214,21 @@ function NewListingContent() {
       stock: Number(formData.stock),
       lowStockThreshold: Number(formData.lowStockThreshold),
       sku: formData.sku,
+      personalizationEnabled: formData.personalizationEnabled,
+      personalizationRequired: formData.personalizationEnabled
+        ? formData.personalizationRequired
+        : false,
+      personalizationInstructions: formData.personalizationEnabled
+        ? formData.personalizationInstructions.trim() || undefined
+        : undefined,
+      personalizationMaxLength: formData.personalizationEnabled
+        ? personalizationMaxLength
+        : 120,
+      optionColors: formData.optionColors,
+      optionMaterials: formData.optionMaterials,
+      optionSizes: formData.optionSizes,
+      processingTime: formData.processingTime.trim() || null,
+      shippingProfileId: formData.shippingProfileId || null,
     }
 
     if (productId && existingProduct) {
@@ -219,6 +295,29 @@ function NewListingContent() {
 
           <InventorySection 
             stock={formData.stock}
+            onChange={handleInputChange}
+          />
+
+          <OptionsSection
+            optionColors={formData.optionColors}
+            optionMaterials={formData.optionMaterials}
+            optionSizes={formData.optionSizes}
+            processingTime={formData.processingTime}
+            onChange={handleInputChange}
+          />
+
+          <PersonalizationSection
+            personalizationEnabled={formData.personalizationEnabled}
+            personalizationRequired={formData.personalizationRequired}
+            personalizationInstructions={formData.personalizationInstructions}
+            personalizationMaxLength={formData.personalizationMaxLength}
+            onChange={handleInputChange}
+          />
+
+          <ShippingSection
+            shippingProfileId={formData.shippingProfileId}
+            shippingProfiles={shippingProfiles}
+            isLoading={isShippingProfilesLoading}
             onChange={handleInputChange}
           />
         </div>

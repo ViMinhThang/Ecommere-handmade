@@ -11,10 +11,19 @@ import {
 } from "./flash-sales";
 import { cartApi } from "./cart";
 import { wishlistApi } from "./wishlist";
+import { shopFollowApi } from "./shop-follow";
 import { ordersApi } from "./orders";
-import type { AdminOrderFilters, OrderStatus as ApiOrderStatus } from "./orders";
+import type {
+  AdminOrderFilters,
+  CreateShipmentTrackingEventPayload,
+  OrderStatus as ApiOrderStatus,
+} from "./orders";
 import { analyticsApi } from "./analytics";
-import { reviewsApi, type CreateReviewDto } from "./reviews";
+import {
+  reviewsApi,
+  type CreateReviewDto,
+  type CreateShopReviewDto,
+} from "./reviews";
 import {
   chatApi,
   CursorParams,
@@ -23,25 +32,39 @@ import {
 } from "./chat";
 import {
   customOrdersApi,
-  CreateCustomOrderPayload,
+  type CreateCustomOrderPayload,
+  type CreateCustomOrderProgressEventPayload,
 } from "./custom-orders";
 import {
   customOrderQuoteTemplatesApi,
   type CreateCustomOrderQuoteTemplateDto,
   type UpdateCustomOrderQuoteTemplateDto,
 } from "./custom-order-quote-templates";
+import {
+  shippingProfilesApi,
+  type CreateShippingProfileDto,
+  type UpdateShippingProfileDto,
+} from "./shipping-profiles";
+import {
+  giftWrapTiersApi,
+  type CreateGiftWrapTierDto,
+  type UpdateGiftWrapTierDto,
+} from "./gift-wrap-tiers";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
-import { rewardsApi } from "./rewards";
+import {
+  homepageApi,
+  type CreateHomepageBannerDto,
+  type CreateHomepageFeaturedProductDto,
+  type UpdateHomepageBannerDto,
+  type UpdateHomepageFeaturedProductDto,
+} from "./homepage";
 import {
   reportsApi,
   type AdminReportsQuery,
   type CreateReportPayload,
 } from "./reports";
-import {
-  notificationsApi,
-  type NotificationsQuery,
-} from "./notifications";
+import { notificationsApi, type NotificationsQuery } from "./notifications";
 import {
   paymentReliabilityApi,
   type PaymentReliabilityAnomaliesQuery,
@@ -114,6 +137,69 @@ export const productKeys = {
     [...productKeys.detail(productId), "questions", { ...params }] as const,
 };
 
+export const shippingProfileKeys = {
+  all: ["shipping-profiles"] as const,
+  mine: () => [...shippingProfileKeys.all, "mine"] as const,
+};
+
+export const giftWrapTierKeys = {
+  all: ["gift-wrap-tiers"] as const,
+  public: () => [...giftWrapTierKeys.all, "public"] as const,
+  admin: () => [...giftWrapTierKeys.all, "admin"] as const,
+};
+
+export function useGiftWrapTiers() {
+  return useQuery({
+    queryKey: giftWrapTierKeys.public(),
+    queryFn: () => giftWrapTiersApi.getPublic(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAdminGiftWrapTiers(enabled = true) {
+  return useQuery({
+    queryKey: giftWrapTierKeys.admin(),
+    queryFn: () => giftWrapTiersApi.getAdminAll(),
+    enabled,
+  });
+}
+
+export function useCreateGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateGiftWrapTierDto) => giftWrapTiersApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
+
+export function useUpdateGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateGiftWrapTierDto;
+    }) => giftWrapTiersApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
+
+export function useDeleteGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => giftWrapTiersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
+
 export function useUsers(params?: {
   role?: UserRole;
   status?: UserStatus;
@@ -154,10 +240,7 @@ export function useSeller(id: string) {
   });
 }
 
-export function useSearchSellers(
-  params?: SellerSearchParams,
-  enabled = true,
-) {
+export function useSearchSellers(params?: SellerSearchParams, enabled = true) {
   return useQuery({
     queryKey: sellerKeys.search(params),
     queryFn: () => usersApi.searchSellers(params),
@@ -178,6 +261,96 @@ export function useCreateUser() {
     mutationFn: (data: Partial<User>) => usersApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+  });
+}
+
+export function useHomepage() {
+  return useQuery({
+    queryKey: homepageKeys.public(),
+    queryFn: () => homepageApi.getHomepage(),
+  });
+}
+
+export function useAdminHomepageBanners() {
+  return useQuery({
+    queryKey: homepageKeys.banners(),
+    queryFn: () => homepageApi.getAdminBanners(),
+  });
+}
+
+export function useCreateHomepageBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateHomepageBannerDto) =>
+      homepageApi.createBanner(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useUpdateHomepageBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateHomepageBannerDto }) =>
+      homepageApi.updateBanner(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useDeleteHomepageBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => homepageApi.deleteBanner(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useAdminHomepageFeaturedProducts() {
+  return useQuery({
+    queryKey: homepageKeys.featuredProducts(),
+    queryFn: () => homepageApi.getAdminFeaturedProducts(),
+  });
+}
+
+export function useCreateHomepageFeaturedProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateHomepageFeaturedProductDto) =>
+      homepageApi.createFeaturedProduct(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useUpdateHomepageFeaturedProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateHomepageFeaturedProductDto;
+    }) => homepageApi.updateFeaturedProduct(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
+    },
+  });
+}
+
+export function useDeleteHomepageFeaturedProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => homepageApi.deleteFeaturedProduct(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: homepageKeys.all });
     },
   });
 }
@@ -406,6 +579,64 @@ export function useProductStats() {
   return useQuery({
     queryKey: productKeys.stats(),
     queryFn: () => productsApi.getStats(),
+  });
+}
+
+export function useShippingProfiles() {
+  return useQuery({
+    queryKey: shippingProfileKeys.mine(),
+    queryFn: () => shippingProfilesApi.listMine(),
+  });
+}
+
+export function useCreateShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateShippingProfileDto) =>
+      shippingProfilesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useUpdateShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateShippingProfileDto;
+    }) => shippingProfilesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useSetDefaultShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => shippingProfilesApi.setDefault(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useDeleteShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => shippingProfilesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
   });
 }
 
@@ -679,9 +910,22 @@ export const voucherKeys = {
     [...voucherKeys.all, "list", params ?? {}] as const,
   adminLists: (params?: { page?: number; limit?: number }) =>
     [...voucherKeys.all, "admin-list", params ?? {}] as const,
+  sellerLists: (params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "seller-list", params ?? {}] as const,
+  sellerPublic: (sellerId: string, params?: { page?: number; limit?: number }) =>
+    [...voucherKeys.all, "seller-public", sellerId, params ?? {}] as const,
   details: () => [...voucherKeys.all, "detail"] as const,
   detail: (id: string) => [...voucherKeys.details(), id] as const,
   byCode: (code: string) => [...voucherKeys.all, "code", code] as const,
+};
+
+export const homepageKeys = {
+  all: ["homepage"] as const,
+  public: () => [...homepageKeys.all, "public"] as const,
+  admin: () => [...homepageKeys.all, "admin"] as const,
+  banners: () => [...homepageKeys.admin(), "banners"] as const,
+  featuredProducts: () =>
+    [...homepageKeys.admin(), "featured-products"] as const,
 };
 
 export function useVouchers(params?: { page?: number; limit?: number }) {
@@ -695,6 +939,24 @@ export function useAdminVouchers(params?: { page?: number; limit?: number }) {
   return useQuery({
     queryKey: voucherKeys.adminLists(params),
     queryFn: () => vouchersApi.getAdminAll(params),
+  });
+}
+
+export function useSellerVouchers(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: voucherKeys.sellerLists(params),
+    queryFn: () => vouchersApi.getSellerMine(params),
+  });
+}
+
+export function usePublicSellerVouchers(
+  sellerId: string,
+  params?: { page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: voucherKeys.sellerPublic(sellerId, params),
+    queryFn: () => vouchersApi.getPublicBySeller(sellerId, params),
+    enabled: !!sellerId,
   });
 }
 
@@ -739,6 +1001,37 @@ export function useDeleteVoucher() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => vouchersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: voucherKeys.all });
+    },
+  });
+}
+
+export function useCreateSellerVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateVoucherDto) => vouchersApi.createSeller(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: voucherKeys.all });
+    },
+  });
+}
+
+export function useUpdateSellerVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateVoucherDto }) =>
+      vouchersApi.updateSeller(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: voucherKeys.all });
+    },
+  });
+}
+
+export function useDeleteSellerVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => vouchersApi.deleteSeller(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: voucherKeys.all });
     },
@@ -843,10 +1136,19 @@ export function useAddToCart() {
     mutationFn: ({
       productId,
       quantity,
+      personalization,
+      selectedOptions,
     }: {
       productId: string;
       quantity?: number;
-    }) => cartApi.addItem(productId, quantity || 1),
+      personalization?: { text?: string | null };
+      selectedOptions?: {
+        color?: string | null;
+        material?: string | null;
+        size?: string | null;
+        processingTime?: string | null;
+      };
+    }) => cartApi.addItem(productId, quantity || 1, personalization, selectedOptions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -859,10 +1161,19 @@ export function useUpdateCartItem() {
     mutationFn: ({
       productId,
       quantity,
+      personalization,
+      selectedOptions,
     }: {
       productId: string;
       quantity: number;
-    }) => cartApi.updateItem(productId, quantity),
+      personalization?: { text?: string | null };
+      selectedOptions?: {
+        color?: string | null;
+        material?: string | null;
+        size?: string | null;
+        processingTime?: string | null;
+      };
+    }) => cartApi.updateItem(productId, quantity, personalization, selectedOptions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -957,6 +1268,54 @@ export function useRemoveFromWishlist() {
         productId,
         isWishlisted: false,
       });
+    },
+  });
+}
+
+// Shop follow hooks
+export const shopFollowKeys = {
+  all: ["shop-follow"] as const,
+  list: () => [...shopFollowKeys.all, "list"] as const,
+  status: (sellerId: string) =>
+    [...shopFollowKeys.all, "status", sellerId] as const,
+};
+
+export function useShopFollowStatus(sellerId: string, enabled = true) {
+  return useQuery({
+    queryKey: shopFollowKeys.status(sellerId),
+    queryFn: () => shopFollowApi.getStatus(sellerId),
+    enabled: !!sellerId && enabled,
+  });
+}
+
+export function useFollowedShops(enabled = true) {
+  return useQuery({
+    queryKey: shopFollowKeys.list(),
+    queryFn: () => shopFollowApi.getFollowedShops(),
+    enabled,
+  });
+}
+
+export function useFollowShop() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sellerId: string) => shopFollowApi.follow(sellerId),
+    onSuccess: (status, sellerId) => {
+      queryClient.invalidateQueries({ queryKey: shopFollowKeys.list() });
+      queryClient.invalidateQueries({ queryKey: sellerKeys.all });
+      queryClient.setQueryData(shopFollowKeys.status(sellerId), status);
+    },
+  });
+}
+
+export function useUnfollowShop() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sellerId: string) => shopFollowApi.unfollow(sellerId),
+    onSuccess: (status, sellerId) => {
+      queryClient.invalidateQueries({ queryKey: shopFollowKeys.list() });
+      queryClient.invalidateQueries({ queryKey: sellerKeys.all });
+      queryClient.setQueryData(shopFollowKeys.status(sellerId), status);
     },
   });
 }
@@ -1069,23 +1428,20 @@ export function useMarkConversationRead() {
       queryClient.setQueriesData<{
         data: ChatConversationSummary[];
         nextCursor: string | null;
-      }>(
-        { queryKey: [...chatKeys.all, "conversations"] },
-        (previous) => {
-          if (!previous) {
-            return previous;
-          }
+      }>({ queryKey: [...chatKeys.all, "conversations"] }, (previous) => {
+        if (!previous) {
+          return previous;
+        }
 
-          return {
-            ...previous,
-            data: previous.data.map((conversation) =>
-              conversation.id === conversationId
-                ? { ...conversation, unreadCount: 0 }
-                : conversation,
-            ),
-          };
-        },
-      );
+        return {
+          ...previous,
+          data: previous.data.map((conversation) =>
+            conversation.id === conversationId
+              ? { ...conversation, unreadCount: 0 }
+              : conversation,
+          ),
+        };
+      });
       if (readState.changed) {
         queryClient.invalidateQueries({ queryKey: chatKeys.unread() });
       }
@@ -1104,9 +1460,12 @@ export const orderKeys = {
   orderDetail: (id: string) => [...orderKeys.orderDetails(), id] as const,
   subOrderDetails: () => [...orderKeys.all, "sub-order-detail"] as const,
   subOrderDetail: (id: string) => [...orderKeys.subOrderDetails(), id] as const,
+  subOrderTracking: (id: string) =>
+    [...orderKeys.subOrderDetail(id), "tracking"] as const,
   adminDetails: () => [...orderKeys.all, "admin-detail"] as const,
   adminDetail: (id: string) => [...orderKeys.adminDetails(), id] as const,
-  adminLedger: (id: string) => [...orderKeys.adminDetail(id), "ledger"] as const,
+  adminLedger: (id: string) =>
+    [...orderKeys.adminDetail(id), "ledger"] as const,
 };
 
 export const paymentKeys = {
@@ -1117,13 +1476,6 @@ export const paymentKeys = {
 export const settingsKeys = {
   all: ["settings"] as const,
   platform: () => [...settingsKeys.all, "platform"] as const,
-};
-
-export const rewardKeys = {
-  all: ["rewards"] as const,
-  balance: () => [...rewardKeys.all, "balance"] as const,
-  ledger: (params?: { page?: number; limit?: number }) =>
-    [...rewardKeys.all, "ledger", { ...params }] as const,
 };
 
 export const reportKeys = {
@@ -1155,25 +1507,6 @@ export function useUpdatePlatformSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.platform() });
     },
-  });
-}
-
-export function useRewardBalance(enabled = true) {
-  return useQuery({
-    queryKey: rewardKeys.balance(),
-    queryFn: () => rewardsApi.getBalance(),
-    enabled,
-  });
-}
-
-export function useRewardLedger(
-  params?: { page?: number; limit?: number },
-  enabled = true,
-) {
-  return useQuery({
-    queryKey: rewardKeys.ledger(params),
-    queryFn: () => rewardsApi.getLedger(params),
-    enabled,
   });
 }
 
@@ -1230,10 +1563,7 @@ export const notificationKeys = {
   unread: () => [...notificationKeys.all, "unread"] as const,
 };
 
-export function useNotifications(
-  params?: NotificationsQuery,
-  enabled = true,
-) {
+export function useNotifications(params?: NotificationsQuery, enabled = true) {
   return useQuery({
     queryKey: notificationKeys.list(params),
     queryFn: () => notificationsApi.getNotifications(params),
@@ -1248,7 +1578,7 @@ export function useUnreadNotificationCount(enabled = true) {
     queryFn: () => notificationsApi.getUnreadCount(),
     enabled,
     staleTime: 10000,
-    refetchInterval: enabled ? 30000 : false,
+    refetchInterval: false,
   });
 }
 
@@ -1305,6 +1635,14 @@ export function useSubOrder(id: string, enabled = true) {
   });
 }
 
+export function useSubOrderTrackingEvents(id: string, enabled = true) {
+  return useQuery({
+    queryKey: orderKeys.subOrderTracking(id),
+    queryFn: () => ordersApi.getSubOrderTrackingEvents(id),
+    enabled: !!id && enabled,
+  });
+}
+
 export function useSellerOrders(enabled = true) {
   return useQuery({
     queryKey: orderKeys.seller(),
@@ -1344,7 +1682,26 @@ export function useUpdateSubOrderStatus() {
       ordersApi.updateSubOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
+    },
+  });
+}
+
+export function useCreateSubOrderTrackingEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: CreateShipmentTrackingEventPayload;
+    }) => ordersApi.createSubOrderTrackingEvent(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.subOrderTracking(id) });
     },
   });
 }
@@ -1356,6 +1713,7 @@ export function useUpdateAdminOrderStatus() {
       ordersApi.updateAdminOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
     },
@@ -1374,6 +1732,7 @@ export function useRefundAdminOrder() {
     }) => ordersApi.refundAdminOrder(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminLedger(id) });
@@ -1454,6 +1813,8 @@ export const customOrderKeys = {
   all: ["customOrders"] as const,
   seller: () => [...customOrderKeys.all, "seller"] as const,
   detail: (id: string) => ["customOrder", id] as const,
+  progress: (id: string) =>
+    [...customOrderKeys.detail(id), "progress"] as const,
   adminLedger: (id: string) =>
     [...customOrderKeys.detail(id), "admin-ledger"] as const,
 };
@@ -1474,6 +1835,32 @@ export function useAdminCustomOrderLedger(id: string, enabled = true) {
     queryKey: customOrderKeys.adminLedger(id),
     queryFn: () => customOrdersApi.getAdminCustomOrderLedger(id),
     enabled: !!id && enabled,
+  });
+}
+
+export function useCustomOrderProgressEvents(id: string, enabled = true) {
+  return useQuery({
+    queryKey: customOrderKeys.progress(id),
+    queryFn: () => customOrdersApi.getProgressEvents(id),
+    enabled: !!id && enabled,
+  });
+}
+
+export function useCreateCustomOrderProgressEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: CreateCustomOrderProgressEventPayload;
+    }) => customOrdersApi.createProgressEvent(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.progress(id) });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: customOrderKeys.seller() });
+    },
   });
 }
 
@@ -1628,8 +2015,17 @@ export function useSellerRevenueByCategory(
 // Reviews hooks
 export const reviewKeys = {
   all: ["reviews"] as const,
-  product: (productId: string) => [...reviewKeys.all, "product", productId] as const,
+  product: (productId: string) =>
+    [...reviewKeys.all, "product", productId] as const,
   seller: () => [...reviewKeys.all, "seller"] as const,
+  shopBase: (sellerId: string) =>
+    [...reviewKeys.all, "shop", sellerId] as const,
+  shop: (sellerId: string, params?: { page?: number; limit?: number }) =>
+    [...reviewKeys.shopBase(sellerId), "list", { ...params }] as const,
+  shopSummary: (sellerId: string) =>
+    [...reviewKeys.shopBase(sellerId), "summary"] as const,
+  shopMe: (sellerId: string) =>
+    [...reviewKeys.shopBase(sellerId), "me"] as const,
 };
 
 export function useProductReviews(productId: string) {
@@ -1645,7 +2041,9 @@ export function useCreateReview() {
   return useMutation({
     mutationFn: (data: CreateReviewDto) => reviewsApi.createReview(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: reviewKeys.product(variables.productId) });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.product(variables.productId),
+      });
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
     },
   });
@@ -1654,10 +2052,65 @@ export function useCreateReview() {
 export function useSellerReply() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { reviewId: string; reply: string; productId: string }) => 
-      reviewsApi.sellerReply(data.reviewId, data.reply),
+    mutationFn: (data: {
+      reviewId: string;
+      reply: string;
+      productId: string;
+    }) => reviewsApi.sellerReply(data.reviewId, data.reply),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: reviewKeys.product(variables.productId) });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.product(variables.productId),
+      });
+    },
+  });
+}
+
+export function useShopReviews(
+  sellerId: string,
+  params?: { page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: reviewKeys.shop(sellerId, params),
+    queryFn: () => reviewsApi.getShopReviews(sellerId, params),
+    enabled: !!sellerId,
+  });
+}
+
+export function useShopReviewSummary(sellerId: string) {
+  return useQuery({
+    queryKey: reviewKeys.shopSummary(sellerId),
+    queryFn: () => reviewsApi.getShopReviewSummary(sellerId),
+    enabled: !!sellerId,
+  });
+}
+
+export function useMyShopReviewStatus(sellerId: string, enabled = true) {
+  return useQuery({
+    queryKey: reviewKeys.shopMe(sellerId),
+    queryFn: () => reviewsApi.getMyShopReviewStatus(sellerId),
+    enabled: enabled && !!sellerId,
+  });
+}
+
+export function useCreateShopReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { sellerId: string; review: CreateShopReviewDto }) =>
+      reviewsApi.createShopReview(data.sellerId, data.review),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.shopBase(variables.sellerId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.shopSummary(variables.sellerId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.shopMe(variables.sellerId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: sellerKeys.detail(variables.sellerId),
+      });
+      queryClient.invalidateQueries({ queryKey: sellerKeys.all });
     },
   });
 }

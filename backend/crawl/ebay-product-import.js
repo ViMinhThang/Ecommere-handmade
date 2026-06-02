@@ -17,8 +17,8 @@ const zlib = require('zlib');
 const prisma = new PrismaClient();
 
 const SKU_PREFIX = 'EBAY-';
-const IMPORTER_EMAIL = 'ebay.importer@local.dev';
-const IMPORTER_SHOP_NAME = 'Ebay Handmade Import';
+const IMPORTER_EMAIL = 'seller7@ecommerce.com';
+const IMPORTER_SHOP_NAME = 'Đồ Gốm Bát Tràng Minh Khang';
 const DEFAULT_CATEGORY_SLUG = 'gom-su-handmade';
 const DEFAULT_LOCAL_SOURCE_FILE = path.join('crawl', 'data', 'product.csv');
 const REQUIRED_SOURCE_COLUMNS = ['itemId', 'title', 'priceValue', 'imageUrl'];
@@ -43,6 +43,40 @@ function stripHtml(input) {
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function cleanSourceText(input) {
+  const mojibake = (codes) => String.fromCodePoint(...codes);
+  return String(input || '')
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00ee]), '—')
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00f4]), "'")
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00fa]), '"')
+    .replaceAll(mojibake([0x201a, 0x00c4, 0x00f9]), '"')
+    .replaceAll(mojibake([0x00c2, 0x00a0]), ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function vietnameseImportedProductName(title) {
+  const sourceTitle = cleanSourceText(title);
+  const lower = sourceTitle.toLowerCase();
+  const parts = [];
+
+  if (/mug|cup|coffee|tea\b|cups\b|kulhad|kulhar/.test(lower)) parts.push('Ly gốm thủ công');
+  else if (/bowl|dish|plate/.test(lower)) parts.push('Bát đĩa gốm thủ công');
+  else if (/vase|jug|pitcher|pot\b|planter|crock/.test(lower)) parts.push('Bình gốm thủ công');
+  else if (/ornament|decor|figurine|sculpture|bell|face/.test(lower)) parts.push('Đồ trang trí gốm thủ công');
+  else parts.push('Sản phẩm gốm thủ công');
+
+  if (/signed|signature/.test(lower)) parts.push('có ký tên');
+  if (/vintage|antique/.test(lower)) parts.push('phong cách vintage');
+  if (/small|mini|miniature/.test(lower)) parts.push('cỡ nhỏ');
+  if (/large|wide/.test(lower)) parts.push('cỡ lớn');
+  if (/blue/.test(lower)) parts.push('màu xanh');
+  if (/brown|earth/.test(lower)) parts.push('màu nâu đất');
+  if (/white|cream/.test(lower)) parts.push('màu kem');
+
+  return parts.join(' ').slice(0, 255);
 }
 
 function toPositiveNumber(value) {
@@ -361,13 +395,13 @@ async function ensureImporterSeller() {
   const seller = await prisma.user.create({
     data: {
       email: IMPORTER_EMAIL,
-      name: 'Ebay Import Bot',
+      name: 'Tài khoản nhập dữ liệu gốm',
       password: hashedPassword,
       roles: [Role.ROLE_SELLER],
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
       shopName: IMPORTER_SHOP_NAME,
-      sellerTitle: 'Imported Handmade Collection',
+      sellerTitle: 'Bộ sưu tập gốm thủ công đã Việt hóa',
     },
     select: { id: true },
   });
@@ -460,7 +494,7 @@ async function searchItems({
 
 function toProductSeedData(item, categoryId, sellerId) {
   const itemId = String(item?.itemId || '').trim();
-  const title = String(item?.title || '').trim();
+  const title = cleanSourceText(item?.title);
   const price = toPositiveNumber(item?.priceValue ?? item?.price?.value);
   const imageUrl =
     item?.imageUrl ||
@@ -471,21 +505,22 @@ function toProductSeedData(item, categoryId, sellerId) {
 
   const cleanItemId = itemId.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 80);
   const sku = `${SKU_PREFIX}${cleanItemId}`;
-  const shortDesc = stripHtml(item?.shortDescription || item?.subtitle || '');
+  const name = vietnameseImportedProductName(title);
   const sellerName = item?.seller?.username
     ? `Người bán: ${item.seller.username}. `
     : '';
-  const description = (
-    shortDesc ||
-    `${sellerName}Sản phẩm gốm thủ công được tuyển chọn cho bộ sưu tập handmade.`
-  ).slice(0, 2000);
+  const description =
+    `${sellerName}${name}. Sản phẩm gốm thủ công được tuyển chọn và Việt hóa cho bộ sưu tập handmade local. Ảnh và liên kết nguồn được giữ nguyên để tránh lỗi ảnh.`.slice(
+      0,
+      2000,
+    );
 
   return {
     sku,
     data: {
-      name: title.slice(0, 255),
+      name,
       description,
-      price: new Prisma.Decimal(price.toFixed(2)),
+      price: new Prisma.Decimal((Math.round(price / 1000) * 1000).toFixed(2)),
       status: ProductStatus.APPROVED,
       stock: randomInt(3, 25),
       lowStockThreshold: 3,

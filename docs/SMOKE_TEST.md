@@ -18,7 +18,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Login seller: `seller@ecommerce.com / admin123`.
 - [ ] Login seller 2: `seller2@ecommerce.com / admin123`.
 - [ ] Login seller 3-6 nếu cần demo shop chuyên biệt: `seller3@ecommerce.com`, `seller4@ecommerce.com`, `seller5@ecommerce.com`, `seller6@ecommerce.com` cùng password `admin123`.
-- [ ] Login real importer nếu cần xem sản phẩm eBay JSON: `ebay.importer@local.dev / admin123`.
+- [ ] Login real importer nếu cần xem sản phẩm eBay JSON: `seller7@ecommerce.com / admin123`.
 - [ ] Login customer: `customer@ecommerce.com / admin123`.
 - [ ] Login customer 2/3: `customer2@ecommerce.com / admin123`, `customer3@ecommerce.com / admin123`.
 - [ ] Logout rồi login lại bằng role khác không bị giữ menu/session cũ.
@@ -32,6 +32,8 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Tạo một category hoặc kiểm tra category seed.
 - [ ] Kiểm tra product status và approve/reject nếu có product pending.
 - [ ] Xem orders và reports.
+- [ ] Mở chi tiết một order đã có kiện hàng `SHIPPED`/`DELIVERED`; admin xem được timeline vận chuyển theo từng seller.
+- [ ] Trong chi tiết order admin, thêm cập nhật vận chuyển hỗ trợ cho một kiện hàng khi cần bổ sung mã vận đơn hoặc xử lý khiếu nại.
 - [ ] Xem settings/platform commission.
 - [ ] Xem voucher active `HANDMADE10`, expired `EXPIRED5`, inactive `INACTIVE15`.
 - [ ] Xem flash sale active/upcoming/ended trong admin flash sale page.
@@ -44,8 +46,11 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Sửa một sản phẩm của seller và kiểm tra status cần admin duyệt nếu flow yêu cầu.
 - [ ] Mở seller orders và thấy order COD seed.
 - [ ] Cập nhật order từ `PENDING` sang bước tiếp theo nếu action khả dụng.
+- [ ] Mở chi tiết kiện hàng seller, chọn mẫu cập nhật vận chuyển, chọn vị trí/đơn vị vận chuyển và nhập mã vận đơn. Seller là người cập nhật vận chuyển chính cho kiện hàng của shop mình.
+- [ ] Đổi trạng thái kiện hàng sang `SHIPPED` và kiểm tra timeline tự có event trạng thái mới.
 - [ ] Mở reviews/questions nếu có dữ liệu.
 - [ ] Mở `/seller/custom-orders` và chuyển custom order `SHIPPED` sang `DELIVERED` nếu còn action.
+- [ ] Trong `/seller/custom-orders`, bấm `Tiến độ`, thêm một cập nhật tiến độ có tiêu đề và ghi chú.
 - [ ] Mở `/seller/quote-templates` và thấy template báo giá seed nếu UI/API khả dụng.
 
 ## Customer Flow
@@ -56,13 +61,43 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Add to cart.
 - [ ] Update cart quantity.
 - [ ] Remove cart item.
+- [ ] Mở `/vouchers` và thấy voucher active/current; voucher expired/inactive không hiển thị.
 - [ ] Apply voucher `HANDMADE10` nếu sản phẩm thuộc category phù hợp.
 - [ ] Apply voucher `EXPIRED5` và xác nhận bị từ chối.
 - [ ] Checkout bằng COD.
 - [ ] Xem order trong profile orders.
+- [ ] Mở chi tiết order và kiểm tra mục “Theo dõi vận chuyển” hiển thị timeline theo kiện hàng.
 - [ ] Hủy pending order nếu action khả dụng.
 - [ ] Mở delivered order seed và kiểm tra review đã có hoặc tạo review nếu chưa có.
 - [ ] Mở chat với seller từ product detail nếu flow khả dụng.
+
+## Shipping Profile / ETA Smoke
+
+- [ ] Seller mở `/dashboard/shipping-profiles`, tạo hồ sơ vận chuyển mới với đơn vị vận chuyển, tracking URL template, thời gian chuẩn bị và thời gian giao.
+- [ ] Seller đặt một hồ sơ vận chuyển làm mặc định; hồ sơ mặc định cũ tự bỏ cờ mặc định.
+- [ ] Seller tắt hoặc xóa mềm một hồ sơ; sản phẩm đang dùng hồ sơ đó không crash và có thể quay về ETA mặc định/hồ sơ khác.
+- [ ] Seller tạo/sửa sản phẩm trong `/dashboard/new-listing` hoặc dialog sản phẩm và chọn hồ sơ vận chuyển.
+- [ ] Product detail hiển thị ETA dự kiến và đơn vị vận chuyển.
+- [ ] Cart và checkout hiển thị ETA theo từng item; tổng tiền, voucher, flash sale và payment không thay đổi.
+- [ ] Checkout COD tạo sub-order có `shippingProfileSnapshot` và `estimatedDeliveryStartAt/EndAt`.
+- [ ] Trang xác nhận đơn hàng dùng ETA từ sub-order thay vì hardcode 3-7 ngày nếu có snapshot.
+- [ ] Customer order detail, seller order detail và admin order detail hiển thị ETA snapshot ngay cả khi seller chỉnh hồ sơ vận chuyển sau đó.
+- [ ] Tracking event thủ công vẫn hoạt động độc lập với Shipping Profile; seller/admin vẫn thêm được mã vận đơn và timeline.
+
+## Gift Wrap Tier / Fee Smoke
+
+- [ ] Admin mở `/dashboard/gift-wrap-tiers`, thấy danh sách mức gói quà, trạng thái active/inactive và phí.
+- [ ] Admin tạo mức gói quà mới với tên, mô tả, phí, thứ tự, tùy chọn kèm thiệp.
+- [ ] Admin sửa mức gói quà; public `GET /v1/gift-wrap-tiers` trả dữ liệu mới nếu tier đang active.
+- [ ] Admin tắt `isActive`; tier không còn hiển thị ở checkout/public API.
+- [ ] Admin xóa tier; tier bị ẩn khỏi admin/public list nhưng đơn cũ vẫn giữ snapshot gói quà.
+- [ ] `GET /v1/gift-wrap-tiers` trả các mức gói quà active theo `sortOrder`.
+- [ ] Checkout hiển thị các mức gói quà, giá tiền và nhãn "Đã gồm thiệp viết tay" nếu tier có `includesCard`.
+- [ ] Bật gói quà nhưng chưa có tier khả dụng thì checkout không tạo đơn.
+- [ ] Chọn tier gói quà, nhập lời nhắn, checkout COD thành công và `Order.totalAmount` gồm `cart.total + shipping fee + giftWrapFee`.
+- [ ] Checkout Stripe tạo PaymentIntent đúng tổng tiền gồm phí gói quà.
+- [ ] Confirmation, customer order detail và seller/admin order detail hiển thị tên tier, phí gói quà, thiệp và lời nhắn theo snapshot.
+- [ ] Đơn cũ không có gói quà vẫn hiển thị bình thường, không có broken UI.
 
 ## Expected Result
 
@@ -81,6 +116,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Admin opens standard order detail and creates refund when the order is refundable; detail/ledger refresh without treating the response as an order.
 - [ ] Admin opens custom order detail and creates refund when the custom order is refundable; detail/ledger refresh without treating the response as a custom order.
 - [ ] Seller moves a custom order through `CRAFTING -> FINISHING -> SHIPPED -> DELIVERED`; customer detail shows the final delivery phase.
+- [ ] Seller adds a custom order progress note; customer detail shows it in the `Tiến độ chế tác` timeline.
 - [ ] Admin voucher page can list inactive/future/expired vouchers via the admin endpoint.
 - [ ] Public cart voucher suggestions show only active and valid vouchers.
 - [ ] Admin flash sale page can list inactive/future/expired campaigns via the admin endpoint.
@@ -92,11 +128,18 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Dashboard sidebar hides `Đối soát thanh toán` in the default local demo menu.
 - [ ] Customer, seller, and admin do not see menu actions outside their role.
 - [ ] Checkout defaults to COD; Stripe option is disabled when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is not configured.
-- [ ] Checkout summary shows subtotal, voucher discount if applied, reward points, shipping fee, total, payment method, and shipping address.
+- [ ] Checkout summary shows subtotal, voucher discount if applied, shipping fee, total, payment method, and shipping address.
+- [ ] Checkout can save `Gói quà`, `Thiệp viết tay`, and `Lời nhắn`; confirmation, customer order detail, and seller/admin order detail show the same gift snapshot.
+- [ ] Seller creates/edits a product with color, material, size, and processing time options.
+- [ ] Customer selects required product options on product detail before adding to cart.
+- [ ] Cart and checkout show the selected product options without changing price or quantity behavior.
+- [ ] Confirmation, customer order detail, seller order detail, and admin order detail show the selected product option snapshot.
+- [ ] A product without product options still adds to cart and checks out normally.
 - [ ] Product images render on home/discovery/category/product detail/cart/wishlist/profile orders/seller products; missing images show a clean fallback instead of a broken image icon.
 - [ ] Profile order detail opens when an order item has no product image; the fallback icon renders instead of an empty `next/image` source.
 - [ ] Seller can open `/dashboard/orders`, update a standard shop sub-order, and see Vietnamese success/error messages.
 - [ ] Seller can open `/seller/custom-orders`; shipped custom orders show `Xác nhận đã giao`.
+- [ ] Customer can open `/custom-orders/:id/review` and see seeded handmade progress timeline entries.
 - [ ] Admin can open `/dashboard/orders/:id`, update status, and see localized payment/status labels.
 - [ ] Admin can open `/dashboard/reports`, filter reports, and update report status with localized labels.
 - [ ] Seeded category/product/review/question/report names display Vietnamese with accents after `npm run db:seed`.
@@ -106,15 +149,17 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 
 - [ ] Chạy `cd backend && npm run db:seed` hai lần liên tiếp không lỗi duplicate.
 - [ ] Seed tạo đủ account demo: 1 admin, 6 seller, 1 importer seller, 3 customer.
-- [ ] Seed tạo 12 category handmade active có slug và mô tả.
+- [ ] Seed tạo 11 category handmade active có slug và mô tả.
 - [ ] Seed tạo 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, có sản phẩm approved, pending, rejected và hết hàng.
 - [ ] Seed tạo order COD ở các trạng thái `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`.
+- [ ] Seed tạo shipment tracking events cho ít nhất một kiện hàng `PROCESSING`, một kiện hàng `SHIPPED` có mã vận đơn và một kiện hàng `DELIVERED`; người tạo event mặc định là seller của kiện hàng.
 - [ ] Customer chỉ thấy order của chính mình trong `/profile/orders`.
 - [ ] Seller chỉ thấy/cập nhật sub-order thuộc shop mình trong `/dashboard/orders`.
 - [ ] Admin thấy toàn bộ order trong `/dashboard/orders`.
 - [ ] Seed tạo voucher active `HANDMADE10`, expired `EXPIRED5`, inactive `INACTIVE15`.
 - [ ] Public/customer không apply được voucher expired hoặc inactive.
 - [ ] Seed tạo review/question/report/chat/custom order/quote template/commission tối thiểu để các màn hình demo không trống.
+- [ ] Seed tạo custom order progress events cho ít nhất một đơn `CRAFTING` và một đơn `SHIPPED`.
 - [ ] Ảnh chỉ lưu remote URL `images.unsplash.com`, `i.ebayimg.com` hoặc `cdn.shopify.com`; không có broken image; `frontend/next.config.ts` allow các domain này.
 - [ ] Feature chưa hoàn chỉnh không xuất hiện trong menu chính demo.
 - [ ] Security smoke trong `docs/SECURITY_SMOKE_TEST.md` vẫn pass sau seed mới.
@@ -135,3 +180,59 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Tạo report; admin nhận notification `REPORT_CREATED`, reporter nhận `REPORT_STATUS_UPDATED` khi admin xử lý.
 - [ ] Anonymous không thấy chuông notification.
 - [ ] Dùng token/user khác không mark read/delete được notification không thuộc mình; API trả 404/401 thay vì update nhầm.
+
+## Seller Social Smoke
+
+- [ ] Anonymous mở `/sellers`; mỗi seller card hiển thị số sản phẩm, đánh giá gian hàng bằng `shopAverageRating/shopReviewCount`, và số người theo dõi.
+- [ ] Anonymous mở `/sellers/:id`; xem được follower count, rating summary, review list, nhưng khi bấm theo dõi hoặc đánh giá thì được dẫn tới login.
+- [ ] Login customer; mở `/sellers/:id` của shop khác và bấm `Theo dõi Studio`; follower count tăng và button chuyển sang trạng thái đang theo dõi.
+- [ ] Mở `/profile/following-shops`; danh sách shop đã theo dõi có loading state, empty state, error/retry state rõ ràng khi API lỗi, và không có broken image.
+- [ ] Từ `/profile/following-shops`, bấm `Bỏ theo dõi`; shop biến mất khỏi danh sách hoặc follower count giảm sau refresh.
+- [ ] Login seller owner; mở storefront của chính mình và xác nhận không tự follow được shop của mình.
+- [ ] Customer có delivered standard order với seller tạo được shop review một lần.
+- [ ] Customer có delivered custom order với seller tạo được shop review một lần.
+- [ ] Customer chưa có giao dịch `DELIVERED` với seller thấy lý do: `Chỉ khách đã nhận hàng từ shop mới có thể đánh giá`.
+- [ ] Sau khi đã review shop, `/sellers/:id` hiển thị box `Đánh giá của bạn` gồm số sao, comment nếu có, ngày tạo và ngày cập nhật.
+- [ ] Thử gửi rating ngoài `1..5` bằng API tool hoặc request thủ công; backend reject bằng validation.
+- [ ] Login admin hoặc seller owner thử tạo shop review; API bị chặn, không tạo review.
+
+## Homepage Management Smoke
+
+- [ ] Login admin và mở `/dashboard/homepage`; trang có loading, empty và error/retry state rõ ràng.
+- [ ] Admin tạo banner với `title`, `imageUrl`, `sortOrder`; banner xuất hiện trong danh sách quản trị.
+- [ ] Admin sửa title/subtitle/link/sort order của banner; dữ liệu cập nhật sau khi lưu.
+- [ ] Admin tắt `isActive` hoặc đặt banner hết hạn; banner không còn hiển thị ở trang chủ public.
+- [ ] Admin xóa banner; danh sách quản trị cập nhật và trang chủ không crash.
+- [ ] Admin thêm một sản phẩm approved vào danh sách nổi bật; sản phẩm hiển thị trong section nổi bật ở trang chủ.
+- [ ] Admin thử thêm lại cùng một sản phẩm nổi bật; backend từ chối duplicate thay vì tạo bản ghi trùng.
+- [ ] Admin tắt hoặc xóa sản phẩm nổi bật; trang chủ không hiển thị item inactive.
+- [ ] Anonymous mở trang chủ; thấy banner active và sản phẩm nổi bật active, hoặc fallback hero/section cũ nếu chưa có dữ liệu.
+- [ ] Non-admin gọi API `/admin/homepage/*` bị chặn bởi quyền admin.
+
+## Verified Artisan Profile Smoke
+
+- [ ] Login admin, mở `/dashboard/users`, chỉnh một seller và bật `Nghệ nhân đã xác thực`.
+- [ ] Admin lưu chuyên môn thủ công, số năm kinh nghiệm, chất liệu chính và ghi chú xác thực cho seller.
+- [ ] Login seller, mở storefront của chính mình `/sellers/:id`, cập nhật chuyên môn/chất liệu/số năm kinh nghiệm và lưu thành công.
+- [ ] Seller không tự bật được `artisanVerified` qua profile/storefront edit.
+- [ ] Public `/sellers` hiển thị badge `Nghệ nhân đã xác thực` cho seller seed đã verify.
+- [ ] Public `/sellers/:id` hiển thị badge xác thực, chuyên môn, số năm kinh nghiệm và chất liệu chính.
+
+## Shop Policies Smoke
+
+- [ ] Login seller, mở storefront của chính mình `/sellers/:id`, bật edit và cập nhật `Thời gian xử lý`, `Chính sách vận chuyển`, `Chính sách đổi trả`.
+- [ ] Lưu storefront thành công; tắt edit và thấy block `Chính sách gian hàng` hiển thị đủ 3 mục.
+- [ ] Anonymous mở `/sellers/:id`; thấy chính sách đổi trả, thời gian xử lý và vận chuyển nhưng không thấy form chỉnh sửa.
+- [ ] Anonymous mở một product detail của shop; thấy policy shop ở khu vực thông tin mua hàng nếu shop đã cập nhật.
+- [ ] Login customer, thử gọi `/users/profile` với các field policy bằng API thủ công; backend không ghi policy vì account không phải seller.
+- [ ] Seed demo sau `npm run db:seed` có policy mẫu cho các seller chính, không cần tạo dữ liệu thủ công trước demo.
+## Shop Voucher / Marketing Smoke
+
+- [ ] Login seller và mở `/seller/marketing`; thấy thống kê voucher shop, bảng voucher, empty/loading/error state.
+- [ ] Seller tạo voucher shop theo một danh mục; voucher được lưu với owner là seller hiện tại.
+- [ ] Seller sửa tên/trạng thái/range của voucher shop; ranges cũ không bị mất nếu không gửi ranges mới.
+- [ ] Seller không sửa/xóa được voucher của seller khác bằng API thủ công.
+- [ ] Customer chỉ apply được voucher shop khi giỏ hàng có sản phẩm đúng category và đúng seller.
+- [ ] Giỏ nhiều seller chỉ phân bổ discount shop voucher vào sub-order của seller sở hữu voucher.
+- [ ] `/vouchers` hiển thị voucher shop active/current kèm điều kiện shop; trang chủ không cần hiển thị voucher shop.
+- [ ] Voucher shop expired/inactive hoặc seller inactive không xuất hiện ở public API.

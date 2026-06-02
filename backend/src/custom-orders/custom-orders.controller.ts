@@ -18,6 +18,9 @@ import { ConfirmCustomOrderPaymentDto } from './dto/confirm-custom-order-payment
 import { UpdateCustomOrderStatusDto } from './dto/update-custom-order-status.dto';
 import { UpdateSketchDto } from './dto/update-sketch.dto';
 import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto';
+import { CreateCustomOrderProgressEventDto } from './dto/create-custom-order-progress-event.dto';
+import { CreateCustomOrderReviewDto } from './dto/create-custom-order-review.dto';
+import { SellerReplyCustomOrderReviewDto } from './dto/seller-reply-custom-order-review.dto';
 
 @Controller('custom-orders')
 export class CustomOrdersController {
@@ -73,6 +76,35 @@ export class CustomOrdersController {
       id,
       req.user.id,
       req.user.roles,
+    );
+  }
+
+  @Get(':id/progress')
+  @UseGuards(JwtAuthGuard)
+  getProgressEvents(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.customOrdersService.getProgressEvents(
+      id,
+      req.user.id,
+      req.user.roles,
+    );
+  }
+
+  @Post(':id/progress')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  createProgressEvent(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: CreateCustomOrderProgressEventDto,
+  ) {
+    return this.customOrdersService.createProgressEvent(
+      id,
+      req.user.id,
+      req.user.roles,
+      body,
     );
   }
 
@@ -148,5 +180,49 @@ export class CustomOrdersController {
     @Body() body: UpdateSketchDto,
   ) {
     return this.customOrdersService.updateSketch(id, req.user.id, body);
+  }
+
+  @Post(':id/review')
+  @UseGuards(JwtAuthGuard)
+  createReview(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') customOrderId: string,
+    @Body() data: CreateCustomOrderReviewDto,
+  ) {
+    return this.customOrdersService.createCustomOrderReview(
+      req.user.id,
+      customOrderId,
+      data,
+    );
+  }
+
+  @Get(':id/review')
+  getReview(@Param('id') customOrderId: string) {
+    return this.customOrdersService.getCustomOrderReview(customOrderId);
+  }
+
+  @Patch('reviews/:reviewId/reply')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  sellerReplyToReview(
+    @Request() req: AuthenticatedRequest,
+    @Param('reviewId') reviewId: string,
+    @Body() body: SellerReplyCustomOrderReviewDto,
+  ) {
+    return this.customOrdersService.sellerReplyToCustomOrderReview(
+      req.user.id,
+      req.user.roles,
+      reviewId,
+      body.reply,
+    );
+  }
+
+  @Get('seller/reviews/latest')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ROLE_SELLER', 'ROLE_ADMIN')
+  getSellerLatestReviews(@Request() req: AuthenticatedRequest) {
+    return this.customOrdersService.getSellerLatestCustomOrderReviews(
+      req.user.id,
+    );
   }
 }

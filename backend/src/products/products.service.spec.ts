@@ -140,6 +140,23 @@ describe('ProductsService', () => {
       expect(result.meta).toHaveProperty('page');
       expect(result.meta).toHaveProperty('totalPages');
     });
+
+    it('searches public products by product name only', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+      mockPrisma.product.count.mockResolvedValue(0);
+
+      await service.findAll(undefined, undefined, undefined, {
+        q: 'gốm',
+      });
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [{ name: { contains: 'gốm', mode: 'insensitive' } }],
+          }),
+        }),
+      );
+    });
   });
 
   describe('findOne', () => {

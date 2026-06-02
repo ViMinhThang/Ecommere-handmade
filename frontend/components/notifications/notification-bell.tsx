@@ -10,6 +10,8 @@ import {
   Inbox,
   Loader2,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -19,11 +21,24 @@ import {
   useUnreadNotificationCount,
 } from "@/lib/api/hooks";
 import type { NotificationItem } from "@/lib/api/notifications";
+import { ensureNotificationsSocketConnected } from "@/lib/notifications/socket";
 import { cn } from "@/lib/utils";
 
 interface NotificationBellProps {
   className?: string;
 }
+
+type SocketNotificationPayload = {
+  title?: string;
+  message?: string;
+  link?: string;
+};
+
+type SocketOrderUpdatePayload = {
+  status?: string;
+  orderId?: string;
+  subOrderId?: string;
+};
 
 function formatNotificationTime(value: string) {
   const date = new Date(value);
@@ -57,9 +72,83 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const queryClient = useQueryClient();
 
   const enabled = isAuthenticated && !isLoading;
   const { data: unreadResponse } = useUnreadNotificationCount(enabled);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const socket = ensureNotificationsSocketConnected();
+    if (!socket) {
+      return;
+    }
+
+    const handleNotificationCreated = (
+      notification: SocketNotificationPayload,
+    ) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+      toast.success(notification.title || "Thông báo mới", {
+        description: notification.message,
+        action: notification.link
+          ? {
+              label: "Xem",
+              onClick: () => router.push(notification.link as string),
+            }
+          : undefined,
+      });
+    };
+
+    const handleOrderUpdated = (orderUpdate: SocketOrderUpdatePayload) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+      const statusMap: Record<string, string> = {
+        PENDING: "đang chờ xử lý",
+        CONFIRMED: "đã được xác nhận",
+        SHIPPED: "đang được giao",
+        DELIVERED: "đã giao thành công",
+        CANCELLED: "đã bị hủy",
+        REFUNDED: "đã được hoàn tiền",
+      };
+
+      const statusText = orderUpdate.status
+        ? statusMap[orderUpdate.status] || "được cập nhật"
+        : "được cập nhật";
+      const displayId = orderUpdate.subOrderId
+        ? orderUpdate.subOrderId.slice(-8).toUpperCase()
+        : orderUpdate.orderId
+          ? orderUpdate.orderId.slice(-8).toUpperCase()
+          : "";
+
+      toast.info(`Đơn hàng #${displayId}`, {
+        description: `Trạng thái đơn hàng của quý khách đã ${statusText}.`,
+        action: {
+          label: "Xem",
+          onClick: () => {
+            const redirectUrl = orderUpdate.subOrderId
+              ? `/profile/orders/${orderUpdate.subOrderId}`
+              : orderUpdate.orderId
+                ? `/profile/orders/${orderUpdate.orderId}`
+                : "/profile/orders";
+            router.push(redirectUrl);
+          },
+        },
+      });
+    };
+
+    socket.on("notifications.created", handleNotificationCreated);
+    socket.on("order.updated", handleOrderUpdated);
+
+    return () => {
+      socket.off("notifications.created", handleNotificationCreated);
+      socket.off("order.updated", handleOrderUpdated);
+    };
+  }, [enabled, queryClient, router]);
+
   const {
     data: notificationsResponse,
     isLoading: isLoadingNotifications,

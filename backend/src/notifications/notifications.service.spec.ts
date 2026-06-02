@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
+import { NotificationsGateway } from './notifications.gateway';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -20,9 +21,16 @@ describe('NotificationsService', () => {
     },
   };
 
+  const notificationsGateway = {
+    emitNotification: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new NotificationsService(prisma as unknown as PrismaService);
+    service = new NotificationsService(
+      prisma as unknown as PrismaService,
+      notificationsGateway as any,
+    );
   });
 
   it('lists only active notifications for the current user with capped limit', async () => {

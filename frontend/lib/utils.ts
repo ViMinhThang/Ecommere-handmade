@@ -9,8 +9,9 @@ export function cn(...inputs: ClassValue[]) {
 export function classNames(...inputs: (ClassValue[] | ClassValueLucide)[]) {
   return twMerge(clsx(inputs));
 }
-export function formatCurrency(amount: number) {
-  const safeAmount = Number.isFinite(amount) ? amount : 0;
+export function formatCurrency(amount: number | string | null | undefined) {
+  const numericAmount = Number(amount ?? 0);
+  const safeAmount = Number.isFinite(numericAmount) ? numericAmount : 0;
   return `${new Intl.NumberFormat("vi-VN").format(safeAmount)}\u00A0vnđ`;
 }
 

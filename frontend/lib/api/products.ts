@@ -35,6 +35,15 @@ export interface CreateProductDto {
   stock?: number;
   lowStockThreshold?: number;
   sku?: string;
+  personalizationEnabled?: boolean;
+  personalizationRequired?: boolean;
+  personalizationInstructions?: string;
+  personalizationMaxLength?: number;
+  optionColors?: string[];
+  optionMaterials?: string[];
+  optionSizes?: string[];
+  processingTime?: string | null;
+  shippingProfileId?: string | null;
 }
 
 export interface ProductsStats {
@@ -134,6 +143,7 @@ function normalizeLowStockResponse(
 
 export const productsApi = {
   getAll: (params?: { 
+    q?: string;
     status?: string; 
     categoryId?: string; 
     sellerId?: string; 

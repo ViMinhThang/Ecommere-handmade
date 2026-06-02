@@ -8,6 +8,9 @@ import Link from "next/link";
 import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import { SafeImage } from "@/components/ui/safe-image";
+import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
+import { formatCurrency } from "@/lib/utils";
 
 function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
   if (!value) {
@@ -27,6 +30,15 @@ function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
   }
 
   return null;
+}
+
+function toValidDate(value?: Date | string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 export default function OrderConfirmationPage() {
@@ -54,8 +66,24 @@ export default function OrderConfirmationPage() {
   }
 
   const shippingAddress = normalizeShippingAddress(order.shippingAddress);
-  const arrivalStart = addDays(new Date(order.createdAt), 3);
-  const arrivalEnd = addDays(new Date(order.createdAt), 7);
+  const etaStartDates =
+    order.subOrders
+      ?.map((subOrder: SubOrder) =>
+        toValidDate(subOrder.estimatedDeliveryStartAt),
+      )
+      .filter((date): date is Date => Boolean(date)) || [];
+  const etaEndDates =
+    order.subOrders
+      ?.map((subOrder: SubOrder) => toValidDate(subOrder.estimatedDeliveryEndAt))
+      .filter((date): date is Date => Boolean(date)) || [];
+  const arrivalStart =
+    etaStartDates.length > 0
+      ? new Date(Math.min(...etaStartDates.map((date) => date.getTime())))
+      : addDays(new Date(order.createdAt), 3);
+  const arrivalEnd =
+    etaEndDates.length > 0
+      ? new Date(Math.max(...etaEndDates.map((date) => date.getTime())))
+      : addDays(new Date(order.createdAt), 7);
 
   // Flatten items across all sub-orders
   const allItems = order.subOrders?.flatMap((so: SubOrder) => 
@@ -70,16 +98,28 @@ export default function OrderConfirmationPage() {
     0,
   );
   const discountAmount = Number(order.discountAmount || 0);
-  const shipping = Math.max(Number(order.totalAmount) - (itemSubtotal - discountAmount), 0);
+  const giftFee = Number(order.giftWrapFee || 0);
+  const shipping = Math.max(
+    Number(order.totalAmount) - (itemSubtotal - discountAmount) - giftFee,
+    0,
+  );
   const total = Number(order.totalAmount);
   const subtotal = itemSubtotal - discountAmount;
   const tax = 0;
   const paymentMethodLabel =
-    order.paymentMethod === "COD" ? "Cash on delivery" : "Card payment";
+    order.paymentMethod === "COD"
+      ? "Thanh toán khi nhận hàng"
+      : "Thanh toán thẻ";
+  const paymentStatusLabelMap: Record<string, string> = {
+    COD_PENDING: "Chờ thu COD",
+    UNPAID: "Chưa thanh toán",
+    PAID: "Đã thanh toán",
+    FAILED: "Thanh toán thất bại",
+    PARTIALLY_REFUNDED: "Đã hoàn tiền một phần",
+    REFUNDED: "Đã hoàn tiền",
+  };
   const paymentStatusLabel =
-    order.paymentStatus === "COD_PENDING"
-      ? "Pending cash collection"
-      : order.paymentStatus || "Unknown";
+    paymentStatusLabelMap[order.paymentStatus || ""] || "Chưa rõ";
 
   return (
     <div className="text-stone-800 min-h-screen flex flex-col bg-[#F8F6F1] font-body">
@@ -128,6 +168,7 @@ export default function OrderConfirmationPage() {
                     <div>
                       <h3 className="font-headline text-xl md:text-2xl text-stone-800 italic mb-1">{item.product.name}</h3>
                       <p className="text-[10px] text-stone-500 uppercase tracking-widest font-bold">{item.sellerName}</p>
+                      <ProductOptionsNote selectedOptions={item.selectedOptions} compact />
                     </div>
                     <div className="mt-4 md:mt-0 md:text-right">
                       <p className="font-headline text-lg text-stone-800 italic">{(Number(item.price) * item.quantity).toLocaleString('vi-VN')} ₫</p>
@@ -159,6 +200,12 @@ export default function OrderConfirmationPage() {
                   <span className="text-stone-500 font-medium tracking-tight">Phí vận chuyển</span>
                   <span className="font-bold text-stone-700">{shipping.toLocaleString('vi-VN')} ₫</span>
                 </div>
+                {giftFee > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-stone-500 font-medium tracking-tight">Phí gói quà</span>
+                    <span className="font-bold text-stone-700">{giftFee.toLocaleString('vi-VN')} ₫</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-stone-500 font-medium tracking-tight">Thuế VAT (8%)</span>
                   <span className="font-bold text-stone-700">{tax.toLocaleString('vi-VN')} ₫</span>
@@ -189,30 +236,38 @@ export default function OrderConfirmationPage() {
                 )}
               </div>
             </div>
+            <GiftOptionsNote
+              giftWrap={order.giftWrap}
+              giftCard={order.giftCard}
+              giftMessage={order.giftMessage}
+              giftWrapTierSnapshot={order.giftWrapTierSnapshot}
+              giftWrapFee={order.giftWrapFee}
+              className="summary-card border-stone-200/50 bg-[#F2F0EB]"
+            />
           </div>
         </div>
         <section className="mt-6 summary-card p-8 border border-stone-200/50 lg:max-w-md lg:ml-auto">
-          <h3 className="font-headline text-2xl italic mb-6">Payment Details</h3>
+          <h3 className="font-headline text-2xl italic mb-6">Thông tin thanh toán</h3>
           <div className="space-y-4 text-sm text-stone-600">
             <div className="flex justify-between gap-4">
-              <span className="font-medium tracking-tight">Payment method</span>
+              <span className="font-medium tracking-tight">Phương thức thanh toán</span>
               <span className="font-bold text-stone-700 text-right">{paymentMethodLabel}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="font-medium tracking-tight">Payment status</span>
+              <span className="font-medium tracking-tight">Trạng thái thanh toán</span>
               <span className="font-bold text-stone-700 text-right">{paymentStatusLabel}</span>
             </div>
             {order.voucherCode && (
               <div className="flex justify-between gap-4">
-                <span className="font-medium tracking-tight">Voucher</span>
+                <span className="font-medium tracking-tight">Mã giảm giá</span>
                 <span className="font-bold text-stone-700 text-right">{order.voucherCode}</span>
               </div>
             )}
             {discountAmount > 0 && (
               <div className="flex justify-between gap-4">
-                <span className="font-medium tracking-tight">Discount</span>
+                <span className="font-medium tracking-tight">Số tiền giảm</span>
                 <span className="font-bold text-stone-700 text-right">
-                  -{discountAmount.toLocaleString('vi-VN')} VND
+                  -{formatCurrency(discountAmount)}
                 </span>
               </div>
             )}

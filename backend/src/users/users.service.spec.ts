@@ -3,6 +3,7 @@ import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -32,6 +33,13 @@ describe('UsersService', () => {
     },
     refreshToken: {
       updateMany: jest.fn(),
+    },
+    shopFollow: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
+      count: jest.fn(),
+      findMany: jest.fn(),
     },
   };
 
@@ -238,6 +246,143 @@ describe('UsersService', () => {
     });
   });
 
+  describe('shop follows', () => {
+    it('follows an active seller and returns current follow status', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'seller-id' });
+      mockPrismaService.shopFollow.upsert.mockResolvedValue({
+        id: 'follow-id',
+      });
+      mockPrismaService.shopFollow.count.mockResolvedValue(1);
+
+      const result = await service.followShop(
+        'customer-id',
+        ['ROLE_USER'],
+        'seller-id',
+      );
+
+      expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'seller-id',
+          deletedAt: null,
+          status: 'ACTIVE',
+          roles: { has: 'ROLE_SELLER' },
+          NOT: { roles: { has: 'ROLE_ADMIN' } },
+        },
+        select: { id: true },
+      });
+      expect(mockPrismaService.shopFollow.upsert).toHaveBeenCalledWith({
+        where: {
+          customerId_sellerId: {
+            customerId: 'customer-id',
+            sellerId: 'seller-id',
+          },
+        },
+        update: {},
+        create: {
+          customerId: 'customer-id',
+          sellerId: 'seller-id',
+        },
+      });
+      expect(result).toEqual({
+        sellerId: 'seller-id',
+        isFollowing: true,
+        followerCount: 1,
+      });
+    });
+
+    it('keeps duplicate follow requests idempotent through upsert', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'seller-id' });
+      mockPrismaService.shopFollow.upsert.mockResolvedValue({
+        id: 'existing-follow-id',
+      });
+      mockPrismaService.shopFollow.count.mockResolvedValue(1);
+
+      await service.followShop('customer-id', ['ROLE_USER'], 'seller-id');
+
+      expect(mockPrismaService.shopFollow.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: {},
+          create: {
+            customerId: 'customer-id',
+            sellerId: 'seller-id',
+          },
+        }),
+      );
+    });
+
+    it('unfollows with deleteMany and does not require an existing follow row', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'seller-id' });
+      mockPrismaService.shopFollow.deleteMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.shopFollow.count.mockResolvedValue(0);
+
+      const result = await service.unfollowShop(
+        'customer-id',
+        ['ROLE_USER'],
+        'seller-id',
+      );
+
+      expect(mockPrismaService.shopFollow.deleteMany).toHaveBeenCalledWith({
+        where: {
+          customerId: 'customer-id',
+          sellerId: 'seller-id',
+        },
+      });
+      expect(result).toEqual({
+        sellerId: 'seller-id',
+        isFollowing: false,
+        followerCount: 0,
+      });
+    });
+
+    it('rejects self-follow attempts before touching the database', async () => {
+      await expect(
+        service.followShop('seller-id', ['ROLE_USER'], 'seller-id'),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.user.findFirst).not.toHaveBeenCalled();
+      expect(mockPrismaService.shopFollow.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects follow attempts from accounts without customer role', async () => {
+      await expect(
+        service.followShop('admin-id', ['ROLE_ADMIN'], 'seller-id'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects non-seller, inactive, or deleted follow targets', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.followShop('customer-id', ['ROLE_USER'], 'bad-target-id'),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.shopFollow.upsert).not.toHaveBeenCalled();
+    });
+
+    it('lists only shops followed by the current user', async () => {
+      mockPrismaService.shopFollow.findMany.mockResolvedValue([]);
+
+      await service.listFollowedShops('customer-id', ['ROLE_USER']);
+
+      expect(mockPrismaService.shopFollow.findMany).toHaveBeenCalledWith({
+        where: {
+          customerId: 'customer-id',
+          seller: {
+            deletedAt: null,
+            status: 'ACTIVE',
+            roles: { has: 'ROLE_SELLER' },
+            NOT: { roles: { has: 'ROLE_ADMIN' } },
+          },
+        },
+        include: {
+          seller: {
+            select: expect.any(Object),
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+  });
+
   describe('findByEmail', () => {
     it('should return a user by email', async () => {
       const user = { id: '1', email: 'test@test.com' };
@@ -251,7 +396,12 @@ describe('UsersService', () => {
 
   describe('updateProfile', () => {
     it('should ignore privileged fields from self-service profile updates', async () => {
-      const user = { id: '1', name: 'Old', email: 'test@test.com' };
+      const user = {
+        id: '1',
+        name: 'Old',
+        email: 'test@test.com',
+        roles: ['ROLE_USER'],
+      };
       const updatedUser = { ...user, name: 'New' };
       mockPrismaService.user.findUnique.mockResolvedValue(user);
       mockPrismaService.user.update.mockResolvedValue(updatedUser);
@@ -262,6 +412,11 @@ describe('UsersService', () => {
         status: 'SUSPENDED',
         password: 'new-password',
         isEmailVerified: true,
+        artisanVerified: true,
+        verificationNote: 'self-approved',
+        shopReturnPolicy: 'Không nên ghi',
+        shopShippingPolicy: 'Không nên ghi',
+        shopProcessingTime: 'Không nên ghi',
       } as unknown as UpdateProfileDto;
 
       await service.updateProfile('1', maliciousProfileUpdate);
@@ -277,6 +432,98 @@ describe('UsersService', () => {
       expect(data).not.toHaveProperty('status');
       expect(data).not.toHaveProperty('password');
       expect(data).not.toHaveProperty('isEmailVerified');
+      expect(data).not.toHaveProperty('artisanVerified');
+      expect(data).not.toHaveProperty('verificationNote');
+      expect(data).not.toHaveProperty('shopReturnPolicy');
+      expect(data).not.toHaveProperty('shopShippingPolicy');
+      expect(data).not.toHaveProperty('shopProcessingTime');
+    });
+
+    it('should allow sellers to update craft profile fields', async () => {
+      const user = {
+        id: '1',
+        name: 'Old',
+        email: 'test@test.com',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(user);
+      mockPrismaService.user.update.mockResolvedValue(user);
+
+      await service.updateProfile('1', {
+        craftSpecialty: 'Gốm thủ công',
+        craftExperienceYears: 5,
+        craftMaterials: ['Đất sét', 'Men tro'],
+      });
+
+      const updateCall = mockPrismaService.user.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.data).toMatchObject({
+        craftSpecialty: 'Gốm thủ công',
+        craftExperienceYears: 5,
+        craftMaterials: ['Đất sét', 'Men tro'],
+      });
+    });
+    it('should allow sellers to update shop policy fields', async () => {
+      const user = {
+        id: 'seller-1',
+        name: 'Seller',
+        email: 'seller@test.com',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(user);
+      mockPrismaService.user.update.mockResolvedValue(user);
+
+      await service.updateProfile('seller-1', {
+        shopProcessingTime: ' 2-4 ngày làm việc ',
+        shopShippingPolicy: ' Gửi GHN/GHTK và cập nhật mã vận đơn. ',
+        shopReturnPolicy: '',
+      });
+
+      const updateCall = mockPrismaService.user.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.data).toMatchObject({
+        shopProcessingTime: '2-4 ngày làm việc',
+        shopShippingPolicy: 'Gửi GHN/GHTK và cập nhật mã vận đơn.',
+        shopReturnPolicy: null,
+      });
+      expect(updateCall?.data).toHaveProperty('shopPolicyUpdatedAt');
+    });
+  });
+
+  describe('update', () => {
+    it('lets admins verify seller artisan profiles', async () => {
+      const seller = {
+        id: 'seller-id',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(seller);
+      mockPrismaService.user.update.mockResolvedValue({
+        ...seller,
+        artisanVerified: true,
+      });
+
+      await service.update('seller-id', {
+        artisanVerified: true,
+        verificationNote: 'Đã kiểm tra hồ sơ nghệ nhân',
+      });
+
+      const updateCall = mockPrismaService.user.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.data).toMatchObject({
+        artisanVerified: true,
+        verificationNote: 'Đã kiểm tra hồ sơ nghệ nhân',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      });
+    });
+
+    it('rejects artisan verification for non-seller accounts', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'customer-id',
+        roles: ['ROLE_USER'],
+      });
+
+      await expect(
+        service.update('customer-id', { artisanVerified: true }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
     });
   });
 

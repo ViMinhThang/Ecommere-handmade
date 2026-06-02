@@ -1,10 +1,12 @@
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -63,4 +65,22 @@ export class CheckoutDto {
   @IsInt()
   @Min(0)
   rewardPointsToRedeem?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  giftWrap?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  giftWrapTierId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  giftCard?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  giftMessage?: string;
 }

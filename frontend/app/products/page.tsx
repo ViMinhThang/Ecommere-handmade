@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, SlidersHorizontal, X } from "lucide-react";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
+import { ProductCardActions } from "@/components/storefront/product-card-actions";
 import { SafeImage } from "@/components/ui/safe-image";
 import { useCategories, useProducts } from "@/lib/api/hooks";
 import { mediaApi } from "@/lib/api/media";
@@ -27,6 +28,7 @@ function ProductsPageContent() {
   const { data: categoriesData } = useCategories({ status: "ACTIVE" });
 
   const page = Math.max(Number(searchParams.get("page") || "1"), 1);
+  const q = searchParams.get("q")?.trim() || undefined;
   const categoryId = searchParams.get("categoryId") || undefined;
   const minPrice = searchParams.get("minPrice")
     ? Number(searchParams.get("minPrice"))
@@ -41,6 +43,7 @@ function ProductsPageContent() {
   const productParams = useMemo(
     () => ({
       status: "APPROVED",
+      q,
       categoryId,
       page,
       limit: PAGE_SIZE,
@@ -50,7 +53,7 @@ function ProductsPageContent() {
       sortBy,
       order,
     }),
-    [categoryId, maxPrice, minPrice, order, page, readyToShip, sortBy],
+    [categoryId, maxPrice, minPrice, order, page, q, readyToShip, sortBy],
   );
 
   const { data, isLoading, isError } = useProducts(productParams);
@@ -86,17 +89,25 @@ function ProductsPageContent() {
       <main className="pt-24">
         <section className="border-b border-border/30 bg-accent/40 px-6 py-16 md:px-10 lg:px-14">
           <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/70">
-                Sản phẩm
-              </p>
-              <h1 className="mt-4 max-w-4xl font-headline text-4xl italic text-primary md:text-6xl">
-                Tất cả sản phẩm thủ công
-              </h1>
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-                Lọc theo danh mục, mức giá và trạng thái còn hàng để tìm nhanh
-                món đồ phù hợp.
-              </p>
+            <div className="max-w-3xl">
+              {q ? (
+                <h1 className="max-w-3xl font-headline text-4xl italic text-primary md:text-5xl">
+                  Hiển thị kết quả cho &apos;{q}&apos;
+                </h1>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/70">
+                    Sản phẩm
+                  </p>
+                  <h1 className="mt-4 max-w-3xl font-headline text-4xl italic text-primary md:text-5xl">
+                    Tất cả sản phẩm thủ công
+                  </h1>
+                  <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+                    Lọc theo danh mục, mức giá và trạng thái còn hàng để tìm nhanh
+                    món đồ phù hợp.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3 border border-border/50 bg-background px-4 py-3">
@@ -340,8 +351,7 @@ function ProductCard({ product }: { product: Product }) {
 
   return (
     <article className="group">
-      <Link href={`/products/${product.id}`} className="block">
-        <div className="relative mb-5 aspect-[4/5] overflow-hidden border border-border/20 bg-accent">
+      <div className="relative mb-5 aspect-[4/5] overflow-hidden border border-border/20 bg-accent">
           {image ? (
             <SafeImage
               src={mediaApi.getImageUrl(image)}
@@ -355,12 +365,13 @@ function ProductCard({ product }: { product: Product }) {
             </div>
           )}
           {product.stock <= 0 ? (
-            <span className="absolute left-3 top-3 bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="absolute left-3 top-3 z-20 bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               Hết hàng
             </span>
           ) : null}
-        </div>
-      </Link>
+          <div className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/10" />
+          <ProductCardActions productId={product.id} stock={product.stock} />
+      </div>
 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">

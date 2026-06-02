@@ -28,6 +28,9 @@ import { ReportsModule } from './reports/reports.module';
 import { CommissionsModule } from './commissions/commissions.module';
 import { CustomOrderQuoteTemplatesModule } from './custom-order-quote-templates/custom-order-quote-templates.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { HomepageModule } from './homepage/homepage.module';
+import { ShippingProfilesModule } from './shipping-profiles/shipping-profiles.module';
+import { GiftWrapTiersModule } from './gift-wrap-tiers/gift-wrap-tiers.module';
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   if (!value) {
@@ -82,6 +85,9 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
     CommissionsModule,
     CustomOrderQuoteTemplatesModule,
     NotificationsModule,
+    HomepageModule,
+    ShippingProfilesModule,
+    GiftWrapTiersModule,
   ],
   controllers: [AppController],
   providers: [
