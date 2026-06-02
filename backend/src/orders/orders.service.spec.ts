@@ -102,6 +102,9 @@ describe('OrdersService', () => {
     voucherUsage: {
       count: jest.fn(),
     },
+    shippingProfile: {
+      findFirst: jest.fn(),
+    },
     inventoryLog: {
       create: jest.fn(),
     },
@@ -157,6 +160,7 @@ describe('OrdersService', () => {
         productId: 'product_1',
         quantity: 1,
         personalization: null,
+        selectedOptions: null,
         pricing: { discountedPrice: 100000, originalPrice: 100000 },
         product: {
           id: 'product_1',
@@ -221,6 +225,7 @@ describe('OrdersService', () => {
           productId: 'product_1',
           quantity: 1,
           personalization: null,
+          selectedOptions: null,
           pricing: {
             originalPrice: 100000,
             discountedPrice: 90000,
@@ -307,6 +312,7 @@ describe('OrdersService', () => {
             originalPrice: 100000,
             platformDiscountAmount: 0,
             personalization: null,
+            selectedOptions: null,
           },
         ],
       },
@@ -411,6 +417,7 @@ describe('OrdersService', () => {
     mockPrisma.flashSaleUserUsage.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.voucher.findFirst.mockResolvedValue(null);
     mockPrisma.voucherUsage.count.mockResolvedValue(0);
+    mockPrisma.shippingProfile.findFirst.mockResolvedValue(null);
     mockPrisma.inventoryLog.create.mockResolvedValue({ id: 'inv_1' });
     mockPrisma.$queryRaw.mockResolvedValue([{ id: 'flash_sale_1' }]);
     mockPrisma.cart.findUnique.mockResolvedValue(null);
@@ -935,6 +942,12 @@ describe('OrdersService', () => {
         {
           ...cart.items[0],
           personalization: { text: 'Khắc tên Linh' },
+          selectedOptions: {
+            color: 'Đỏ rượu',
+            material: 'Nhung',
+            size: 'M',
+            processingTime: '2-3 ngày',
+          },
         },
       ],
     });
@@ -951,6 +964,12 @@ describe('OrdersService', () => {
       productId: 'product_1',
       quantity: 1,
       personalization: { text: 'Khắc tên Linh' },
+      selectedOptions: {
+        color: 'Đỏ rượu',
+        material: 'Nhung',
+        size: 'M',
+        processingTime: '2-3 ngày',
+      },
     });
     expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
   });
@@ -1455,6 +1474,7 @@ describe('OrdersService', () => {
             productId: 'product_1',
             quantity: 1,
             personalization: null,
+            selectedOptions: null,
             pricing: {
               originalPrice: 100000,
               discountedPrice: 90000,

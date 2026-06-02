@@ -42,12 +42,13 @@ Account: `seller@ecommerce.com / admin123`
 
 1. Vào `/login`, đăng nhập seller.
 2. Vào `/dashboard/products`, kiểm tra sản phẩm demo của shop.
-3. Vào `/dashboard/new-listing`, tạo hoặc sửa sản phẩm demo; có thể nhập URL ảnh hợp lệ hoặc chọn ảnh trong thư viện media seed nếu UI đang hiển thị.
-4. Vào `/dashboard/orders`, mở kiện hàng của shop và cập nhật trạng thái theo thứ tự hợp lệ.
-5. Vào `/seller/custom-orders`, kiểm tra đơn thiết kế riêng nếu seed/demo có dữ liệu, chuyển trạng thái `Đang chế tác -> Đang hoàn thiện -> Đang giao -> Đã giao`.
-6. Trong `/seller/custom-orders`, bấm `Tiến độ` trên một đơn custom order, thêm tiêu đề/ghi chú/URL ảnh để khách hàng thấy nhật ký chế tác.
-7. Vào `/dashboard/chat` nếu cần demo trao đổi với khách hàng.
-8. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification đơn hàng mới/sản phẩm đã duyệt và bấm đánh dấu đã đọc.
+3. Vào `/dashboard/shipping-profiles`, tạo hoặc kiểm tra hồ sơ vận chuyển mặc định của shop và ETA dự kiến.
+4. Vào `/dashboard/new-listing`, tạo hoặc sửa sản phẩm demo; có thể nhập URL ảnh hợp lệ hoặc chọn ảnh trong thư viện media seed nếu UI đang hiển thị, rồi chọn hồ sơ vận chuyển cho sản phẩm.
+5. Vào `/dashboard/orders`, mở kiện hàng của shop và cập nhật trạng thái theo thứ tự hợp lệ.
+6. Vào `/seller/custom-orders`, kiểm tra đơn thiết kế riêng nếu seed/demo có dữ liệu, chuyển trạng thái `Đang chế tác -> Đang hoàn thiện -> Đang giao -> Đã giao`.
+7. Trong `/seller/custom-orders`, bấm `Tiến độ` trên một đơn custom order, thêm tiêu đề/ghi chú/URL ảnh để khách hàng thấy nhật ký chế tác.
+8. Vào `/dashboard/chat` nếu cần demo trao đổi với khách hàng.
+9. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification đơn hàng mới/sản phẩm đã duyệt và bấm đánh dấu đã đọc.
 
 Kết quả mong đợi: seller không thấy menu admin-only, chỉ cập nhật đơn/sản phẩm thuộc shop của mình, UI hiển thị rõ sản phẩm đang chờ admin duyệt.
 

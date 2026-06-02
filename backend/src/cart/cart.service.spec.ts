@@ -71,6 +71,10 @@ describe('CartService personalization', () => {
     personalizationEnabled: false,
     personalizationRequired: false,
     personalizationMaxLength: 120,
+    optionColors: [],
+    optionMaterials: [],
+    optionSizes: [],
+    processingTime: null,
     ...overrides,
   });
 
@@ -88,6 +92,7 @@ describe('CartService personalization', () => {
     productId: 'product_1',
     quantity: 1,
     personalization: null,
+    selectedOptions: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     product: {
@@ -303,5 +308,61 @@ describe('CartService personalization', () => {
       'cat_1',
       'product_1',
     );
+  });
+
+  it('stores selected product options when product has option lists', async () => {
+    const { service, prisma } = createService();
+    prisma.cart.findUnique.mockResolvedValue(buildCart());
+    prisma.product.findFirst.mockResolvedValue(
+      buildProduct({
+        optionColors: ['Đỏ rượu', 'Xanh rêu'],
+        optionMaterials: ['Nhung'],
+        optionSizes: ['M'],
+        processingTime: '2-3 ngày',
+      }),
+    );
+    prisma.cartItem.findUnique.mockResolvedValue(null);
+    prisma.cartItem.create.mockResolvedValue(buildCartItem());
+
+    await service.addToCart('customer_1', {
+      productId: 'product_1',
+      quantity: 1,
+      selectedOptions: {
+        color: ' đỏ rượu ',
+        material: 'Nhung',
+        size: 'M',
+      },
+    });
+
+    expect(prisma.cartItem.create).toHaveBeenCalledWith({
+      data: {
+        cartId: 'cart_1',
+        productId: 'product_1',
+        quantity: 1,
+        selectedOptions: {
+          color: 'Đỏ rượu',
+          material: 'Nhung',
+          size: 'M',
+          processingTime: '2-3 ngày',
+        },
+      },
+    });
+  });
+
+  it('rejects missing required selected product options', async () => {
+    const { service, prisma } = createService();
+    prisma.cart.findUnique.mockResolvedValue(buildCart());
+    prisma.product.findFirst.mockResolvedValue(
+      buildProduct({
+        optionColors: ['Trắng ngà'],
+      }),
+    );
+
+    await expect(
+      service.addToCart('customer_1', {
+        productId: 'product_1',
+        quantity: 1,
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });

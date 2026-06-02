@@ -12,7 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ImageSelector } from './image-selector'
 import { mediaApi } from '@/lib/api/media'
+import { useShippingProfiles } from '@/lib/api/hooks'
 import { PersonalizationSection } from '@/components/dashboard/product-form/personalization-section'
+import { OptionsSection } from '@/components/dashboard/product-form/options-section'
+import { ShippingSection } from '@/components/dashboard/product-form/shipping-section'
 
 interface ProductImageInput {
   url: string
@@ -46,10 +49,16 @@ interface ProductDialogProps {
     personalizationRequired?: boolean
     personalizationInstructions?: string
     personalizationMaxLength?: number
+    optionColors?: string[]
+    optionMaterials?: string[]
+    optionSizes?: string[]
+    processingTime?: string | null
+    shippingProfileId?: string | null
   }) => void
 }
 
 export function ProductDialog({ open, onOpenChange, product, categories, sellerId, onSave }: ProductDialogProps) {
+  const { data: shippingProfiles = [], isLoading: isShippingProfilesLoading } = useShippingProfiles()
   const [formData, setFormData] = useState<{
     name: string
     description: string
@@ -63,6 +72,11 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
     personalizationRequired: boolean
     personalizationInstructions: string
     personalizationMaxLength: number
+    optionColors: string[]
+    optionMaterials: string[]
+    optionSizes: string[]
+    processingTime: string
+    shippingProfileId: string
   }>({
     name: '',
     description: '',
@@ -76,6 +90,11 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
     personalizationRequired: false,
     personalizationInstructions: '',
     personalizationMaxLength: 120,
+    optionColors: [],
+    optionMaterials: [],
+    optionSizes: [],
+    processingTime: '',
+    shippingProfileId: '',
   })
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([])
@@ -99,6 +118,11 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
         personalizationRequired: Boolean(product.personalizationRequired),
         personalizationInstructions: product.personalizationInstructions || '',
         personalizationMaxLength: product.personalizationMaxLength || 120,
+        optionColors: product.optionColors || [],
+        optionMaterials: product.optionMaterials || [],
+        optionSizes: product.optionSizes || [],
+        processingTime: product.processingTime || '',
+        shippingProfileId: product.shippingProfileId || '',
       })
       setSelectedImages(
         product.images?.length 
@@ -125,6 +149,11 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
         personalizationRequired: false,
         personalizationInstructions: '',
         personalizationMaxLength: 120,
+        optionColors: [],
+        optionMaterials: [],
+        optionSizes: [],
+        processingTime: '',
+        shippingProfileId: '',
       })
       setSelectedImages([])
     }
@@ -161,6 +190,27 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
       return
     }
 
+    const optionLists = [
+      { label: 'Màu sắc', value: formData.optionColors },
+      { label: 'Chất liệu', value: formData.optionMaterials },
+      { label: 'Kích thước', value: formData.optionSizes },
+    ]
+    const invalidOptionList = optionLists.find(
+      (list) =>
+        list.value.length > 20 ||
+        list.value.some((item) => item.trim().length > 40),
+    )
+
+    if (invalidOptionList) {
+      alert(`${invalidOptionList.label} tối đa 20 lựa chọn, mỗi lựa chọn tối đa 40 ký tự`)
+      return
+    }
+
+    if (formData.processingTime.length > 120) {
+      alert('Thời gian làm không được vượt quá 120 ký tự')
+      return
+    }
+
     onSave({
       name: formData.name,
       description: formData.description,
@@ -180,6 +230,11 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
       personalizationMaxLength: formData.personalizationEnabled
         ? personalizationMaxLength
         : 120,
+      optionColors: formData.optionColors,
+      optionMaterials: formData.optionMaterials,
+      optionSizes: formData.optionSizes,
+      processingTime: formData.processingTime.trim() || null,
+      shippingProfileId: formData.shippingProfileId || null,
     })
     onOpenChange(false)
   }
@@ -291,11 +346,30 @@ export function ProductDialog({ open, onOpenChange, product, categories, sellerI
               </div>
             </div>
 
+            <OptionsSection
+              optionColors={formData.optionColors}
+              optionMaterials={formData.optionMaterials}
+              optionSizes={formData.optionSizes}
+              processingTime={formData.processingTime}
+              onChange={(field, value) =>
+                setFormData((current) => ({ ...current, [field]: value }))
+              }
+            />
+
             <PersonalizationSection
               personalizationEnabled={formData.personalizationEnabled}
               personalizationRequired={formData.personalizationRequired}
               personalizationInstructions={formData.personalizationInstructions}
               personalizationMaxLength={formData.personalizationMaxLength}
+              onChange={(field, value) =>
+                setFormData((current) => ({ ...current, [field]: value }))
+              }
+            />
+
+            <ShippingSection
+              shippingProfileId={formData.shippingProfileId}
+              shippingProfiles={shippingProfiles}
+              isLoading={isShippingProfilesLoading}
               onChange={(field, value) =>
                 setFormData((current) => ({ ...current, [field]: value }))
               }

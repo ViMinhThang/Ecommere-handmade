@@ -71,6 +71,19 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Mở delivered order seed và kiểm tra review đã có hoặc tạo review nếu chưa có.
 - [ ] Mở chat với seller từ product detail nếu flow khả dụng.
 
+## Shipping Profile / ETA Smoke
+
+- [ ] Seller mở `/dashboard/shipping-profiles`, tạo hồ sơ vận chuyển mới với đơn vị vận chuyển, tracking URL template, thời gian chuẩn bị và thời gian giao.
+- [ ] Seller đặt một hồ sơ vận chuyển làm mặc định; hồ sơ mặc định cũ tự bỏ cờ mặc định.
+- [ ] Seller tắt hoặc xóa mềm một hồ sơ; sản phẩm đang dùng hồ sơ đó không crash và có thể quay về ETA mặc định/hồ sơ khác.
+- [ ] Seller tạo/sửa sản phẩm trong `/dashboard/new-listing` hoặc dialog sản phẩm và chọn hồ sơ vận chuyển.
+- [ ] Product detail hiển thị ETA dự kiến và đơn vị vận chuyển.
+- [ ] Cart và checkout hiển thị ETA theo từng item; tổng tiền, voucher, flash sale và payment không thay đổi.
+- [ ] Checkout COD tạo sub-order có `shippingProfileSnapshot` và `estimatedDeliveryStartAt/EndAt`.
+- [ ] Trang xác nhận đơn hàng dùng ETA từ sub-order thay vì hardcode 3-7 ngày nếu có snapshot.
+- [ ] Customer order detail, seller order detail và admin order detail hiển thị ETA snapshot ngay cả khi seller chỉnh hồ sơ vận chuyển sau đó.
+- [ ] Tracking event thủ công vẫn hoạt động độc lập với Shipping Profile; seller/admin vẫn thêm được mã vận đơn và timeline.
+
 ## Expected Result
 
 - [ ] Không có broken image trong home/discovery/cart/orders/wishlist/dashboard products.
@@ -102,6 +115,11 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Checkout defaults to COD; Stripe option is disabled when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is not configured.
 - [ ] Checkout summary shows subtotal, voucher discount if applied, shipping fee, total, payment method, and shipping address.
 - [ ] Checkout can save `Gói quà`, `Thiệp viết tay`, and `Lời nhắn`; confirmation, customer order detail, and seller/admin order detail show the same gift snapshot.
+- [ ] Seller creates/edits a product with color, material, size, and processing time options.
+- [ ] Customer selects required product options on product detail before adding to cart.
+- [ ] Cart and checkout show the selected product options without changing price or quantity behavior.
+- [ ] Confirmation, customer order detail, seller order detail, and admin order detail show the selected product option snapshot.
+- [ ] A product without product options still adds to cart and checks out normally.
 - [ ] Product images render on home/discovery/category/product detail/cart/wishlist/profile orders/seller products; missing images show a clean fallback instead of a broken image icon.
 - [ ] Profile order detail opens when an order item has no product image; the fallback icon renders instead of an empty `next/image` source.
 - [ ] Seller can open `/dashboard/orders`, update a standard shop sub-order, and see Vietnamese success/error messages.

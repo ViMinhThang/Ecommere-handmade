@@ -9,6 +9,7 @@ import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import { SafeImage } from "@/components/ui/safe-image";
 import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
 import { formatCurrency } from "@/lib/utils";
 
 function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
@@ -29,6 +30,15 @@ function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
   }
 
   return null;
+}
+
+function toValidDate(value?: Date | string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 export default function OrderConfirmationPage() {
@@ -56,8 +66,24 @@ export default function OrderConfirmationPage() {
   }
 
   const shippingAddress = normalizeShippingAddress(order.shippingAddress);
-  const arrivalStart = addDays(new Date(order.createdAt), 3);
-  const arrivalEnd = addDays(new Date(order.createdAt), 7);
+  const etaStartDates =
+    order.subOrders
+      ?.map((subOrder: SubOrder) =>
+        toValidDate(subOrder.estimatedDeliveryStartAt),
+      )
+      .filter((date): date is Date => Boolean(date)) || [];
+  const etaEndDates =
+    order.subOrders
+      ?.map((subOrder: SubOrder) => toValidDate(subOrder.estimatedDeliveryEndAt))
+      .filter((date): date is Date => Boolean(date)) || [];
+  const arrivalStart =
+    etaStartDates.length > 0
+      ? new Date(Math.min(...etaStartDates.map((date) => date.getTime())))
+      : addDays(new Date(order.createdAt), 3);
+  const arrivalEnd =
+    etaEndDates.length > 0
+      ? new Date(Math.max(...etaEndDates.map((date) => date.getTime())))
+      : addDays(new Date(order.createdAt), 7);
 
   // Flatten items across all sub-orders
   const allItems = order.subOrders?.flatMap((so: SubOrder) => 
@@ -138,6 +164,7 @@ export default function OrderConfirmationPage() {
                     <div>
                       <h3 className="font-headline text-xl md:text-2xl text-stone-800 italic mb-1">{item.product.name}</h3>
                       <p className="text-[10px] text-stone-500 uppercase tracking-widest font-bold">{item.sellerName}</p>
+                      <ProductOptionsNote selectedOptions={item.selectedOptions} compact />
                     </div>
                     <div className="mt-4 md:mt-0 md:text-right">
                       <p className="font-headline text-lg text-stone-800 italic">{(Number(item.price) * item.quantity).toLocaleString('vi-VN')} ₫</p>

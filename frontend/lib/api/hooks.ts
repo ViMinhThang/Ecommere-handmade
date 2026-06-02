@@ -40,6 +40,11 @@ import {
   type CreateCustomOrderQuoteTemplateDto,
   type UpdateCustomOrderQuoteTemplateDto,
 } from "./custom-order-quote-templates";
+import {
+  shippingProfilesApi,
+  type CreateShippingProfileDto,
+  type UpdateShippingProfileDto,
+} from "./shipping-profiles";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
 import {
@@ -125,6 +130,11 @@ export const productKeys = {
     [...productKeys.all, "seller", sellerId] as const,
   questions: (productId: string, params?: { page?: number; limit?: number }) =>
     [...productKeys.detail(productId), "questions", { ...params }] as const,
+};
+
+export const shippingProfileKeys = {
+  all: ["shipping-profiles"] as const,
+  mine: () => [...shippingProfileKeys.all, "mine"] as const,
 };
 
 export function useUsers(params?: {
@@ -506,6 +516,64 @@ export function useProductStats() {
   return useQuery({
     queryKey: productKeys.stats(),
     queryFn: () => productsApi.getStats(),
+  });
+}
+
+export function useShippingProfiles() {
+  return useQuery({
+    queryKey: shippingProfileKeys.mine(),
+    queryFn: () => shippingProfilesApi.listMine(),
+  });
+}
+
+export function useCreateShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateShippingProfileDto) =>
+      shippingProfilesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useUpdateShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateShippingProfileDto;
+    }) => shippingProfilesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useSetDefaultShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => shippingProfilesApi.setDefault(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useDeleteShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => shippingProfilesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
   });
 }
 
@@ -1006,11 +1074,18 @@ export function useAddToCart() {
       productId,
       quantity,
       personalization,
+      selectedOptions,
     }: {
       productId: string;
       quantity?: number;
       personalization?: { text?: string | null };
-    }) => cartApi.addItem(productId, quantity || 1, personalization),
+      selectedOptions?: {
+        color?: string | null;
+        material?: string | null;
+        size?: string | null;
+        processingTime?: string | null;
+      };
+    }) => cartApi.addItem(productId, quantity || 1, personalization, selectedOptions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -1024,11 +1099,18 @@ export function useUpdateCartItem() {
       productId,
       quantity,
       personalization,
+      selectedOptions,
     }: {
       productId: string;
       quantity: number;
       personalization?: { text?: string | null };
-    }) => cartApi.updateItem(productId, quantity, personalization),
+      selectedOptions?: {
+        color?: string | null;
+        material?: string | null;
+        size?: string | null;
+        processingTime?: string | null;
+      };
+    }) => cartApi.updateItem(productId, quantity, personalization, selectedOptions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },

@@ -91,6 +91,11 @@ type DemoProductInput = {
   status?: ProductStatus;
   createdAt?: Date;
   viewCount?: number;
+  optionColors?: string[];
+  optionMaterials?: string[];
+  optionSizes?: string[];
+  processingTime?: string;
+  shippingProfileId?: string | null;
 };
 
 type RealHandmadeFixture = {
@@ -232,6 +237,11 @@ async function upsertProduct(input: DemoProductInput) {
     lowStockThreshold: input.lowStockThreshold,
     sku: input.sku,
     tags: input.tags,
+    optionColors: input.optionColors ?? [],
+    optionMaterials: input.optionMaterials ?? [],
+    optionSizes: input.optionSizes ?? [],
+    processingTime: input.processingTime ?? null,
+    shippingProfileId: input.shippingProfileId ?? null,
     ...(input.createdAt ? { createdAt: input.createdAt } : {}),
     ...(input.viewCount !== undefined ? { viewCount: input.viewCount } : {}),
     deletedAt: null,
@@ -278,6 +288,59 @@ async function upsertProducts(inputs: DemoProductInput[]) {
   }
 
   return products;
+}
+
+async function ensureShippingProfile(input: {
+  sellerId: string;
+  name: string;
+  carrierName: string;
+  trackingUrlTemplate?: string | null;
+  processingMinDays: number;
+  processingMaxDays: number;
+  transitMinDays: number;
+  transitMaxDays: number;
+  isDefault?: boolean;
+  isActive?: boolean;
+}) {
+  const existing = await prisma.shippingProfile.findFirst({
+    where: {
+      sellerId: input.sellerId,
+      name: input.name,
+      deletedAt: null,
+    },
+  });
+
+  const data = {
+    carrierName: input.carrierName,
+    trackingUrlTemplate: input.trackingUrlTemplate ?? null,
+    processingMinDays: input.processingMinDays,
+    processingMaxDays: input.processingMaxDays,
+    transitMinDays: input.transitMinDays,
+    transitMaxDays: input.transitMaxDays,
+    isDefault: input.isDefault ?? false,
+    isActive: input.isActive ?? true,
+    deletedAt: null,
+  };
+
+  if (data.isDefault) {
+    await prisma.shippingProfile.updateMany({
+      where: { sellerId: input.sellerId, deletedAt: null },
+      data: { isDefault: false },
+    });
+  }
+
+  return existing
+    ? prisma.shippingProfile.update({
+        where: { id: existing.id },
+        data,
+      })
+    : prisma.shippingProfile.create({
+        data: {
+          sellerId: input.sellerId,
+          name: input.name,
+          ...data,
+        },
+      });
 }
 
 function loadRealHandmadeFixture(): RealHandmadeFixture | null {
@@ -450,6 +513,98 @@ async function ensureVoucher(input: {
   return voucher;
 }
 
+function addSeedDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+async function buildSeedShippingEstimate(input: {
+  sellerId: string;
+  productId: string;
+  createdAt?: Date;
+}) {
+  const product = await prisma.product.findUnique({
+    where: { id: input.productId },
+    include: { shippingProfile: true },
+  });
+  const sellerDefault = await prisma.shippingProfile.findFirst({
+    where: {
+      sellerId: input.sellerId,
+      isDefault: true,
+      isActive: true,
+      deletedAt: null,
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+  const source =
+    product?.shippingProfile &&
+    product.shippingProfile.isActive &&
+    !product.shippingProfile.deletedAt
+      ? product.shippingProfile
+      : sellerDefault;
+  const profile = source
+    ? {
+        id: source.id,
+        name: source.name,
+        carrierName: source.carrierName,
+        trackingUrlTemplate: source.trackingUrlTemplate ?? null,
+        processingMinDays: Math.max(0, source.processingMinDays),
+        processingMaxDays: Math.max(source.processingMinDays, source.processingMaxDays),
+        transitMinDays: Math.max(0, source.transitMinDays),
+        transitMaxDays: Math.max(source.transitMinDays, source.transitMaxDays),
+      }
+    : {
+        id: null,
+        name: 'Giao hàng tiêu chuẩn',
+        carrierName: 'Đơn vị vận chuyển tiêu chuẩn',
+        trackingUrlTemplate: null,
+        processingMinDays: 1,
+        processingMaxDays: 3,
+        transitMinDays: 2,
+        transitMaxDays: 5,
+      };
+  const baseDate = input.createdAt ?? new Date();
+
+  return {
+    shippingProfileId: profile.id,
+    shippingProfileSnapshot: {
+      version: 1,
+      profileId: profile.id,
+      name: profile.name,
+      carrierName: profile.carrierName,
+      trackingUrlTemplate: profile.trackingUrlTemplate,
+      processingMinDays: profile.processingMinDays,
+      processingMaxDays: profile.processingMaxDays,
+      transitMinDays: profile.transitMinDays,
+      transitMaxDays: profile.transitMaxDays,
+      itemProfiles: [
+        {
+          productId: input.productId,
+          productName: product?.name ?? '',
+          profileId: profile.id,
+          name: profile.name,
+          carrierName: profile.carrierName,
+          processingMinDays: profile.processingMinDays,
+          processingMaxDays: profile.processingMaxDays,
+          transitMinDays: profile.transitMinDays,
+          transitMaxDays: profile.transitMaxDays,
+        },
+      ],
+    },
+    estimatedShipStartAt: addSeedDays(baseDate, profile.processingMinDays),
+    estimatedShipEndAt: addSeedDays(baseDate, profile.processingMaxDays),
+    estimatedDeliveryStartAt: addSeedDays(
+      baseDate,
+      profile.processingMinDays + profile.transitMinDays,
+    ),
+    estimatedDeliveryEndAt: addSeedDays(
+      baseDate,
+      profile.processingMaxDays + profile.transitMaxDays,
+    ),
+  };
+}
+
 async function ensureDemoOrder(input: {
   checkoutIdempotencyKey: string;
   customerId: string;
@@ -472,6 +627,11 @@ async function ensureDemoOrder(input: {
 
   const subtotal = Number(input.unitPrice) * input.quantity;
   const shippingFee = 25000;
+  const shippingEstimate = await buildSeedShippingEstimate({
+    sellerId: input.sellerId,
+    productId: input.productId,
+    createdAt: input.createdAt,
+  });
   const paymentStatus =
     input.paymentStatus ??
     (input.orderStatus === OrderStatus.DELIVERED
@@ -515,6 +675,13 @@ async function ensureDemoOrder(input: {
           subTotal: String(subtotal),
           status: input.subOrderStatus,
           discountAmount: '0',
+          shippingProfileId: shippingEstimate.shippingProfileId,
+          shippingProfileSnapshot:
+            shippingEstimate.shippingProfileSnapshot as Prisma.InputJsonValue,
+          estimatedShipStartAt: shippingEstimate.estimatedShipStartAt,
+          estimatedShipEndAt: shippingEstimate.estimatedShipEndAt,
+          estimatedDeliveryStartAt: shippingEstimate.estimatedDeliveryStartAt,
+          estimatedDeliveryEndAt: shippingEstimate.estimatedDeliveryEndAt,
           ...(input.createdAt ? { createdAt: input.createdAt } : {}),
         },
       });
@@ -549,6 +716,13 @@ async function ensureDemoOrder(input: {
           sellerId: input.sellerId,
           subTotal: String(subtotal),
           status: input.subOrderStatus,
+          shippingProfileId: shippingEstimate.shippingProfileId,
+          shippingProfileSnapshot:
+            shippingEstimate.shippingProfileSnapshot as Prisma.InputJsonValue,
+          estimatedShipStartAt: shippingEstimate.estimatedShipStartAt,
+          estimatedShipEndAt: shippingEstimate.estimatedShipEndAt,
+          estimatedDeliveryStartAt: shippingEstimate.estimatedDeliveryStartAt,
+          estimatedDeliveryEndAt: shippingEstimate.estimatedDeliveryEndAt,
           ...(input.createdAt ? { createdAt: input.createdAt } : {}),
           items: {
             create: [
@@ -591,6 +765,13 @@ async function ensureDemoOrder(input: {
             sellerId: input.sellerId,
             subTotal: String(subtotal),
             status: input.subOrderStatus,
+            shippingProfileId: shippingEstimate.shippingProfileId,
+            shippingProfileSnapshot:
+              shippingEstimate.shippingProfileSnapshot as Prisma.InputJsonValue,
+            estimatedShipStartAt: shippingEstimate.estimatedShipStartAt,
+            estimatedShipEndAt: shippingEstimate.estimatedShipEndAt,
+            estimatedDeliveryStartAt: shippingEstimate.estimatedDeliveryStartAt,
+            estimatedDeliveryEndAt: shippingEstimate.estimatedDeliveryEndAt,
             ...(input.createdAt ? { createdAt: input.createdAt } : {}),
             items: {
               create: [
@@ -1466,7 +1647,7 @@ async function main() {
       name: 'Đồ len và crochet',
       slug: 'crochet',
       description: 'Hoa len, thú bông, lót ly và phụ kiện móc thủ công.',
-      image: demoImages.crochet,
+    image: demoImages.crochet,
     },
     {
       name: 'Tranh và decor thủ công',
@@ -1802,6 +1983,63 @@ async function main() {
     ),
   );
 
+  const sellerShippingProfiles = {
+    ceramicStandard: await ensureShippingProfile({
+      sellerId: seller.id,
+      name: 'Giao gốm tiêu chuẩn',
+      carrierName: 'GHN',
+      trackingUrlTemplate: 'https://ghn.vn/blogs/tracking?order_code={trackingCode}',
+      processingMinDays: 1,
+      processingMaxDays: 3,
+      transitMinDays: 2,
+      transitMaxDays: 4,
+      isDefault: true,
+    }),
+    ceramicCareful: await ensureShippingProfile({
+      sellerId: seller.id,
+      name: 'Gói chống sốc cho gốm',
+      carrierName: 'Viettel Post',
+      trackingUrlTemplate: 'https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/?order={trackingCode}',
+      processingMinDays: 2,
+      processingMaxDays: 4,
+      transitMinDays: 3,
+      transitMaxDays: 5,
+    }),
+    giftStandard: await ensureShippingProfile({
+      sellerId: seller2.id,
+      name: 'Giao quà handmade',
+      carrierName: 'GHTK',
+      trackingUrlTemplate: 'https://i.ghtk.vn/{trackingCode}',
+      processingMinDays: 1,
+      processingMaxDays: 2,
+      transitMinDays: 2,
+      transitMaxDays: 4,
+      isDefault: true,
+    }),
+    madeToOrder: await ensureShippingProfile({
+      sellerId: seller4.id,
+      name: 'Sản phẩm móc len theo yêu cầu',
+      carrierName: 'GHN',
+      trackingUrlTemplate: 'https://ghn.vn/blogs/tracking?order_code={trackingCode}',
+      processingMinDays: 3,
+      processingMaxDays: 7,
+      transitMinDays: 2,
+      transitMaxDays: 4,
+      isDefault: true,
+    }),
+    candleFast: await ensureShippingProfile({
+      sellerId: seller6.id,
+      name: 'Giao nhanh nến thơm',
+      carrierName: 'J&T Express',
+      trackingUrlTemplate: 'https://jtexpress.vn/vi/tracking?billcode={trackingCode}',
+      processingMinDays: 1,
+      processingMaxDays: 2,
+      transitMinDays: 1,
+      transitMaxDays: 3,
+      isDefault: true,
+    }),
+  };
+
   await Promise.all([
     ensureDefaultAddress(customer.id),
     ensureDefaultAddress(customer2.id),
@@ -1858,6 +2096,11 @@ async function main() {
     lowStockThreshold: 5,
     tags: ['gom-su', 'qua-tang', 'handmade'],
     image: demoImages.ceramic,
+    shippingProfileId: sellerShippingProfiles.ceramicStandard.id,
+    optionColors: ['Nâu đất', 'Trắng ngà'],
+    optionMaterials: ['Gốm men thủ công'],
+    optionSizes: ['300ml', '450ml'],
+    processingTime: '2-4 ngày',
   });
 
   const tote = await upsertProduct({
@@ -1872,6 +2115,11 @@ async function main() {
     lowStockThreshold: 4,
     tags: ['vai', 'tui', 'theu-tay'],
     image: demoImages.linen,
+    shippingProfileId: sellerShippingProfiles.giftStandard.id,
+    optionColors: ['Be tự nhiên', 'Xanh rêu', 'Nâu nhạt'],
+    optionMaterials: ['Vải linen', 'Vải canvas'],
+    optionSizes: ['Nhỏ', 'Vừa'],
+    processingTime: '3-5 ngày',
   });
 
   const candle = await upsertProduct({
@@ -1886,6 +2134,11 @@ async function main() {
     lowStockThreshold: 6,
     tags: ['nen-thom', 'qua-tang'],
     image: demoImages.candle,
+    shippingProfileId: sellerShippingProfiles.giftStandard.id,
+    optionColors: ['Trắng sữa', 'Vàng mật ong'],
+    optionMaterials: ['Sáp đậu nành', 'Tim bấc cotton'],
+    optionSizes: ['120g', '200g'],
+    processingTime: '1-2 ngày',
   });
 
   const bracelet = await upsertProduct({
@@ -1900,6 +2153,11 @@ async function main() {
     lowStockThreshold: 3,
     tags: ['trang-suc', 'bac', 'gom'],
     image: demoImages.jewelry,
+    shippingProfileId: sellerShippingProfiles.ceramicCareful.id,
+    optionColors: ['Bạc', 'Xanh ngọc', 'Nâu gốm'],
+    optionMaterials: ['Bạc 925', 'Hạt gốm'],
+    optionSizes: ['16cm', '18cm', '20cm'],
+    processingTime: '3-5 ngày',
   });
 
   const woodTray = await upsertProduct({

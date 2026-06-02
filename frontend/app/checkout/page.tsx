@@ -22,6 +22,8 @@ import type { Address } from "@/types";
 import { Button } from "@/components/ui/button";
 import { SafeImage } from "@/components/ui/safe-image";
 import { PersonalizationNote } from "@/components/storefront/personalization-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
+import { ShippingEtaNote } from "@/components/storefront/shipping-eta-note";
 import {
   Dialog,
   DialogContent,
@@ -924,6 +926,16 @@ export default function CheckoutPage() {
                       </p>
                       <PersonalizationNote
                         personalization={item.personalization}
+                        compact
+                        className="bg-white/80"
+                      />
+                      <ProductOptionsNote
+                        selectedOptions={item.selectedOptions}
+                        compact
+                        className="bg-white/80"
+                      />
+                      <ShippingEtaNote
+                        profile={item.product.shippingProfile}
                         compact
                         className="bg-white/80"
                       />

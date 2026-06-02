@@ -80,10 +80,24 @@ function normalizeCarrier(value?: string | null) {
     .trim();
 }
 
-function getTrackingLink(carrier?: string | null, trackingCode?: string | null) {
+function getTrackingLink(
+  carrier?: string | null,
+  trackingCode?: string | null,
+  trackingUrlTemplate?: string | null,
+) {
   const code = trackingCode?.trim();
   if (!code) {
     return null;
+  }
+
+  const template = trackingUrlTemplate?.trim();
+  if (template) {
+    return {
+      label: "Tra cứu vận đơn",
+      url: template.includes("{trackingCode}")
+        ? template.replaceAll("{trackingCode}", encodeURIComponent(code))
+        : template,
+    };
   }
 
   const normalizedCarrier = normalizeCarrier(carrier);
@@ -122,12 +136,14 @@ interface ShipmentTrackingTimelineProps {
   events?: ShipmentTrackingEvent[];
   status?: SubOrder["status"];
   emptyMessage?: string;
+  trackingUrlTemplate?: string | null;
 }
 
 export function ShipmentTrackingTimeline({
   events = [],
   status,
   emptyMessage = "Chưa có cập nhật vận chuyển nào.",
+  trackingUrlTemplate,
 }: ShipmentTrackingTimelineProps) {
   const sortedEvents = [...events].sort((a, b) => {
     const aTime = new Date(a.occurredAt).getTime();
@@ -156,7 +172,11 @@ export function ShipmentTrackingTimeline({
       {sortedEvents.map((event, index) => {
         const Icon = typeIcons[event.type] || Info;
         const isLatest = index === 0;
-        const trackingLink = getTrackingLink(event.carrier, event.trackingCode);
+        const trackingLink = getTrackingLink(
+          event.carrier,
+          event.trackingCode,
+          trackingUrlTemplate,
+        );
 
         return (
           <div key={event.id} className="relative flex gap-3">
@@ -194,7 +214,9 @@ export function ShipmentTrackingTimeline({
               </div>
 
               {event.description && (
-                <p className="text-sm text-muted-foreground">{event.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {event.description}
+                </p>
               )}
 
               {(event.location || event.carrier || event.trackingCode) && (
@@ -226,7 +248,8 @@ export function ShipmentTrackingTimeline({
 
               {event.createdBy && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Cập nhật bởi {event.createdBy.shopName || event.createdBy.name}
+                  Cập nhật bởi{" "}
+                  {event.createdBy.shopName || event.createdBy.name}
                 </p>
               )}
             </div>

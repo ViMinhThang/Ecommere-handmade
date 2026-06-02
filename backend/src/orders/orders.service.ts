@@ -68,6 +68,27 @@ const VOUCHER_PRICING_CHANGED_MESSAGE =
   'Voucher discount changed. Please refresh your cart.';
 const VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE =
   'Voucher usage limit has been reached. Please refresh your cart.';
+const DEFAULT_SHIPPING_PROFILE: ShippingProfileSource = {
+  id: null,
+  name: 'Giao hàng tiêu chuẩn',
+  carrierName: 'Đơn vị vận chuyển tiêu chuẩn',
+  trackingUrlTemplate: null,
+  processingMinDays: 1,
+  processingMaxDays: 3,
+  transitMinDays: 2,
+  transitMaxDays: 5,
+};
+
+const DEFAULT_SHIPPING_PROFILE_VI: ShippingProfileSource = {
+  id: null,
+  name: 'Giao hàng tiêu chuẩn',
+  carrierName: 'Đơn vị vận chuyển tiêu chuẩn',
+  trackingUrlTemplate: null,
+  processingMinDays: DEFAULT_SHIPPING_PROFILE.processingMinDays,
+  processingMaxDays: DEFAULT_SHIPPING_PROFILE.processingMaxDays,
+  transitMinDays: DEFAULT_SHIPPING_PROFILE.transitMinDays,
+  transitMaxDays: DEFAULT_SHIPPING_PROFILE.transitMaxDays,
+};
 
 interface SubOrderGroup {
   subTotal: number;
@@ -108,6 +129,7 @@ interface CheckoutCartComparisonItem {
   productId: string;
   quantity: number;
   personalization: Prisma.JsonValue | null;
+  selectedOptions: Prisma.JsonValue | null;
 }
 
 interface CheckoutFlashSalePricingSnapshot {
@@ -127,6 +149,49 @@ interface GiftOptions {
   giftWrap: boolean;
   giftCard: boolean;
   giftMessage: string | null;
+}
+
+interface ShippingProfileSnapshot {
+  version: 1;
+  profileId: string | null;
+  name: string;
+  carrierName: string;
+  trackingUrlTemplate: string | null;
+  processingMinDays: number;
+  processingMaxDays: number;
+  transitMinDays: number;
+  transitMaxDays: number;
+  itemProfiles: Array<{
+    productId: string;
+    productName: string;
+    profileId: string | null;
+    name: string;
+    carrierName: string;
+    processingMinDays: number;
+    processingMaxDays: number;
+    transitMinDays: number;
+    transitMaxDays: number;
+  }>;
+}
+
+interface ShippingEstimate {
+  shippingProfileId: string | null;
+  shippingProfileSnapshot: ShippingProfileSnapshot;
+  estimatedShipStartAt: Date;
+  estimatedShipEndAt: Date;
+  estimatedDeliveryStartAt: Date;
+  estimatedDeliveryEndAt: Date;
+}
+
+interface ShippingProfileSource {
+  id: string | null;
+  name: string;
+  carrierName: string;
+  trackingUrlTemplate: string | null;
+  processingMinDays: number;
+  processingMaxDays: number;
+  transitMinDays: number;
+  transitMaxDays: number;
 }
 
 interface CheckoutVoucherSnapshot {
@@ -193,6 +258,7 @@ type OrderWithCheckoutSnapshot = Prisma.OrderGetPayload<{
             originalPrice: true;
             platformDiscountAmount: true;
             personalization: true;
+            selectedOptions: true;
           };
         };
       };
@@ -584,6 +650,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
                 originalPrice: true,
                 platformDiscountAmount: true,
                 personalization: true,
+                selectedOptions: true,
               },
             },
           },
@@ -803,6 +870,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             Math.max(0, originalPrice - discountedPrice),
           ),
           personalization: item.personalization ?? null,
+          selectedOptions: item.selectedOptions ?? null,
         };
       })
       .sort((a, b) => a.productId.localeCompare(b.productId));
@@ -820,6 +888,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           item.platformDiscountAmount,
         ),
         personalization: item.personalization ?? null,
+        selectedOptions: item.selectedOptions ?? null,
       }))
       .sort((a, b) => a.productId.localeCompare(b.productId));
   }
@@ -829,6 +898,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       productId: item.productId,
       quantity: item.quantity,
       personalization: item.personalization ?? null,
+      selectedOptions: item.selectedOptions ?? null,
     }));
   }
 
@@ -838,6 +908,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         productId: item.productId,
         quantity: item.quantity,
         personalization: item.personalization ?? null,
+        selectedOptions: item.selectedOptions ?? null,
       })),
     );
   }
@@ -851,6 +922,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             productId: true,
             quantity: true,
             personalization: true,
+            selectedOptions: true,
           },
         },
       },
@@ -870,6 +942,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             productId: item.productId,
             quantity: item.quantity,
             personalization: item.personalization ?? null,
+            selectedOptions: item.selectedOptions ?? null,
           }),
         )
         .sort()
@@ -1644,6 +1717,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     for (let i = 0; i < groups.length; i++) {
       const [sellerId, data] = groups[i];
       const discountBase = discountBases.get(sellerId) ?? 0;
+      const shippingEstimate = await this.buildSubOrderShippingEstimate(
+        tx,
+        sellerId,
+        data.items,
+        new Date(),
+      );
 
       const subOrderDiscount =
         cart.discountAmount > 0 && discountBase > 0 && totalDiscountBase > 0
@@ -1663,6 +1742,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           subTotal: data.subTotal,
           discountAmount: subOrderDiscount,
           status: 'PENDING',
+          shippingProfileId: shippingEstimate.shippingProfileId,
+          shippingProfileSnapshot:
+            shippingEstimate.shippingProfileSnapshot as unknown as Prisma.InputJsonValue,
+          estimatedShipStartAt: shippingEstimate.estimatedShipStartAt,
+          estimatedShipEndAt: shippingEstimate.estimatedShipEndAt,
+          estimatedDeliveryStartAt:
+            shippingEstimate.estimatedDeliveryStartAt,
+          estimatedDeliveryEndAt: shippingEstimate.estimatedDeliveryEndAt,
         },
       });
 
@@ -1683,6 +1770,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             personalization: item.personalization
               ? (item.personalization as Prisma.InputJsonValue)
               : undefined,
+            selectedOptions: item.selectedOptions
+              ? (item.selectedOptions as Prisma.InputJsonValue)
+              : undefined,
             ...(flashSaleSnapshots
               ? {
                 flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
@@ -1694,6 +1784,183 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         }),
       });
     }
+  }
+
+  private async buildSubOrderShippingEstimate(
+    tx: Prisma.TransactionClient,
+    sellerId: string,
+    items: EnrichedCartItem[],
+    baseDate: Date,
+  ): Promise<ShippingEstimate> {
+    const sellerDefaultProfile =
+      await this.getSellerDefaultShippingProfile(tx, sellerId);
+    const itemProfiles = items.map((item) => {
+      const profile =
+        this.normalizeShippingProfileSource(item.product.shippingProfile) ??
+        sellerDefaultProfile ??
+        DEFAULT_SHIPPING_PROFILE_VI;
+
+      return {
+        productId: item.productId,
+        productName: item.product.name,
+        ...profile,
+      };
+    });
+
+    const processingMinDays = Math.max(
+      0,
+      ...itemProfiles.map((profile) => profile.processingMinDays),
+    );
+    const processingMaxDays = Math.max(
+      processingMinDays,
+      ...itemProfiles.map((profile) => profile.processingMaxDays),
+    );
+    const transitMinDays = Math.max(
+      0,
+      ...itemProfiles.map((profile) => profile.transitMinDays),
+    );
+    const transitMaxDays = Math.max(
+      transitMinDays,
+      ...itemProfiles.map((profile) => profile.transitMaxDays),
+    );
+
+    const uniqueProfileIds = Array.from(
+      new Set(itemProfiles.map((profile) => profile.id).filter(Boolean)),
+    );
+    const singleProfile =
+      uniqueProfileIds.length <= 1
+        ? itemProfiles.find((profile) => profile.id === uniqueProfileIds[0]) ??
+          itemProfiles[0]
+        : null;
+
+    const shippingProfileSnapshot: ShippingProfileSnapshot = {
+      version: 1,
+      profileId: singleProfile?.id ?? null,
+      name: singleProfile?.name ?? 'Nhiều hồ sơ vận chuyển',
+      carrierName: singleProfile?.carrierName ?? 'Nhiều đơn vị vận chuyển',
+      trackingUrlTemplate:
+        singleProfile?.trackingUrlTemplate ??
+        (uniqueProfileIds.length <= 1
+          ? itemProfiles[0]?.trackingUrlTemplate ?? null
+          : null),
+      processingMinDays,
+      processingMaxDays,
+      transitMinDays,
+      transitMaxDays,
+      itemProfiles: itemProfiles.map((profile) => ({
+        productId: profile.productId,
+        productName: profile.productName,
+        profileId: profile.id,
+        name: profile.name,
+        carrierName: profile.carrierName,
+        processingMinDays: profile.processingMinDays,
+        processingMaxDays: profile.processingMaxDays,
+        transitMinDays: profile.transitMinDays,
+        transitMaxDays: profile.transitMaxDays,
+      })),
+    };
+
+    return {
+      shippingProfileId: singleProfile?.id ?? null,
+      shippingProfileSnapshot,
+      estimatedShipStartAt: this.addDays(baseDate, processingMinDays),
+      estimatedShipEndAt: this.addDays(baseDate, processingMaxDays),
+      estimatedDeliveryStartAt: this.addDays(
+        baseDate,
+        processingMinDays + transitMinDays,
+      ),
+      estimatedDeliveryEndAt: this.addDays(
+        baseDate,
+        processingMaxDays + transitMaxDays,
+      ),
+    };
+  }
+
+  private normalizeShippingProfileSource(
+    profile?: {
+      id: string;
+      name: string;
+      carrierName: string;
+      trackingUrlTemplate: string | null;
+      processingMinDays: number;
+      processingMaxDays: number;
+      transitMinDays: number;
+      transitMaxDays: number;
+      isActive?: boolean;
+      deletedAt?: Date | null;
+    } | null,
+  ): ShippingProfileSource | null {
+    if (!profile || profile.isActive === false || profile.deletedAt) {
+      return null;
+    }
+
+    const processingMinDays = this.normalizeShippingDay(
+      profile.processingMinDays,
+      1,
+    );
+    const processingMaxDays = Math.max(
+      processingMinDays,
+      this.normalizeShippingDay(profile.processingMaxDays, 3),
+    );
+    const transitMinDays = this.normalizeShippingDay(profile.transitMinDays, 2);
+    const transitMaxDays = Math.max(
+      transitMinDays,
+      this.normalizeShippingDay(profile.transitMaxDays, 5),
+    );
+
+    return {
+      id: profile.id,
+      name: profile.name,
+      carrierName: profile.carrierName,
+      trackingUrlTemplate: profile.trackingUrlTemplate ?? null,
+      processingMinDays,
+      processingMaxDays,
+      transitMinDays,
+      transitMaxDays,
+    };
+  }
+
+  private async getSellerDefaultShippingProfile(
+    tx: Prisma.TransactionClient,
+    sellerId: string,
+  ): Promise<ShippingProfileSource | null> {
+    const profile = await tx.shippingProfile.findFirst({
+      where: {
+        sellerId,
+        isDefault: true,
+        isActive: true,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        carrierName: true,
+        trackingUrlTemplate: true,
+        processingMinDays: true,
+        processingMaxDays: true,
+        transitMinDays: true,
+        transitMaxDays: true,
+        isActive: true,
+        deletedAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return this.normalizeShippingProfileSource(profile);
+  }
+
+  private normalizeShippingDay(value: number, fallback: number) {
+    if (!Number.isFinite(value)) {
+      return fallback;
+    }
+
+    return Math.max(0, Math.floor(value));
+  }
+
+  private addDays(date: Date, days: number) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
   }
 
   private async notifyOrderCreated(orderId: string) {

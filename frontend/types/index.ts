@@ -133,6 +133,53 @@ export interface ProductPersonalization {
   text?: string | null;
 }
 
+export interface ProductSelectedOptions {
+  color?: string | null;
+  material?: string | null;
+  size?: string | null;
+  processingTime?: string | null;
+}
+
+export interface ShippingProfile {
+  id: string;
+  sellerId: string;
+  name: string;
+  carrierName: string;
+  trackingUrlTemplate?: string | null;
+  processingMinDays: number;
+  processingMaxDays: number;
+  transitMinDays: number;
+  transitMaxDays: number;
+  isDefault: boolean;
+  isActive: boolean;
+  deletedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface ShippingProfileSnapshot {
+  version?: number;
+  profileId?: string | null;
+  name?: string | null;
+  carrierName?: string | null;
+  trackingUrlTemplate?: string | null;
+  processingMinDays?: number;
+  processingMaxDays?: number;
+  transitMinDays?: number;
+  transitMaxDays?: number;
+  itemProfiles?: Array<{
+    productId: string;
+    productName?: string;
+    profileId?: string | null;
+    name?: string | null;
+    carrierName?: string | null;
+    processingMinDays?: number;
+    processingMaxDays?: number;
+    transitMinDays?: number;
+    transitMaxDays?: number;
+  }>;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -158,6 +205,12 @@ export interface Product {
   personalizationRequired?: boolean;
   personalizationInstructions?: string | null;
   personalizationMaxLength?: number;
+  optionColors?: string[];
+  optionMaterials?: string[];
+  optionSizes?: string[];
+  processingTime?: string | null;
+  shippingProfileId?: string | null;
+  shippingProfile?: ShippingProfile | null;
   viewCount?: number;
   soldQuantity?: number;
   createdAt: Date;
@@ -369,6 +422,12 @@ export interface SubOrder {
   subTotal: number;
   discountAmount?: number;
   status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  shippingProfileId?: string | null;
+  shippingProfileSnapshot?: ShippingProfileSnapshot | null;
+  estimatedShipStartAt?: Date | string | null;
+  estimatedShipEndAt?: Date | string | null;
+  estimatedDeliveryStartAt?: Date | string | null;
+  estimatedDeliveryEndAt?: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
   items: OrderItem[];
@@ -416,6 +475,7 @@ export interface OrderItem {
   originalPrice?: number;
   platformDiscountAmount?: number;
   personalization?: ProductPersonalization | null;
+  selectedOptions?: ProductSelectedOptions | null;
 }
 
 export interface Customer {
@@ -582,6 +642,7 @@ export interface CartItem {
     flashSaleId: string | null;
   };
   personalization?: ProductPersonalization | null;
+  selectedOptions?: ProductSelectedOptions | null;
   createdAt: Date;
   updatedAt: Date;
 }

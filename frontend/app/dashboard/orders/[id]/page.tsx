@@ -50,8 +50,13 @@ import {
   getPersonalizationText,
   PersonalizationNote,
 } from '@/components/storefront/personalization-note'
+import {
+  getSelectedProductOptions,
+  ProductOptionsNote,
+} from '@/components/storefront/product-options-note'
 import { GiftOptionsNote } from '@/components/storefront/gift-options-note'
 import { ShipmentTrackingTimeline } from '@/components/orders/shipment-tracking-timeline'
+import { ShippingEtaNote } from '@/components/storefront/shipping-eta-note'
 
 const ORDER_STATUS_OPTIONS: ApiOrderStatus[] = [
   'PENDING',
@@ -265,6 +270,20 @@ export default function DashboardOrderDetailPage() {
     return order.subOrders.flatMap((row) =>
       row.items
         .filter((item) => getPersonalizationText(item.personalization))
+        .map((item) => ({
+          item,
+          sellerName: row.seller?.shopName || row.seller?.name || '-',
+        })),
+    )
+  }, [order?.subOrders])
+  const optionedAdminItems = useMemo(() => {
+    if (!order?.subOrders) {
+      return []
+    }
+
+    return order.subOrders.flatMap((row) =>
+      row.items
+        .filter((item) => getSelectedProductOptions(item.selectedOptions).length > 0)
         .map((item) => ({
           item,
           sellerName: row.seller?.shopName || row.seller?.name || '-',
@@ -692,9 +711,13 @@ export default function DashboardOrderDetailPage() {
                     </div>
                     <StatusBadge status={row.status} />
                   </div>
+                  <ShippingEtaNote subOrder={row} className="mb-4" />
                   <ShipmentTrackingTimeline
                     events={row.trackingEvents}
                     status={row.status}
+                    trackingUrlTemplate={
+                      row.shippingProfileSnapshot?.trackingUrlTemplate
+                    }
                     emptyMessage="Chưa có cập nhật vận chuyển cho kiện hàng này."
                   />
                 </div>
@@ -727,6 +750,29 @@ export default function DashboardOrderDetailPage() {
         </Card>
       )}
 
+      {isAdmin && optionedAdminItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tùy chọn sản phẩm</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {optionedAdminItems.map(({ item, sellerName }) => (
+                <div key={item.id} className="rounded-lg border p-4">
+                  <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="font-medium">{item.product.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Người bán: {sellerName}
+                    </p>
+                  </div>
+                  <ProductOptionsNote selectedOptions={item.selectedOptions} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {isAdmin && (
         <LedgerTable
           entries={adminOrderLedgerQuery.data}
@@ -740,9 +786,13 @@ export default function DashboardOrderDetailPage() {
             <CardTitle>Theo dõi vận chuyển</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <ShippingEtaNote subOrder={subOrder} />
             <ShipmentTrackingTimeline
               events={subOrder.trackingEvents}
               status={subOrder.status}
+              trackingUrlTemplate={
+                subOrder.shippingProfileSnapshot?.trackingUrlTemplate
+              }
               emptyMessage="Chưa có cập nhật vận chuyển cho kiện hàng này."
             />
 
@@ -851,6 +901,7 @@ export default function DashboardOrderDetailPage() {
                       Số lượng: {item.quantity}
                     </p>
                     <PersonalizationNote personalization={item.personalization} compact />
+                    <ProductOptionsNote selectedOptions={item.selectedOptions} compact />
                   </div>
                   <div className="text-right">
                     <p className="font-medium">

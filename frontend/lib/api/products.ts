@@ -39,6 +39,11 @@ export interface CreateProductDto {
   personalizationRequired?: boolean;
   personalizationInstructions?: string;
   personalizationMaxLength?: number;
+  optionColors?: string[];
+  optionMaterials?: string[];
+  optionSizes?: string[];
+  processingTime?: string | null;
+  shippingProfileId?: string | null;
 }
 
 export interface ProductsStats {

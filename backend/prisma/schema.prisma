@@ -206,6 +206,7 @@ model User {
   updatedAt              DateTime                    @updatedAt
   addresses              Address[]
   sellerProducts         Product[]                   @relation("Product_sellerId_fkey")
+  shippingProfiles       ShippingProfile[]           @relation("ShippingProfileSeller")
   folders                ImageFolder[]
   refreshTokens          RefreshToken[]
   cart                   Cart?
@@ -309,6 +310,12 @@ model Product {
   personalizationRequired     Boolean                   @default(false)
   personalizationInstructions String?                   @db.Text
   personalizationMaxLength    Int                       @default(120)
+  optionColors                String[]                  @default([])
+  optionMaterials             String[]                  @default([])
+  optionSizes                 String[]                  @default([])
+  processingTime              String?
+  shippingProfileId           String?
+  shippingProfile             ShippingProfile?          @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
   viewCount                   Int                       @default(0)
   deletedAt                   DateTime?
   createdAt                   DateTime                  @default(now())
@@ -328,6 +335,30 @@ model Product {
   @@index([sellerId])
   @@index([categoryId])
   @@index([status])
+  @@index([shippingProfileId])
+}
+
+model ShippingProfile {
+  id                  String     @id @default(uuid())
+  sellerId            String
+  seller              User       @relation("ShippingProfileSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  name                String
+  carrierName         String
+  trackingUrlTemplate String?
+  processingMinDays   Int        @default(1)
+  processingMaxDays   Int        @default(3)
+  transitMinDays      Int        @default(2)
+  transitMaxDays      Int        @default(5)
+  isDefault           Boolean    @default(false)
+  isActive            Boolean    @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  products            Product[]
+  subOrders           SubOrder[]
+
+  @@index([sellerId, isActive, isDefault])
+  @@index([sellerId, createdAt])
 }
 
 model WishlistItem {
@@ -690,6 +721,7 @@ model CartItem {
   product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity        Int      @default(1)
   personalization Json?
+  selectedOptions Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -732,23 +764,32 @@ model Order {
 }
 
 model SubOrder {
-  id             String                   @id @default(uuid())
-  orderId        String
-  order          Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sellerId       String
-  seller         User                     @relation(fields: [sellerId], references: [id])
-  subTotal       Decimal
-  discountAmount Decimal                  @default(0)
-  status         OrderStatus              @default(PENDING)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  items          OrderItem[]
-  ledgerEntries  MarketplaceLedgerEntry[]
-  refunds        Refund[]
-  trackingEvents ShipmentTrackingEvent[]
+  id                       String                   @id @default(uuid())
+  orderId                  String
+  order                    Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerId                 String
+  seller                   User                     @relation(fields: [sellerId], references: [id])
+  subTotal                 Decimal
+  discountAmount           Decimal                  @default(0)
+  status                   OrderStatus              @default(PENDING)
+  shippingProfileId        String?
+  shippingProfile          ShippingProfile?         @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
+  shippingProfileSnapshot  Json?
+  estimatedShipStartAt     DateTime?
+  estimatedShipEndAt       DateTime?
+  estimatedDeliveryStartAt DateTime?
+  estimatedDeliveryEndAt   DateTime?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  items                    OrderItem[]
+  ledgerEntries            MarketplaceLedgerEntry[]
+  refunds                  Refund[]
+  trackingEvents           ShipmentTrackingEvent[]
 
   @@index([orderId])
   @@index([sellerId])
+  @@index([shippingProfileId])
+  @@index([estimatedDeliveryStartAt, estimatedDeliveryEndAt])
 }
 
 model ShipmentTrackingEvent {
@@ -786,6 +827,7 @@ model OrderItem {
   flashSaleId              String?
   flashSaleDiscountPercent Decimal?
   personalization          Json?
+  selectedOptions          Json?
 
   review Review?
 

@@ -41,8 +41,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { mediaApi } from "@/lib/api/media";
 import { PersonalizationNote } from "@/components/storefront/personalization-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
 import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
 import { ShipmentTrackingTimeline } from "@/components/orders/shipment-tracking-timeline";
+import { ShippingEtaNote } from "@/components/storefront/shipping-eta-note";
 
 type ReviewableOrderItem = OrderItem & {
   review?: { rating: number } | null;
@@ -389,9 +391,13 @@ export default function OrderDetailPage() {
               </div>
               <Truck className="h-6 w-6 text-primary/60" />
             </div>
+            <ShippingEtaNote subOrder={subOrder} className="mb-5" />
             <ShipmentTrackingTimeline
               events={subOrder.trackingEvents}
               status={subOrder.status}
+              trackingUrlTemplate={
+                subOrder.shippingProfileSnapshot?.trackingUrlTemplate
+              }
               emptyMessage="Shop chưa thêm cập nhật vận chuyển cho kiện hàng này."
             />
           </div>
@@ -449,6 +455,7 @@ export default function OrderDetailPage() {
                         {item.product.description}
                       </p>
                       <PersonalizationNote personalization={item.personalization} />
+                      <ProductOptionsNote selectedOptions={item.selectedOptions} />
 
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-6">

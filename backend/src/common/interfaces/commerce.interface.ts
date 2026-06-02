@@ -10,6 +10,7 @@ export type ProductWithImages = Prisma.ProductGetPayload<{
   include: {
     images: true;
     category: true;
+    shippingProfile: true;
     seller: { select: { id: true; name: true; shopName: true; avatar: true } };
   };
 }>;
@@ -27,6 +28,7 @@ export interface EnrichedCartItem {
   productId: string;
   quantity: number;
   personalization: Prisma.JsonValue | null;
+  selectedOptions: Prisma.JsonValue | null;
   createdAt: Date;
   updatedAt: Date;
   product: ProductWithImages;

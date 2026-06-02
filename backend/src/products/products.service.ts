@@ -120,6 +120,125 @@ export class ProductsService {
     return normalizedStatus as ProductStatus;
   }
 
+  private sanitizePlainText(value: string) {
+    return value
+      .replace(/<\s*(script|style)[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+  }
+
+  private normalizeOptionList(value: unknown, fieldName: string) {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (!Array.isArray(value)) {
+      throw new BadRequestException(`${fieldName} must be an array`);
+    }
+
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+
+    for (const item of value) {
+      if (typeof item !== 'string') {
+        throw new BadRequestException(`${fieldName} must only contain text`);
+      }
+
+      const text = this.sanitizePlainText(item);
+      if (!text) {
+        continue;
+      }
+
+      if (text.length > 40) {
+        throw new BadRequestException(
+          `${fieldName} items must be at most 40 characters`,
+        );
+      }
+
+      const key = text.toLocaleLowerCase('vi-VN');
+      if (!seen.has(key)) {
+        seen.add(key);
+        normalized.push(text);
+      }
+    }
+
+    if (normalized.length > 20) {
+      throw new BadRequestException(`${fieldName} can contain at most 20 items`);
+    }
+
+    return normalized;
+  }
+
+  private normalizeProductOptionFields<T extends Record<string, unknown>>(
+    data: T,
+  ) {
+    const normalized: Record<string, unknown> = { ...data };
+
+    if ('optionColors' in data) {
+      normalized.optionColors = this.normalizeOptionList(
+        data.optionColors,
+        'optionColors',
+      );
+    }
+
+    if ('optionMaterials' in data) {
+      normalized.optionMaterials = this.normalizeOptionList(
+        data.optionMaterials,
+        'optionMaterials',
+      );
+    }
+
+    if ('optionSizes' in data) {
+      normalized.optionSizes = this.normalizeOptionList(
+        data.optionSizes,
+        'optionSizes',
+      );
+    }
+
+    if ('processingTime' in data) {
+      const processingTime =
+        typeof data.processingTime === 'string'
+          ? this.sanitizePlainText(data.processingTime)
+          : '';
+      normalized.processingTime = processingTime || null;
+    }
+
+    if ('shippingProfileId' in data) {
+      normalized.shippingProfileId =
+        typeof data.shippingProfileId === 'string' &&
+        data.shippingProfileId.trim()
+          ? data.shippingProfileId.trim()
+          : null;
+    }
+
+    return normalized as T;
+  }
+
+  private async assertShippingProfileUsable(
+    sellerId: string,
+    shippingProfileId?: string | null,
+  ) {
+    if (!shippingProfileId) {
+      return;
+    }
+
+    const profile = await this.prisma.shippingProfile.findFirst({
+      where: {
+        id: shippingProfileId,
+        sellerId,
+        isActive: true,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (!profile) {
+      throw new BadRequestException(
+        'Shipping profile is not available for this shop',
+      );
+    }
+  }
+
   private normalizePagination(query?: ListProductsQueryDto) {
     const page = Math.max(Number(query?.page) || 1, 1);
     const rawLimit = Number(query?.limit) || 20;
@@ -209,7 +328,12 @@ export class ProductsService {
     userRoles: string[],
     createProductDto: CreateProductDto,
   ) {
-    const { images, ...productData } = createProductDto;
+    const { images, ...rawProductData } = createProductDto;
+    const productData = this.normalizeProductOptionFields(rawProductData);
+    await this.assertShippingProfileUsable(
+      sellerId,
+      productData.shippingProfileId,
+    );
     const status = this.isAdmin(userRoles)
       ? (productData.status ?? ProductStatus.PENDING)
       : ProductStatus.PENDING;
@@ -227,6 +351,7 @@ export class ProductsService {
         include: {
           category: true,
           seller: { select: PRODUCT_SELLER_SELECT },
+          shippingProfile: true,
           images: true,
         },
       });
@@ -304,6 +429,7 @@ export class ProductsService {
           images: { where: { isMain: true }, take: 1 },
           category: { select: { id: true, name: true, slug: true } },
           seller: { select: { id: true, name: true, shopName: true } },
+          shippingProfile: true,
         },
         orderBy: this.normalizeSort(query),
         skip,
@@ -340,6 +466,7 @@ export class ProductsService {
       include: {
         category: true,
         seller: { select: PRODUCT_SELLER_SELECT },
+        shippingProfile: true,
         images: true,
       },
     });
@@ -373,7 +500,8 @@ export class ProductsService {
     userId: string,
     userRoles: string[],
   ) {
-    const { images, ...productData } = updateProductDto;
+    const { images, ...rawProductData } = updateProductDto;
+    const productData = this.normalizeProductOptionFields(rawProductData);
 
     const product = await this.prisma.product.findUnique({ where: { id } });
     if (!product) {
@@ -385,6 +513,11 @@ export class ProductsService {
         'Bạn chỉ có quyền chỉnh sửa sản phẩm của chính mình',
       );
     }
+
+    await this.assertShippingProfileUsable(
+      product.sellerId,
+      productData.shippingProfileId,
+    );
 
     const nextProductData = {
       ...productData,
@@ -424,6 +557,7 @@ export class ProductsService {
         include: {
           category: true,
           seller: { select: PRODUCT_SELLER_SELECT },
+          shippingProfile: true,
           images: true,
         },
       });
