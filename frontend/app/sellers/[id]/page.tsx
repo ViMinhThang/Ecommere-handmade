@@ -27,7 +27,6 @@ import {
   X,
   Camera,
   MessageCircle,
-  ChevronDown,
   Flag,
   BadgeCheck,
   Copy,
@@ -47,7 +46,9 @@ import {
 import { useChat } from "@/contexts/chat-context";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ProductCardActions } from "@/components/storefront/product-card-actions";
 import { toast } from "sonner";
+import type { Product } from "@/types";
 
 type SellerProfileFormData = {
   sellerTitle: string;
@@ -304,7 +305,7 @@ function SellerProfilePageContent() {
 
   if (sellerLoading) {
     return (
-      <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -312,7 +313,7 @@ function SellerProfilePageContent() {
 
   if (!seller) {
     return (
-      <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center text-foreground">
         <p className="text-xl font-headline italic">
           Không tìm thấy thông tin người bán.
         </p>
@@ -338,7 +339,7 @@ function SellerProfilePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdf9f3] text-[#1c1c18] font-body">
+    <div className="min-h-screen bg-background text-foreground font-body">
       <CustomerNavBar />
 
       <main className="pt-24">
@@ -360,7 +361,7 @@ function SellerProfilePageContent() {
                     setIsEditMode(false);
                   }}
                   variant="outline"
-                  className="rounded-full w-14 h-14 bg-white border-primary shadow-xl hover:scale-110 transition-transform"
+                  className="rounded-full w-14 h-14 bg-card border-primary shadow-xl hover:scale-110 transition-transform"
                 >
                   <X className="w-6 h-6 text-primary" />
                 </Button>
@@ -391,8 +392,8 @@ function SellerProfilePageContent() {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#d8cdbd]">
-                    <div className="absolute inset-6 rounded-md border border-white/50" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-accent">
+                    <div className="absolute inset-6 rounded-md border border-background/50" />
                     <Camera className="h-14 w-14 text-primary/35" aria-hidden="true" />
                   </div>
                 )}
@@ -410,7 +411,7 @@ function SellerProfilePageContent() {
                   </div>
                 )}
               </div>
-              <div className="absolute -bottom-6 -right-6 md:-right-12 bg-white p-8 rounded-lg shadow-lg max-w-xs hidden md:block">
+              <div className="absolute -bottom-6 -right-6 md:-right-12 bg-card p-8 rounded-lg shadow-lg ring-1 ring-border/40 max-w-xs hidden md:block">
                 <p className="font-headline italic text-primary text-lg">
                   &ldquo;Mỗi tác phẩm là một câu chuyện, mỗi đường nét là một
                   tâm tình.&rdquo;
@@ -441,7 +442,7 @@ function SellerProfilePageContent() {
                         })
                       }
                       placeholder="VD: Người bán Gốm sứ"
-                      className="bg-white/50 border-primary/20"
+                      className="bg-background/70 border-primary/20"
                     />
                   </div>
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
@@ -456,7 +457,7 @@ function SellerProfilePageContent() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <span className="uppercase tracking-[0.2em] text-xs font-semibold text-[#516351]">
+                  <span className="uppercase tracking-[0.2em] text-xs font-semibold text-secondary-foreground">
                     {formData.sellerTitle}
                   </span>
                   <h1 className="text-5xl md:text-7xl text-primary leading-tight font-headline italic">
@@ -488,7 +489,7 @@ function SellerProfilePageContent() {
                     updateFormData({ ...formData, sellerBio: e.target.value })
                   }
                   placeholder="Mô tả ngắn gọn về bạn và nghệ thuật của bạn..."
-                  className="bg-white/50 border-primary/20 h-32"
+                  className="bg-background/70 border-primary/20 h-32"
                 />
                 <label
                   htmlFor="craft-specialty"
@@ -506,7 +507,7 @@ function SellerProfilePageContent() {
                     })
                   }
                   placeholder="VD: Gốm men tự nhiên, crochet, nến thơm..."
-                  className="bg-white/50 border-primary/20"
+                  className="bg-background/70 border-primary/20"
                 />
                 <label
                   htmlFor="craft-experience-years"
@@ -526,7 +527,7 @@ function SellerProfilePageContent() {
                       craftExperienceYears: e.target.value,
                     })
                   }
-                  className="bg-white/50 border-primary/20"
+                  className="bg-background/70 border-primary/20"
                 />
                 <label
                   htmlFor="craft-materials"
@@ -544,11 +545,11 @@ function SellerProfilePageContent() {
                     })
                   }
                   placeholder="Cách nhau bằng dấu phẩy, VD: Đất sét, Men tro, Gỗ"
-                  className="bg-white/50 border-primary/20"
+                  className="bg-background/70 border-primary/20"
                 />
               </div>
             ) : (
-              <p className="text-[#54433c] text-lg leading-relaxed font-light">
+              <p className="text-muted-foreground text-lg leading-relaxed font-light">
                 {formData.sellerBio}
               </p>
             )}
@@ -557,7 +558,7 @@ function SellerProfilePageContent() {
             (seller.craftSpecialty ||
               seller.craftExperienceYears != null ||
               (seller.craftMaterials?.length ?? 0) > 0) ? (
-              <div className="rounded-lg border border-primary/10 bg-white/70 p-4 text-sm text-[#54433c]">
+              <div className="rounded-lg border border-primary/10 bg-card/80 p-4 text-sm text-muted-foreground">
                 {seller.craftSpecialty ? (
                   <p>
                     <span className="font-semibold text-primary">Chuyên môn:</span>{" "}
@@ -588,7 +589,7 @@ function SellerProfilePageContent() {
               <Button
                 variant="outline"
                 onClick={() => openChat(seller.id)}
-                className="bg-[#ebe8e2] text-primary px-8 py-3 rounded-md hover:bg-[#e6e2dc] transition-all font-bold text-sm tracking-wide h-auto border-none"
+                className="bg-accent text-primary px-8 py-3 rounded-md hover:bg-accent/80 transition-all font-bold text-sm tracking-wide h-auto border-none"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Liên hệ
@@ -597,7 +598,7 @@ function SellerProfilePageContent() {
                 <Button
                   variant="outline"
                   onClick={() => setIsReportDialogOpen(true)}
-                  className="bg-white/80 text-primary px-6 py-3 rounded-md hover:bg-white transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
+                  className="bg-card/80 text-primary px-6 py-3 rounded-md hover:bg-card transition-all font-bold text-sm tracking-wide h-auto border-primary/20"
                 >
                   <Flag className="w-4 h-4 mr-2" />
                   Báo cáo
@@ -608,7 +609,7 @@ function SellerProfilePageContent() {
         </section>
 
         {/* About Narrative Section */}
-        <section className="bg-[#f7f3ed] py-24">
+        <section className="bg-muted/40 py-24">
           <div className="max-w-7xl mx-auto px-8 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
             <div className="md:col-span-7 space-y-8">
               <h2 className="text-4xl text-primary font-headline italic">
@@ -633,11 +634,11 @@ function SellerProfilePageContent() {
                         sellerAbout: e.target.value,
                       })
                     }
-                    className="bg-white/50 border-primary/20 h-64 leading-relaxed text-lg"
+                    className="bg-background/70 border-primary/20 h-64 leading-relaxed text-lg"
                   />
                 </div>
               ) : (
-                <div className="space-y-6 text-[#1c1c18] text-lg leading-relaxed whitespace-pre-line">
+                <div className="space-y-6 text-foreground text-lg leading-relaxed whitespace-pre-line">
                   {formData.sellerAbout}
                 </div>
               )}
@@ -657,7 +658,7 @@ function SellerProfilePageContent() {
                             sellerStat1Value: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
+                        className="bg-background/70 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
                         id="seller-stat-1-label"
@@ -670,7 +671,7 @@ function SellerProfilePageContent() {
                             sellerStat1Label: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 text-xs w-40"
+                        className="bg-background/70 border-primary/20 text-xs w-40"
                       />
                     </>
                   ) : (
@@ -678,7 +679,7 @@ function SellerProfilePageContent() {
                       <span className="block text-3xl font-headline italic text-primary">
                         {formData.sellerStat1Value}
                       </span>
-                      <span className="text-sm text-[#516351] uppercase tracking-widest">
+                      <span className="text-sm text-secondary-foreground uppercase tracking-widest">
                         {formData.sellerStat1Label}
                       </span>
                     </>
@@ -698,7 +699,7 @@ function SellerProfilePageContent() {
                             sellerStat2Value: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 font-headline text-2xl w-24"
+                        className="bg-background/70 border-primary/20 font-headline text-2xl w-24"
                       />
                       <Input
                         id="seller-stat-2-label"
@@ -711,7 +712,7 @@ function SellerProfilePageContent() {
                             sellerStat2Label: e.target.value,
                           })
                         }
-                        className="bg-white/50 border-primary/20 text-xs w-40"
+                        className="bg-background/70 border-primary/20 text-xs w-40"
                       />
                     </>
                   ) : (
@@ -719,7 +720,7 @@ function SellerProfilePageContent() {
                       <span className="block text-3xl font-headline italic text-primary">
                         {formData.sellerStat2Value}
                       </span>
-                      <span className="text-sm text-[#516351] uppercase tracking-widest">
+                      <span className="text-sm text-secondary-foreground uppercase tracking-widest">
                         {formData.sellerStat2Label}
                       </span>
                     </>
@@ -729,7 +730,7 @@ function SellerProfilePageContent() {
             </div>
 
             <div className="md:col-span-5 relative group">
-              <div className="aspect-square bg-[#e6e2dc] rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
+              <div className="aspect-square bg-accent rounded-full absolute -top-10 -left-10 w-32 h-32 -z-10 opacity-50"></div>
               <div className="rounded-lg shadow-xl overflow-hidden relative aspect-square bg-accent">
                 {formData.sellerAboutImage ? (
                   <SafeImage
@@ -740,7 +741,7 @@ function SellerProfilePageContent() {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#ece4d8]">
+                  <div className="absolute inset-0 flex items-center justify-center bg-accent">
                     <div className="absolute inset-8 rounded-full border border-primary/15" />
                     <Camera className="h-10 w-10 text-primary/30" aria-hidden="true" />
                   </div>
@@ -852,7 +853,7 @@ function SellerProfilePageContent() {
                   <h2 className="text-4xl text-primary font-headline italic mb-4">
                     Bộ sưu tập
                   </h2>
-                  <p className="text-[#54433c] text-sm leading-relaxed mb-8">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-8">
                     Khám phá các sản phẩm được chế tác thủ công bởi{" "}
                     {seller.name}.
                   </p>
@@ -869,7 +870,7 @@ function SellerProfilePageContent() {
                   <select
                     id="seller-collection-sort"
                     name="seller-collection-sort"
-                    className="w-full bg-white border border-primary/20 rounded-md p-3 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                    className="w-full bg-card border border-primary/20 rounded-md p-3 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
                     value={`${sortBy}-${order}`}
                     onChange={(e) => {
                       const [newSort, newOrder] = e.target.value.split("-");
@@ -937,7 +938,7 @@ function SellerProfilePageContent() {
                               }
                             }}
                           />
-                          <span className="ml-3 text-sm text-[#1c1c18] group-hover:text-primary transition-colors">
+                          <span className="ml-3 text-sm text-foreground group-hover:text-primary transition-colors">
                             {range.label}
                           </span>
                         </label>
@@ -968,7 +969,7 @@ function SellerProfilePageContent() {
                           })
                         }
                       />
-                      <span className="ml-3 text-sm text-[#1c1c18]">
+                      <span className="ml-3 text-sm text-foreground">
                         Sẵn sàng giao ngay
                       </span>
                     </label>
@@ -1006,65 +1007,16 @@ function SellerProfilePageContent() {
                   </p>
                   <button
                     onClick={clearFilters}
-                    className="mt-4 text-[#516351] font-bold text-sm tracking-widest uppercase hover:underline"
+                    className="mt-4 text-secondary-foreground font-bold text-sm tracking-widest uppercase hover:underline"
                   >
                     Xóa bộ lọc và thử lại
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-20 gap-x-12">
-                  {products.map((product, index) => (
-                    <div
-                      key={product.id}
-                      className={`group ${index % 3 === 1 ? "md:mt-12" : ""}`}
-                    >
-                      <Link href={`/products/${product.id}`}>
-                        <div className="relative overflow-hidden aspect-4/5 bg-accent mb-6 rounded-lg shadow-sm border border-primary/5">
-                          {product.images?.[0] ? (
-                            <SafeImage
-                              src={mediaApi.getImageUrl(product.images[0].url)}
-                              alt={product.name}
-                              fill
-                              className="object-cover transition-transform duration-700 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">
-                              Chưa có ảnh
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button className="px-8 py-3 bg-[#fdf9f3] text-primary font-bold text-xs tracking-widest uppercase shadow-xl translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                              Chi tiết
-                            </button>
-                          </div>
-                        </div>
-                      </Link>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <Link href={`/products/${product.id}`}>
-                            <h3 className="font-headline text-2xl text-primary mb-1 group-hover:text-primary/70 transition-colors italic leading-none">
-                              {product.name}
-                            </h3>
-                          </Link>
-                          <p className="text-[#516351] text-xs font-semibold uppercase tracking-widest">
-                            {product.category?.name}
-                          </p>
-                        </div>
-                        <span className="shrink-0 whitespace-nowrap text-xl font-bold leading-none text-primary">
-                          {formatCurrency(Number(product.price))}
-                        </span>
-                      </div>
-                    </div>
+                <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 xl:grid-cols-3">
+                  {products.map((product) => (
+                    <SellerProductCard key={product.id} product={product} />
                   ))}
-                </div>
-              )}
-
-              {products.length > 0 && (
-                <div className="mt-24 flex justify-center">
-                  <button className="px-12 py-4 bg-primary text-white rounded-md font-bold text-xs tracking-[0.2em] flex items-center group hover:bg-primary/90 transition-colors shadow-lg shadow-primary/10">
-                    XEM THÊM TÁC PHẨM
-                    <ChevronDown className="ml-3 w-4 h-4 transition-transform group-hover:translate-y-1" />
-                  </button>
                 </div>
               )}
             </div>
@@ -1082,7 +1034,7 @@ function SellerProfilePageContent() {
                   Khách hàng nói gì về {seller.shopName || seller.name}
                 </h2>
               </div>
-              <div className="rounded-md bg-white px-6 py-4 shadow-sm ring-1 ring-primary/10">
+              <div className="rounded-md bg-card px-6 py-4 shadow-sm ring-1 ring-primary/10">
                 {shopReviewSummaryLoading ? (
                   <div className="h-8 w-28 animate-pulse rounded bg-primary/10" />
                 ) : (
@@ -1109,25 +1061,25 @@ function SellerProfilePageContent() {
                   [1, 2, 3].map((item) => (
                     <div
                       key={item}
-                      className="rounded-md bg-white p-5 shadow-sm ring-1 ring-primary/10"
+                      className="rounded-md bg-card p-5 shadow-sm ring-1 ring-primary/10"
                     >
                       <div className="mb-3 h-4 w-32 animate-pulse rounded bg-primary/10" />
                       <div className="h-4 w-full animate-pulse rounded bg-primary/10" />
                     </div>
                   ))
                 ) : shopReviewsError ? (
-                  <div className="rounded-md bg-white p-6 text-sm text-destructive shadow-sm ring-1 ring-primary/10">
+                  <div className="rounded-md bg-card p-6 text-sm text-destructive shadow-sm ring-1 ring-primary/10">
                     Không thể tải đánh giá gian hàng. Vui lòng thử lại sau.
                   </div>
                 ) : shopReviews.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-primary/20 bg-white/70 p-8 text-center text-sm text-muted-foreground">
+                  <div className="rounded-md border border-dashed border-primary/20 bg-card/70 p-8 text-center text-sm text-muted-foreground">
                     Gian hàng chưa có đánh giá nào.
                   </div>
                 ) : (
                   shopReviews.map((review) => (
                     <article
                       key={review.id}
-                      className="rounded-md bg-white p-5 shadow-sm ring-1 ring-primary/10"
+                      className="rounded-md bg-card p-5 shadow-sm ring-1 ring-primary/10"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
@@ -1155,7 +1107,7 @@ function SellerProfilePageContent() {
                         </div>
                       </div>
                       {review.comment ? (
-                        <p className="mt-4 text-sm leading-6 text-[#54433c]">
+                        <p className="mt-4 text-sm leading-6 text-muted-foreground">
                           {review.comment}
                         </p>
                       ) : null}
@@ -1164,7 +1116,7 @@ function SellerProfilePageContent() {
                 )}
               </div>
 
-              <div className="rounded-md bg-white p-6 shadow-sm ring-1 ring-primary/10">
+              <div className="rounded-md bg-card p-6 shadow-sm ring-1 ring-primary/10">
                 {!user ? (
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
@@ -1207,7 +1159,7 @@ function SellerProfilePageContent() {
                         ))}
                       </div>
                       {myShopReview?.comment ? (
-                        <p className="mt-4 text-sm leading-6 text-[#54433c]">
+                        <p className="mt-4 text-sm leading-6 text-muted-foreground">
                           {myShopReview.comment}
                         </p>
                       ) : (
@@ -1362,8 +1314,8 @@ function SellerProfilePageContent() {
       {/* Image Selector Dialog */}
       {isImageSelectorOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center bg-[#fdf9f3]">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center bg-background">
               <h2 className="text-2xl font-headline italic text-primary">
                 Chọn hình ảnh cho hồ sơ
               </h2>
@@ -1389,11 +1341,88 @@ function SellerProfilePageContent() {
   );
 }
 
+function SellerProductCard({ product }: { product: Product }) {
+  const mainImage =
+    product.images?.find((image) => image.isMain) || product.images?.[0];
+  const imageUrl = mainImage?.url ? mediaApi.getImageUrl(mainImage.url) : null;
+  const hasDiscount =
+    product.pricing?.discountedPrice &&
+    product.pricing.discountedPrice < product.pricing.originalPrice;
+  const price = hasDiscount
+    ? product.pricing?.discountedPrice
+    : Number(product.price);
+
+  return (
+    <article className="group">
+      <div className="relative mb-6 aspect-[3/4] overflow-hidden rounded-xl border border-border/20 bg-accent shadow-sm">
+        {imageUrl ? (
+          <SafeImage
+            src={imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center italic text-muted-foreground">
+            Chưa có ảnh
+          </div>
+        )}
+        <div className="absolute left-4 top-4 flex flex-col gap-2">
+          <span className="w-fit rounded-full border border-border/40 bg-background/80 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-foreground backdrop-blur-md">
+            {product.category?.name || "Thủ công"}
+          </span>
+          {hasDiscount ? (
+            <span className="w-fit rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
+              -{product.pricing?.discountPercent}% OFF
+            </span>
+          ) : null}
+        </div>
+        {product.stock <= 0 ? (
+          <span className="absolute right-4 top-4 z-20 rounded-full border border-border/40 bg-background/80 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground backdrop-blur-md">
+            Hết hàng
+          </span>
+        ) : null}
+        <div className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/10" />
+        <ProductCardActions productId={product.id} stock={product.stock} />
+      </div>
+
+      <div className="space-y-2">
+        <Link href={`/products/${product.id}`}>
+          <h3 className="line-clamp-2 text-xl font-headline italic text-foreground transition-colors group-hover:text-primary">
+            {product.name}
+          </h3>
+        </Link>
+        <p className="line-clamp-1 text-sm font-body text-muted-foreground">
+          Bởi {product.seller?.shopName || product.seller?.name || "Người bán uy tín"}
+        </p>
+        <div className="flex items-center justify-between gap-4 pt-2">
+          <div className="flex shrink-0 flex-col">
+            <p className="whitespace-nowrap text-lg font-bold text-primary">
+              {formatCurrency(Number(price))}
+            </p>
+            {hasDiscount ? (
+              <p className="whitespace-nowrap text-xs text-muted-foreground line-through">
+                {formatCurrency(Number(product.pricing?.originalPrice))}
+              </p>
+            ) : null}
+          </div>
+          <Link
+            href={`/products/${product.id}`}
+            className="border-b border-transparent pb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+          >
+            Xem chi tiết
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function SellerProfilePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#fdf9f3] flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       }
