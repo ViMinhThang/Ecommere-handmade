@@ -20,6 +20,9 @@ const profileSchema = z.object({
   sellerTitle: z.string().optional(),
   sellerBio: z.string().optional(),
   sellerAbout: z.string().optional(),
+  shopProcessingTime: z.string().max(160, "Thời gian xử lý tối đa 160 ký tự").optional(),
+  shopShippingPolicy: z.string().max(2000, "Chính sách vận chuyển tối đa 2000 ký tự").optional(),
+  shopReturnPolicy: z.string().max(2000, "Chính sách đổi trả tối đa 2000 ký tự").optional(),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -42,6 +45,9 @@ export default function ProfilePage() {
       sellerTitle: "",
       sellerBio: "",
       sellerAbout: "",
+      shopProcessingTime: "",
+      shopShippingPolicy: "",
+      shopReturnPolicy: "",
     },
   })
 
@@ -54,6 +60,9 @@ export default function ProfilePage() {
         sellerTitle: user.sellerTitle || "",
         sellerBio: user.sellerBio || "",
         sellerAbout: user.sellerAbout || "",
+        shopProcessingTime: user.shopProcessingTime || "",
+        shopShippingPolicy: user.shopShippingPolicy || "",
+        shopReturnPolicy: user.shopReturnPolicy || "",
       })
     }
   }, [user, form])
@@ -255,6 +264,60 @@ export default function ProfilePage() {
                   className="w-full bg-background/80 border border-border/70 rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-primary focus:border-primary transition-all duration-300 outline-none resize-none"
                   placeholder="Chia sẻ câu chuyện và đam mê sáng tạo của quý khách với cộng đồng..."
                 />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {user?.roles?.includes("ROLE_SELLER") && (
+          <section className="bg-card text-card-foreground rounded-xl p-8 shadow-[0_20px_40px_-20px_rgba(84,67,60,0.16)] border border-border/60">
+            <div className="mb-8">
+              <h2 className="text-lg font-serif italic text-primary">Chính sách gian hàng</h2>
+              <p className="mt-2 text-sm text-foreground/70">
+                Nội dung này hiển thị công khai trên trang shop và trang chi tiết sản phẩm.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-8">
+              <div className="space-y-2">
+                <Label htmlFor="shopProcessingTime" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Thời gian xử lý đơn</Label>
+                <input
+                  id="shopProcessingTime"
+                  {...form.register("shopProcessingTime")}
+                  maxLength={160}
+                  className="input-minimal"
+                  placeholder="Ví dụ: 2-4 ngày làm việc, sản phẩm đặt riêng 5-7 ngày"
+                />
+                {form.formState.errors.shopProcessingTime && (
+                  <p className="text-xs text-destructive mt-1">{form.formState.errors.shopProcessingTime.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shopShippingPolicy" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Chính sách vận chuyển</Label>
+                <textarea
+                  id="shopShippingPolicy"
+                  {...form.register("shopShippingPolicy")}
+                  maxLength={2000}
+                  rows={4}
+                  className="w-full bg-background/80 border border-border/70 rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-primary focus:border-primary transition-all duration-300 outline-none resize-none"
+                  placeholder="Ví dụ: Shop đóng gói chống sốc, gửi mã vận đơn sau khi bàn giao cho đơn vị vận chuyển."
+                />
+                {form.formState.errors.shopShippingPolicy && (
+                  <p className="text-xs text-destructive mt-1">{form.formState.errors.shopShippingPolicy.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shopReturnPolicy" className="text-[10px] uppercase font-bold tracking-widest text-foreground/70">Chính sách đổi trả</Label>
+                <textarea
+                  id="shopReturnPolicy"
+                  {...form.register("shopReturnPolicy")}
+                  maxLength={2000}
+                  rows={4}
+                  className="w-full bg-background/80 border border-border/70 rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-primary focus:border-primary transition-all duration-300 outline-none resize-none"
+                  placeholder="Ví dụ: Hỗ trợ đổi/trả trong 7 ngày nếu sản phẩm lỗi do vận chuyển hoặc sai mô tả."
+                />
+                {form.formState.errors.shopReturnPolicy && (
+                  <p className="text-xs text-destructive mt-1">{form.formState.errors.shopReturnPolicy.message}</p>
+                )}
               </div>
             </div>
           </section>

@@ -21,6 +21,7 @@ import { ProductReviews } from "@/features/product/components/product-reviews";
 import { ProductQuestionsSection } from "@/features/product/components/product-questions";
 import { RelatedProducts } from "@/features/product/components/related-products";
 import { ShippingEtaNote } from "@/components/storefront/shipping-eta-note";
+import { ShopPoliciesNote } from "@/components/storefront/shop-policies-note";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -297,6 +298,7 @@ function ProductDetailContent({
 
             <div className="space-y-4 pt-4">
               <ShippingEtaNote profile={product.shippingProfile} />
+              <ShopPoliciesNote seller={product.seller} compact />
 
               <div className="flex items-center gap-4 p-5 rounded-xl bg-card border border-border/20 shadow-[0_4px_20px_rgba(84,67,60,0.04)]">
                 <Leaf className="text-primary w-6 h-6 stroke-[1.5]" />

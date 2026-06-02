@@ -54,6 +54,10 @@ export interface User {
   craftSpecialty?: string | null;
   craftExperienceYears?: number | null;
   craftMaterials?: string[];
+  shopReturnPolicy?: string | null;
+  shopShippingPolicy?: string | null;
+  shopProcessingTime?: string | null;
+  shopPolicyUpdatedAt?: string | Date | null;
   verificationNote?: string | null;
   followerCount?: number;
   shopAverageRating?: number | null;
@@ -101,6 +105,7 @@ export interface SellerSearchResult {
   craftSpecialty?: string | null;
   craftExperienceYears?: number | null;
   craftMaterials?: string[];
+  shopProcessingTime?: string | null;
   productCount: number;
   averageRating: number | null;
   totalReviews: number;
@@ -364,9 +369,34 @@ export interface Order {
   giftWrap?: boolean;
   giftCard?: boolean;
   giftMessage?: string | null;
+  giftWrapTierId?: string | null;
+  giftWrapTierSnapshot?: GiftWrapTierSnapshot | null;
+  giftWrapFee?: number | string;
   createdAt: Date;
   subOrders?: SubOrder[];
   financialSummary?: FinancialSummary;
+}
+
+export interface GiftWrapTier {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number | string;
+  includesCard: boolean;
+  sortOrder: number;
+  isActive: boolean;
+  deletedAt?: Date | string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface GiftWrapTierSnapshot {
+  version: 1;
+  tierId: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  includesCard: boolean;
 }
 
 export type ReportType = "SHOP" | "CUSTOMER" | "PRODUCT" | "ORDER";
@@ -608,6 +638,13 @@ export interface FlashSaleCategory {
   category?: Category;
 }
 
+export interface FlashSaleProduct {
+  id: string;
+  flashSaleId: string;
+  productId: string;
+  product?: Product;
+}
+
 export interface FlashSale {
   id: string;
   name: string;
@@ -625,6 +662,7 @@ export interface FlashSale {
   soldUnits?: number;
   reservedUnits?: number;
   categories: FlashSaleCategory[];
+  products?: FlashSaleProduct[];
   ranges: FlashSaleRange[];
   createdAt: Date;
   updatedAt: Date;

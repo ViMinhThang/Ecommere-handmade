@@ -196,6 +196,10 @@ model User {
   craftSpecialty         String?
   craftExperienceYears   Int?
   craftMaterials         String[]                    @default([])
+  shopReturnPolicy       String?                     @db.Text
+  shopShippingPolicy     String?                     @db.Text
+  shopProcessingTime     String?
+  shopPolicyUpdatedAt    DateTime?
   verificationNote       String?
   otpCode                String?
   otpExpires             DateTime?
@@ -750,6 +754,10 @@ model Order {
   giftWrap               Boolean                  @default(false)
   giftCard               Boolean                  @default(false)
   giftMessage            String?                  @db.Text
+  giftWrapTierId         String?
+  giftWrapTier           GiftWrapTier?            @relation(fields: [giftWrapTierId], references: [id], onDelete: SetNull)
+  giftWrapTierSnapshot   Json?
+  giftWrapFee            Decimal                  @default(0)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   subOrders              SubOrder[]
@@ -761,6 +769,24 @@ model Order {
 
   @@unique([customerId, checkoutIdempotencyKey])
   @@index([customerId])
+  @@index([giftWrapTierId])
+}
+
+model GiftWrapTier {
+  id           String    @id @default(uuid())
+  name         String
+  description  String?   @db.Text
+  price        Decimal   @default(0)
+  includesCard Boolean   @default(false)
+  sortOrder    Int       @default(0)
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt])
 }
 
 model SubOrder {

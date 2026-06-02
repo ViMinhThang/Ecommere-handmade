@@ -98,7 +98,11 @@ export default function OrderConfirmationPage() {
     0,
   );
   const discountAmount = Number(order.discountAmount || 0);
-  const shipping = Math.max(Number(order.totalAmount) - (itemSubtotal - discountAmount), 0);
+  const giftFee = Number(order.giftWrapFee || 0);
+  const shipping = Math.max(
+    Number(order.totalAmount) - (itemSubtotal - discountAmount) - giftFee,
+    0,
+  );
   const total = Number(order.totalAmount);
   const subtotal = itemSubtotal - discountAmount;
   const tax = 0;
@@ -196,6 +200,12 @@ export default function OrderConfirmationPage() {
                   <span className="text-stone-500 font-medium tracking-tight">Phí vận chuyển</span>
                   <span className="font-bold text-stone-700">{shipping.toLocaleString('vi-VN')} ₫</span>
                 </div>
+                {giftFee > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-stone-500 font-medium tracking-tight">Phí gói quà</span>
+                    <span className="font-bold text-stone-700">{giftFee.toLocaleString('vi-VN')} ₫</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-stone-500 font-medium tracking-tight">Thuế VAT (8%)</span>
                   <span className="font-bold text-stone-700">{tax.toLocaleString('vi-VN')} ₫</span>
@@ -230,6 +240,8 @@ export default function OrderConfirmationPage() {
               giftWrap={order.giftWrap}
               giftCard={order.giftCard}
               giftMessage={order.giftMessage}
+              giftWrapTierSnapshot={order.giftWrapTierSnapshot}
+              giftWrapFee={order.giftWrapFee}
               className="summary-card border-stone-200/50 bg-[#F2F0EB]"
             />
           </div>

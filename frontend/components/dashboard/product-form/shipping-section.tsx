@@ -52,7 +52,10 @@ export const ShippingSection = memo(function ShippingSection({
         <Select
           value={shippingProfileId || "default"}
           onValueChange={(value) =>
-            onChange("shippingProfileId", value === "default" ? "" : value)
+            onChange(
+              "shippingProfileId",
+              !value || value === "default" ? "" : value,
+            )
           }
           disabled={isLoading}
         >

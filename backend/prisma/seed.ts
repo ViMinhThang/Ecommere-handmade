@@ -73,6 +73,9 @@ type DemoUserInput = {
   craftSpecialty?: string;
   craftExperienceYears?: number;
   craftMaterials?: string[];
+  shopReturnPolicy?: string;
+  shopShippingPolicy?: string;
+  shopProcessingTime?: string;
   verificationNote?: string;
   avatar?: string;
 };
@@ -159,6 +162,13 @@ async function upsertDemoUser(input: DemoUserInput) {
       craftSpecialty: input.craftSpecialty,
       craftExperienceYears: input.craftExperienceYears,
       craftMaterials: input.craftMaterials ?? [],
+      shopReturnPolicy: input.shopReturnPolicy,
+      shopShippingPolicy: input.shopShippingPolicy,
+      shopProcessingTime: input.shopProcessingTime,
+      shopPolicyUpdatedAt:
+        input.shopReturnPolicy || input.shopShippingPolicy || input.shopProcessingTime
+          ? new Date('2026-05-30T09:00:00.000Z')
+          : undefined,
       verificationNote: input.verificationNote,
       avatar: input.avatar,
       status: UserStatus.ACTIVE,
@@ -185,6 +195,13 @@ async function upsertDemoUser(input: DemoUserInput) {
       craftSpecialty: input.craftSpecialty,
       craftExperienceYears: input.craftExperienceYears,
       craftMaterials: input.craftMaterials ?? [],
+      shopReturnPolicy: input.shopReturnPolicy,
+      shopShippingPolicy: input.shopShippingPolicy,
+      shopProcessingTime: input.shopProcessingTime,
+      shopPolicyUpdatedAt:
+        input.shopReturnPolicy || input.shopShippingPolicy || input.shopProcessingTime
+          ? new Date('2026-05-30T09:00:00.000Z')
+          : undefined,
       verificationNote: input.verificationNote,
       avatar: input.avatar,
       status: UserStatus.ACTIVE,
@@ -337,6 +354,43 @@ async function ensureShippingProfile(input: {
     : prisma.shippingProfile.create({
         data: {
           sellerId: input.sellerId,
+          name: input.name,
+          ...data,
+        },
+      });
+}
+
+async function ensureGiftWrapTier(input: {
+  name: string;
+  description?: string | null;
+  price: number;
+  includesCard?: boolean;
+  sortOrder?: number;
+  isActive?: boolean;
+}) {
+  const existing = await prisma.giftWrapTier.findFirst({
+    where: {
+      name: input.name,
+      deletedAt: null,
+    },
+  });
+
+  const data = {
+    description: input.description ?? null,
+    price: String(input.price),
+    includesCard: input.includesCard ?? false,
+    sortOrder: input.sortOrder ?? 0,
+    isActive: input.isActive ?? true,
+    deletedAt: null,
+  };
+
+  return existing
+    ? prisma.giftWrapTier.update({
+        where: { id: existing.id },
+        data,
+      })
+    : prisma.giftWrapTier.create({
+        data: {
           name: input.name,
           ...data,
         },
@@ -615,6 +669,9 @@ async function ensureDemoOrder(input: {
   orderStatus: OrderStatus;
   subOrderStatus: OrderStatus;
   paymentStatus?: PaymentStatus;
+  giftWrapTierName?: string;
+  giftCard?: boolean;
+  giftMessage?: string | null;
   createdAt?: Date;
 }) {
   const include = {
@@ -627,6 +684,22 @@ async function ensureDemoOrder(input: {
 
   const subtotal = Number(input.unitPrice) * input.quantity;
   const shippingFee = 25000;
+  const giftTier = input.giftWrapTierName
+    ? await prisma.giftWrapTier.findFirst({
+        where: { name: input.giftWrapTierName, deletedAt: null },
+      })
+    : null;
+  const giftWrapFee = giftTier ? Number(giftTier.price) : 0;
+  const giftWrapTierSnapshot = giftTier
+    ? {
+        version: 1,
+        tierId: giftTier.id,
+        name: giftTier.name,
+        description: giftTier.description,
+        price: giftWrapFee,
+        includesCard: giftTier.includesCard,
+      }
+    : null;
   const shippingEstimate = await buildSeedShippingEstimate({
     sellerId: input.sellerId,
     productId: input.productId,
@@ -652,7 +725,7 @@ async function ensureDemoOrder(input: {
     await prisma.order.update({
       where: { id: existing.id },
       data: {
-        totalAmount: String(subtotal + shippingFee),
+        totalAmount: String(subtotal + shippingFee + giftWrapFee),
         status: input.orderStatus,
         paymentMethod: PaymentMethod.COD,
         paymentStatus,
@@ -663,6 +736,16 @@ async function ensureDemoOrder(input: {
           phone: '0900000001',
           address: '12 Đường Thủ Công, Quận 1, Hồ Chí Minh',
         },
+        giftWrap: Boolean(giftTier),
+        giftCard: Boolean(
+          input.giftCard || input.giftMessage || giftTier?.includesCard,
+        ),
+        giftMessage: input.giftMessage ?? null,
+        giftWrapTierId: giftTier?.id ?? null,
+        giftWrapTierSnapshot: giftWrapTierSnapshot
+          ? (giftWrapTierSnapshot as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
+        giftWrapFee: String(giftWrapFee),
       },
     });
 
@@ -747,7 +830,7 @@ async function ensureDemoOrder(input: {
   return prisma.order.create({
     data: {
       customerId: input.customerId,
-      totalAmount: String(subtotal + shippingFee),
+      totalAmount: String(subtotal + shippingFee + giftWrapFee),
       status: input.orderStatus,
       paymentMethod: PaymentMethod.COD,
       paymentStatus,
@@ -759,6 +842,16 @@ async function ensureDemoOrder(input: {
         phone: '0900000001',
         address: '12 Đường Thủ Công, Quận 1, Hồ Chí Minh',
       },
+      giftWrap: Boolean(giftTier),
+      giftCard: Boolean(
+        input.giftCard || input.giftMessage || giftTier?.includesCard,
+      ),
+      giftMessage: input.giftMessage ?? null,
+      giftWrapTierId: giftTier?.id ?? null,
+      giftWrapTierSnapshot: giftWrapTierSnapshot
+        ? (giftWrapTierSnapshot as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
+      giftWrapFee: String(giftWrapFee),
       subOrders: {
         create: [
           {
@@ -1612,6 +1705,32 @@ async function main() {
     },
   });
 
+  await Promise.all([
+    ensureGiftWrapTier({
+      name: 'Gói giấy kraft thủ công',
+      description:
+        'Giấy kraft, dây cói và tem cảm ơn nhỏ. Phù hợp quà handmade nhẹ nhàng.',
+      price: 15000,
+      sortOrder: 10,
+    }),
+    ensureGiftWrapTier({
+      name: 'Hộp quà cao cấp',
+      description:
+        'Hộp cứng, ruy băng và lớp lót bảo vệ sản phẩm. Phù hợp gốm, nến và quà tặng trang trọng.',
+      price: 35000,
+      includesCard: true,
+      sortOrder: 20,
+    }),
+    ensureGiftWrapTier({
+      name: 'Gói quà lễ tặng kèm thiệp',
+      description:
+        'Gói quà theo tông mùa lễ, thiệp viết tay và tag tên người nhận.',
+      price: 50000,
+      includesCard: true,
+      sortOrder: 30,
+    }),
+  ]);
+
   const categories = [
     {
       name: 'Gốm sứ thủ công',
@@ -1780,6 +1899,11 @@ async function main() {
     craftSpecialty: 'Gốm sứ gia dụng làm tay',
     craftExperienceYears: 5,
     craftMaterials: ['Đất sét', 'Men nâu', 'Men tro'],
+    shopProcessingTime: '2-4 ngày làm việc; sản phẩm khắc tên cần thêm 1-2 ngày.',
+    shopShippingPolicy:
+      'Gốm được bọc chống sốc nhiều lớp, gửi GHN/GHTK và cập nhật mã vận đơn sau khi bàn giao.',
+    shopReturnPolicy:
+      'Hỗ trợ đổi/trả trong 7 ngày nếu sản phẩm vỡ do vận chuyển hoặc sai mô tả. Sản phẩm cá nhân hóa chỉ nhận đổi khi có lỗi từ shop.',
     verificationNote:
       'Đã xác minh hồ sơ nghệ nhân và quy trình làm gốm thủ công cho demo local.',
     avatar: demoImages.ceramic,
@@ -1805,6 +1929,11 @@ async function main() {
     craftSpecialty: 'Quà tặng cá nhân hóa và nến thơm',
     craftExperienceYears: 4,
     craftMaterials: ['Sáp đậu nành', 'Vải linen', 'Giấy kraft'],
+    shopProcessingTime: '1-3 ngày làm việc; hộp quà cá nhân hóa xử lý trong 3-5 ngày.',
+    shopShippingPolicy:
+      'Nến và quà tặng được gói chống nóng, chống va đập. Shop gửi mã vận đơn trong ngày bàn giao.',
+    shopReturnPolicy:
+      'Đổi/trả trong 7 ngày với sản phẩm lỗi hoặc thiếu phụ kiện. Không đổi trả nến đã đốt hoặc quà đã cá nhân hóa đúng yêu cầu.',
     verificationNote:
       'Đã xác minh xưởng quà tặng thủ công, phù hợp demo nghệ nhân đã xác minh.',
     avatar: demoImages.candle,
@@ -1830,6 +1959,11 @@ async function main() {
     craftSpecialty: 'Đồ gỗ decor và phụ kiện da',
     craftExperienceYears: 6,
     craftMaterials: ['Gỗ cao su', 'Da bò', 'Dầu lau gỗ'],
+    shopProcessingTime: '3-6 ngày làm việc tùy kích thước sản phẩm.',
+    shopShippingPolicy:
+      'Sản phẩm gỗ/da được bọc giấy kraft, chèn góc bảo vệ và gửi bằng đơn vị vận chuyển tiêu chuẩn.',
+    shopReturnPolicy:
+      'Hỗ trợ đổi/trả nếu sản phẩm lỗi hoàn thiện, sai kích thước đã xác nhận hoặc hư hỏng khi nhận hàng.',
     avatar: demoImages.wood,
   });
 
@@ -1853,6 +1987,11 @@ async function main() {
     craftSpecialty: 'Crochet và quà tặng len',
     craftExperienceYears: 3,
     craftMaterials: ['Len cotton', 'Sợi acrylic', 'Phụ kiện móc khóa'],
+    shopProcessingTime: '2-5 ngày làm việc; thú len đặt riêng 5-8 ngày.',
+    shopShippingPolicy:
+      'Đồ len được gói trong túi chống ẩm, kèm hướng dẫn bảo quản và mã vận đơn sau khi gửi.',
+    shopReturnPolicy:
+      'Nhận đổi/trả khi sản phẩm bung chỉ, sai màu đã chọn hoặc lỗi do shop. Sản phẩm đặt riêng cần được kiểm tra từng trường hợp.',
     avatar: demoImages.crochet,
   });
 
@@ -1876,6 +2015,11 @@ async function main() {
     craftSpecialty: 'Gốm men tự nhiên',
     craftExperienceYears: 7,
     craftMaterials: ['Đất sét trắng', 'Men tự nhiên', 'Tro thực vật'],
+    shopProcessingTime: '2-4 ngày làm việc; mẻ gốm làm theo yêu cầu 7-14 ngày.',
+    shopShippingPolicy:
+      'Shop dùng hộp cứng, xốp chống sốc và dán nhãn hàng dễ vỡ cho mọi đơn gốm.',
+    shopReturnPolicy:
+      'Đổi/trả trong 7 ngày nếu hàng nứt vỡ khi nhận hoặc sai mẫu. Vân men thủ công có thể khác nhẹ giữa từng sản phẩm.',
     avatar: demoImages.ceramic,
   });
 
@@ -1899,6 +2043,11 @@ async function main() {
     craftSpecialty: 'Nến thơm thực vật và xà phòng thủ công',
     craftExperienceYears: 4,
     craftMaterials: ['Sáp đậu nành', 'Tinh dầu', 'Dầu dừa'],
+    shopProcessingTime: '1-3 ngày làm việc; set quà số lượng lớn cần 4-6 ngày.',
+    shopShippingPolicy:
+      'Sản phẩm được bọc kín, hạn chế nắng nóng trong quá trình vận chuyển và có ghi chú bảo quản trong hộp.',
+    shopReturnPolicy:
+      'Hỗ trợ đổi/trả sản phẩm lỗi, chảy nứt bất thường hoặc sai mùi đã đặt. Không đổi trả sản phẩm đã sử dụng.',
     avatar: demoImages.soap,
   });
 
@@ -3305,6 +3454,8 @@ async function main() {
     unitPrice: '290000',
     orderStatus: OrderStatus.DELIVERED,
     subOrderStatus: OrderStatus.DELIVERED,
+    giftWrapTierName: 'Hộp quà cao cấp',
+    giftMessage: 'Chúc bạn có một ngày thật ấm áp.',
   });
 
   const deliveredLeatherOrder = await ensureDemoOrder({

@@ -45,6 +45,11 @@ import {
   type CreateShippingProfileDto,
   type UpdateShippingProfileDto,
 } from "./shipping-profiles";
+import {
+  giftWrapTiersApi,
+  type CreateGiftWrapTierDto,
+  type UpdateGiftWrapTierDto,
+} from "./gift-wrap-tiers";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
 import {
@@ -136,6 +141,64 @@ export const shippingProfileKeys = {
   all: ["shipping-profiles"] as const,
   mine: () => [...shippingProfileKeys.all, "mine"] as const,
 };
+
+export const giftWrapTierKeys = {
+  all: ["gift-wrap-tiers"] as const,
+  public: () => [...giftWrapTierKeys.all, "public"] as const,
+  admin: () => [...giftWrapTierKeys.all, "admin"] as const,
+};
+
+export function useGiftWrapTiers() {
+  return useQuery({
+    queryKey: giftWrapTierKeys.public(),
+    queryFn: () => giftWrapTiersApi.getPublic(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAdminGiftWrapTiers(enabled = true) {
+  return useQuery({
+    queryKey: giftWrapTierKeys.admin(),
+    queryFn: () => giftWrapTiersApi.getAdminAll(),
+    enabled,
+  });
+}
+
+export function useCreateGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateGiftWrapTierDto) => giftWrapTiersApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
+
+export function useUpdateGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateGiftWrapTierDto;
+    }) => giftWrapTiersApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
+
+export function useDeleteGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => giftWrapTiersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
 
 export function useUsers(params?: {
   role?: UserRole;

@@ -45,6 +45,10 @@ export class UsersService {
     craftSpecialty: true,
     craftExperienceYears: true,
     craftMaterials: true,
+    shopReturnPolicy: true,
+    shopShippingPolicy: true,
+    shopProcessingTime: true,
+    shopPolicyUpdatedAt: true,
     verificationNote: true,
     isEmailVerified: true,
     rewardPointsBalance: true,
@@ -71,6 +75,10 @@ export class UsersService {
     craftSpecialty: true,
     craftExperienceYears: true,
     craftMaterials: true,
+    shopReturnPolicy: true,
+    shopShippingPolicy: true,
+    shopProcessingTime: true,
+    shopPolicyUpdatedAt: true,
     createdAt: true,
     updatedAt: true,
   } as const;
@@ -90,6 +98,28 @@ export class UsersService {
     }
 
     return Math.min(Math.max(Math.floor(limit), 1), 24);
+  }
+
+  private normalizeNullableText(value: string | undefined) {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private hasShopPolicyPatch(
+    dto: Pick<
+      UpdateProfileDto | CreateUserDto,
+      'shopReturnPolicy' | 'shopShippingPolicy' | 'shopProcessingTime'
+    >,
+  ) {
+    return (
+      Object.prototype.hasOwnProperty.call(dto, 'shopReturnPolicy') ||
+      Object.prototype.hasOwnProperty.call(dto, 'shopShippingPolicy') ||
+      Object.prototype.hasOwnProperty.call(dto, 'shopProcessingTime')
+    );
   }
 
   private processRoles(
@@ -154,6 +184,19 @@ export class UsersService {
         craftMaterials: isSellerAccount
           ? (createUserDto.craftMaterials ?? [])
           : [],
+        shopReturnPolicy: isSellerAccount
+          ? this.normalizeNullableText(createUserDto.shopReturnPolicy)
+          : undefined,
+        shopShippingPolicy: isSellerAccount
+          ? this.normalizeNullableText(createUserDto.shopShippingPolicy)
+          : undefined,
+        shopProcessingTime: isSellerAccount
+          ? this.normalizeNullableText(createUserDto.shopProcessingTime)
+          : undefined,
+        shopPolicyUpdatedAt:
+          isSellerAccount && this.hasShopPolicyPatch(createUserDto)
+            ? new Date()
+            : undefined,
         verificationNote: isSellerAccount
           ? createUserDto.verificationNote
           : undefined,
@@ -213,6 +256,10 @@ export class UsersService {
           craftSpecialty: true,
           craftExperienceYears: true,
           craftMaterials: true,
+          shopReturnPolicy: true,
+          shopShippingPolicy: true,
+          shopProcessingTime: true,
+          shopPolicyUpdatedAt: true,
           verificationNote: true,
           isEmailVerified: true,
           createdAt: true,
@@ -521,6 +568,7 @@ export class UsersService {
         { shopName: { contains: trimmedQuery, mode: 'insensitive' } },
         { sellerBio: { contains: trimmedQuery, mode: 'insensitive' } },
         { sellerAbout: { contains: trimmedQuery, mode: 'insensitive' } },
+        { shopProcessingTime: { contains: trimmedQuery, mode: 'insensitive' } },
       ];
     }
 
@@ -549,6 +597,7 @@ export class UsersService {
       craftSpecialty: string | null;
       craftExperienceYears: number | null;
       craftMaterials: string[];
+      shopProcessingTime: string | null;
       createdAt: Date;
       productCount: number | bigint;
       averageRating: number | null;
@@ -570,6 +619,7 @@ export class UsersService {
         u."craftSpecialty",
         u."craftExperienceYears",
         u."craftMaterials",
+        u."shopProcessingTime",
         u."createdAt",
         COUNT(DISTINCT p.id)::int AS "productCount",
         COUNT(DISTINCT sf.id)::int AS "followerCount",
@@ -603,6 +653,7 @@ export class UsersService {
                 OR COALESCE(u."sellerBio", '') ILIKE ${searchPattern}
                 OR COALESCE(u."sellerAbout", '') ILIKE ${searchPattern}
                 OR COALESCE(u."craftSpecialty", '') ILIKE ${searchPattern}
+                OR COALESCE(u."shopProcessingTime", '') ILIKE ${searchPattern}
               )
             `
         : Prisma.empty
@@ -625,6 +676,7 @@ export class UsersService {
         craftSpecialty: row.craftSpecialty,
         craftExperienceYears: row.craftExperienceYears,
         craftMaterials: row.craftMaterials,
+        shopProcessingTime: row.shopProcessingTime,
         productCount: Number(row.productCount),
         averageRating: row.averageRating,
         totalReviews: Number(row.totalReviews),
@@ -799,11 +851,28 @@ export class UsersService {
       craftSpecialty,
       craftExperienceYears,
       craftMaterials,
+      shopReturnPolicy,
+      shopShippingPolicy,
+      shopProcessingTime,
     } = updateProfileDto;
 
     const isSellerAccount =
       user.roles.includes(Role.ROLE_SELLER) &&
       !user.roles.includes(Role.ROLE_ADMIN);
+    const normalizedShopReturnPolicy =
+      this.normalizeNullableText(shopReturnPolicy);
+    const normalizedShopShippingPolicy =
+      this.normalizeNullableText(shopShippingPolicy);
+    const normalizedShopProcessingTime =
+      this.normalizeNullableText(shopProcessingTime);
+    const shopPolicyChanged =
+      isSellerAccount &&
+      ((shopReturnPolicy !== undefined &&
+        normalizedShopReturnPolicy !== user.shopReturnPolicy) ||
+        (shopShippingPolicy !== undefined &&
+          normalizedShopShippingPolicy !== user.shopShippingPolicy) ||
+        (shopProcessingTime !== undefined &&
+          normalizedShopProcessingTime !== user.shopProcessingTime));
     const updateData: Prisma.UserUpdateInput = {
       name,
       avatar,
@@ -823,6 +892,10 @@ export class UsersService {
           craftSpecialty,
           craftExperienceYears,
           craftMaterials,
+          shopReturnPolicy: normalizedShopReturnPolicy,
+          shopShippingPolicy: normalizedShopShippingPolicy,
+          shopProcessingTime: normalizedShopProcessingTime,
+          ...(shopPolicyChanged ? { shopPolicyUpdatedAt: new Date() } : {}),
         }
         : {}),
     };
@@ -896,7 +969,40 @@ export class UsersService {
       delete updateData.craftSpecialty;
       delete updateData.craftExperienceYears;
       delete updateData.craftMaterials;
+      delete updateData.shopReturnPolicy;
+      delete updateData.shopShippingPolicy;
+      delete updateData.shopProcessingTime;
       delete updateData.verificationNote;
+    }
+
+    const normalizedShopReturnPolicy = this.normalizeNullableText(
+      updateUserDto.shopReturnPolicy,
+    );
+    const normalizedShopShippingPolicy = this.normalizeNullableText(
+      updateUserDto.shopShippingPolicy,
+    );
+    const normalizedShopProcessingTime = this.normalizeNullableText(
+      updateUserDto.shopProcessingTime,
+    );
+    const shopPolicyChanged =
+      isSellerAccount &&
+      ((updateUserDto.shopReturnPolicy !== undefined &&
+        normalizedShopReturnPolicy !== user.shopReturnPolicy) ||
+        (updateUserDto.shopShippingPolicy !== undefined &&
+          normalizedShopShippingPolicy !== user.shopShippingPolicy) ||
+        (updateUserDto.shopProcessingTime !== undefined &&
+          normalizedShopProcessingTime !== user.shopProcessingTime));
+
+    if (isSellerAccount) {
+      updateData.shopReturnPolicy = normalizedShopReturnPolicy as
+        | string
+        | undefined;
+      updateData.shopShippingPolicy = normalizedShopShippingPolicy as
+        | string
+        | undefined;
+      updateData.shopProcessingTime = normalizedShopProcessingTime as
+        | string
+        | undefined;
     }
 
     return this.prisma.user.update({
@@ -904,6 +1010,7 @@ export class UsersService {
       data: {
         ...updateData,
         ...(password ? { password } : {}),
+        ...(shopPolicyChanged ? { shopPolicyUpdatedAt: new Date() } : {}),
         roles,
       },
       select: this.userSelect,

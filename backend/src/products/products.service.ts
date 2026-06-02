@@ -46,6 +46,10 @@ const PRODUCT_SELLER_SELECT = {
   avatar: true,
   sellerTitle: true,
   sellerBio: true,
+  shopReturnPolicy: true,
+  shopShippingPolicy: true,
+  shopProcessingTime: true,
+  shopPolicyUpdatedAt: true,
 } satisfies Prisma.UserSelect;
 
 const LOW_STOCK_DEFAULT_PAGE = 1;

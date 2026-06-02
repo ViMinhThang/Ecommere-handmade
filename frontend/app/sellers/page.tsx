@@ -419,6 +419,11 @@ function SellerCard({ seller }: { seller: SellerSearchResult }) {
             seller.sellerTitle ||
             "Gian hàng đang cập nhật thêm câu chuyện và bộ sưu tập của mình."}
         </p>
+        {seller.shopProcessingTime ? (
+          <p className="mt-3 inline-flex w-fit rounded-full bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+            Xử lý: {seller.shopProcessingTime}
+          </p>
+        ) : null}
 
         <div className="mt-6 grid grid-cols-3 gap-3 rounded-2xl bg-accent/35 p-4 text-sm">
           <div>

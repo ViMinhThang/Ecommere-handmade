@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -76,4 +77,19 @@ export class UpdateProfileDto {
   @IsArray()
   @IsString({ each: true })
   craftMaterials?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  shopReturnPolicy?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  shopShippingPolicy?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  shopProcessingTime?: string;
 }

@@ -414,6 +414,9 @@ describe('UsersService', () => {
         isEmailVerified: true,
         artisanVerified: true,
         verificationNote: 'self-approved',
+        shopReturnPolicy: 'Không nên ghi',
+        shopShippingPolicy: 'Không nên ghi',
+        shopProcessingTime: 'Không nên ghi',
       } as unknown as UpdateProfileDto;
 
       await service.updateProfile('1', maliciousProfileUpdate);
@@ -431,6 +434,9 @@ describe('UsersService', () => {
       expect(data).not.toHaveProperty('isEmailVerified');
       expect(data).not.toHaveProperty('artisanVerified');
       expect(data).not.toHaveProperty('verificationNote');
+      expect(data).not.toHaveProperty('shopReturnPolicy');
+      expect(data).not.toHaveProperty('shopShippingPolicy');
+      expect(data).not.toHaveProperty('shopProcessingTime');
     });
 
     it('should allow sellers to update craft profile fields', async () => {
@@ -455,6 +461,30 @@ describe('UsersService', () => {
         craftExperienceYears: 5,
         craftMaterials: ['Đất sét', 'Men tro'],
       });
+    });
+    it('should allow sellers to update shop policy fields', async () => {
+      const user = {
+        id: 'seller-1',
+        name: 'Seller',
+        email: 'seller@test.com',
+        roles: ['ROLE_USER', 'ROLE_SELLER'],
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(user);
+      mockPrismaService.user.update.mockResolvedValue(user);
+
+      await service.updateProfile('seller-1', {
+        shopProcessingTime: ' 2-4 ngày làm việc ',
+        shopShippingPolicy: ' Gửi GHN/GHTK và cập nhật mã vận đơn. ',
+        shopReturnPolicy: '',
+      });
+
+      const updateCall = mockPrismaService.user.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.data).toMatchObject({
+        shopProcessingTime: '2-4 ngày làm việc',
+        shopShippingPolicy: 'Gửi GHN/GHTK và cập nhật mã vận đơn.',
+        shopReturnPolicy: null,
+      });
+      expect(updateCall?.data).toHaveProperty('shopPolicyUpdatedAt');
     });
   });
 

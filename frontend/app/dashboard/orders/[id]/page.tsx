@@ -504,6 +504,10 @@ export default function DashboardOrderDetailPage() {
         giftWrap={order?.giftWrap ?? subOrder?.order?.giftWrap}
         giftCard={order?.giftCard ?? subOrder?.order?.giftCard}
         giftMessage={order?.giftMessage ?? subOrder?.order?.giftMessage}
+        giftWrapTierSnapshot={
+          order?.giftWrapTierSnapshot ?? subOrder?.order?.giftWrapTierSnapshot
+        }
+        giftWrapFee={order?.giftWrapFee ?? subOrder?.order?.giftWrapFee}
         className="bg-card text-card-foreground"
       />
 

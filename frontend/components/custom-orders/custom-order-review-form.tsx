@@ -5,6 +5,7 @@ import { Star, Upload, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { customOrdersApi } from "@/lib/api/custom-orders";
 import { mediaApi } from "@/lib/api/media";
+import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ export function CustomOrderReviewForm({
   const [isUploading, setIsUploading] = useState(false);
 
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const createReviewMutation = useMutation({
     mutationFn: (data: { rating: number; comment?: string; images?: string[] }) =>
@@ -44,17 +46,34 @@ export function CustomOrderReviewForm({
 
     setIsUploading(true);
     try {
+      if (!user?.id) {
+        throw new Error("Vui lòng đăng nhập để tải ảnh đánh giá.");
+      }
+
+      const folders = await mediaApi.getFolders(user.id);
+      let folderId = folders.find((folder) => folder.name === "Đánh giá")?.id;
+
+      if (!folderId) {
+        const folder = await mediaApi.createFolder(user.id, {
+          name: "Đánh giá",
+        });
+        folderId = folder.id;
+      }
+
+      const targetFolderId = folderId;
       const uploadPromises = Array.from(files).map(async (file) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = await mediaApi.uploadImage(formData);
-        return response.url;
+        const response = await mediaApi.uploadImage(
+          targetFolderId,
+          file,
+          file.name,
+        );
+        return response.path;
       });
 
       const uploadedUrls = await Promise.all(uploadPromises);
       setImages((prev) => [...prev, ...uploadedUrls]);
       toast.success("Ảnh đã được tải lên thành công!");
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải ảnh lên. Vui lòng thử lại.");
     } finally {
       setIsUploading(false);

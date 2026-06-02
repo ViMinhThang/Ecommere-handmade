@@ -13,6 +13,7 @@ import {
   useAddresses,
   useAddAddress,
   useCart,
+  useGiftWrapTiers,
   cartKeys,
 } from "@/lib/api/hooks";
 import { cartApi } from "@/lib/api/cart";
@@ -125,6 +126,8 @@ export default function CheckoutPage() {
   const { data: addresses } = useAddresses(user?.id || "");
   const { mutate: addAddress, isPending: isSavingAddress } = useAddAddress();
   const { data: cart } = useCart();
+  const { data: giftWrapTiers = [], isLoading: isGiftWrapTiersLoading } =
+    useGiftWrapTiers();
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [checkoutOrderId, setCheckoutOrderId] = useState("");
@@ -156,6 +159,7 @@ export default function CheckoutPage() {
   const [isRemovingVoucher, setIsRemovingVoucher] = useState(false);
   const [giftOptions, setGiftOptions] = useState({
     giftWrap: false,
+    giftWrapTierId: "",
     giftCard: false,
     giftMessage: "",
   });
@@ -163,6 +167,36 @@ export default function CheckoutPage() {
   const savedAddresses = addresses || [];
   const selectedAddress =
     savedAddresses.find((address) => address.id === selectedAddressId) || null;
+  const selectedGiftWrapTier =
+    giftWrapTiers.find((tier) => tier.id === giftOptions.giftWrapTierId) ||
+    null;
+
+  useEffect(() => {
+    if (clientSecret || !giftOptions.giftWrap) {
+      return;
+    }
+
+    if (giftWrapTiers.length === 0) {
+      setGiftOptions((current) => ({
+        ...current,
+        giftWrapTierId: "",
+      }));
+      return;
+    }
+
+    if (!giftWrapTiers.some((tier) => tier.id === giftOptions.giftWrapTierId)) {
+      setGiftOptions((current) => ({
+        ...current,
+        giftWrapTierId: giftWrapTiers[0].id,
+        giftCard: current.giftCard || giftWrapTiers[0].includesCard,
+      }));
+    }
+  }, [
+    clientSecret,
+    giftOptions.giftWrap,
+    giftOptions.giftWrapTierId,
+    giftWrapTiers,
+  ]);
 
   useEffect(() => {
     if (!addresses || addresses.length === 0) {
@@ -343,6 +377,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (giftOptions.giftWrap && !selectedGiftWrapTier) {
+      toast.error("Vui lòng chọn mức gói quà trước khi đặt hàng.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -356,8 +395,13 @@ export default function CheckoutPage() {
           address: formData.street,
         },
         giftWrap: giftOptions.giftWrap,
+        giftWrapTierId: giftOptions.giftWrap
+          ? giftOptions.giftWrapTierId
+          : undefined,
         giftCard:
-          giftOptions.giftCard || giftOptions.giftMessage.trim().length > 0,
+          giftOptions.giftCard ||
+          giftOptions.giftMessage.trim().length > 0 ||
+          Boolean(selectedGiftWrapTier?.includesCard),
         giftMessage: giftOptions.giftMessage.trim() || undefined,
         paymentMethod,
       });
@@ -422,13 +466,18 @@ export default function CheckoutPage() {
   const voucherDiscountAmount =
     cart?.appliedVoucher?.discountAmount ?? discountAmount;
   const shipping = 25000;
-  const baseTotal = (cart?.total || 0) + shipping;
+  const giftWrapFee =
+    giftOptions.giftWrap && selectedGiftWrapTier
+      ? Number(selectedGiftWrapTier.price)
+      : 0;
+  const baseTotal = (cart?.total || 0) + shipping + giftWrapFee;
   const total = baseTotal;
   const isVoucherActionPending = isApplyingVoucher || isRemovingVoucher;
   const hasGiftSelection =
     giftOptions.giftWrap ||
     giftOptions.giftCard ||
     giftOptions.giftMessage.trim().length > 0;
+  const isCheckoutLocked = Boolean(clientSecret);
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -701,10 +750,20 @@ export default function CheckoutPage() {
                     <input
                       type="checkbox"
                       checked={giftOptions.giftWrap}
+                      disabled={isCheckoutLocked}
                       onChange={(event) =>
                         setGiftOptions((current) => ({
                           ...current,
                           giftWrap: event.target.checked,
+                          giftWrapTierId: event.target.checked
+                            ? current.giftWrapTierId ||
+                              giftWrapTiers[0]?.id ||
+                              ""
+                            : "",
+                          giftCard: event.target.checked
+                            ? current.giftCard ||
+                              Boolean(giftWrapTiers[0]?.includesCard)
+                            : current.giftCard,
                         }))
                       }
                       className="mt-1"
@@ -715,15 +774,91 @@ export default function CheckoutPage() {
                         Gói quà thủ công
                       </p>
                       <p className="mt-1 text-xs text-stone-500">
-                        Shop sẽ đóng gói sản phẩm theo kiểu quà tặng phù hợp với đồ handmade.
+                        Chọn kiểu gói quà phù hợp với sản phẩm handmade. Phí gói quà sẽ được cộng vào tổng thanh toán.
                       </p>
                     </div>
                   </label>
+
+                  {giftOptions.giftWrap && (
+                    <div className="space-y-3 rounded-sm border border-amber-200 bg-amber-50/50 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-stone-900">
+                          Chọn mức gói quà
+                        </p>
+                        {giftWrapFee > 0 ? (
+                          <span className="text-xs font-semibold text-[#8B4513]">
+                            +{formatCurrency(giftWrapFee)}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {isGiftWrapTiersLoading ? (
+                        <p className="text-xs text-stone-500">
+                          Đang tải danh sách gói quà...
+                        </p>
+                      ) : giftWrapTiers.length === 0 ? (
+                        <p className="text-xs text-amber-700">
+                          Hiện chưa có mức gói quà khả dụng. Vui lòng bỏ chọn gói quà hoặc thử lại sau.
+                        </p>
+                      ) : (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {giftWrapTiers.map((tier) => {
+                            const selected =
+                              giftOptions.giftWrapTierId === tier.id;
+
+                            return (
+                              <button
+                                key={tier.id}
+                                type="button"
+                                disabled={isCheckoutLocked}
+                                onClick={() =>
+                                  setGiftOptions((current) => ({
+                                    ...current,
+                                    giftWrap: true,
+                                    giftWrapTierId: tier.id,
+                                    giftCard:
+                                      current.giftCard || tier.includesCard,
+                                  }))
+                                }
+                                className={`rounded-sm border p-4 text-left transition ${
+                                  selected
+                                    ? "border-[#8B4513] bg-white shadow-sm"
+                                    : "border-stone-200 bg-white/70 hover:border-[#8B4513]/50"
+                                } ${isCheckoutLocked ? "cursor-not-allowed opacity-70" : ""}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-stone-900">
+                                      {tier.name}
+                                    </p>
+                                    {tier.description ? (
+                                      <p className="mt-1 text-xs leading-5 text-stone-500">
+                                        {tier.description}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <span className="shrink-0 text-sm font-semibold text-[#8B4513]">
+                                    {formatCurrency(Number(tier.price))}
+                                  </span>
+                                </div>
+                                {tier.includesCard ? (
+                                  <p className="mt-2 text-[11px] font-medium text-amber-700">
+                                    Đã gồm thiệp viết tay
+                                  </p>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <label className="flex cursor-pointer items-start gap-4 rounded-sm border border-stone-200 bg-[#F8F6F1]/60 p-4">
                     <input
                       type="checkbox"
                       checked={giftOptions.giftCard}
+                      disabled={isCheckoutLocked}
                       onChange={(event) =>
                         setGiftOptions((current) => ({
                           ...current,
@@ -750,6 +885,7 @@ export default function CheckoutPage() {
                       value={giftOptions.giftMessage}
                       maxLength={500}
                       rows={4}
+                      disabled={isCheckoutLocked}
                       placeholder="Ví dụ: Chúc mừng sinh nhật, mong món quà nhỏ này làm bạn vui..."
                       onChange={(event) => {
                         const value = event.target.value.slice(0, 500);
@@ -1043,9 +1179,16 @@ export default function CheckoutPage() {
                     Gói quà / thiệp tặng kèm
                   </div>
                   <div className="space-y-1 text-amber-900/80">
-                    {giftOptions.giftWrap ? <p>Gói quà thủ công</p> : null}
+                    {giftOptions.giftWrap && selectedGiftWrapTier ? (
+                      <p>
+                        {selectedGiftWrapTier.name} (+{formatCurrency(giftWrapFee)})
+                      </p>
+                    ) : giftOptions.giftWrap ? (
+                      <p>Gói quà thủ công</p>
+                    ) : null}
                     {(giftOptions.giftCard ||
-                      giftOptions.giftMessage.trim().length > 0) && (
+                      giftOptions.giftMessage.trim().length > 0 ||
+                      selectedGiftWrapTier?.includesCard) && (
                       <p>Thiệp viết tay</p>
                     )}
                     {giftOptions.giftMessage.trim() ? (
@@ -1089,6 +1232,16 @@ export default function CheckoutPage() {
                   {formatCurrency(shipping)}
                 </span>
               </div>
+              {giftWrapFee > 0 && (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-stone-500 font-medium">
+                    Phí gói quà
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap font-semibold">
+                    {formatCurrency(giftWrapFee)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="pt-12 flex flex-col">

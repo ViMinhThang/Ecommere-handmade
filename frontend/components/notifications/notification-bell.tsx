@@ -28,6 +28,18 @@ interface NotificationBellProps {
   className?: string;
 }
 
+type SocketNotificationPayload = {
+  title?: string;
+  message?: string;
+  link?: string;
+};
+
+type SocketOrderUpdatePayload = {
+  status?: string;
+  orderId?: string;
+  subOrderId?: string;
+};
+
 function formatNotificationTime(value: string) {
   const date = new Date(value);
   const diffMs = Date.now() - date.getTime();
@@ -75,19 +87,23 @@ export function NotificationBell({ className }: NotificationBellProps) {
       return;
     }
 
-    const handleNotificationCreated = (notification: any) => {
+    const handleNotificationCreated = (
+      notification: SocketNotificationPayload,
+    ) => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
       toast.success(notification.title || "Thông báo mới", {
         description: notification.message,
-        action: notification.link ? {
-          label: "Xem",
-          onClick: () => router.push(notification.link)
-        } : undefined
+        action: notification.link
+          ? {
+              label: "Xem",
+              onClick: () => router.push(notification.link as string),
+            }
+          : undefined,
       });
     };
 
-    const handleOrderUpdated = (orderUpdate: any) => {
+    const handleOrderUpdated = (orderUpdate: SocketOrderUpdatePayload) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
 
       const statusMap: Record<string, string> = {
@@ -99,10 +115,14 @@ export function NotificationBell({ className }: NotificationBellProps) {
         REFUNDED: "đã được hoàn tiền",
       };
 
-      const statusText = statusMap[orderUpdate.status] || "được cập nhật";
+      const statusText = orderUpdate.status
+        ? statusMap[orderUpdate.status] || "được cập nhật"
+        : "được cập nhật";
       const displayId = orderUpdate.subOrderId
         ? orderUpdate.subOrderId.slice(-8).toUpperCase()
-        : (orderUpdate.orderId ? orderUpdate.orderId.slice(-8).toUpperCase() : "");
+        : orderUpdate.orderId
+          ? orderUpdate.orderId.slice(-8).toUpperCase()
+          : "";
 
       toast.info(`Đơn hàng #${displayId}`, {
         description: `Trạng thái đơn hàng của quý khách đã ${statusText}.`,
@@ -111,10 +131,12 @@ export function NotificationBell({ className }: NotificationBellProps) {
           onClick: () => {
             const redirectUrl = orderUpdate.subOrderId
               ? `/profile/orders/${orderUpdate.subOrderId}`
-              : (orderUpdate.orderId ? `/profile/orders/${orderUpdate.orderId}` : "/profile/orders");
+              : orderUpdate.orderId
+                ? `/profile/orders/${orderUpdate.orderId}`
+                : "/profile/orders";
             router.push(redirectUrl);
-          }
-        }
+          },
+        },
       });
     };
 
@@ -126,6 +148,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
       socket.off("order.updated", handleOrderUpdated);
     };
   }, [enabled, queryClient, router]);
+
   const {
     data: notificationsResponse,
     isLoading: isLoadingNotifications,

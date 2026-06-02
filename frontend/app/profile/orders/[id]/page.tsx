@@ -633,6 +633,8 @@ export default function OrderDetailPage() {
             giftWrap={subOrder.order.giftWrap}
             giftCard={subOrder.order.giftCard}
             giftMessage={subOrder.order.giftMessage}
+            giftWrapTierSnapshot={subOrder.order.giftWrapTierSnapshot}
+            giftWrapFee={subOrder.order.giftWrapFee}
             className="rounded-2xl border-border/60 bg-card p-8 text-card-foreground shadow-sm"
           />
         </div>

@@ -21,6 +21,7 @@ import { FollowShopButton } from "@/components/sellers/follow-shop-button";
 import { formatCurrency } from "@/lib/utils";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
+import { ShopPoliciesNote } from "@/components/storefront/shop-policies-note";
 import {
   Edit2,
   Save,
@@ -62,6 +63,9 @@ type SellerProfileFormData = {
   craftSpecialty: string;
   craftExperienceYears: string;
   craftMaterials: string;
+  shopReturnPolicy: string;
+  shopShippingPolicy: string;
+  shopProcessingTime: string;
 };
 
 type SelectedImage = {
@@ -85,6 +89,9 @@ const emptySellerProfileFormData: SellerProfileFormData = {
   craftSpecialty: "",
   craftExperienceYears: "",
   craftMaterials: "",
+  shopReturnPolicy: "",
+  shopShippingPolicy: "",
+  shopProcessingTime: "",
 };
 
 function formatReviewDate(value: string) {
@@ -192,6 +199,9 @@ function SellerProfilePageContent() {
             ? String(seller.craftExperienceYears)
             : "",
         craftMaterials: seller.craftMaterials?.join(", ") || "",
+        shopReturnPolicy: seller.shopReturnPolicy || "",
+        shopShippingPolicy: seller.shopShippingPolicy || "",
+        shopProcessingTime: seller.shopProcessingTime || "",
       }
     : emptySellerProfileFormData;
 
@@ -224,6 +234,9 @@ function SellerProfilePageContent() {
           .split(",")
           .map((material) => material.trim())
           .filter(Boolean),
+        shopReturnPolicy: formData.shopReturnPolicy,
+        shopShippingPolicy: formData.shopShippingPolicy,
+        shopProcessingTime: formData.shopProcessingTime,
       });
       setIsEditMode(false);
       toast.success("Hồ sơ đã được cập nhật thành công!");
@@ -546,6 +559,76 @@ function SellerProfilePageContent() {
                   placeholder="Cách nhau bằng dấu phẩy, VD: Đất sét, Men tro, Gỗ"
                   className="bg-white/50 border-primary/20"
                 />
+                <div className="mt-6 rounded-lg border border-primary/10 bg-white/70 p-4">
+                  <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Chính sách gian hàng
+                  </p>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="shop-processing-time"
+                        className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                      >
+                        Thời gian xử lý
+                      </label>
+                      <Input
+                        id="shop-processing-time"
+                        value={formData.shopProcessingTime}
+                        maxLength={160}
+                        onChange={(event) =>
+                          updateFormData({
+                            ...formData,
+                            shopProcessingTime: event.target.value,
+                          })
+                        }
+                        placeholder="Ví dụ: 2-4 ngày làm việc, sản phẩm đặt riêng 5-7 ngày"
+                        className="bg-white/60 border-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="shop-shipping-policy"
+                        className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                      >
+                        Chính sách vận chuyển
+                      </label>
+                      <Textarea
+                        id="shop-shipping-policy"
+                        value={formData.shopShippingPolicy}
+                        maxLength={2000}
+                        onChange={(event) =>
+                          updateFormData({
+                            ...formData,
+                            shopShippingPolicy: event.target.value,
+                          })
+                        }
+                        placeholder="Ví dụ: Shop đóng gói chống sốc, gửi GHN/GHTK và gửi mã vận đơn sau khi bàn giao."
+                        className="min-h-24 bg-white/60 border-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="shop-return-policy"
+                        className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+                      >
+                        Chính sách đổi trả
+                      </label>
+                      <Textarea
+                        id="shop-return-policy"
+                        value={formData.shopReturnPolicy}
+                        maxLength={2000}
+                        onChange={(event) =>
+                          updateFormData({
+                            ...formData,
+                            shopReturnPolicy: event.target.value,
+                          })
+                        }
+                        placeholder="Ví dụ: Hỗ trợ đổi/trả trong 7 ngày nếu sản phẩm lỗi do vận chuyển hoặc sai mô tả."
+                        className="min-h-24 bg-white/60 border-primary/20"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <p className="text-[#54433c] text-lg leading-relaxed font-light">
@@ -760,6 +843,12 @@ function SellerProfilePageContent() {
                 )}
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="px-8 py-16 md:px-12">
+          <div className="mx-auto max-w-7xl">
+            <ShopPoliciesNote seller={seller} showFallback />
           </div>
         </section>
 

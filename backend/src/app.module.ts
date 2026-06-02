@@ -30,6 +30,7 @@ import { CustomOrderQuoteTemplatesModule } from './custom-order-quote-templates/
 import { NotificationsModule } from './notifications/notifications.module';
 import { HomepageModule } from './homepage/homepage.module';
 import { ShippingProfilesModule } from './shipping-profiles/shipping-profiles.module';
+import { GiftWrapTiersModule } from './gift-wrap-tiers/gift-wrap-tiers.module';
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   if (!value) {
@@ -86,6 +87,7 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
     NotificationsModule,
     HomepageModule,
     ShippingProfilesModule,
+    GiftWrapTiersModule,
   ],
   controllers: [AppController],
   providers: [

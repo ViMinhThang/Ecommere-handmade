@@ -68,6 +68,10 @@ const VOUCHER_PRICING_CHANGED_MESSAGE =
   'Voucher discount changed. Please refresh your cart.';
 const VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE =
   'Voucher usage limit has been reached. Please refresh your cart.';
+const GIFT_WRAP_TIER_REQUIRED_MESSAGE =
+  'Gift wrap tier is required when gift wrap is selected.';
+const GIFT_WRAP_TIER_INVALID_MESSAGE =
+  'Selected gift wrap option is no longer available.';
 const DEFAULT_SHIPPING_PROFILE: ShippingProfileSource = {
   id: null,
   name: 'Giao hàng tiêu chuẩn',
@@ -149,6 +153,18 @@ interface GiftOptions {
   giftWrap: boolean;
   giftCard: boolean;
   giftMessage: string | null;
+  giftWrapTierId: string | null;
+  giftWrapTierSnapshot: GiftWrapTierSnapshot | null;
+  giftWrapFee: number;
+}
+
+interface GiftWrapTierSnapshot {
+  version: 1;
+  tierId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  includesCard: boolean;
 }
 
 interface ShippingProfileSnapshot {
@@ -454,7 +470,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       userId,
       checkoutDto,
     );
-    const giftOptions = this.normalizeCheckoutGiftOptions(checkoutDto);
+    const giftOptions = await this.resolveCheckoutGiftOptions(checkoutDto);
     let currentCartItemsForProvidedKey:
       | CheckoutCartComparisonItem[]
       | undefined;
@@ -485,9 +501,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const rewardPointsToRedeem = this.rewardsService.normalizePoints(
       checkoutDto.rewardPointsToRedeem,
     );
+    const checkoutBaseTotal = cart.total + SHIPPING_FEE + giftOptions.giftWrapFee;
     const rewardRedemption = this.rewardsService.calculateRedemption(
       rewardPointsToRedeem,
-      cart.total + SHIPPING_FEE,
+      checkoutBaseTotal,
     );
     const checkoutCart = this.applyRewardDiscountToCart(
       cart,
@@ -563,7 +580,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       };
     }
 
-    const finalTotal = checkoutCart.total + SHIPPING_FEE;
+    const finalTotal =
+      checkoutCart.total + SHIPPING_FEE + giftOptions.giftWrapFee;
 
     const paymentIntent = await this.stripeService.createPaymentIntent(
       finalTotal,
@@ -572,6 +590,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         userId,
         voucherCode: checkoutCart.appliedVoucher?.code || '',
         rewardPointsRedeemed: String(rewardRedemption.points),
+        giftWrapFee: String(giftOptions.giftWrapFee),
       },
     );
 
@@ -811,7 +830,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       userId: context.userId,
       paymentMethod: context.paymentMethod,
       voucherCode: context.cart.appliedVoucher?.code ?? null,
-      orderTotal: this.toCheckoutMoney(context.cart.total + SHIPPING_FEE),
+      orderTotal: this.toCheckoutMoney(
+        context.cart.total + SHIPPING_FEE + context.giftOptions.giftWrapFee,
+      ),
       discountAmount: this.toCheckoutMoney(context.cart.discountAmount),
       ...(context.rewardRedemption.points > 0 ||
         context.rewardRedemption.discountAmount > 0
@@ -1024,7 +1045,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     throw new BadRequestException('Shipping address is required');
   }
 
-  private normalizeCheckoutGiftOptions(checkoutDto: CheckoutDto): GiftOptions {
+  private async resolveCheckoutGiftOptions(
+    checkoutDto: CheckoutDto,
+  ): Promise<GiftOptions> {
     const giftWrap = checkoutDto.giftWrap === true;
     const rawMessage =
       typeof checkoutDto.giftMessage === 'string'
@@ -1041,18 +1064,87 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const giftCard = checkoutDto.giftCard === true || giftMessage.length > 0;
+    const giftWrapTierId =
+      typeof checkoutDto.giftWrapTierId === 'string' &&
+      checkoutDto.giftWrapTierId.trim()
+        ? checkoutDto.giftWrapTierId.trim()
+        : null;
+
+    if (giftWrap && !giftWrapTierId) {
+      throw new BadRequestException(GIFT_WRAP_TIER_REQUIRED_MESSAGE);
+    }
+
+    let giftWrapTierSnapshot: GiftWrapTierSnapshot | null = null;
+    let giftWrapFee = 0;
+
+    if (giftWrapTierId) {
+      if (!giftWrap) {
+        throw new BadRequestException(GIFT_WRAP_TIER_REQUIRED_MESSAGE);
+      }
+
+      const tier = await this.prisma.giftWrapTier.findFirst({
+        where: {
+          id: giftWrapTierId,
+          isActive: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          includesCard: true,
+        },
+      });
+
+      if (!tier) {
+        throw new BadRequestException(GIFT_WRAP_TIER_INVALID_MESSAGE);
+      }
+
+      giftWrapFee = Math.max(0, this.roundMoney(Number(tier.price)));
+      giftWrapTierSnapshot = {
+        version: 1,
+        tierId: tier.id,
+        name: tier.name,
+        description: tier.description,
+        price: giftWrapFee,
+        includesCard: tier.includesCard,
+      };
+    }
+
+    const giftCard =
+      checkoutDto.giftCard === true ||
+      giftMessage.length > 0 ||
+      Boolean(giftWrapTierSnapshot?.includesCard);
 
     return {
       giftWrap,
       giftCard,
       giftMessage: giftCard && giftMessage ? giftMessage : null,
+      giftWrapTierId: giftWrapTierSnapshot?.tierId ?? null,
+      giftWrapTierSnapshot,
+      giftWrapFee,
     };
   }
 
   private getOrderGiftOptions(
-    order: Pick<Order, 'giftWrap' | 'giftCard' | 'giftMessage'>,
+    order: Pick<
+      Order,
+      | 'giftWrap'
+      | 'giftCard'
+      | 'giftMessage'
+      | 'giftWrapTierId'
+      | 'giftWrapTierSnapshot'
+      | 'giftWrapFee'
+    >,
   ): GiftOptions {
+    const snapshot =
+      order.giftWrapTierSnapshot &&
+      typeof order.giftWrapTierSnapshot === 'object' &&
+      !Array.isArray(order.giftWrapTierSnapshot)
+        ? (order.giftWrapTierSnapshot as unknown as GiftWrapTierSnapshot)
+        : null;
+
     return {
       giftWrap: Boolean(order.giftWrap),
       giftCard: Boolean(order.giftCard),
@@ -1060,6 +1152,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         typeof order.giftMessage === 'string' && order.giftMessage.trim()
           ? order.giftMessage.trim()
           : null,
+      giftWrapTierId: order.giftWrapTierId ?? snapshot?.tierId ?? null,
+      giftWrapTierSnapshot: snapshot,
+      giftWrapFee: Math.max(0, this.roundMoney(Number(order.giftWrapFee ?? 0))),
     };
   }
 
@@ -1165,7 +1260,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       const order = await tx.order.create({
         data: {
           customerId: userId,
-          totalAmount: cart.total + SHIPPING_FEE,
+          totalAmount: cart.total + SHIPPING_FEE + giftOptions.giftWrapFee,
           discountAmount: cart.discountAmount,
           rewardPointsRedeemed: rewardRedemption.points,
           rewardDiscountAmount: rewardRedemption.discountAmount,
@@ -1182,6 +1277,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           giftWrap: giftOptions.giftWrap,
           giftCard: giftOptions.giftCard,
           giftMessage: giftOptions.giftMessage,
+          giftWrapTierId: giftOptions.giftWrapTierId,
+          giftWrapTierSnapshot: giftOptions.giftWrapTierSnapshot
+            ? (giftOptions.giftWrapTierSnapshot as unknown as Prisma.InputJsonValue)
+            : undefined,
+          giftWrapFee: giftOptions.giftWrapFee,
           status: OrderStatus.PENDING,
         },
       });
@@ -2513,6 +2613,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         giftWrap: true,
         giftCard: true,
         giftMessage: true,
+        giftWrapTierId: true,
+        giftWrapTierSnapshot: true,
+        giftWrapFee: true,
         paymentMethod: true,
         paymentStatus: true,
       },
@@ -2527,6 +2630,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         giftWrap: true,
         giftCard: true,
         giftMessage: true,
+        giftWrapTierId: true,
+        giftWrapTierSnapshot: true,
+        giftWrapFee: true,
         paymentMethod: true,
         paymentStatus: true,
         customer: { select: this.customerSelect },

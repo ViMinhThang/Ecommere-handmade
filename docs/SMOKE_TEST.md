@@ -84,6 +84,21 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Customer order detail, seller order detail và admin order detail hiển thị ETA snapshot ngay cả khi seller chỉnh hồ sơ vận chuyển sau đó.
 - [ ] Tracking event thủ công vẫn hoạt động độc lập với Shipping Profile; seller/admin vẫn thêm được mã vận đơn và timeline.
 
+## Gift Wrap Tier / Fee Smoke
+
+- [ ] Admin mở `/dashboard/gift-wrap-tiers`, thấy danh sách mức gói quà, trạng thái active/inactive và phí.
+- [ ] Admin tạo mức gói quà mới với tên, mô tả, phí, thứ tự, tùy chọn kèm thiệp.
+- [ ] Admin sửa mức gói quà; public `GET /v1/gift-wrap-tiers` trả dữ liệu mới nếu tier đang active.
+- [ ] Admin tắt `isActive`; tier không còn hiển thị ở checkout/public API.
+- [ ] Admin xóa tier; tier bị ẩn khỏi admin/public list nhưng đơn cũ vẫn giữ snapshot gói quà.
+- [ ] `GET /v1/gift-wrap-tiers` trả các mức gói quà active theo `sortOrder`.
+- [ ] Checkout hiển thị các mức gói quà, giá tiền và nhãn "Đã gồm thiệp viết tay" nếu tier có `includesCard`.
+- [ ] Bật gói quà nhưng chưa có tier khả dụng thì checkout không tạo đơn.
+- [ ] Chọn tier gói quà, nhập lời nhắn, checkout COD thành công và `Order.totalAmount` gồm `cart.total + shipping fee + giftWrapFee`.
+- [ ] Checkout Stripe tạo PaymentIntent đúng tổng tiền gồm phí gói quà.
+- [ ] Confirmation, customer order detail và seller/admin order detail hiển thị tên tier, phí gói quà, thiệp và lời nhắn theo snapshot.
+- [ ] Đơn cũ không có gói quà vẫn hiển thị bình thường, không có broken UI.
+
 ## Expected Result
 
 - [ ] Không có broken image trong home/discovery/cart/orders/wishlist/dashboard products.
@@ -202,6 +217,15 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seller không tự bật được `artisanVerified` qua profile/storefront edit.
 - [ ] Public `/sellers` hiển thị badge `Nghệ nhân đã xác thực` cho seller seed đã verify.
 - [ ] Public `/sellers/:id` hiển thị badge xác thực, chuyên môn, số năm kinh nghiệm và chất liệu chính.
+
+## Shop Policies Smoke
+
+- [ ] Login seller, mở storefront của chính mình `/sellers/:id`, bật edit và cập nhật `Thời gian xử lý`, `Chính sách vận chuyển`, `Chính sách đổi trả`.
+- [ ] Lưu storefront thành công; tắt edit và thấy block `Chính sách gian hàng` hiển thị đủ 3 mục.
+- [ ] Anonymous mở `/sellers/:id`; thấy chính sách đổi trả, thời gian xử lý và vận chuyển nhưng không thấy form chỉnh sửa.
+- [ ] Anonymous mở một product detail của shop; thấy policy shop ở khu vực thông tin mua hàng nếu shop đã cập nhật.
+- [ ] Login customer, thử gọi `/users/profile` với các field policy bằng API thủ công; backend không ghi policy vì account không phải seller.
+- [ ] Seed demo sau `npm run db:seed` có policy mẫu cho các seller chính, không cần tạo dữ liệu thủ công trước demo.
 ## Shop Voucher / Marketing Smoke
 
 - [ ] Login seller và mở `/seller/marketing`; thấy thống kê voucher shop, bảng voucher, empty/loading/error state.

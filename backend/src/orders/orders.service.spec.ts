@@ -105,6 +105,9 @@ describe('OrdersService', () => {
     shippingProfile: {
       findFirst: jest.fn(),
     },
+    giftWrapTier: {
+      findFirst: jest.fn(),
+    },
     inventoryLog: {
       create: jest.fn(),
     },
@@ -418,6 +421,7 @@ describe('OrdersService', () => {
     mockPrisma.voucher.findFirst.mockResolvedValue(null);
     mockPrisma.voucherUsage.count.mockResolvedValue(0);
     mockPrisma.shippingProfile.findFirst.mockResolvedValue(null);
+    mockPrisma.giftWrapTier.findFirst.mockResolvedValue(null);
     mockPrisma.inventoryLog.create.mockResolvedValue({ id: 'inv_1' });
     mockPrisma.$queryRaw.mockResolvedValue([{ id: 'flash_sale_1' }]);
     mockPrisma.cart.findUnique.mockResolvedValue(null);
@@ -972,6 +976,58 @@ describe('OrdersService', () => {
       },
     });
     expect(mockStripe.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('adds selected gift wrap tier fee and snapshot to checkout order', async () => {
+    mockCart.getCart.mockResolvedValue(buildCart());
+    mockPrisma.giftWrapTier.findFirst.mockResolvedValue({
+      id: 'gift_wrap_1',
+      name: 'Hộp quà cao cấp',
+      description: 'Hộp cứng và ruy băng',
+      price: 35000,
+      includesCard: true,
+    });
+
+    await service.checkout(
+      'customer_1',
+      {
+        shippingAddress,
+        giftWrap: true,
+        giftWrapTierId: 'gift_wrap_1',
+        giftMessage: 'Chúc mừng sinh nhật',
+      },
+      PaymentMethod.COD,
+    );
+
+    const orderCreateCall = mockPrisma.order.create.mock.calls.at(-1)?.[0];
+    expect(orderCreateCall?.data).toMatchObject({
+      totalAmount: 160000,
+      giftWrap: true,
+      giftCard: true,
+      giftMessage: 'Chúc mừng sinh nhật',
+      giftWrapTierId: 'gift_wrap_1',
+      giftWrapFee: 35000,
+      giftWrapTierSnapshot: expect.objectContaining({
+        tierId: 'gift_wrap_1',
+        name: 'Hộp quà cao cấp',
+        price: 35000,
+        includesCard: true,
+      }),
+    });
+  });
+
+  it('rejects checkout when gift wrap is selected without a tier', async () => {
+    mockCart.getCart.mockResolvedValue(buildCart());
+
+    await expect(
+      service.checkout(
+        'customer_1',
+        { shippingAddress, giftWrap: true },
+        PaymentMethod.COD,
+      ),
+    ).rejects.toThrow('Gift wrap tier is required');
+
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
   });
 
   it('reuses existing checkout for the same missing-key payload fallback', async () => {
