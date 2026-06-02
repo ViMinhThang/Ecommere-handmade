@@ -30,6 +30,11 @@ interface ProductSavePayload {
   personalizationRequired?: boolean
   personalizationInstructions?: string
   personalizationMaxLength?: number
+  optionColors?: string[]
+  optionMaterials?: string[]
+  optionSizes?: string[]
+  processingTime?: string | null
+  shippingProfileId?: string | null
 }
 
 export default function ProductsPage() {
@@ -110,6 +115,11 @@ export default function ProductsPage() {
       personalizationRequired: productData.personalizationRequired,
       personalizationInstructions: productData.personalizationInstructions,
       personalizationMaxLength: productData.personalizationMaxLength,
+      optionColors: productData.optionColors,
+      optionMaterials: productData.optionMaterials,
+      optionSizes: productData.optionSizes,
+      processingTime: productData.processingTime,
+      shippingProfileId: productData.shippingProfileId,
     })
   }
 
@@ -130,6 +140,11 @@ export default function ProductsPage() {
         personalizationRequired: productData.personalizationRequired,
         personalizationInstructions: productData.personalizationInstructions,
         personalizationMaxLength: productData.personalizationMaxLength,
+        optionColors: productData.optionColors,
+        optionMaterials: productData.optionMaterials,
+        optionSizes: productData.optionSizes,
+        processingTime: productData.processingTime,
+        shippingProfileId: productData.shippingProfileId,
       },
     })
     setSelectedProduct(null)

@@ -31,8 +31,9 @@ Account: `admin@ecommerce.com / admin123`
 5. Vào `/dashboard/reports`, mở báo cáo mẫu và cập nhật trạng thái xử lý.
 6. Vào `/dashboard/vouchers` để thấy voucher active, expired và inactive.
 7. Vào `/dashboard/flash-sales` để thấy campaign active, upcoming và ended.
-8. Vào `/dashboard/categories` và `/dashboard/settings` để chứng minh admin quản lý dữ liệu nền tảng.
-9. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification sản phẩm chờ duyệt/báo cáo mới và bấm đánh dấu đã đọc.
+8. Vào `/dashboard/gift-wrap-tiers`, tạo/sửa/tắt một mức gói quà và kiểm tra tier active hiển thị ở checkout.
+9. Vào `/dashboard/categories` và `/dashboard/settings` để chứng minh admin quản lý dữ liệu nền tảng.
+10. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification sản phẩm chờ duyệt/báo cáo mới và bấm đánh dấu đã đọc.
 
 Kết quả mong đợi: admin chỉ thấy menu vận hành admin/seller phù hợp, bảng có loading/empty/error state rõ, thao tác nguy hiểm có xác nhận ở các màn hình đã hỗ trợ.
 
@@ -42,12 +43,14 @@ Account: `seller@ecommerce.com / admin123`
 
 1. Vào `/login`, đăng nhập seller.
 2. Vào `/dashboard/products`, kiểm tra sản phẩm demo của shop.
-3. Vào `/dashboard/new-listing`, tạo hoặc sửa sản phẩm demo; có thể nhập URL ảnh hợp lệ hoặc chọn ảnh trong thư viện media seed nếu UI đang hiển thị.
-4. Vào `/dashboard/orders`, mở kiện hàng của shop và cập nhật trạng thái theo thứ tự hợp lệ.
-5. Vào `/seller/custom-orders`, kiểm tra đơn thiết kế riêng nếu seed/demo có dữ liệu, chuyển trạng thái `Đang chế tác -> Đang hoàn thiện -> Đang giao -> Đã giao`.
-6. Trong `/seller/custom-orders`, bấm `Tiến độ` trên một đơn custom order, thêm tiêu đề/ghi chú/URL ảnh để khách hàng thấy nhật ký chế tác.
-7. Vào `/dashboard/chat` nếu cần demo trao đổi với khách hàng.
-8. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification đơn hàng mới/sản phẩm đã duyệt và bấm đánh dấu đã đọc.
+3. Vào `/dashboard/shipping-profiles`, tạo hoặc kiểm tra hồ sơ vận chuyển mặc định của shop và ETA dự kiến.
+4. Mở storefront của chính seller `/sellers/:id`, bật edit và cập nhật chính sách `Thời gian xử lý`, `Vận chuyển`, `Đổi trả`; tắt edit để kiểm tra block public.
+5. Vào `/dashboard/new-listing`, tạo hoặc sửa sản phẩm demo; có thể nhập URL ảnh hợp lệ hoặc chọn ảnh trong thư viện media seed nếu UI đang hiển thị, rồi chọn hồ sơ vận chuyển cho sản phẩm.
+6. Vào `/dashboard/orders`, mở kiện hàng của shop và cập nhật trạng thái theo thứ tự hợp lệ.
+7. Vào `/seller/custom-orders`, kiểm tra đơn thiết kế riêng nếu seed/demo có dữ liệu, chuyển trạng thái `Đang chế tác -> Đang hoàn thiện -> Đang giao -> Đã giao`.
+8. Trong `/seller/custom-orders`, bấm `Tiến độ` trên một đơn custom order, thêm tiêu đề/ghi chú/URL ảnh để khách hàng thấy nhật ký chế tác.
+9. Vào `/dashboard/chat` nếu cần demo trao đổi với khách hàng.
+10. Mở chuông thông báo hoặc `/notifications`, kiểm tra notification đơn hàng mới/sản phẩm đã duyệt và bấm đánh dấu đã đọc.
 
 Kết quả mong đợi: seller không thấy menu admin-only, chỉ cập nhật đơn/sản phẩm thuộc shop của mình, UI hiển thị rõ sản phẩm đang chờ admin duyệt.
 
@@ -57,12 +60,12 @@ Account: `customer@ecommerce.com / admin123`
 
 1. Vào `/login`, đăng nhập customer.
 2. Vào `/discovery` hoặc trang chủ, tìm sản phẩm handmade có ảnh.
-3. Mở `/products/:id`, xem ảnh, mô tả, review/question và thông tin seller.
+3. Mở `/products/:id`, xem ảnh, mô tả, review/question, ETA vận chuyển và chính sách shop.
 4. Bấm thêm vào giỏ, vào `/cart`, cập nhật số lượng hoặc xóa sản phẩm.
 5. Áp voucher `HANDMADE10` nếu sản phẩm thuộc category phù hợp.
    - Có thể thử `EXPIRED5` hoặc `INACTIVE15` để chứng minh voucher không hợp lệ bị chặn.
-6. Vào `/checkout`, chọn địa chỉ giao hàng, giữ phương thức COD và đặt hàng.
-7. Sau khi checkout COD thành công, vào `/profile/orders`, mở chi tiết đơn hàng.
+6. Vào `/checkout`, chọn địa chỉ giao hàng, chọn một mức `Gói quà`, nhập lời nhắn tặng kèm, giữ phương thức COD và đặt hàng.
+7. Sau khi checkout COD thành công, vào `/profile/orders`, mở chi tiết đơn hàng và kiểm tra phí/snapshot gói quà.
 8. Nếu có đơn delivered, tạo review hoặc kiểm tra review seed đã hiển thị.
 9. Vào `/profile/wishlist` để kiểm tra wishlist và ảnh fallback.
 10. Vào `/profile/commissions` để xem yêu cầu commission seed nếu cần demo custom quote.

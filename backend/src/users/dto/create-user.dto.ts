@@ -7,6 +7,7 @@ import {
   IsBoolean,
   IsInt,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -98,6 +99,21 @@ export class CreateUserDto {
   @IsArray()
   @IsString({ each: true })
   craftMaterials?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  shopReturnPolicy?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  shopShippingPolicy?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  shopProcessingTime?: string;
 
   @IsOptional()
   @IsString()

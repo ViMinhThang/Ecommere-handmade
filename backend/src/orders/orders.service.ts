@@ -25,6 +25,7 @@ import {
   PaymentStatus,
   Prisma,
   SubOrder,
+  ShipmentTrackingEventType,
   ProductStatus,
   CategoryStatus,
   InventoryChangeReason,
@@ -39,6 +40,7 @@ import {
 } from '@prisma/client';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
+import { CreateShipmentTrackingEventDto } from './dto/create-shipment-tracking-event.dto';
 import { SettingsService } from '../settings/settings.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -66,6 +68,31 @@ const VOUCHER_PRICING_CHANGED_MESSAGE =
   'Voucher discount changed. Please refresh your cart.';
 const VOUCHER_USAGE_LIMIT_EXCEEDED_MESSAGE =
   'Voucher usage limit has been reached. Please refresh your cart.';
+const GIFT_WRAP_TIER_REQUIRED_MESSAGE =
+  'Gift wrap tier is required when gift wrap is selected.';
+const GIFT_WRAP_TIER_INVALID_MESSAGE =
+  'Selected gift wrap option is no longer available.';
+const DEFAULT_SHIPPING_PROFILE: ShippingProfileSource = {
+  id: null,
+  name: 'Giao hàng tiêu chuẩn',
+  carrierName: 'Đơn vị vận chuyển tiêu chuẩn',
+  trackingUrlTemplate: null,
+  processingMinDays: 1,
+  processingMaxDays: 3,
+  transitMinDays: 2,
+  transitMaxDays: 5,
+};
+
+const DEFAULT_SHIPPING_PROFILE_VI: ShippingProfileSource = {
+  id: null,
+  name: 'Giao hàng tiêu chuẩn',
+  carrierName: 'Đơn vị vận chuyển tiêu chuẩn',
+  trackingUrlTemplate: null,
+  processingMinDays: DEFAULT_SHIPPING_PROFILE.processingMinDays,
+  processingMaxDays: DEFAULT_SHIPPING_PROFILE.processingMaxDays,
+  transitMinDays: DEFAULT_SHIPPING_PROFILE.transitMinDays,
+  transitMaxDays: DEFAULT_SHIPPING_PROFILE.transitMaxDays,
+};
 
 interface SubOrderGroup {
   subTotal: number;
@@ -106,6 +133,7 @@ interface CheckoutCartComparisonItem {
   productId: string;
   quantity: number;
   personalization: Prisma.JsonValue | null;
+  selectedOptions: Prisma.JsonValue | null;
 }
 
 interface CheckoutFlashSalePricingSnapshot {
@@ -125,6 +153,61 @@ interface GiftOptions {
   giftWrap: boolean;
   giftCard: boolean;
   giftMessage: string | null;
+  giftWrapTierId: string | null;
+  giftWrapTierSnapshot: GiftWrapTierSnapshot | null;
+  giftWrapFee: number;
+}
+
+interface GiftWrapTierSnapshot {
+  version: 1;
+  tierId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  includesCard: boolean;
+}
+
+interface ShippingProfileSnapshot {
+  version: 1;
+  profileId: string | null;
+  name: string;
+  carrierName: string;
+  trackingUrlTemplate: string | null;
+  processingMinDays: number;
+  processingMaxDays: number;
+  transitMinDays: number;
+  transitMaxDays: number;
+  itemProfiles: Array<{
+    productId: string;
+    productName: string;
+    profileId: string | null;
+    name: string;
+    carrierName: string;
+    processingMinDays: number;
+    processingMaxDays: number;
+    transitMinDays: number;
+    transitMaxDays: number;
+  }>;
+}
+
+interface ShippingEstimate {
+  shippingProfileId: string | null;
+  shippingProfileSnapshot: ShippingProfileSnapshot;
+  estimatedShipStartAt: Date;
+  estimatedShipEndAt: Date;
+  estimatedDeliveryStartAt: Date;
+  estimatedDeliveryEndAt: Date;
+}
+
+interface ShippingProfileSource {
+  id: string | null;
+  name: string;
+  carrierName: string;
+  trackingUrlTemplate: string | null;
+  processingMinDays: number;
+  processingMaxDays: number;
+  transitMinDays: number;
+  transitMaxDays: number;
 }
 
 interface CheckoutVoucherSnapshot {
@@ -191,6 +274,7 @@ type OrderWithCheckoutSnapshot = Prisma.OrderGetPayload<{
             originalPrice: true;
             platformDiscountAmount: true;
             personalization: true;
+            selectedOptions: true;
           };
         };
       };
@@ -386,7 +470,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       userId,
       checkoutDto,
     );
-    const giftOptions = this.normalizeCheckoutGiftOptions(checkoutDto);
+    const giftOptions = await this.resolveCheckoutGiftOptions(checkoutDto);
     let currentCartItemsForProvidedKey:
       | CheckoutCartComparisonItem[]
       | undefined;
@@ -417,9 +501,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const rewardPointsToRedeem = this.rewardsService.normalizePoints(
       checkoutDto.rewardPointsToRedeem,
     );
+    const checkoutBaseTotal = cart.total + SHIPPING_FEE + giftOptions.giftWrapFee;
     const rewardRedemption = this.rewardsService.calculateRedemption(
       rewardPointsToRedeem,
-      cart.total + SHIPPING_FEE,
+      checkoutBaseTotal,
     );
     const checkoutCart = this.applyRewardDiscountToCart(
       cart,
@@ -495,7 +580,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       };
     }
 
-    const finalTotal = checkoutCart.total + SHIPPING_FEE;
+    const finalTotal =
+      checkoutCart.total + SHIPPING_FEE + giftOptions.giftWrapFee;
 
     const paymentIntent = await this.stripeService.createPaymentIntent(
       finalTotal,
@@ -504,6 +590,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         userId,
         voucherCode: checkoutCart.appliedVoucher?.code || '',
         rewardPointsRedeemed: String(rewardRedemption.points),
+        giftWrapFee: String(giftOptions.giftWrapFee),
       },
     );
 
@@ -582,6 +669,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
                 originalPrice: true,
                 platformDiscountAmount: true,
                 personalization: true,
+                selectedOptions: true,
               },
             },
           },
@@ -742,7 +830,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       userId: context.userId,
       paymentMethod: context.paymentMethod,
       voucherCode: context.cart.appliedVoucher?.code ?? null,
-      orderTotal: this.toCheckoutMoney(context.cart.total + SHIPPING_FEE),
+      orderTotal: this.toCheckoutMoney(
+        context.cart.total + SHIPPING_FEE + context.giftOptions.giftWrapFee,
+      ),
       discountAmount: this.toCheckoutMoney(context.cart.discountAmount),
       ...(context.rewardRedemption.points > 0 ||
         context.rewardRedemption.discountAmount > 0
@@ -801,6 +891,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             Math.max(0, originalPrice - discountedPrice),
           ),
           personalization: item.personalization ?? null,
+          selectedOptions: item.selectedOptions ?? null,
         };
       })
       .sort((a, b) => a.productId.localeCompare(b.productId));
@@ -818,6 +909,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           item.platformDiscountAmount,
         ),
         personalization: item.personalization ?? null,
+        selectedOptions: item.selectedOptions ?? null,
       }))
       .sort((a, b) => a.productId.localeCompare(b.productId));
   }
@@ -827,6 +919,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       productId: item.productId,
       quantity: item.quantity,
       personalization: item.personalization ?? null,
+      selectedOptions: item.selectedOptions ?? null,
     }));
   }
 
@@ -836,6 +929,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         productId: item.productId,
         quantity: item.quantity,
         personalization: item.personalization ?? null,
+        selectedOptions: item.selectedOptions ?? null,
       })),
     );
   }
@@ -849,6 +943,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             productId: true,
             quantity: true,
             personalization: true,
+            selectedOptions: true,
           },
         },
       },
@@ -868,6 +963,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             productId: item.productId,
             quantity: item.quantity,
             personalization: item.personalization ?? null,
+            selectedOptions: item.selectedOptions ?? null,
           }),
         )
         .sort()
@@ -949,7 +1045,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     throw new BadRequestException('Shipping address is required');
   }
 
-  private normalizeCheckoutGiftOptions(checkoutDto: CheckoutDto): GiftOptions {
+  private async resolveCheckoutGiftOptions(
+    checkoutDto: CheckoutDto,
+  ): Promise<GiftOptions> {
     const giftWrap = checkoutDto.giftWrap === true;
     const rawMessage =
       typeof checkoutDto.giftMessage === 'string'
@@ -966,18 +1064,87 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const giftCard = checkoutDto.giftCard === true || giftMessage.length > 0;
+    const giftWrapTierId =
+      typeof checkoutDto.giftWrapTierId === 'string' &&
+      checkoutDto.giftWrapTierId.trim()
+        ? checkoutDto.giftWrapTierId.trim()
+        : null;
+
+    if (giftWrap && !giftWrapTierId) {
+      throw new BadRequestException(GIFT_WRAP_TIER_REQUIRED_MESSAGE);
+    }
+
+    let giftWrapTierSnapshot: GiftWrapTierSnapshot | null = null;
+    let giftWrapFee = 0;
+
+    if (giftWrapTierId) {
+      if (!giftWrap) {
+        throw new BadRequestException(GIFT_WRAP_TIER_REQUIRED_MESSAGE);
+      }
+
+      const tier = await this.prisma.giftWrapTier.findFirst({
+        where: {
+          id: giftWrapTierId,
+          isActive: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          includesCard: true,
+        },
+      });
+
+      if (!tier) {
+        throw new BadRequestException(GIFT_WRAP_TIER_INVALID_MESSAGE);
+      }
+
+      giftWrapFee = Math.max(0, this.roundMoney(Number(tier.price)));
+      giftWrapTierSnapshot = {
+        version: 1,
+        tierId: tier.id,
+        name: tier.name,
+        description: tier.description,
+        price: giftWrapFee,
+        includesCard: tier.includesCard,
+      };
+    }
+
+    const giftCard =
+      checkoutDto.giftCard === true ||
+      giftMessage.length > 0 ||
+      Boolean(giftWrapTierSnapshot?.includesCard);
 
     return {
       giftWrap,
       giftCard,
       giftMessage: giftCard && giftMessage ? giftMessage : null,
+      giftWrapTierId: giftWrapTierSnapshot?.tierId ?? null,
+      giftWrapTierSnapshot,
+      giftWrapFee,
     };
   }
 
   private getOrderGiftOptions(
-    order: Pick<Order, 'giftWrap' | 'giftCard' | 'giftMessage'>,
+    order: Pick<
+      Order,
+      | 'giftWrap'
+      | 'giftCard'
+      | 'giftMessage'
+      | 'giftWrapTierId'
+      | 'giftWrapTierSnapshot'
+      | 'giftWrapFee'
+    >,
   ): GiftOptions {
+    const snapshot =
+      order.giftWrapTierSnapshot &&
+      typeof order.giftWrapTierSnapshot === 'object' &&
+      !Array.isArray(order.giftWrapTierSnapshot)
+        ? (order.giftWrapTierSnapshot as unknown as GiftWrapTierSnapshot)
+        : null;
+
     return {
       giftWrap: Boolean(order.giftWrap),
       giftCard: Boolean(order.giftCard),
@@ -985,6 +1152,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         typeof order.giftMessage === 'string' && order.giftMessage.trim()
           ? order.giftMessage.trim()
           : null,
+      giftWrapTierId: order.giftWrapTierId ?? snapshot?.tierId ?? null,
+      giftWrapTierSnapshot: snapshot,
+      giftWrapFee: Math.max(0, this.roundMoney(Number(order.giftWrapFee ?? 0))),
     };
   }
 
@@ -1090,7 +1260,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       const order = await tx.order.create({
         data: {
           customerId: userId,
-          totalAmount: cart.total + SHIPPING_FEE,
+          totalAmount: cart.total + SHIPPING_FEE + giftOptions.giftWrapFee,
           discountAmount: cart.discountAmount,
           rewardPointsRedeemed: rewardRedemption.points,
           rewardDiscountAmount: rewardRedemption.discountAmount,
@@ -1107,6 +1277,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           giftWrap: giftOptions.giftWrap,
           giftCard: giftOptions.giftCard,
           giftMessage: giftOptions.giftMessage,
+          giftWrapTierId: giftOptions.giftWrapTierId,
+          giftWrapTierSnapshot: giftOptions.giftWrapTierSnapshot
+            ? (giftOptions.giftWrapTierSnapshot as unknown as Prisma.InputJsonValue)
+            : undefined,
+          giftWrapFee: giftOptions.giftWrapFee,
           status: OrderStatus.PENDING,
         },
       });
@@ -1642,6 +1817,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     for (let i = 0; i < groups.length; i++) {
       const [sellerId, data] = groups[i];
       const discountBase = discountBases.get(sellerId) ?? 0;
+      const shippingEstimate = await this.buildSubOrderShippingEstimate(
+        tx,
+        sellerId,
+        data.items,
+        new Date(),
+      );
 
       const subOrderDiscount =
         cart.discountAmount > 0 && discountBase > 0 && totalDiscountBase > 0
@@ -1661,6 +1842,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           subTotal: data.subTotal,
           discountAmount: subOrderDiscount,
           status: 'PENDING',
+          shippingProfileId: shippingEstimate.shippingProfileId,
+          shippingProfileSnapshot:
+            shippingEstimate.shippingProfileSnapshot as unknown as Prisma.InputJsonValue,
+          estimatedShipStartAt: shippingEstimate.estimatedShipStartAt,
+          estimatedShipEndAt: shippingEstimate.estimatedShipEndAt,
+          estimatedDeliveryStartAt:
+            shippingEstimate.estimatedDeliveryStartAt,
+          estimatedDeliveryEndAt: shippingEstimate.estimatedDeliveryEndAt,
         },
       });
 
@@ -1681,6 +1870,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             personalization: item.personalization
               ? (item.personalization as Prisma.InputJsonValue)
               : undefined,
+            selectedOptions: item.selectedOptions
+              ? (item.selectedOptions as Prisma.InputJsonValue)
+              : undefined,
             ...(flashSaleSnapshots
               ? {
                 flashSaleId: flashSaleSnapshot?.flashSaleId ?? null,
@@ -1692,6 +1884,183 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         }),
       });
     }
+  }
+
+  private async buildSubOrderShippingEstimate(
+    tx: Prisma.TransactionClient,
+    sellerId: string,
+    items: EnrichedCartItem[],
+    baseDate: Date,
+  ): Promise<ShippingEstimate> {
+    const sellerDefaultProfile =
+      await this.getSellerDefaultShippingProfile(tx, sellerId);
+    const itemProfiles = items.map((item) => {
+      const profile =
+        this.normalizeShippingProfileSource(item.product.shippingProfile) ??
+        sellerDefaultProfile ??
+        DEFAULT_SHIPPING_PROFILE_VI;
+
+      return {
+        productId: item.productId,
+        productName: item.product.name,
+        ...profile,
+      };
+    });
+
+    const processingMinDays = Math.max(
+      0,
+      ...itemProfiles.map((profile) => profile.processingMinDays),
+    );
+    const processingMaxDays = Math.max(
+      processingMinDays,
+      ...itemProfiles.map((profile) => profile.processingMaxDays),
+    );
+    const transitMinDays = Math.max(
+      0,
+      ...itemProfiles.map((profile) => profile.transitMinDays),
+    );
+    const transitMaxDays = Math.max(
+      transitMinDays,
+      ...itemProfiles.map((profile) => profile.transitMaxDays),
+    );
+
+    const uniqueProfileIds = Array.from(
+      new Set(itemProfiles.map((profile) => profile.id).filter(Boolean)),
+    );
+    const singleProfile =
+      uniqueProfileIds.length <= 1
+        ? itemProfiles.find((profile) => profile.id === uniqueProfileIds[0]) ??
+          itemProfiles[0]
+        : null;
+
+    const shippingProfileSnapshot: ShippingProfileSnapshot = {
+      version: 1,
+      profileId: singleProfile?.id ?? null,
+      name: singleProfile?.name ?? 'Nhiều hồ sơ vận chuyển',
+      carrierName: singleProfile?.carrierName ?? 'Nhiều đơn vị vận chuyển',
+      trackingUrlTemplate:
+        singleProfile?.trackingUrlTemplate ??
+        (uniqueProfileIds.length <= 1
+          ? itemProfiles[0]?.trackingUrlTemplate ?? null
+          : null),
+      processingMinDays,
+      processingMaxDays,
+      transitMinDays,
+      transitMaxDays,
+      itemProfiles: itemProfiles.map((profile) => ({
+        productId: profile.productId,
+        productName: profile.productName,
+        profileId: profile.id,
+        name: profile.name,
+        carrierName: profile.carrierName,
+        processingMinDays: profile.processingMinDays,
+        processingMaxDays: profile.processingMaxDays,
+        transitMinDays: profile.transitMinDays,
+        transitMaxDays: profile.transitMaxDays,
+      })),
+    };
+
+    return {
+      shippingProfileId: singleProfile?.id ?? null,
+      shippingProfileSnapshot,
+      estimatedShipStartAt: this.addDays(baseDate, processingMinDays),
+      estimatedShipEndAt: this.addDays(baseDate, processingMaxDays),
+      estimatedDeliveryStartAt: this.addDays(
+        baseDate,
+        processingMinDays + transitMinDays,
+      ),
+      estimatedDeliveryEndAt: this.addDays(
+        baseDate,
+        processingMaxDays + transitMaxDays,
+      ),
+    };
+  }
+
+  private normalizeShippingProfileSource(
+    profile?: {
+      id: string;
+      name: string;
+      carrierName: string;
+      trackingUrlTemplate: string | null;
+      processingMinDays: number;
+      processingMaxDays: number;
+      transitMinDays: number;
+      transitMaxDays: number;
+      isActive?: boolean;
+      deletedAt?: Date | null;
+    } | null,
+  ): ShippingProfileSource | null {
+    if (!profile || profile.isActive === false || profile.deletedAt) {
+      return null;
+    }
+
+    const processingMinDays = this.normalizeShippingDay(
+      profile.processingMinDays,
+      1,
+    );
+    const processingMaxDays = Math.max(
+      processingMinDays,
+      this.normalizeShippingDay(profile.processingMaxDays, 3),
+    );
+    const transitMinDays = this.normalizeShippingDay(profile.transitMinDays, 2);
+    const transitMaxDays = Math.max(
+      transitMinDays,
+      this.normalizeShippingDay(profile.transitMaxDays, 5),
+    );
+
+    return {
+      id: profile.id,
+      name: profile.name,
+      carrierName: profile.carrierName,
+      trackingUrlTemplate: profile.trackingUrlTemplate ?? null,
+      processingMinDays,
+      processingMaxDays,
+      transitMinDays,
+      transitMaxDays,
+    };
+  }
+
+  private async getSellerDefaultShippingProfile(
+    tx: Prisma.TransactionClient,
+    sellerId: string,
+  ): Promise<ShippingProfileSource | null> {
+    const profile = await tx.shippingProfile.findFirst({
+      where: {
+        sellerId,
+        isDefault: true,
+        isActive: true,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        carrierName: true,
+        trackingUrlTemplate: true,
+        processingMinDays: true,
+        processingMaxDays: true,
+        transitMinDays: true,
+        transitMaxDays: true,
+        isActive: true,
+        deletedAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return this.normalizeShippingProfileSource(profile);
+  }
+
+  private normalizeShippingDay(value: number, fallback: number) {
+    if (!Number.isFinite(value)) {
+      return fallback;
+    }
+
+    return Math.max(0, Math.floor(value));
+  }
+
+  private addDays(date: Date, days: number) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
   }
 
   private async notifyOrderCreated(orderId: string) {
@@ -2210,6 +2579,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     email: true,
     avatar: true,
   };
+  private readonly trackingActorSelect = {
+    id: true,
+    name: true,
+    shopName: true,
+    avatar: true,
+  };
+  private readonly trackingEventActorInclude = {
+    createdBy: { select: this.trackingActorSelect },
+  };
+  private readonly trackingEventsInclude = {
+    include: this.trackingEventActorInclude,
+    orderBy: [
+      { occurredAt: 'asc' as const },
+      { createdAt: 'asc' as const },
+    ],
+  };
 
   private readonly userOrderInclude = {
     seller: { select: this.sellerSelect },
@@ -2228,6 +2613,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         giftWrap: true,
         giftCard: true,
         giftMessage: true,
+        giftWrapTierId: true,
+        giftWrapTierSnapshot: true,
+        giftWrapFee: true,
         paymentMethod: true,
         paymentStatus: true,
       },
@@ -2242,6 +2630,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         giftWrap: true,
         giftCard: true,
         giftMessage: true,
+        giftWrapTierId: true,
+        giftWrapTierSnapshot: true,
+        giftWrapFee: true,
         paymentMethod: true,
         paymentStatus: true,
         customer: { select: this.customerSelect },
@@ -2261,6 +2652,18 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     refunds: true,
   };
 
+  private readonly adminOrderDetailInclude = {
+    customer: { select: this.customerSelect },
+    subOrders: {
+      include: {
+        seller: { select: this.sellerSelect },
+        items: { include: { product: { include: { images: true } } } },
+        trackingEvents: this.trackingEventsInclude,
+      },
+    },
+    refunds: true,
+  };
+
   private readonly subOrderDetailInclude = {
     order: {
       include: {
@@ -2271,6 +2674,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     items: {
       include: { product: { include: { images: true } }, review: true },
     },
+    trackingEvents: this.trackingEventsInclude,
   };
 
   private isAdmin(roles: string[]) {
@@ -2281,12 +2685,92 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return value?.trim() || undefined;
   }
 
+  private trimOptionalText(value?: string | null) {
+    const trimmed = value?.trim();
+    return trimmed || undefined;
+  }
+
   private canAdvanceFromPending(order: Order) {
     if (order.paymentMethod === PaymentMethod.COD) {
       return true;
     }
 
     return order.paymentStatus === PaymentStatus.PAID;
+  }
+
+  private getShipmentStatusEvent(status: OrderStatus) {
+    switch (status) {
+      case OrderStatus.PAID:
+        return {
+          type: ShipmentTrackingEventType.STATUS_UPDATED,
+          title: 'Đơn hàng đã thanh toán',
+          description: 'Thanh toán đã được xác nhận, shop sẽ chuẩn bị hàng.',
+        };
+      case OrderStatus.PROCESSING:
+        return {
+          type: ShipmentTrackingEventType.STATUS_UPDATED,
+          title: 'Shop đang chuẩn bị hàng',
+          description: 'Người bán đang đóng gói và chuẩn bị bàn giao vận chuyển.',
+        };
+      case OrderStatus.SHIPPED:
+        return {
+          type: ShipmentTrackingEventType.LOCATION,
+          title: 'Đơn hàng đang vận chuyển',
+          description: 'Kiện hàng đã được bàn giao cho đơn vị vận chuyển.',
+        };
+      case OrderStatus.DELIVERED:
+        return {
+          type: ShipmentTrackingEventType.DELIVERED,
+          title: 'Đã giao hàng thành công',
+          description: 'Khách hàng đã nhận kiện hàng.',
+        };
+      case OrderStatus.CANCELLED:
+        return {
+          type: ShipmentTrackingEventType.EXCEPTION,
+          title: 'Đơn hàng đã hủy',
+          description: 'Kiện hàng không tiếp tục được xử lý.',
+        };
+      case OrderStatus.PENDING:
+      default:
+        return {
+          type: ShipmentTrackingEventType.STATUS_UPDATED,
+          title: 'Đang chờ xác nhận',
+          description: 'Đơn hàng đang chờ shop xác nhận.',
+        };
+    }
+  }
+
+  private async safeCreateShipmentStatusEvent(params: {
+    subOrderId: string;
+    actorId?: string | null;
+    status: OrderStatus;
+    previousStatus?: OrderStatus;
+  }) {
+    if (params.previousStatus === params.status) {
+      return;
+    }
+
+    const event = this.getShipmentStatusEvent(params.status);
+
+    try {
+      await this.prisma.shipmentTrackingEvent.create({
+        data: {
+          subOrderId: params.subOrderId,
+          createdById: params.actorId || undefined,
+          status: params.status,
+          type: event.type,
+          title: event.title,
+          description: event.description,
+          occurredAt: new Date(),
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create shipment tracking event for subOrder ${params.subOrderId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private assertSubOrderStatusTransition(
@@ -2587,7 +3071,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   async findAdminOrderById(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: this.orderDetailInclude,
+      include: this.adminOrderDetailInclude,
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -2654,6 +3138,63 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
 
     return subOrder;
+  }
+
+  async findSubOrderTrackingEvents(
+    userId: string,
+    roles: string[],
+    subOrderId: string,
+  ) {
+    await this.findSubOrderById(userId, roles, subOrderId);
+
+    return this.prisma.shipmentTrackingEvent.findMany({
+      where: { subOrderId },
+      ...this.trackingEventsInclude,
+    });
+  }
+
+  async createSubOrderTrackingEvent(
+    actorId: string,
+    roles: string[],
+    subOrderId: string,
+    dto: CreateShipmentTrackingEventDto,
+  ) {
+    const subOrder = await this.prisma.subOrder.findUnique({
+      where: { id: subOrderId },
+      select: {
+        id: true,
+        sellerId: true,
+      },
+    });
+
+    if (!subOrder) {
+      throw new NotFoundException('SubOrder not found');
+    }
+
+    if (!this.isAdmin(roles) && subOrder.sellerId !== actorId) {
+      throw new ForbiddenException('Not your order');
+    }
+
+    const title = dto.title.trim();
+    if (!title) {
+      throw new BadRequestException('Tracking title is required');
+    }
+
+    return this.prisma.shipmentTrackingEvent.create({
+      data: {
+        subOrderId,
+        createdById: actorId,
+        status: dto.status,
+        type: dto.type ?? ShipmentTrackingEventType.INFO,
+        title,
+        description: this.trimOptionalText(dto.description),
+        location: this.trimOptionalText(dto.location),
+        carrier: this.trimOptionalText(dto.carrier),
+        trackingCode: this.trimOptionalText(dto.trackingCode),
+        occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : new Date(),
+      },
+      include: this.trackingEventActorInclude,
+    });
   }
 
   async refundOrder(orderId: string, dto: CreateRefundDto) {
@@ -2994,6 +3535,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       return updated;
     });
 
+    await this.safeCreateShipmentStatusEvent({
+      subOrderId,
+      actorId,
+      status,
+      previousStatus: subOrder.status,
+    });
+
     await this.notifySubOrderStatusChanged({
       orderId: subOrder.orderId,
       subOrderId: subOrder.id,
@@ -3022,7 +3570,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return updatedSubOrder;
   }
 
-  async updateAdminOrderStatus(orderId: string, status: OrderStatus) {
+  async updateAdminOrderStatus(
+    orderId: string,
+    status: OrderStatus,
+    actorId?: string,
+  ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -3087,11 +3639,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       const updatedOrder = await tx.order.findUnique({
         where: { id: orderId },
-        include: this.orderDetailInclude,
+        include: this.adminOrderDetailInclude,
       });
 
       return updatedOrder ? this.attachFinancialSummary(updatedOrder) : null;
     });
+
+    await Promise.all(
+      updatableSubOrders.map((subOrder) =>
+        this.safeCreateShipmentStatusEvent({
+          subOrderId: subOrder.id,
+          actorId,
+          status,
+          previousStatus: subOrder.status,
+        }),
+      ),
+    );
 
     await Promise.all(
       updatableSubOrders.map((subOrder) =>

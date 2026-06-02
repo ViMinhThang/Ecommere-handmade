@@ -32,6 +32,8 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Tạo một category hoặc kiểm tra category seed.
 - [ ] Kiểm tra product status và approve/reject nếu có product pending.
 - [ ] Xem orders và reports.
+- [ ] Mở chi tiết một order đã có kiện hàng `SHIPPED`/`DELIVERED`; admin xem được timeline vận chuyển theo từng seller.
+- [ ] Trong chi tiết order admin, thêm cập nhật vận chuyển hỗ trợ cho một kiện hàng khi cần bổ sung mã vận đơn hoặc xử lý khiếu nại.
 - [ ] Xem settings/platform commission.
 - [ ] Xem voucher active `HANDMADE10`, expired `EXPIRED5`, inactive `INACTIVE15`.
 - [ ] Xem flash sale active/upcoming/ended trong admin flash sale page.
@@ -44,6 +46,8 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Sửa một sản phẩm của seller và kiểm tra status cần admin duyệt nếu flow yêu cầu.
 - [ ] Mở seller orders và thấy order COD seed.
 - [ ] Cập nhật order từ `PENDING` sang bước tiếp theo nếu action khả dụng.
+- [ ] Mở chi tiết kiện hàng seller, chọn mẫu cập nhật vận chuyển, chọn vị trí/đơn vị vận chuyển và nhập mã vận đơn. Seller là người cập nhật vận chuyển chính cho kiện hàng của shop mình.
+- [ ] Đổi trạng thái kiện hàng sang `SHIPPED` và kiểm tra timeline tự có event trạng thái mới.
 - [ ] Mở reviews/questions nếu có dữ liệu.
 - [ ] Mở `/seller/custom-orders` và chuyển custom order `SHIPPED` sang `DELIVERED` nếu còn action.
 - [ ] Trong `/seller/custom-orders`, bấm `Tiến độ`, thêm một cập nhật tiến độ có tiêu đề và ghi chú.
@@ -62,9 +66,38 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Apply voucher `EXPIRED5` và xác nhận bị từ chối.
 - [ ] Checkout bằng COD.
 - [ ] Xem order trong profile orders.
+- [ ] Mở chi tiết order và kiểm tra mục “Theo dõi vận chuyển” hiển thị timeline theo kiện hàng.
 - [ ] Hủy pending order nếu action khả dụng.
 - [ ] Mở delivered order seed và kiểm tra review đã có hoặc tạo review nếu chưa có.
 - [ ] Mở chat với seller từ product detail nếu flow khả dụng.
+
+## Shipping Profile / ETA Smoke
+
+- [ ] Seller mở `/dashboard/shipping-profiles`, tạo hồ sơ vận chuyển mới với đơn vị vận chuyển, tracking URL template, thời gian chuẩn bị và thời gian giao.
+- [ ] Seller đặt một hồ sơ vận chuyển làm mặc định; hồ sơ mặc định cũ tự bỏ cờ mặc định.
+- [ ] Seller tắt hoặc xóa mềm một hồ sơ; sản phẩm đang dùng hồ sơ đó không crash và có thể quay về ETA mặc định/hồ sơ khác.
+- [ ] Seller tạo/sửa sản phẩm trong `/dashboard/new-listing` hoặc dialog sản phẩm và chọn hồ sơ vận chuyển.
+- [ ] Product detail hiển thị ETA dự kiến và đơn vị vận chuyển.
+- [ ] Cart và checkout hiển thị ETA theo từng item; tổng tiền, voucher, flash sale và payment không thay đổi.
+- [ ] Checkout COD tạo sub-order có `shippingProfileSnapshot` và `estimatedDeliveryStartAt/EndAt`.
+- [ ] Trang xác nhận đơn hàng dùng ETA từ sub-order thay vì hardcode 3-7 ngày nếu có snapshot.
+- [ ] Customer order detail, seller order detail và admin order detail hiển thị ETA snapshot ngay cả khi seller chỉnh hồ sơ vận chuyển sau đó.
+- [ ] Tracking event thủ công vẫn hoạt động độc lập với Shipping Profile; seller/admin vẫn thêm được mã vận đơn và timeline.
+
+## Gift Wrap Tier / Fee Smoke
+
+- [ ] Admin mở `/dashboard/gift-wrap-tiers`, thấy danh sách mức gói quà, trạng thái active/inactive và phí.
+- [ ] Admin tạo mức gói quà mới với tên, mô tả, phí, thứ tự, tùy chọn kèm thiệp.
+- [ ] Admin sửa mức gói quà; public `GET /v1/gift-wrap-tiers` trả dữ liệu mới nếu tier đang active.
+- [ ] Admin tắt `isActive`; tier không còn hiển thị ở checkout/public API.
+- [ ] Admin xóa tier; tier bị ẩn khỏi admin/public list nhưng đơn cũ vẫn giữ snapshot gói quà.
+- [ ] `GET /v1/gift-wrap-tiers` trả các mức gói quà active theo `sortOrder`.
+- [ ] Checkout hiển thị các mức gói quà, giá tiền và nhãn "Đã gồm thiệp viết tay" nếu tier có `includesCard`.
+- [ ] Bật gói quà nhưng chưa có tier khả dụng thì checkout không tạo đơn.
+- [ ] Chọn tier gói quà, nhập lời nhắn, checkout COD thành công và `Order.totalAmount` gồm `cart.total + shipping fee + giftWrapFee`.
+- [ ] Checkout Stripe tạo PaymentIntent đúng tổng tiền gồm phí gói quà.
+- [ ] Confirmation, customer order detail và seller/admin order detail hiển thị tên tier, phí gói quà, thiệp và lời nhắn theo snapshot.
+- [ ] Đơn cũ không có gói quà vẫn hiển thị bình thường, không có broken UI.
 
 ## Expected Result
 
@@ -97,6 +130,11 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Checkout defaults to COD; Stripe option is disabled when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is not configured.
 - [ ] Checkout summary shows subtotal, voucher discount if applied, shipping fee, total, payment method, and shipping address.
 - [ ] Checkout can save `Gói quà`, `Thiệp viết tay`, and `Lời nhắn`; confirmation, customer order detail, and seller/admin order detail show the same gift snapshot.
+- [ ] Seller creates/edits a product with color, material, size, and processing time options.
+- [ ] Customer selects required product options on product detail before adding to cart.
+- [ ] Cart and checkout show the selected product options without changing price or quantity behavior.
+- [ ] Confirmation, customer order detail, seller order detail, and admin order detail show the selected product option snapshot.
+- [ ] A product without product options still adds to cart and checks out normally.
 - [ ] Product images render on home/discovery/category/product detail/cart/wishlist/profile orders/seller products; missing images show a clean fallback instead of a broken image icon.
 - [ ] Profile order detail opens when an order item has no product image; the fallback icon renders instead of an empty `next/image` source.
 - [ ] Seller can open `/dashboard/orders`, update a standard shop sub-order, and see Vietnamese success/error messages.
@@ -114,6 +152,7 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seed tạo 11 category handmade active có slug và mô tả.
 - [ ] Seed tạo 62 sản phẩm curated và 227 sản phẩm thật từ `backend/prisma/fixtures/handmade-real-products.json`, có sản phẩm approved, pending, rejected và hết hàng.
 - [ ] Seed tạo order COD ở các trạng thái `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`.
+- [ ] Seed tạo shipment tracking events cho ít nhất một kiện hàng `PROCESSING`, một kiện hàng `SHIPPED` có mã vận đơn và một kiện hàng `DELIVERED`; người tạo event mặc định là seller của kiện hàng.
 - [ ] Customer chỉ thấy order của chính mình trong `/profile/orders`.
 - [ ] Seller chỉ thấy/cập nhật sub-order thuộc shop mình trong `/dashboard/orders`.
 - [ ] Admin thấy toàn bộ order trong `/dashboard/orders`.
@@ -178,6 +217,15 @@ Checklist này dùng để kiểm tra nhanh sau khi clone repo, migrate và seed
 - [ ] Seller không tự bật được `artisanVerified` qua profile/storefront edit.
 - [ ] Public `/sellers` hiển thị badge `Nghệ nhân đã xác thực` cho seller seed đã verify.
 - [ ] Public `/sellers/:id` hiển thị badge xác thực, chuyên môn, số năm kinh nghiệm và chất liệu chính.
+
+## Shop Policies Smoke
+
+- [ ] Login seller, mở storefront của chính mình `/sellers/:id`, bật edit và cập nhật `Thời gian xử lý`, `Chính sách vận chuyển`, `Chính sách đổi trả`.
+- [ ] Lưu storefront thành công; tắt edit và thấy block `Chính sách gian hàng` hiển thị đủ 3 mục.
+- [ ] Anonymous mở `/sellers/:id`; thấy chính sách đổi trả, thời gian xử lý và vận chuyển nhưng không thấy form chỉnh sửa.
+- [ ] Anonymous mở một product detail của shop; thấy policy shop ở khu vực thông tin mua hàng nếu shop đã cập nhật.
+- [ ] Login customer, thử gọi `/users/profile` với các field policy bằng API thủ công; backend không ghi policy vì account không phải seller.
+- [ ] Seed demo sau `npm run db:seed` có policy mẫu cho các seller chính, không cần tạo dữ liệu thủ công trước demo.
 ## Shop Voucher / Marketing Smoke
 
 - [ ] Login seller và mở `/seller/marketing`; thấy thống kê voucher shop, bảng voucher, empty/loading/error state.

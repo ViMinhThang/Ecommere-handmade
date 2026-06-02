@@ -3,7 +3,11 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { useCart, useAddToCart, useUpdateCartItem, useRemoveCartItem, useClearCart } from "@/lib/api/hooks";
-import type { CartItem, ProductPersonalization } from "@/types";
+import type {
+  CartItem,
+  ProductPersonalization,
+  ProductSelectedOptions,
+} from "@/types";
 
 export interface AppliedVoucher {
   code: string;
@@ -18,8 +22,18 @@ interface CartContextType {
   total: number;
   isLoading: boolean;
   appliedVoucher: AppliedVoucher | null;
-  addItem: (productId: string, quantity?: number, personalization?: ProductPersonalization) => Promise<void>;
-  updateQuantity: (productId: string, quantity: number, personalization?: ProductPersonalization) => Promise<void>;
+  addItem: (
+    productId: string,
+    quantity?: number,
+    personalization?: ProductPersonalization,
+    selectedOptions?: ProductSelectedOptions,
+  ) => Promise<void>;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    personalization?: ProductPersonalization,
+    selectedOptions?: ProductSelectedOptions,
+  ) => Promise<void>;
   removeItem: (productId: string) => Promise<void>;
   clearCart: () => Promise<void>;
   setAppliedVoucher: (voucher: AppliedVoucher | null) => void;
@@ -51,16 +65,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     productId: string,
     quantity = 1,
     personalization?: ProductPersonalization,
+    selectedOptions?: ProductSelectedOptions,
   ) => {
-    await addToCartMutation.mutateAsync({ productId, quantity, personalization });
+    await addToCartMutation.mutateAsync({
+      productId,
+      quantity,
+      personalization,
+      selectedOptions,
+    });
   };
 
   const updateQuantity = async (
     productId: string,
     quantity: number,
     personalization?: ProductPersonalization,
+    selectedOptions?: ProductSelectedOptions,
   ) => {
-    await updateCartItemMutation.mutateAsync({ productId, quantity, personalization });
+    await updateCartItemMutation.mutateAsync({
+      productId,
+      quantity,
+      personalization,
+      selectedOptions,
+    });
   };
 
   const removeItem = async (productId: string) => {

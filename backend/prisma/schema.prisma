@@ -46,6 +46,14 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum ShipmentTrackingEventType {
+  STATUS_UPDATED
+  INFO
+  LOCATION
+  EXCEPTION
+  DELIVERED
+}
+
 enum PaymentMethod {
   STRIPE
   COD
@@ -166,73 +174,79 @@ enum CommissionProposalStatus {
 }
 
 model User {
-  id                    String                      @id @default(uuid())
-  name                  String
-  email                 String                      @unique
-  password              String
-  roles                 Role[]                      @default([ROLE_USER])
-  status                UserStatus                  @default(ACTIVE)
-  avatar                String?
-  phone                 String?
-  shopName              String?
-  sellerTitle           String?
-  sellerBio             String?
-  sellerAbout           String?
-  sellerHeroImage       String?
-  sellerAboutImage      String?
-  sellerStat1Label      String?
-  sellerStat1Value      String?
-  sellerStat2Label      String?
-  sellerStat2Value      String?
-  artisanVerified       Boolean                     @default(false)
-  craftSpecialty        String?
-  craftExperienceYears  Int?
-  craftMaterials        String[]                    @default([])
-  verificationNote      String?
-  otpCode               String?
-  otpExpires            DateTime?
-  isEmailVerified       Boolean                     @default(false)
-  rewardPointsBalance   Int                         @default(0)
-  deletedAt             DateTime?
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  addresses             Address[]
-  sellerProducts        Product[]                   @relation("Product_sellerId_fkey")
-  folders               ImageFolder[]
-  refreshTokens         RefreshToken[]
-  cart                  Cart?
-  customerConversations ChatConversation[]          @relation("ChatConversationCustomer")
-  sellerConversations   ChatConversation[]          @relation("ChatConversationSeller")
-  sentChatMessages      ChatMessage[]               @relation("ChatMessageSender")
-  chatReadStates        ChatConversationReadState[] @relation("ChatConversationReadUser")
-  Order                 Order[]
-  SubOrder              SubOrder[]
-  customerCustomOrders  CustomOrder[]               @relation("CustomerCustomOrders")
-  sellerCustomOrders    CustomOrder[]               @relation("SellerCustomOrders")
-  quoteTemplates        CustomOrderQuoteTemplate[]  @relation("SellerQuoteTemplates")
-  reviews               Review[]
-  productQuestions      ProductQuestion[]           @relation("ProductQuestionUser")
-  answeredQuestions     ProductQuestion[]           @relation("ProductQuestionAnsweredBy")
-  wishlistItems         WishlistItem[]
-  followedShops         ShopFollow[]                @relation("ShopFollowCustomer")
-  shopFollowers         ShopFollow[]                @relation("ShopFollowSeller")
-  shopReviewsWritten    ShopReview[]                @relation("ShopReviewsWritten")
-  shopReviewsReceived   ShopReview[]                @relation("ShopReviewsReceived")
-  customerLedgerEntries MarketplaceLedgerEntry[]    @relation("LedgerEntryCustomer")
-  sellerLedgerEntries   MarketplaceLedgerEntry[]    @relation("LedgerEntrySeller")
-  rewardPointLedger     RewardPointLedger[]         @relation("RewardPointLedgerUser")
-  reportsFiled          Report[]                    @relation("ReportReporter")
-  reportsTargetingUser  Report[]                    @relation("ReportTargetUser")
-  reportsResolved       Report[]                    @relation("ReportResolvedBy")
-  sellerPayouts         SellerPayout[]              @relation("SellerPayoutSeller")
-  sellerVouchers        Voucher[]                   @relation("SellerVouchers")
-  voucherUsages         VoucherUsage[]              @relation("UserVoucherUsages")
-  flashSaleUsages       FlashSaleUserUsage[]
-  commissionPosts       CommissionPost[]            @relation("CommissionPostCustomer")
-  commissionProposals   CommissionProposal[]        @relation("CommissionProposalSeller")
-  notifications         Notification[]              @relation("UserNotifications")
-  customOrderProgress   CustomOrderProgressEvent[]  @relation("CustomOrderProgressActor")
-  customOrderReviews    CustomOrderReview[]         @relation("CustomOrderReviews")
+  id                     String                      @id @default(uuid())
+  name                   String
+  email                  String                      @unique
+  password               String
+  roles                  Role[]                      @default([ROLE_USER])
+  status                 UserStatus                  @default(ACTIVE)
+  avatar                 String?
+  phone                  String?
+  shopName               String?
+  sellerTitle            String?
+  sellerBio              String?
+  sellerAbout            String?
+  sellerHeroImage        String?
+  sellerAboutImage       String?
+  sellerStat1Label       String?
+  sellerStat1Value       String?
+  sellerStat2Label       String?
+  sellerStat2Value       String?
+  artisanVerified        Boolean                     @default(false)
+  craftSpecialty         String?
+  craftExperienceYears   Int?
+  craftMaterials         String[]                    @default([])
+  shopReturnPolicy       String?                     @db.Text
+  shopShippingPolicy     String?                     @db.Text
+  shopProcessingTime     String?
+  shopPolicyUpdatedAt    DateTime?
+  verificationNote       String?
+  otpCode                String?
+  otpExpires             DateTime?
+  isEmailVerified        Boolean                     @default(false)
+  rewardPointsBalance    Int                         @default(0)
+  deletedAt              DateTime?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  addresses              Address[]
+  sellerProducts         Product[]                   @relation("Product_sellerId_fkey")
+  shippingProfiles       ShippingProfile[]           @relation("ShippingProfileSeller")
+  folders                ImageFolder[]
+  refreshTokens          RefreshToken[]
+  cart                   Cart?
+  customerConversations  ChatConversation[]          @relation("ChatConversationCustomer")
+  sellerConversations    ChatConversation[]          @relation("ChatConversationSeller")
+  sentChatMessages       ChatMessage[]               @relation("ChatMessageSender")
+  chatReadStates         ChatConversationReadState[] @relation("ChatConversationReadUser")
+  Order                  Order[]
+  SubOrder               SubOrder[]
+  customerCustomOrders   CustomOrder[]               @relation("CustomerCustomOrders")
+  sellerCustomOrders     CustomOrder[]               @relation("SellerCustomOrders")
+  quoteTemplates         CustomOrderQuoteTemplate[]  @relation("SellerQuoteTemplates")
+  reviews                Review[]
+  productQuestions       ProductQuestion[]           @relation("ProductQuestionUser")
+  answeredQuestions      ProductQuestion[]           @relation("ProductQuestionAnsweredBy")
+  wishlistItems          WishlistItem[]
+  followedShops          ShopFollow[]                @relation("ShopFollowCustomer")
+  shopFollowers          ShopFollow[]                @relation("ShopFollowSeller")
+  shopReviewsWritten     ShopReview[]                @relation("ShopReviewsWritten")
+  shopReviewsReceived    ShopReview[]                @relation("ShopReviewsReceived")
+  customerLedgerEntries  MarketplaceLedgerEntry[]    @relation("LedgerEntryCustomer")
+  sellerLedgerEntries    MarketplaceLedgerEntry[]    @relation("LedgerEntrySeller")
+  rewardPointLedger      RewardPointLedger[]         @relation("RewardPointLedgerUser")
+  reportsFiled           Report[]                    @relation("ReportReporter")
+  reportsTargetingUser   Report[]                    @relation("ReportTargetUser")
+  reportsResolved        Report[]                    @relation("ReportResolvedBy")
+  sellerPayouts          SellerPayout[]              @relation("SellerPayoutSeller")
+  sellerVouchers         Voucher[]                   @relation("SellerVouchers")
+  voucherUsages          VoucherUsage[]              @relation("UserVoucherUsages")
+  flashSaleUsages        FlashSaleUserUsage[]
+  commissionPosts        CommissionPost[]            @relation("CommissionPostCustomer")
+  commissionProposals    CommissionProposal[]        @relation("CommissionProposalSeller")
+  notifications          Notification[]              @relation("UserNotifications")
+  customOrderProgress    CustomOrderProgressEvent[]  @relation("CustomOrderProgressActor")
+  customOrderReviews     CustomOrderReview[]         @relation("CustomOrderReviews")
+  shipmentTrackingEvents ShipmentTrackingEvent[]     @relation("ShipmentTrackingEventActor")
 
   @@index([status])
 }
@@ -300,6 +314,12 @@ model Product {
   personalizationRequired     Boolean                   @default(false)
   personalizationInstructions String?                   @db.Text
   personalizationMaxLength    Int                       @default(120)
+  optionColors                String[]                  @default([])
+  optionMaterials             String[]                  @default([])
+  optionSizes                 String[]                  @default([])
+  processingTime              String?
+  shippingProfileId           String?
+  shippingProfile             ShippingProfile?          @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
   viewCount                   Int                       @default(0)
   deletedAt                   DateTime?
   createdAt                   DateTime                  @default(now())
@@ -319,6 +339,30 @@ model Product {
   @@index([sellerId])
   @@index([categoryId])
   @@index([status])
+  @@index([shippingProfileId])
+}
+
+model ShippingProfile {
+  id                  String     @id @default(uuid())
+  sellerId            String
+  seller              User       @relation("ShippingProfileSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  name                String
+  carrierName         String
+  trackingUrlTemplate String?
+  processingMinDays   Int        @default(1)
+  processingMaxDays   Int        @default(3)
+  transitMinDays      Int        @default(2)
+  transitMaxDays      Int        @default(5)
+  isDefault           Boolean    @default(false)
+  isActive            Boolean    @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  products            Product[]
+  subOrders           SubOrder[]
+
+  @@index([sellerId, isActive, isDefault])
+  @@index([sellerId, createdAt])
 }
 
 model WishlistItem {
@@ -681,6 +725,7 @@ model CartItem {
   product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity        Int      @default(1)
   personalization Json?
+  selectedOptions Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -709,6 +754,10 @@ model Order {
   giftWrap               Boolean                  @default(false)
   giftCard               Boolean                  @default(false)
   giftMessage            String?                  @db.Text
+  giftWrapTierId         String?
+  giftWrapTier           GiftWrapTier?            @relation(fields: [giftWrapTierId], references: [id], onDelete: SetNull)
+  giftWrapTierSnapshot   Json?
+  giftWrapFee            Decimal                  @default(0)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   subOrders              SubOrder[]
@@ -720,25 +769,75 @@ model Order {
 
   @@unique([customerId, checkoutIdempotencyKey])
   @@index([customerId])
+  @@index([giftWrapTierId])
+}
+
+model GiftWrapTier {
+  id           String    @id @default(uuid())
+  name         String
+  description  String?   @db.Text
+  price        Decimal   @default(0)
+  includesCard Boolean   @default(false)
+  sortOrder    Int       @default(0)
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt])
 }
 
 model SubOrder {
-  id             String                   @id @default(uuid())
-  orderId        String
-  order          Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sellerId       String
-  seller         User                     @relation(fields: [sellerId], references: [id])
-  subTotal       Decimal
-  discountAmount Decimal                  @default(0)
-  status         OrderStatus              @default(PENDING)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  items          OrderItem[]
-  ledgerEntries  MarketplaceLedgerEntry[]
-  refunds        Refund[]
+  id                       String                   @id @default(uuid())
+  orderId                  String
+  order                    Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerId                 String
+  seller                   User                     @relation(fields: [sellerId], references: [id])
+  subTotal                 Decimal
+  discountAmount           Decimal                  @default(0)
+  status                   OrderStatus              @default(PENDING)
+  shippingProfileId        String?
+  shippingProfile          ShippingProfile?         @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
+  shippingProfileSnapshot  Json?
+  estimatedShipStartAt     DateTime?
+  estimatedShipEndAt       DateTime?
+  estimatedDeliveryStartAt DateTime?
+  estimatedDeliveryEndAt   DateTime?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  items                    OrderItem[]
+  ledgerEntries            MarketplaceLedgerEntry[]
+  refunds                  Refund[]
+  trackingEvents           ShipmentTrackingEvent[]
 
   @@index([orderId])
   @@index([sellerId])
+  @@index([shippingProfileId])
+  @@index([estimatedDeliveryStartAt, estimatedDeliveryEndAt])
+}
+
+model ShipmentTrackingEvent {
+  id           String                    @id @default(uuid())
+  subOrderId   String
+  subOrder     SubOrder                  @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+  createdById  String?
+  createdBy    User?                     @relation("ShipmentTrackingEventActor", fields: [createdById], references: [id], onDelete: SetNull)
+  status       OrderStatus?
+  type         ShipmentTrackingEventType @default(INFO)
+  title        String
+  description  String?                   @db.Text
+  location     String?
+  carrier      String?
+  trackingCode String?
+  occurredAt   DateTime                  @default(now())
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  @@index([subOrderId, occurredAt])
+  @@index([createdById, createdAt])
+  @@index([status, occurredAt])
 }
 
 model OrderItem {
@@ -754,6 +853,7 @@ model OrderItem {
   flashSaleId              String?
   flashSaleDiscountPercent Decimal?
   personalization          Json?
+  selectedOptions          Json?
 
   review Review?
 

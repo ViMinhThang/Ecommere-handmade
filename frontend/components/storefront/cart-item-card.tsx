@@ -7,6 +7,8 @@ import type { Product, ProductImage } from "@/types";
 import { mediaApi } from "@/lib/api/media";
 import { SafeImage } from "@/components/ui/safe-image";
 import { PersonalizationNote } from "@/components/storefront/personalization-note";
+import { ProductOptionsNote } from "@/components/storefront/product-options-note";
+import { ShippingEtaNote } from "@/components/storefront/shipping-eta-note";
 
 function getProductImageUrl(product: Product): string {
   const mainImage = product.images?.find((img: ProductImage) => img.isMain);
@@ -29,6 +31,7 @@ interface CartItemCardProps {
       flashSaleId: string | null;
     };
     personalization?: unknown;
+    selectedOptions?: unknown;
   };
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemove: (productId: string) => void;
@@ -86,6 +89,8 @@ export function CartItemCard({
               {item.product.category?.name || "Tác phẩm Thủ công"}
             </p>
             <PersonalizationNote personalization={item.personalization} compact />
+            <ProductOptionsNote selectedOptions={item.selectedOptions} compact />
+            <ShippingEtaNote profile={item.product.shippingProfile} compact />
           </div>
           <button
             onClick={() => onRemove(item.productId)}

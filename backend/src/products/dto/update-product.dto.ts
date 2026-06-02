@@ -83,4 +83,28 @@ export class UpdateProductDto {
   @Min(1)
   @Max(1000)
   personalizationMaxLength?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optionColors?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optionMaterials?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optionSizes?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  processingTime?: string;
+
+  @IsOptional()
+  @IsString()
+  shippingProfileId?: string;
 }

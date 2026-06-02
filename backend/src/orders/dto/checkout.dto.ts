@@ -71,6 +71,11 @@ export class CheckoutDto {
   giftWrap?: boolean;
 
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  giftWrapTierId?: string;
+
+  @IsOptional()
   @IsBoolean()
   giftCard?: boolean;
 

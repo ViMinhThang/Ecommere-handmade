@@ -15,6 +15,7 @@ import { shopFollowApi } from "./shop-follow";
 import { ordersApi } from "./orders";
 import type {
   AdminOrderFilters,
+  CreateShipmentTrackingEventPayload,
   OrderStatus as ApiOrderStatus,
 } from "./orders";
 import { analyticsApi } from "./analytics";
@@ -39,6 +40,16 @@ import {
   type CreateCustomOrderQuoteTemplateDto,
   type UpdateCustomOrderQuoteTemplateDto,
 } from "./custom-order-quote-templates";
+import {
+  shippingProfilesApi,
+  type CreateShippingProfileDto,
+  type UpdateShippingProfileDto,
+} from "./shipping-profiles";
+import {
+  giftWrapTiersApi,
+  type CreateGiftWrapTierDto,
+  type UpdateGiftWrapTierDto,
+} from "./gift-wrap-tiers";
 import { paymentsApi } from "./payments";
 import { settingsApi } from "./settings";
 import {
@@ -125,6 +136,69 @@ export const productKeys = {
   questions: (productId: string, params?: { page?: number; limit?: number }) =>
     [...productKeys.detail(productId), "questions", { ...params }] as const,
 };
+
+export const shippingProfileKeys = {
+  all: ["shipping-profiles"] as const,
+  mine: () => [...shippingProfileKeys.all, "mine"] as const,
+};
+
+export const giftWrapTierKeys = {
+  all: ["gift-wrap-tiers"] as const,
+  public: () => [...giftWrapTierKeys.all, "public"] as const,
+  admin: () => [...giftWrapTierKeys.all, "admin"] as const,
+};
+
+export function useGiftWrapTiers() {
+  return useQuery({
+    queryKey: giftWrapTierKeys.public(),
+    queryFn: () => giftWrapTiersApi.getPublic(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAdminGiftWrapTiers(enabled = true) {
+  return useQuery({
+    queryKey: giftWrapTierKeys.admin(),
+    queryFn: () => giftWrapTiersApi.getAdminAll(),
+    enabled,
+  });
+}
+
+export function useCreateGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateGiftWrapTierDto) => giftWrapTiersApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
+
+export function useUpdateGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateGiftWrapTierDto;
+    }) => giftWrapTiersApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
+
+export function useDeleteGiftWrapTier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => giftWrapTiersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: giftWrapTierKeys.all });
+    },
+  });
+}
 
 export function useUsers(params?: {
   role?: UserRole;
@@ -505,6 +579,64 @@ export function useProductStats() {
   return useQuery({
     queryKey: productKeys.stats(),
     queryFn: () => productsApi.getStats(),
+  });
+}
+
+export function useShippingProfiles() {
+  return useQuery({
+    queryKey: shippingProfileKeys.mine(),
+    queryFn: () => shippingProfilesApi.listMine(),
+  });
+}
+
+export function useCreateShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateShippingProfileDto) =>
+      shippingProfilesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useUpdateShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateShippingProfileDto;
+    }) => shippingProfilesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useSetDefaultShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => shippingProfilesApi.setDefault(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useDeleteShippingProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => shippingProfilesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
   });
 }
 
@@ -1005,11 +1137,18 @@ export function useAddToCart() {
       productId,
       quantity,
       personalization,
+      selectedOptions,
     }: {
       productId: string;
       quantity?: number;
       personalization?: { text?: string | null };
-    }) => cartApi.addItem(productId, quantity || 1, personalization),
+      selectedOptions?: {
+        color?: string | null;
+        material?: string | null;
+        size?: string | null;
+        processingTime?: string | null;
+      };
+    }) => cartApi.addItem(productId, quantity || 1, personalization, selectedOptions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -1023,11 +1162,18 @@ export function useUpdateCartItem() {
       productId,
       quantity,
       personalization,
+      selectedOptions,
     }: {
       productId: string;
       quantity: number;
       personalization?: { text?: string | null };
-    }) => cartApi.updateItem(productId, quantity, personalization),
+      selectedOptions?: {
+        color?: string | null;
+        material?: string | null;
+        size?: string | null;
+        processingTime?: string | null;
+      };
+    }) => cartApi.updateItem(productId, quantity, personalization, selectedOptions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -1314,6 +1460,8 @@ export const orderKeys = {
   orderDetail: (id: string) => [...orderKeys.orderDetails(), id] as const,
   subOrderDetails: () => [...orderKeys.all, "sub-order-detail"] as const,
   subOrderDetail: (id: string) => [...orderKeys.subOrderDetails(), id] as const,
+  subOrderTracking: (id: string) =>
+    [...orderKeys.subOrderDetail(id), "tracking"] as const,
   adminDetails: () => [...orderKeys.all, "admin-detail"] as const,
   adminDetail: (id: string) => [...orderKeys.adminDetails(), id] as const,
   adminLedger: (id: string) =>
@@ -1487,6 +1635,14 @@ export function useSubOrder(id: string, enabled = true) {
   });
 }
 
+export function useSubOrderTrackingEvents(id: string, enabled = true) {
+  return useQuery({
+    queryKey: orderKeys.subOrderTracking(id),
+    queryFn: () => ordersApi.getSubOrderTrackingEvents(id),
+    enabled: !!id && enabled,
+  });
+}
+
 export function useSellerOrders(enabled = true) {
   return useQuery({
     queryKey: orderKeys.seller(),
@@ -1528,6 +1684,24 @@ export function useUpdateSubOrderStatus() {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
       queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
+    },
+  });
+}
+
+export function useCreateSubOrderTrackingEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: CreateShipmentTrackingEventPayload;
+    }) => ordersApi.createSubOrderTrackingEvent(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
+      queryClient.invalidateQueries({ queryKey: orderKeys.subOrderTracking(id) });
     },
   });
 }

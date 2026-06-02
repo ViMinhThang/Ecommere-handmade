@@ -1,6 +1,9 @@
 import { IsInt, Min, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CartItemPersonalizationDto } from './add-to-cart.dto';
+import {
+  CartItemPersonalizationDto,
+  CartItemSelectedOptionsDto,
+} from './add-to-cart.dto';
 
 export class UpdateCartItemDto {
   @IsInt()
@@ -11,4 +14,9 @@ export class UpdateCartItemDto {
   @ValidateNested()
   @Type(() => CartItemPersonalizationDto)
   personalization?: CartItemPersonalizationDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CartItemSelectedOptionsDto)
+  selectedOptions?: CartItemSelectedOptionsDto;
 }

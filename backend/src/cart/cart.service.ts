@@ -24,12 +24,23 @@ interface PersonalizationSnapshot {
   text: string;
 }
 
+interface SelectedOptionsSnapshot {
+  color?: string;
+  material?: string;
+  size?: string;
+  processingTime?: string;
+}
+
 type PurchasableProductForCart = Prisma.ProductGetPayload<{
   select: {
     id: true;
     personalizationEnabled: true;
     personalizationRequired: true;
     personalizationMaxLength: true;
+    optionColors: true;
+    optionMaterials: true;
+    optionSizes: true;
+    processingTime: true;
   };
 }>;
 
@@ -47,6 +58,7 @@ type CartWithItems = Prisma.CartGetPayload<{
           include: {
             images: true;
             category: true;
+            shippingProfile: true;
             seller: {
               select: {
                 id: true;
@@ -91,6 +103,7 @@ export class CartService {
           include: {
             images: true,
             category: true,
+            shippingProfile: true,
             seller: {
               select: {
                 id: true,
@@ -266,8 +279,14 @@ export class CartService {
       product,
       dto.personalization,
     );
+    const selectedOptions = this.normalizeSelectedOptions(
+      product,
+      dto.selectedOptions,
+    );
     const shouldWritePersonalization =
       dto.personalization !== undefined || product.personalizationRequired;
+    const shouldWriteSelectedOptions =
+      dto.selectedOptions !== undefined || this.productHasOptionMetadata(product);
 
     const existingItem = await this.prisma.cartItem.findUnique({
       where: {
@@ -292,6 +311,12 @@ export class CartService {
                   this.toPersonalizationJsonValue(personalization),
               }
             : {}),
+          ...(shouldWriteSelectedOptions
+            ? {
+                selectedOptions:
+                  this.toSelectedOptionsJsonValue(selectedOptions),
+              }
+            : {}),
         },
       });
     }
@@ -305,6 +330,12 @@ export class CartService {
           ? {
               personalization:
                 personalization as unknown as Prisma.InputJsonValue,
+            }
+          : {}),
+        ...(selectedOptions
+          ? {
+              selectedOptions:
+                selectedOptions as unknown as Prisma.InputJsonValue,
             }
           : {}),
       },
@@ -343,6 +374,10 @@ export class CartService {
       dto.personalization === undefined
         ? undefined
         : this.normalizePersonalization(product, dto.personalization);
+    const selectedOptions =
+      dto.selectedOptions === undefined
+        ? undefined
+        : this.normalizeSelectedOptions(product, dto.selectedOptions);
 
     if (
       dto.personalization === undefined &&
@@ -354,6 +389,16 @@ export class CartService {
       );
     }
 
+    if (
+      dto.selectedOptions === undefined &&
+      this.productHasSelectableOptions(product) &&
+      !this.hasSelectedOptionsForProduct(item.selectedOptions, product)
+    ) {
+      throw new BadRequestException(
+        'Selected product options are required for this product',
+      );
+    }
+
     return this.prisma.cartItem.update({
       where: { id: item.id },
       data: {
@@ -362,6 +407,13 @@ export class CartService {
           ? {
               personalization: this.toPersonalizationJsonValue(
                 personalization ?? null,
+              ),
+            }
+          : {}),
+        ...(dto.selectedOptions !== undefined
+          ? {
+              selectedOptions: this.toSelectedOptionsJsonValue(
+                selectedOptions ?? null,
               ),
             }
           : {}),
@@ -514,6 +566,10 @@ export class CartService {
         personalizationEnabled: true,
         personalizationRequired: true,
         personalizationMaxLength: true,
+        optionColors: true,
+        optionMaterials: true,
+        optionSizes: true,
+        processingTime: true,
       },
     });
 
@@ -572,6 +628,138 @@ export class CartService {
     return personalization
       ? (personalization as unknown as Prisma.InputJsonValue)
       : Prisma.DbNull;
+  }
+
+  private normalizeSelectedOptions(
+    product: PurchasableProductForCart,
+    selectedOptions?: AddToCartDto['selectedOptions'],
+  ): SelectedOptionsSnapshot | null {
+    const color = this.sanitizeOptionText(selectedOptions?.color);
+    const material = this.sanitizeOptionText(selectedOptions?.material);
+    const size = this.sanitizeOptionText(selectedOptions?.size);
+    const processingTime = this.sanitizeOptionText(product.processingTime);
+
+    if (!this.productHasOptionMetadata(product)) {
+      if (color || material || size) {
+        throw new BadRequestException(
+          'Product options are not enabled for this product',
+        );
+      }
+
+      return null;
+    }
+
+    const snapshot: SelectedOptionsSnapshot = {};
+    this.assignRequiredOption(snapshot, 'color', color, product.optionColors);
+    this.assignRequiredOption(
+      snapshot,
+      'material',
+      material,
+      product.optionMaterials,
+    );
+    this.assignRequiredOption(snapshot, 'size', size, product.optionSizes);
+
+    if (color && !product.optionColors.length) {
+      throw new BadRequestException('Color option is not available');
+    }
+
+    if (material && !product.optionMaterials.length) {
+      throw new BadRequestException('Material option is not available');
+    }
+
+    if (size && !product.optionSizes.length) {
+      throw new BadRequestException('Size option is not available');
+    }
+
+    if (processingTime) {
+      snapshot.processingTime = processingTime;
+    }
+
+    return Object.keys(snapshot).length ? snapshot : null;
+  }
+
+  private assignRequiredOption(
+    snapshot: SelectedOptionsSnapshot,
+    field: 'color' | 'material' | 'size',
+    value: string,
+    availableOptions: string[],
+  ) {
+    if (availableOptions.length === 0) {
+      return;
+    }
+
+    if (!value) {
+      throw new BadRequestException(`Product ${field} option is required`);
+    }
+
+    const normalizedValue = value.toLocaleLowerCase('vi-VN');
+    const matchedOption = availableOptions.find(
+      (option) =>
+        this.sanitizeOptionText(option).toLocaleLowerCase('vi-VN') ===
+        normalizedValue,
+    );
+
+    if (!matchedOption) {
+      throw new BadRequestException(`Invalid product ${field} option`);
+    }
+
+    snapshot[field] = this.sanitizeOptionText(matchedOption);
+  }
+
+  private sanitizeOptionText(value: unknown) {
+    return typeof value === 'string'
+      ? value
+          .replace(/<\s*(script|style)[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+          .replace(/<[^>]*>/g, '')
+          .trim()
+      : '';
+  }
+
+  private productHasSelectableOptions(product: PurchasableProductForCart) {
+    return (
+      product.optionColors.length > 0 ||
+      product.optionMaterials.length > 0 ||
+      product.optionSizes.length > 0
+    );
+  }
+
+  private productHasOptionMetadata(product: PurchasableProductForCart) {
+    return (
+      this.productHasSelectableOptions(product) ||
+      this.sanitizeOptionText(product.processingTime).length > 0
+    );
+  }
+
+  private toSelectedOptionsJsonValue(
+    selectedOptions: SelectedOptionsSnapshot | null,
+  ) {
+    return selectedOptions
+      ? (selectedOptions as unknown as Prisma.InputJsonValue)
+      : Prisma.DbNull;
+  }
+
+  private hasSelectedOptionsForProduct(
+    value: Prisma.JsonValue | null,
+    product: PurchasableProductForCart,
+  ) {
+    if (!this.productHasSelectableOptions(product)) {
+      return true;
+    }
+
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return false;
+    }
+
+    const selected = value as SelectedOptionsSnapshot;
+
+    return (
+      (!product.optionColors.length ||
+        this.sanitizeOptionText(selected.color).length > 0) &&
+      (!product.optionMaterials.length ||
+        this.sanitizeOptionText(selected.material).length > 0) &&
+      (!product.optionSizes.length ||
+        this.sanitizeOptionText(selected.size).length > 0)
+    );
   }
 
   private hasPersonalizationText(value: Prisma.JsonValue | null) {

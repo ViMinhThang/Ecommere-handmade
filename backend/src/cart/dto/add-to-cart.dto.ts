@@ -14,6 +14,24 @@ export class CartItemPersonalizationDto {
   text?: string;
 }
 
+export class CartItemSelectedOptionsDto {
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @IsString()
+  material?: string;
+
+  @IsOptional()
+  @IsString()
+  size?: string;
+
+  @IsOptional()
+  @IsString()
+  processingTime?: string;
+}
+
 export class AddToCartDto {
   @IsNotEmpty()
   @IsString()
@@ -27,4 +45,9 @@ export class AddToCartDto {
   @ValidateNested()
   @Type(() => CartItemPersonalizationDto)
   personalization?: CartItemPersonalizationDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CartItemSelectedOptionsDto)
+  selectedOptions?: CartItemSelectedOptionsDto;
 }
