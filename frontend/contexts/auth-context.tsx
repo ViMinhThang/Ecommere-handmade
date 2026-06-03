@@ -17,8 +17,8 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (data: LoginData) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
+  login: (data: LoginData) => Promise<AuthUser>;
+  loginWithGoogle: (idToken: string) => Promise<AuthUser>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -146,16 +146,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
     setUser(response.user);
     scheduleTokenRefresh(response.accessToken);
+    return response.user;
   }, [scheduleTokenRefresh]);
 
   const login = useCallback(async (data: LoginData) => {
     const response = await authApi.login(data);
-    await applyAuthSession(response);
+    return applyAuthSession(response);
   }, [applyAuthSession]);
 
   const loginWithGoogle = useCallback(async (idToken: string) => {
     const response = await authApi.googleLogin({ idToken });
-    await applyAuthSession(response);
+    return applyAuthSession(response);
   }, [applyAuthSession]);
 
   const register = useCallback(async (data: RegisterData) => {
