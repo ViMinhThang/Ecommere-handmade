@@ -17,6 +17,7 @@ import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { getSafeRedirectPath } from "@/lib/safe-redirect";
+import type { AuthUser } from "@/lib/api/auth";
 
 let isGoogleIdentityInitialized = false;
 let initializedGoogleClientId: string | null = null;
@@ -28,6 +29,7 @@ function LoginPageContent() {
   const { login, loginWithGoogle } = useAuth();
 
   const redirectTo = getSafeRedirectPath(searchParams.get("redirect"));
+  const hasExplicitRedirect = Boolean(searchParams.get("redirect"));
   const demoAdminEmail = process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL;
   const demoAdminPassword = process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD;
   const showDemoCredentials =
@@ -45,6 +47,21 @@ function LoginPageContent() {
   const [googleUnavailable, setGoogleUnavailable] = useState(false);
   const [isGoogleScriptLoaded, setIsGoogleScriptLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const getPostLoginPath = useCallback(
+    (user: AuthUser) => {
+      if (hasExplicitRedirect) {
+        return redirectTo;
+      }
+
+      if (user.roles.includes("ROLE_ADMIN")) {
+        return "/dashboard";
+      }
+
+      return "/";
+    },
+    [hasExplicitRedirect, redirectTo],
+  );
 
   const initializeGoogleSignIn = useCallback(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -77,8 +94,8 @@ function LoginPageContent() {
 
             setIsGoogleLoading(true);
             setError("");
-            await loginWithGoogle(credential);
-            router.push(redirectTo);
+            const user = await loginWithGoogle(credential);
+            router.push(getPostLoginPath(user));
           } catch (err) {
             setError(
               err instanceof Error ? err.message : "Đăng nhập Google thất bại",
@@ -124,7 +141,7 @@ function LoginPageContent() {
       setIsGoogleReady(false);
       setGoogleUnavailable(true);
     }
-  }, [loginWithGoogle, redirectTo, router, theme]);
+  }, [getPostLoginPath, loginWithGoogle, router, theme]);
 
   useEffect(() => {
     if (window.google?.accounts?.id) {
@@ -150,8 +167,8 @@ function LoginPageContent() {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
-      router.push(redirectTo);
+      const user = await login({ email, password });
+      router.push(getPostLoginPath(user));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đăng nhập thất bại");
     } finally {
