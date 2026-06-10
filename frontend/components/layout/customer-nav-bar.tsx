@@ -6,6 +6,7 @@ import { useState, useSyncExternalStore } from "react";
 import {
   ChevronDown,
   ClipboardList,
+  Coins,
   CreditCard,
   ExternalLink,
   Heart,
@@ -32,6 +33,7 @@ import type { Product } from "@/types";
 const profileMenuItems = [
   { href: "/profile/settings", label: "Chi tiết hồ sơ", icon: User },
   { href: "/profile/payments", label: "Phương thức thanh toán", icon: CreditCard },
+  { href: "/profile/rewards", label: "Điểm thưởng của tôi", icon: Coins },
   { href: "/profile/orders", label: "Lịch sử đơn hàng", icon: ShoppingBag },
   { href: "/profile/commissions", label: "Yêu cầu commission", icon: ClipboardList },
   { href: "/profile/custom-orders", label: "Đồ thiết kế riêng", icon: PenTool },

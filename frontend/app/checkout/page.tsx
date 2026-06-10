@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import { apiClient } from "@/lib/api/client";
 import { PaymentForm } from "@/components/checkout/payment-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -14,9 +13,11 @@ import {
   useAddAddress,
   useCart,
   useGiftWrapTiers,
+  useRewardBalance,
   cartKeys,
 } from "@/lib/api/hooks";
 import { cartApi } from "@/lib/api/cart";
+import { ordersApi } from "@/lib/api/orders";
 import { mediaApi } from "@/lib/api/media";
 import { formatCurrency } from "@/lib/utils";
 import type { Address } from "@/types";
@@ -38,6 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2,
+  Coins,
   Gift,
   MapPin,
   MessageSquareText,
@@ -57,13 +59,6 @@ const stripePromise = isStripeConfigured
   : Promise.resolve(null);
 
 type CheckoutPaymentMethod = "STRIPE" | "COD";
-
-interface CheckoutResponse {
-  clientSecret?: string;
-  orderId: string;
-  paymentMethod: CheckoutPaymentMethod;
-  requiresPayment: boolean;
-}
 
 type AddressFormData = Pick<
   Address,
@@ -128,6 +123,7 @@ export default function CheckoutPage() {
   const { data: cart } = useCart();
   const { data: giftWrapTiers = [], isLoading: isGiftWrapTiersLoading } =
     useGiftWrapTiers();
+  const { data: rewardBalance } = useRewardBalance(Boolean(user));
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [checkoutOrderId, setCheckoutOrderId] = useState("");
@@ -157,6 +153,7 @@ export default function CheckoutPage() {
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
   const [isRemovingVoucher, setIsRemovingVoucher] = useState(false);
+  const [rewardPointsInput, setRewardPointsInput] = useState("");
   const [giftOptions, setGiftOptions] = useState({
     giftWrap: false,
     giftWrapTierId: "",
@@ -385,7 +382,7 @@ export default function CheckoutPage() {
     setIsLoading(true);
 
     try {
-      const data = await apiClient.post<CheckoutResponse>("/orders/checkout", {
+      const data = await ordersApi.checkout({
         shippingAddress: {
           fullName: formData.fullName,
           phone: formData.phone,
@@ -404,6 +401,7 @@ export default function CheckoutPage() {
           Boolean(selectedGiftWrapTier?.includesCard),
         giftMessage: giftOptions.giftMessage.trim() || undefined,
         paymentMethod,
+        rewardPointsToRedeem,
       });
 
       if (!data?.orderId) {
@@ -471,7 +469,25 @@ export default function CheckoutPage() {
       ? Number(selectedGiftWrapTier.price)
       : 0;
   const baseTotal = (cart?.total || 0) + shipping + giftWrapFee;
-  const total = baseTotal;
+  const redeemVndPerPoint = rewardBalance?.redeemVndPerPoint ?? 1000;
+  const earnVndPerPoint = rewardBalance?.earnVndPerPoint ?? 10000;
+  const rewardBalancePoints = rewardBalance?.balance ?? 0;
+  const requestedRewardPoints = Math.max(
+    0,
+    Math.floor(Number(rewardPointsInput) || 0),
+  );
+  const maxRewardPointsByOrder = Math.max(
+    0,
+    Math.ceil(baseTotal / redeemVndPerPoint) - 1,
+  );
+  const rewardPointsToRedeem = Math.min(
+    requestedRewardPoints,
+    rewardBalancePoints,
+    maxRewardPointsByOrder,
+  );
+  const rewardDiscountAmount = rewardPointsToRedeem * redeemVndPerPoint;
+  const total = Math.max(0, baseTotal - rewardDiscountAmount);
+  const earnedRewardPoints = Math.floor(total / earnVndPerPoint);
   const isVoucherActionPending = isApplyingVoucher || isRemovingVoucher;
   const hasGiftSelection =
     giftOptions.giftWrap ||
@@ -1172,6 +1188,66 @@ export default function CheckoutPage() {
                 )}
               </div>
 
+              <div className="space-y-4 rounded-sm border border-amber-200 bg-amber-50/70 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Coins className="h-4 w-4 text-amber-700" />
+                    <span className="font-semibold text-stone-900">
+                      Điểm thưởng
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-amber-800">
+                    {rewardBalancePoints} điểm
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={Math.min(rewardBalancePoints, maxRewardPointsByOrder)}
+                    value={rewardPointsInput}
+                    disabled={isCheckoutLocked || rewardBalancePoints <= 0}
+                    placeholder="Số điểm muốn dùng"
+                    className="h-11 bg-white"
+                    onChange={(event) =>
+                      setRewardPointsInput(event.target.value.replace(/\D/g, ""))
+                    }
+                    onBlur={() =>
+                      setRewardPointsInput(
+                        rewardPointsToRedeem > 0
+                          ? String(rewardPointsToRedeem)
+                          : "",
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isCheckoutLocked || rewardBalancePoints <= 0}
+                    className="h-11 shrink-0 rounded-sm border-amber-300 bg-white px-5 text-xs font-bold uppercase tracking-widest text-amber-800 hover:bg-amber-100"
+                    onClick={() =>
+                      setRewardPointsInput(
+                        String(Math.min(rewardBalancePoints, maxRewardPointsByOrder)),
+                      )
+                    }
+                  >
+                    Dùng tối đa
+                  </Button>
+                </div>
+
+                <div className="space-y-1 text-xs text-amber-900/80">
+                  <p>
+                    {rewardPointsToRedeem > 0
+                      ? `Đổi ${rewardPointsToRedeem} điểm, giảm ${formatCurrency(rewardDiscountAmount)}.`
+                      : `1 điểm = ${formatCurrency(redeemVndPerPoint)} giảm giá.`}
+                  </p>
+                  <p>
+                    Đơn này sẽ nhận {earnedRewardPoints} điểm sau khi hoàn tất.
+                  </p>
+                </div>
+              </div>
+
               {hasGiftSelection && (
                 <div className="rounded-sm border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-950">
                   <div className="mb-2 flex items-center gap-2 font-semibold">
@@ -1221,6 +1297,16 @@ export default function CheckoutPage() {
                   </span>
                   <span className="shrink-0 whitespace-nowrap font-semibold">
                     -{formatCurrency(voucherDiscountAmount)}
+                  </span>
+                </div>
+              )}
+              {rewardDiscountAmount > 0 && (
+                <div className="flex items-center justify-between gap-4 text-amber-700">
+                  <span className="font-medium">
+                    Đổi điểm thưởng ({rewardPointsToRedeem} điểm)
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap font-semibold">
+                    -{formatCurrency(rewardDiscountAmount)}
                   </span>
                 </div>
               )}
