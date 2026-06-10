@@ -13,8 +13,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { AlertCircle, Info, Plus, Trash2, X } from 'lucide-react'
+import { AlertCircle, Image as ImageIcon, Info, LayoutList, Plus, ShieldCheck, Trash2, X } from 'lucide-react'
 
 type FlashSaleState = 'ACTIVE' | 'PAUSED' | 'ENDED'
 
@@ -140,11 +141,9 @@ export function FlashSaleDialog({
     productsApi
       .getAll({ status: 'APPROVED', limit: 50 })
       .then((response) => {
-        console.log('Products response:', response)
         setProducts(response.data || [])
       })
-      .catch((error) => {
-        console.error('Error loading products:', error)
+      .catch(() => {
         setProducts([])
       })
       .finally(() => setProductsLoading(false))
@@ -373,12 +372,12 @@ export function FlashSaleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[820px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[860px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Sửa flash sale' : 'Tạo flash sale mới'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-5 py-4">
+          <div className="grid gap-4 py-2">
             {errors.length > 0 && (
               <div className="rounded-md border border-destructive/25 bg-destructive/10 p-3">
                 <div className="mb-2 flex items-center gap-2">
@@ -408,6 +407,34 @@ export function FlashSaleDialog({
               </div>
             </div>
 
+            <Tabs defaultValue="info" className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="info" className="flex-1 gap-1.5">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Thông tin chung
+                </TabsTrigger>
+                <TabsTrigger value="categories" className="flex-1 gap-1.5">
+                  <LayoutList className="h-3.5 w-3.5" />
+                  Danh mục & Sản phẩm
+                  {selectedCategoryIds.length > 0 && (
+                    <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {selectedCategoryIds.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="guardrails" className="flex-1 gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Guardrails & Khoảng giá
+                  {ranges.length > 0 && (
+                    <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {ranges.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* ───── TAB 1: Thông tin chung ───── */}
+              <TabsContent value="info" className="mt-4 space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Tên flash sale</Label>
               <Input
@@ -568,7 +595,10 @@ export function FlashSaleDialog({
                 <Label htmlFor="isActive">Kích hoạt</Label>
               </div>
             </div>
+              </TabsContent>
 
+              {/* ───── TAB 2: Danh mục & Sản phẩm ───── */}
+              <TabsContent value="categories" className="mt-4 space-y-4">
             <div className="grid gap-2">
               <Label>Danh mục áp dụng</Label>
               <div className="flex max-h-[120px] flex-wrap gap-2 overflow-y-auto rounded-md border bg-muted/10 p-2">
@@ -622,7 +652,10 @@ export function FlashSaleDialog({
                 </p>
               )}
             </div>
+              </TabsContent>
 
+              {/* ───── TAB 3: Guardrails & Khoảng giá ───── */}
+              <TabsContent value="guardrails" className="mt-4 space-y-4">
             <div className="rounded-md border p-4">
               <div className="mb-4">
                 <h3 className="text-sm font-semibold">Guardrails số lượng</h3>
@@ -796,6 +829,8 @@ export function FlashSaleDialog({
                 ))}
               </div>
             </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <DialogFooter className="border-t pt-4">

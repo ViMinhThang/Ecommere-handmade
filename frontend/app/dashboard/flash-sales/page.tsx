@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Clock, Pencil, Plus, RefreshCcw, Trash2 } from 'lucide-react'
+import { AlertTriangle, Clock, Flame, Pencil, Plus, RefreshCcw, Trash2, TrendingDown, TrendingUp } from 'lucide-react'
+import { toast } from 'sonner'
 import { FlashSale } from '@/types'
 import { CreateFlashSaleDto } from '@/lib/api/flash-sales'
 import { mediaApi } from '@/lib/api/media'
@@ -50,7 +51,7 @@ const getStatusBadge = (status: FlashSaleDisplayStatus) => {
     case 'ended':
       return <Badge variant="destructive">Đã kết thúc</Badge>
     case 'upcoming':
-      return <Badge variant="outline">Sắp diễn ra</Badge>
+      return <Badge variant="outline" className="border-blue-400 text-blue-600 dark:text-blue-400">Sắp diễn ra</Badge>
     default:
       return <Badge variant="outline">Không hoạt động</Badge>
   }
@@ -97,6 +98,7 @@ export default function FlashSalesPage() {
   })
 
   const activeFlashSales = flashSales.filter((flashSale) => getStatus(flashSale) === 'active').length
+  const upcomingFlashSales = flashSales.filter((flashSale) => getStatus(flashSale) === 'upcoming').length
   const pausedFlashSales = flashSales.filter((flashSale) => getStatus(flashSale) === 'paused').length
   const totalSoldUnits = flashSales.reduce((sum, flashSale) => sum + (flashSale.soldUnits ?? 0), 0)
 
@@ -109,6 +111,11 @@ export default function FlashSalesPage() {
     createFlashSale.mutate(data, {
       onSuccess: () => {
         setEditDialogOpen(false)
+        toast.success('Tạo flash sale thành công!')
+      },
+      onError: (error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo flash sale.'
+        toast.error(message)
       },
     })
   }
@@ -124,6 +131,11 @@ export default function FlashSalesPage() {
         onSuccess: () => {
           setEditDialogOpen(false)
           setSelectedFlashSale(null)
+          toast.success('Cập nhật flash sale thành công!')
+        },
+        onError: (error: unknown) => {
+          const message = error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật flash sale.'
+          toast.error(message)
         },
       },
     )
@@ -131,8 +143,18 @@ export default function FlashSalesPage() {
 
   const handleDeleteFlashSale = () => {
     if (!selectedFlashSale) return
-    deleteFlashSale.mutate(selectedFlashSale.id)
-    setSelectedFlashSale(null)
+    const name = selectedFlashSale.name
+    deleteFlashSale.mutate(selectedFlashSale.id, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false)
+        setSelectedFlashSale(null)
+        toast.success(`Đã xóa flash sale "${name}" thành công.`)
+      },
+      onError: (error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa flash sale.'
+        toast.error(message)
+      },
+    })
   }
 
   const openEditDialog = (flashSale: FlashSale) => {
@@ -149,9 +171,12 @@ export default function FlashSalesPage() {
     <div className="space-y-7">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="artisan-title text-4xl">Flash sale</h1>
-          <p className="text-muted-foreground">
-            Quản lý chiến dịch, hạn mức bán và trạng thái guardrail.
+          <h1 className="artisan-title text-4xl flex items-center gap-2">
+            <Flame className="h-8 w-8 text-orange-500" />
+            Flash Sale
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Quản lý chiến dịch giảm giá nhanh, hạn mức bán và trạng thái guardrail.
           </p>
         </div>
         <Button
@@ -182,15 +207,21 @@ export default function FlashSalesPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Tạm dừng</p>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-300">
-              {pausedFlashSales}
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <TrendingUp className="h-3.5 w-3.5 text-blue-500" />
+              Sắp diễn ra
+            </p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">
+              {upcomingFlashSales}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Đã bán qua flash sale</p>
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <TrendingDown className="h-3.5 w-3.5" />
+              Đã bán qua flash sale
+            </p>
             <p className="text-2xl font-bold">{totalSoldUnits.toLocaleString('vi-VN')}</p>
           </CardContent>
         </Card>
@@ -235,6 +266,7 @@ export default function FlashSalesPage() {
             </div>
           ) : filteredFlashSales.length === 0 ? (
             <div className="rounded-md border bg-muted/30 p-8 text-center">
+              <Flame className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
               <p className="font-medium">Chưa có flash sale phù hợp</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Tạo chiến dịch mới hoặc thay đổi từ khóa tìm kiếm.
@@ -296,22 +328,17 @@ export default function FlashSalesPage() {
                       <TableCell>
                         <div className="space-y-1 text-xs">
                           <div className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="h-3 w-3" />
+                            <Clock className="h-3 w-3 text-emerald-500" />
                             <span>Bắt đầu: {formatDateTime(flashSale.startAt)}</span>
                           </div>
                           <div className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="h-3 w-3" />
+                            <Clock className="h-3 w-3 text-rose-500" />
                             <span>Kết thúc: {formatDateTime(flashSale.endAt)}</span>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          {getStatusBadge(status)}
-                          <p className="text-xs text-muted-foreground">
-                            saleState: {flashSale.saleState || 'ACTIVE'}
-                          </p>
-                        </div>
+                        {getStatusBadge(status)}
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1 text-xs">
@@ -320,7 +347,9 @@ export default function FlashSalesPage() {
                           <p>Dự phòng: {flashSale.reserveStock ?? 0}</p>
                           <p>
                             Auto pause:{' '}
-                            {flashSale.autoPauseThreshold ?? 'Chưa thiết lập'}
+                            {flashSale.autoPauseThreshold != null
+                              ? flashSale.autoPauseThreshold
+                              : 'Chưa thiết lập'}
                           </p>
                         </div>
                       </TableCell>
@@ -331,7 +360,7 @@ export default function FlashSalesPage() {
                             Reserved:{' '}
                             {(flashSale.reservedUnits ?? 0).toLocaleString('vi-VN')}
                           </p>
-                          <p>
+                          <p className={remainingUnits !== null && remainingUnits <= 0 ? 'font-semibold text-destructive' : ''}>
                             Còn:{' '}
                             {remainingUnits === null
                               ? 'Không giới hạn'
@@ -354,6 +383,7 @@ export default function FlashSalesPage() {
                             size="icon"
                             onClick={() => openDeleteDialog(flashSale)}
                             aria-label="Xóa flash sale"
+                            className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -400,17 +430,19 @@ export default function FlashSalesPage() {
             Hành động này không thể hoàn tác.
           </p>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteFlashSale.isPending}
+            >
               Hủy
             </Button>
             <Button
               type="button"
               variant="destructive"
               disabled={deleteFlashSale.isPending}
-              onClick={() => {
-                handleDeleteFlashSale()
-                setDeleteDialogOpen(false)
-              }}
+              onClick={handleDeleteFlashSale}
             >
               {deleteFlashSale.isPending ? 'Đang xóa...' : 'Xóa'}
             </Button>
