@@ -16,6 +16,7 @@ import {
   ReportStatus,
   ReportType,
   Role,
+  RewardPointLedgerType,
   ShipmentTrackingEventType,
   UserStatus,
 } from '@prisma/client';
@@ -78,6 +79,7 @@ type DemoUserInput = {
   shopProcessingTime?: string;
   verificationNote?: string;
   avatar?: string;
+  rewardPointsBalance?: number;
 };
 
 type DemoProductInput = {
@@ -171,6 +173,7 @@ async function upsertDemoUser(input: DemoUserInput) {
           : undefined,
       verificationNote: input.verificationNote,
       avatar: input.avatar,
+      rewardPointsBalance: input.rewardPointsBalance,
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
       deletedAt: null,
@@ -204,6 +207,7 @@ async function upsertDemoUser(input: DemoUserInput) {
           : undefined,
       verificationNote: input.verificationNote,
       avatar: input.avatar,
+      rewardPointsBalance: input.rewardPointsBalance ?? 0,
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
     },
@@ -2057,6 +2061,24 @@ async function main() {
     roles: [Role.ROLE_USER],
     phone: '0902000001',
     avatar: demoImages.linen,
+    rewardPointsBalance: 120,
+  });
+
+  await prisma.rewardPointLedger.upsert({
+    where: { idempotencyKey: 'seed:customer@ecommerce.com:reward_points' },
+    update: {
+      points: 120,
+      balanceAfter: 120,
+      description: 'Seed demo points for reward checkout testing',
+    },
+    create: {
+      userId: customer.id,
+      type: RewardPointLedgerType.ADJUSTMENT,
+      points: 120,
+      balanceAfter: 120,
+      idempotencyKey: 'seed:customer@ecommerce.com:reward_points',
+      description: 'Seed demo points for reward checkout testing',
+    },
   });
 
   const customer2 = await upsertDemoUser({

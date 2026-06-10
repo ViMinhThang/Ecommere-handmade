@@ -12,6 +12,7 @@ import {
 import { cartApi } from "./cart";
 import { wishlistApi } from "./wishlist";
 import { shopFollowApi } from "./shop-follow";
+import { rewardsApi } from "./rewards";
 import { ordersApi } from "./orders";
 import type {
   AdminOrderFilters,
@@ -1219,6 +1220,29 @@ export function useRemoveVoucher() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
+  });
+}
+
+export const rewardKeys = {
+  all: ["rewards"] as const,
+  balance: () => [...rewardKeys.all, "balance"] as const,
+  ledger: (page?: number, limit?: number) =>
+    [...rewardKeys.all, "ledger", { page, limit }] as const,
+};
+
+export function useRewardBalance(enabled = true) {
+  return useQuery({
+    queryKey: rewardKeys.balance(),
+    queryFn: () => rewardsApi.getBalance(),
+    enabled,
+  });
+}
+
+export function useRewardLedger(page = 1, limit = 20, enabled = true) {
+  return useQuery({
+    queryKey: rewardKeys.ledger(page, limit),
+    queryFn: () => rewardsApi.getLedger(page, limit),
+    enabled,
   });
 }
 

@@ -41,6 +41,32 @@ export interface ConfirmPaymentResponse {
   orderStatus: OrderStatus;
 }
 
+export interface CheckoutPayload {
+  shippingAddress: {
+    fullName: string;
+    phone: string;
+    city: string;
+    district: string;
+    ward: string;
+    address: string;
+  };
+  paymentMethod: PaymentMethod;
+  rewardPointsToRedeem?: number;
+  giftWrap?: boolean;
+  giftWrapTierId?: string;
+  giftCard?: boolean;
+  giftMessage?: string;
+}
+
+export interface CheckoutResponse {
+  clientSecret?: string;
+  orderId: string;
+  paymentMethod: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  requiresPayment: boolean;
+  expiresAt?: string | null;
+}
+
 export interface CreateShipmentTrackingEventPayload {
   status?: OrderStatus;
   type?: ShipmentTrackingEventType;
@@ -53,6 +79,9 @@ export interface CreateShipmentTrackingEventPayload {
 }
 
 export const ordersApi = {
+  checkout: (data: CheckoutPayload) =>
+    apiClient.post<CheckoutResponse>('/orders/checkout', data),
+
   getMyOrders: () => apiClient.get<SubOrder[]>('/orders/my-orders'),
 
   getSubOrder: (id: string) => apiClient.get<SubOrder>(`/orders/sub-order/${id}`),

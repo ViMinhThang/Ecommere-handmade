@@ -12,6 +12,7 @@ import {
   ClipboardList,
   ShoppingBag,
   Heart,
+  Coins,
   Store,
   Settings,
   ExternalLink,
@@ -30,6 +31,7 @@ export function ProfileSidebar() {
   const navItems = [
     { href: "/profile/settings", label: "Chi tiết hồ sơ", icon: UserIcon },
     { href: "/profile/payments", label: "Phương thức thanh toán", icon: CreditCard },
+    { href: "/profile/rewards", label: "Điểm thưởng của tôi", icon: Coins },
     { href: "/profile/orders", label: "Lịch sử đơn hàng", icon: ShoppingBag },
     { href: "/profile/commissions", label: "Yêu cầu commission", icon: ClipboardList },
     { href: "/profile/custom-orders", label: "Đồ thiết kế riêng", icon: PenTool },
