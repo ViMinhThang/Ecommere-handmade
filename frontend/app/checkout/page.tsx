@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  ArrowLeft,
   CheckCircle2,
   Coins,
   Gift,
@@ -48,6 +49,8 @@ import {
   Ticket,
   X,
 } from "lucide-react";
+import { CustomerFooter } from "@/components/layout/customer-footer";
+import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
@@ -497,68 +500,75 @@ export default function CheckoutPage() {
 
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F8F6F1] flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="font-headline text-3xl italic mb-4">
-          Giỏ hàng của quý khách đang trống
-        </h2>
-        <button
-          onClick={() => router.push("/")}
-          className="text-[#8B4513] underline font-medium"
-        >
-          Tiếp tục khám phá
-        </button>
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
+        <CustomerNavBar />
+        <main className="flex flex-1 flex-col items-center justify-center p-6 pt-24 text-center">
+          <h2 className="mb-4 font-headline text-3xl italic text-primary">
+            Giỏ hàng của quý khách đang trống
+          </h2>
+          <button
+            onClick={() => router.push("/")}
+            className="font-medium text-primary underline"
+          >
+            Tiếp tục khám phá
+          </button>
+        </main>
+        <CustomerFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F6F1] text-stone-800 font-body">
+    <div className="checkout-flow min-h-screen bg-background text-foreground font-body">
       <style jsx global>{`
         .custom-input {
           background: transparent;
-          border-bottom: 1px solid #d1d5db;
+          border-bottom: 1px solid var(--border);
           padding: 0.5rem 0;
           width: 100%;
           transition: border-color 0.2s;
+          color: var(--foreground);
         }
         .custom-input:focus {
           outline: none;
-          border-bottom-color: #8b4513;
+          border-bottom-color: var(--primary);
+        }
+        .custom-input::placeholder {
+          color: var(--muted-foreground);
         }
         .custom-label {
           font-size: 0.65rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: #6b7280;
+          color: var(--muted-foreground);
           font-weight: 700;
+        }
+        .dark .checkout-flow .summary-card,
+        .dark .checkout-flow [class*="bg-white"],
+        .dark .checkout-flow [class*="bg-[#F8F6F1]"],
+        .dark .checkout-flow [class*="bg-stone-100"],
+        .dark .checkout-flow [class*="bg-[#EAE7E0]"] {
+          background-color: var(--card) !important;
+        }
+        .dark .checkout-flow [class*="text-stone-9"],
+        .dark .checkout-flow [class*="text-stone-8"],
+        .dark .checkout-flow [class*="text-stone-7"],
+        .dark .checkout-flow [class*="text-stone-6"] {
+          color: var(--foreground) !important;
+        }
+        .dark .checkout-flow [class*="text-stone-5"],
+        .dark .checkout-flow [class*="text-stone-4"] {
+          color: var(--muted-foreground) !important;
+        }
+        .dark .checkout-flow [class*="border-stone"],
+        .dark .checkout-flow [class*="border-[#8B4513]"] {
+          border-color: var(--border) !important;
         }
       `}</style>
 
-      <header className="bg-[#F8F6F1] border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex justify-between items-center">
-          <h1 className="font-headline text-2xl italic text-[#8B4513] tracking-tight">
-            Chợ Thủ Công
-          </h1>
-          <div className="relative">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-stone-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-              />
-            </svg>
-          </div>
-        </div>
-      </header>
+      <CustomerNavBar />
 
-      <div className="max-w-7xl mx-auto px-6 pt-12">
+      <div className="max-w-7xl mx-auto px-6 pt-32">
         <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400 sm:gap-6 sm:text-xs sm:tracking-[0.2em]">
           <div
             className={`flex items-center ${!clientSecret ? "text-[#8B4513]" : "text-stone-400"}`}
@@ -1006,21 +1016,23 @@ export default function CheckoutPage() {
           ) : (
             <div className="space-y-12 animate-in zoom-in-95 duration-500">
               <section>
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="font-headline text-3xl italic">
                     Thông tin thanh toán
                   </h2>
                   <button
+                    type="button"
                     onClick={() => {
                       setClientSecret(null);
                       setCheckoutOrderId("");
                     }}
-                    className="text-xs uppercase tracking-widest font-bold text-stone-400 hover:text-primary transition-colors"
+                    className="inline-flex items-center gap-2 rounded-sm border border-border bg-card px-4 py-2 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:bg-accent"
                   >
-                    Sửa địa chỉ
+                    <ArrowLeft className="h-4 w-4" />
+                    Quay lại chỉnh sửa
                   </button>
                 </div>
-                <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200">
+                <div className="bg-card p-8 rounded-sm shadow-sm border border-border">
                   <Elements
                     key={clientSecret}
                     stripe={stripePromise}
@@ -1615,52 +1627,7 @@ export default function CheckoutPage() {
         </DialogContent>
       </Dialog>
 
-      <footer className="bg-[#EAE7E0] mt-24 py-20 border-t border-stone-200">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-16">
-          <div>
-            <h3 className="font-headline italic text-2xl text-[#8B4513] mb-6">
-              Chợ Thủ Công
-            </h3>
-            <p className="text-sm text-stone-500 leading-relaxed max-w-xs">
-              Kết nối những người sưu tầm tinh tế với những người bán tâm huyết
-              nhất thế giới từ năm 2024.
-            </p>
-            <p className="text-[10px] text-stone-400 mt-16 uppercase tracking-widest font-bold">
-              &copy; 2024 Chợ Thủ Công. Chế tác với tâm hồn.
-            </p>
-          </div>
-          <div className="md:col-span-2 grid grid-cols-2 gap-12 text-[10px] uppercase tracking-[0.2em] font-extrabold text-stone-600 pt-2">
-            <div className="space-y-6">
-              <a
-                href="#"
-                className="block hover:text-[#8B4513] transition-colors"
-              >
-                Vận chuyển & Đổi trả
-              </a>
-              <a
-                href="#"
-                className="block hover:text-[#8B4513] transition-colors"
-              >
-                Tính Bền vững
-              </a>
-            </div>
-            <div className="space-y-6">
-              <a
-                href="#"
-                className="block hover:text-[#8B4513] transition-colors"
-              >
-                Câu chuyện Người bán
-              </a>
-              <a
-                href="#"
-                className="block hover:text-[#8B4513] transition-colors"
-              >
-                Quyền riêng tư
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <CustomerFooter />
     </div>
   );
 }
