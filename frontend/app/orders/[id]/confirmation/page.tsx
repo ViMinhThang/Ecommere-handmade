@@ -11,6 +11,8 @@ import { SafeImage } from "@/components/ui/safe-image";
 import { GiftOptionsNote } from "@/components/storefront/gift-options-note";
 import { ProductOptionsNote } from "@/components/storefront/product-options-note";
 import { formatCurrency } from "@/lib/utils";
+import { CustomerFooter } from "@/components/layout/customer-footer";
+import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 
 function normalizeShippingAddress(value: unknown): OrderShippingAddress | null {
   if (!value) {
@@ -49,18 +51,35 @@ export default function OrderConfirmationPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F6F1] flex items-center justify-center">
-        <div className="text-stone-400 animate-pulse font-headline italic text-2xl">Đang tải thông tin đơn hàng...</div>
+      <div className="payment-confirmation min-h-screen bg-background text-foreground">
+        <CustomerNavBar />
+        <div className="flex min-h-screen items-center justify-center pt-24">
+          <div className="animate-pulse font-headline text-2xl italic text-muted-foreground">
+            Đang tải thông tin đơn hàng...
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-[#F8F6F1] flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="font-headline text-3xl italic mb-4 text-primary">Không tìm thấy đơn hàng</h2>
-        <p className="text-stone-500 mb-8">Có lỗi xảy ra khi tải thông tin đơn hàng của quý khách.</p>
-        <button onClick={() => router.push("/")} className="text-[#8B4513] underline font-medium">Quay lại trang chủ</button>
+      <div className="payment-confirmation min-h-screen bg-background text-foreground">
+        <CustomerNavBar />
+        <div className="flex min-h-screen flex-col items-center justify-center p-6 pt-24 text-center">
+          <h2 className="mb-4 font-headline text-3xl italic text-primary">
+            Không tìm thấy đơn hàng
+          </h2>
+          <p className="mb-8 text-muted-foreground">
+            Có lỗi xảy ra khi tải thông tin đơn hàng của quý khách.
+          </p>
+          <button
+            onClick={() => router.push("/")}
+            className="font-medium text-primary underline"
+          >
+            Quay lại trang chủ
+          </button>
+        </div>
       </div>
     );
   }
@@ -122,16 +141,34 @@ export default function OrderConfirmationPage() {
     paymentStatusLabelMap[order.paymentStatus || ""] || "Chưa rõ";
 
   return (
-    <div className="text-stone-800 min-h-screen flex flex-col bg-[#F8F6F1] font-body">
+    <div className="payment-confirmation text-foreground min-h-screen flex flex-col bg-background font-body">
       <style jsx global>{`
         .summary-card {
-          background-color: #F2F0EB;
+          background-color: var(--card);
           border-radius: 4px;
         }
+        .dark .payment-confirmation [class*="text-stone-9"],
+        .dark .payment-confirmation [class*="text-stone-8"],
+        .dark .payment-confirmation [class*="text-stone-7"],
+        .dark .payment-confirmation [class*="text-stone-6"] {
+          color: var(--foreground) !important;
+        }
+        .dark .payment-confirmation [class*="text-stone-5"],
+        .dark .payment-confirmation [class*="text-stone-4"] {
+          color: var(--muted-foreground) !important;
+        }
+        .dark .payment-confirmation [class*="bg-[#F2F0EB]"],
+        .dark .payment-confirmation [class*="bg-stone"] {
+          background-color: var(--card) !important;
+        }
+        .dark .payment-confirmation [class*="border-stone"] {
+          border-color: var(--border) !important;
+        }
       `}</style>
+      <CustomerNavBar />
 
       {/* Main Content Container */}
-      <main className="flex-grow max-w-6xl mx-auto px-6 py-12 lg:py-24 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <main className="flex-grow max-w-6xl mx-auto px-6 pb-12 pt-32 lg:pb-24 lg:pt-40 animate-in fade-in slide-in-from-bottom-4 duration-1000">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* Left Side: Order Details & Items */}
@@ -275,26 +312,7 @@ export default function OrderConfirmationPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#EAE7E0] py-16 border-t border-stone-200 mt-auto">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
-            <div>
-              <h3 className="font-headline italic text-xl text-[#8B4513] mb-4">The Artisanal Curator</h3>
-              <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold">
-                &copy; 2024 The Artisanal Curator. Chế tác với tâm hồn.
-              </p>
-            </div>
-            
-            <nav className="flex flex-wrap gap-x-8 gap-y-4 text-[10px] uppercase tracking-widest font-bold text-stone-600">
-              <a href="#" className="hover:text-[#8B4513] transition-colors">Vận chuyển & Đổi trả</a>
-              <a href="#" className="hover:text-[#8B4513] transition-colors">Tính Bền vững</a>
-              <a href="#" className="hover:text-[#8B4513] transition-colors">Câu chuyện Người bán</a>
-              <a href="#" className="hover:text-[#8B4513] transition-colors">Quyền riêng tư</a>
-            </nav>
-          </div>
-        </div>
-      </footer>
+      <CustomerFooter />
     </div>
   );
 }
