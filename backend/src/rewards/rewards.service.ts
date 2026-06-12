@@ -135,14 +135,14 @@ export class RewardsService {
       type: RewardPointLedgerType.REDEEM,
       points: -points,
       idempotencyKey: `order:${orderId}:reward_redeem`,
-      description: `Redeemed ${points} reward points for order ${orderId}`,
+      description: `Đã dùng ${points} điểm cho đơn hàng ${orderId}`,
     });
   }
 
   async refundRedeemedPointsForOrder(
     tx: Prisma.TransactionClient,
     orderId: string,
-    reason = 'Order was cancelled or refunded',
+    reason = 'Đơn hàng đã hủy hoặc hoàn tiền',
   ) {
     const order = await tx.order.findUnique({
       where: { id: orderId },
@@ -163,7 +163,7 @@ export class RewardsService {
       type: RewardPointLedgerType.REFUND,
       points: order.rewardPointsRedeemed,
       idempotencyKey: `order:${order.id}:reward_redeem_refund`,
-      description: `${reason}: returned ${order.rewardPointsRedeemed} reward points`,
+      description: `${reason}: hoàn lại ${order.rewardPointsRedeemed} điểm`,
     });
   }
 
@@ -201,7 +201,7 @@ export class RewardsService {
       type: RewardPointLedgerType.EARN,
       points,
       idempotencyKey: `order:${order.id}:reward_earn`,
-      description: `Earned ${points} reward points for completed order ${order.id}`,
+      description: `Cộng ${points} điểm cho đơn hàng đã hoàn tất ${order.id}`,
     });
   }
 

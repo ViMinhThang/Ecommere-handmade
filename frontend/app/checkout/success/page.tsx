@@ -1,15 +1,18 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { ordersApi } from "@/lib/api/orders";
+import { rewardKeys } from "@/lib/api/hooks";
 import { Button } from "@/components/ui/button";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 
 function CheckoutSuccessContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const paymentIntentId = searchParams.get("payment_intent");
   const [error, setError] = useState("");
@@ -28,6 +31,7 @@ function CheckoutSuccessContent() {
         if (!isMounted) {
           return;
         }
+        await queryClient.invalidateQueries({ queryKey: rewardKeys.all });
         router.replace(`/orders/${result.orderId}/confirmation`);
       } catch (err) {
         if (!isMounted) {
@@ -46,7 +50,7 @@ function CheckoutSuccessContent() {
     return () => {
       isMounted = false;
     };
-  }, [paymentIntentId, router]);
+  }, [paymentIntentId, queryClient, router]);
 
   if (error) {
     return (
