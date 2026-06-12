@@ -1708,6 +1708,7 @@ export function useUpdateSubOrderStatus() {
       ordersApi.updateSubOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: rewardKeys.all });
       queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.subOrderDetail(id) });
     },
@@ -1739,6 +1740,7 @@ export function useUpdateAdminOrderStatus() {
       ordersApi.updateAdminOrderStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: rewardKeys.all });
       queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
@@ -1758,6 +1760,7 @@ export function useRefundAdminOrder() {
     }) => ordersApi.refundAdminOrder(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: rewardKeys.all });
       queryClient.invalidateQueries({ queryKey: analyticsKeys.seller() });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
@@ -1772,6 +1775,7 @@ export function useCancelOrder() {
     mutationFn: (id: string) => ordersApi.cancelOrder(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: rewardKeys.all });
       queryClient.invalidateQueries({ queryKey: orderKeys.orderDetail(id) });
       queryClient.invalidateQueries({ queryKey: orderKeys.adminDetail(id) });
     },

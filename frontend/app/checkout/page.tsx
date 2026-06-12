@@ -15,6 +15,7 @@ import {
   useGiftWrapTiers,
   useRewardBalance,
   cartKeys,
+  rewardKeys,
 } from "@/lib/api/hooks";
 import { cartApi } from "@/lib/api/cart";
 import { ordersApi } from "@/lib/api/orders";
@@ -410,6 +411,8 @@ export default function CheckoutPage() {
       if (!data?.orderId) {
         throw new Error("Phản hồi thanh toán thiếu mã đơn hàng.");
       }
+
+      await queryClient.invalidateQueries({ queryKey: rewardKeys.all });
 
       if (data.paymentMethod === "COD" || data.requiresPayment === false) {
         toast.success("Đặt hàng thanh toán khi nhận hàng thành công.");
@@ -1045,6 +1048,9 @@ export default function CheckoutPage() {
                         toast.error(message);
                       }}
                       onSuccess={(orderId) => {
+                        queryClient.invalidateQueries({
+                          queryKey: rewardKeys.all,
+                        });
                         router.push(`/orders/${orderId}/confirmation`);
                       }}
                     />

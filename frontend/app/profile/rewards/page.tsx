@@ -22,6 +22,55 @@ function formatDate(value: string) {
   });
 }
 
+function formatOrderCode(orderId?: string | null) {
+  return orderId ? `#${orderId.slice(0, 8)}` : "của bạn";
+}
+
+function translateLedgerDescription(entry: {
+  description?: string | null;
+  orderId?: string | null;
+  points: number;
+  type: string;
+}) {
+  const description = entry.description?.trim();
+  const orderCode = formatOrderCode(entry.orderId);
+
+  if (!description) {
+    return "Cập nhật điểm thưởng";
+  }
+
+  const redeemedMatch = description.match(
+    /^Redeemed (\d+) reward points for order .+$/i,
+  );
+  if (redeemedMatch) {
+    return `Đã dùng ${redeemedMatch[1]} điểm cho đơn hàng ${orderCode}`;
+  }
+
+  const earnedMatch = description.match(
+    /^Earned (\d+) reward points for completed order .+$/i,
+  );
+  if (earnedMatch) {
+    return `Cộng ${earnedMatch[1]} điểm khi đơn hàng ${orderCode} hoàn tất`;
+  }
+
+  const refundedMatch = description.match(
+    /^(.*): returned (\d+) reward points$/i,
+  );
+  if (refundedMatch) {
+    const reason =
+      refundedMatch[1] === "Order was cancelled or refunded"
+        ? "đơn hàng đã hủy hoặc hoàn tiền"
+        : "đơn hàng được hoàn điểm";
+    return `Hoàn lại ${refundedMatch[2]} điểm do ${reason}`;
+  }
+
+  if (description === "Seed demo points for reward checkout testing") {
+    return "Điểm thưởng demo để thử thanh toán bằng điểm";
+  }
+
+  return description;
+}
+
 export default function RewardsPage() {
   const balanceQuery = useRewardBalance();
   const ledgerQuery = useRewardLedger(1, 30);
@@ -117,7 +166,7 @@ export default function RewardsPage() {
                       ) : null}
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {entry.description || "Cập nhật điểm thưởng"}
+                      {translateLedgerDescription(entry)}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {formatDate(entry.createdAt)}

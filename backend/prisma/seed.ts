@@ -2069,7 +2069,7 @@ async function main() {
     update: {
       points: 120,
       balanceAfter: 120,
-      description: 'Seed demo points for reward checkout testing',
+      description: 'Điểm thưởng demo để thử thanh toán bằng điểm',
     },
     create: {
       userId: customer.id,
@@ -2077,7 +2077,7 @@ async function main() {
       points: 120,
       balanceAfter: 120,
       idempotencyKey: 'seed:customer@ecommerce.com:reward_points',
-      description: 'Seed demo points for reward checkout testing',
+      description: 'Điểm thưởng demo để thử thanh toán bằng điểm',
     },
   });
 
