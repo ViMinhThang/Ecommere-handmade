@@ -435,9 +435,15 @@ export class UsersService {
       throw new NotFoundException('Seller not found');
     }
 
+    const [shopRatingFields, productCount] = await Promise.all([
+      this.getShopRatingFields(id),
+      this.countPublicSellerProducts(id),
+    ]);
+
     return {
       ...this.formatPublicSeller(seller),
-      ...(await this.getShopRatingFields(id)),
+      ...shopRatingFields,
+      productCount,
     };
   }
 
@@ -778,6 +784,16 @@ export class UsersService {
         averageRating === null ? null : Math.round(averageRating * 10) / 10,
       shopReviewCount: aggregate._count._all,
     };
+  }
+
+  private countPublicSellerProducts(sellerId: string) {
+    return this.prisma.product.count({
+      where: {
+        sellerId,
+        status: ProductStatus.APPROVED,
+        deletedAt: null,
+      },
+    });
   }
 
   private assertCanUseShopFollow(

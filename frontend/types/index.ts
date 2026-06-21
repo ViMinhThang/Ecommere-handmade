@@ -62,6 +62,7 @@ export interface User {
   followerCount?: number;
   shopAverageRating?: number | null;
   shopReviewCount?: number;
+  productCount?: number;
   ordersCount: number;
   totalSpent: number;
   products?: number;
