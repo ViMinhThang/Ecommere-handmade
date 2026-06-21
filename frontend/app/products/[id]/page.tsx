@@ -2,12 +2,19 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Clock, History, Leaf, Palette, PencilLine } from "lucide-react";
+import {
+  ChevronDown,
+  Clock,
+  History,
+  Leaf,
+  Palette,
+  PencilLine,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { ProductGallery } from "@/components/storefront/product-gallery";
-import { useProduct, useProductReviews } from "@/lib/api/hooks";
+import { useProduct, useProductReviews, useSeller } from "@/lib/api/hooks";
 import { Product } from "@/lib/api/products";
 import { mediaApi } from "@/lib/api/media";
 import { useCartContext } from "@/contexts/cart-context";
@@ -158,6 +165,7 @@ function ProductDetailContent({
   const { user, isAuthenticated } = useAuth();
   const { addItem } = useCartContext();
   const { openChat } = useChat();
+  const { data: sellerDetail } = useSeller(product.sellerId);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
@@ -451,7 +459,11 @@ function ProductDetailContent({
           </div>
         </section>
 
-        <ProductStory product={product} artisanImage={artisanImage} />
+        <ProductStory
+          product={product}
+          artisanImage={artisanImage}
+          seller={sellerDetail}
+        />
 
         <ProductReviews
           reviews={reviews}

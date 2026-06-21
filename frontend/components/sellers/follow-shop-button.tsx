@@ -17,6 +17,8 @@ interface FollowShopButtonProps {
   initialFollowerCount?: number;
   redirectPath?: string;
   className?: string;
+  followLabel?: string;
+  showCount?: boolean;
 }
 
 export function FollowShopButton({
@@ -24,6 +26,8 @@ export function FollowShopButton({
   initialFollowerCount = 0,
   redirectPath,
   className,
+  followLabel = "Theo dõi Studio",
+  showCount = true,
 }: FollowShopButtonProps) {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -102,11 +106,13 @@ export function FollowShopButton({
           ? "Gian hàng của bạn"
           : isFollowing
             ? "Đang theo dõi"
-            : "Theo dõi Studio"}
+            : followLabel}
       </span>
-      <span className="text-xs font-semibold opacity-80">
-        {followerCount.toLocaleString("vi-VN")}
-      </span>
+      {showCount ? (
+        <span className="text-xs font-semibold opacity-80">
+          {followerCount.toLocaleString("vi-VN")}
+        </span>
+      ) : null}
     </button>
   );
 }
