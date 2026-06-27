@@ -290,7 +290,7 @@ export default function SellerCustomOrderDetailPage() {
                         key={i}
                         className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
                       >
-                        {spec}
+                        {typeof spec === 'string' ? spec : `${spec.label}: ${spec.value}`}
                       </span>
                     ))}
                   </div>

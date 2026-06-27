@@ -505,9 +505,9 @@ export default function CustomOrderReviewPage() {
                   <div>
                       <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 block mb-4">Thông số tùy chỉnh</span>
                       <div className="flex flex-wrap gap-3">
-                          {order.specifications?.map((spec, i) => (
-                             <span key={i} className="px-4 py-2 bg-[#DCE4DE] text-[#5C6E5E] text-[10px] font-bold rounded-full uppercase tracking-wider">{spec}</span>
-                          ))}
+                           {order.specifications?.map((spec, i) => (
+                              <span key={i} className="px-4 py-2 bg-[#DCE4DE] text-[#5C6E5E] text-[10px] font-bold rounded-full uppercase tracking-wider">{typeof spec === 'string' ? spec : `${spec.label}: ${spec.value}`}</span>
+                           ))}
                       </div>
                   </div>
               </div>

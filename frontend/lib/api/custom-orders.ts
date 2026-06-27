@@ -16,7 +16,7 @@ export interface CustomOrder {
   artisanNote: string | null;
   price: string;
   leadTime: string | null;
-  specifications: string[];
+  specifications: (string | { label: string; value: string })[];
   sketchImageUrl: string | null;
   revisionNote: string | null;
   quoteTemplateId?: string | null;

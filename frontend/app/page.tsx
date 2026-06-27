@@ -1,15 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { CustomerFooter } from "@/components/layout/customer-footer";
 import { CustomerNavBar } from "@/components/layout/customer-nav-bar";
 import { HomepageFeaturedProducts } from "@/components/storefront/homepage-featured-products";
 import { ProductsSection } from "@/components/storefront/products-section";
 import { PublicFlashSaleSection } from "@/components/storefront/public-promotions-section";
-import { SafeImage } from "@/components/ui/safe-image";
 import { useHomepage } from "@/lib/api/hooks";
-import { mediaApi } from "@/lib/api/media";
 
 export default function Home() {
   const { data: homepageData, isError } = useHomepage();
@@ -22,18 +19,26 @@ export default function Home() {
 
       <main className="pt-24">
         {primaryBanner ? (
-          <section className="relative overflow-hidden bg-background px-8 py-20 lg:py-32">
-            <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-16 lg:flex-row">
-              <div className="z-10 w-full lg:w-1/2">
-                <h1 className="mb-8 text-5xl font-headline italic leading-tight tracking-tight text-primary lg:text-7xl">
+          <section
+            className="relative overflow-hidden bg-cover bg-center px-8 py-20 lg:py-32"
+            style={{
+              backgroundImage: primaryBanner.imageUrl
+                ? `url(${primaryBanner.imageUrl})`
+                : undefined,
+            }}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative z-10 mx-auto flex max-w-[960px] flex-col items-center text-center">
+              <div className="w-full">
+                <h1 className="mb-8 text-5xl font-headline italic leading-tight tracking-tight text-white lg:text-7xl">
                   {primaryBanner.title}
                 </h1>
                 {primaryBanner.subtitle ? (
-                  <p className="mb-10 max-w-md text-lg leading-relaxed text-muted-foreground lg:text-xl">
+                  <p className="mb-10 mx-auto max-w-2xl text-lg leading-relaxed text-white/90 lg:text-xl">
                     {primaryBanner.subtitle}
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap justify-center gap-4">
                   <Link
                     href={primaryBanner.linkUrl || "/discovery"}
                     className="rounded-md bg-gradient-to-br from-[#853724] to-[#a44e39] px-8 py-4 font-medium tracking-wide text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
@@ -42,40 +47,28 @@ export default function Home() {
                   </Link>
                   <Link
                     href="/register"
-                    className="rounded-md bg-accent px-8 py-4 font-medium tracking-wide text-primary transition-colors hover:bg-border"
+                    className="rounded-md bg-white/20 px-8 py-4 font-medium tracking-wide text-white backdrop-blur-sm transition-colors hover:bg-white/30"
                   >
                     Trở thành người bán
                   </Link>
-                </div>
-              </div>
-
-              <div className="relative flex w-full justify-end lg:w-1/2">
-                <div className="relative aspect-[4/5] w-full max-w-lg">
-                  <SafeImage
-                    src={mediaApi.getImageUrl(primaryBanner.imageUrl)}
-                    alt={primaryBanner.title}
-                    fill
-                    className="rounded-xl object-cover shadow-2xl"
-                    priority
-                  />
                 </div>
               </div>
             </div>
           </section>
         ) : (
           <section className="relative overflow-hidden bg-background px-8 py-20 lg:py-32">
-            <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-16 lg:flex-row">
-              <div className="z-10 w-full lg:w-1/2">
+            <div className="mx-auto flex max-w-[960px] flex-col items-center text-center">
+              <div className="z-10 w-full">
                 <h1 className="mb-8 text-5xl font-headline italic leading-tight tracking-tight text-primary lg:text-7xl">
                   Tâm hồn của <br />
                   Tác phẩm thủ công.
                 </h1>
-                <p className="mb-10 max-w-md text-lg leading-relaxed text-muted-foreground lg:text-xl">
+                <p className="mb-10 mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground lg:text-xl">
                   Một bộ sưu tập được chọn lọc cho những ai tìm kiếm giá trị
                   thật. Mỗi tác phẩm kể một câu chuyện về sự kiên nhẫn, vật
                   liệu và kỹ năng.
                 </p>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap justify-center gap-4">
                   <Link
                     href="/discovery"
                     className="rounded-md bg-gradient-to-br from-[#853724] to-[#a44e39] px-8 py-4 font-medium tracking-wide text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
@@ -88,26 +81,6 @@ export default function Home() {
                   >
                     Trở thành người bán
                   </Link>
-                </div>
-              </div>
-
-              <div className="relative flex w-full justify-end lg:w-1/2">
-                <div className="relative aspect-[4/5] w-full max-w-lg">
-                  <Image
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDG9zrU_iJRSBqRm4OovEaGqSiPy46tb2Ne_00RNO4N6Y7-SgegDJ86opXZ_cV4HcXidVuOZviG6-IPzTcObI0FA6itVjN2HCJUgnPzhYyc2upciRtcnyAW02F-QI5Rq53N1ZNaedW2gvWNTBUkrkRVXn7Ry2Mxyr2Ihwmzmy5AyvP4islhOf_W7E7YpjmX8Nvmdp3mMXGg4QaSDXW9p6WceigbI5I1bupYsNXRMMvoSw19yC0H46AXOIh0VyV905R8wejEEFAVvjE"
-                    alt="Handmade ceramic vase"
-                    fill
-                    className="rounded-xl object-cover shadow-2xl"
-                    priority
-                  />
-                  <div className="absolute -bottom-12 -left-12 hidden h-80 w-64 md:block">
-                    <Image
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuChBTJRCtPleYgFyMFCinlK7nX8ESwK4iL4-9T3wU3mvtbM7VInewwTsKwZYP-DNpyPYvOUNm2V4i4YKb-Hpg1N4sKQnrz6yuL1nTOIR-rHyvxSLRVRW2CV9G2hDySPS3UCcBrPXhm94ejrlLcEXIwLh7MyCxwbKSWDBTi-4L1_NDWVGZ3VfpqWLyTkUuyEnqONT0OhxBxNLMHVvXM7mhxNgcsyEAKmK72HFdvPI4tU9PFz8x_y5OzIGGlJ7TJgNFg0wPLIQ3vrUTA"
-                      alt="Handwoven textile"
-                      fill
-                      className="rounded-xl object-cover shadow-xl"
-                    />
-                  </div>
                 </div>
               </div>
             </div>

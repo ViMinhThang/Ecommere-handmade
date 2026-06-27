@@ -42,6 +42,12 @@ export function Sidebar() {
   const navItems = [
     { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard, show: true },
     {
+      href: "/",
+      label: "Về trang chủ",
+      icon: Store,
+      show: true,
+    },
+    {
       href: "/dashboard/new-listing",
       label: "Đăng sản phẩm",
       icon: FilePlus2,
@@ -105,12 +111,6 @@ export function Sidebar() {
       href: "/seller/marketing",
       label: "Marketing",
       icon: Megaphone,
-      show: isSellerOnly,
-    },
-    {
-      href: "/commissions",
-      label: "Yêu cầu thiết kế",
-      icon: ClipboardList,
       show: isSellerOnly,
     },
     {
