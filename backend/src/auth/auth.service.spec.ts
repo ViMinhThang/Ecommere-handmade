@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 jest.mock('bcrypt');
 
@@ -123,7 +124,7 @@ describe('AuthService', () => {
       expect(mailerService.sendOtpEmail).toHaveBeenCalled();
     });
 
-    it('should resend OTP if email exists but not verified', async () => {
+    it('should refresh credentials and resend OTP if email exists but not verified', async () => {
       const existingUser = {
         ...mockUser,
         isEmailVerified: false,
@@ -140,7 +141,18 @@ describe('AuthService', () => {
       });
 
       expect(result.message).toContain('verification code');
-      expect(usersService.updateOtpFields).toHaveBeenCalled();
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'password123',
+        expect.any(Number),
+      );
+      expect(usersService.updateOtpFields).toHaveBeenCalledWith(
+        existingUser.id,
+        expect.objectContaining({
+          password: 'hashed_password',
+          name: 'User',
+          phone: null,
+        }),
+      );
       expect(usersService.create).not.toHaveBeenCalled();
     });
 
@@ -176,7 +188,6 @@ describe('AuthService', () => {
       usersService.updateOtpFields.mockResolvedValue(undefined);
 
       // Mock hash to match stored hash
-      const crypto = require('crypto');
       jest.spyOn(crypto, 'createHash').mockReturnValue({
         update: jest.fn().mockReturnThis(),
         digest: jest.fn().mockReturnValue('hashed_123456'),
@@ -243,7 +254,9 @@ describe('AuthService', () => {
       };
 
       usersService.findByEmail.mockResolvedValue(verifiedUser as any);
-      jwtService.sign.mockReturnValueOnce('access_token').mockReturnValueOnce('refresh_token');
+      jwtService.sign
+        .mockReturnValueOnce('access_token')
+        .mockReturnValueOnce('refresh_token');
       prisma.refreshToken.create.mockResolvedValue({
         id: 'token-1',
         userId: verifiedUser.id,
@@ -256,7 +269,10 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('accessToken', 'access_token');
       expect(result).toHaveProperty('refreshToken', 'refresh_token');
       expect(result).toHaveProperty('user');
-      expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed_password');
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'password123',
+        'hashed_password',
+      );
     });
 
     it('should throw UnauthorizedException if email not verified', async () => {
@@ -320,7 +336,9 @@ describe('AuthService', () => {
         },
       };
 
-      prisma.refreshToken.findUnique.mockResolvedValue(refreshTokenRecord as any);
+      prisma.refreshToken.findUnique.mockResolvedValue(
+        refreshTokenRecord as any,
+      );
       jwtService.sign.mockReturnValue('new_access_token');
 
       const result = await service.refreshToken('refresh_token');
@@ -427,7 +445,10 @@ describe('AuthService', () => {
       expect(result).toEqual({
         message: 'Password reset successfully',
       });
-      expect(bcrypt.hash).toHaveBeenCalledWith('new_password', expect.any(Number));
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'new_password',
+        expect.any(Number),
+      );
       expect(prisma.user.update).toHaveBeenCalled();
     });
 

@@ -1144,6 +1144,8 @@ export class UsersService {
       otpExpires?: Date | null;
       isEmailVerified?: boolean;
       password?: string;
+      name?: string;
+      phone?: string | null;
     },
   ) {
     return this.prisma.user.update({
