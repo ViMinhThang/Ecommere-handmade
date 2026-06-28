@@ -74,6 +74,10 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
   private getAccessTokenExpiry() {
     return normalizeJwtExpiry(
       process.env.JWT_EXPIRES_IN,
@@ -212,7 +216,15 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.usersService.findByEmail(registerDto.email);
+    const normalizedDto = {
+      ...registerDto,
+      email: this.normalizeEmail(registerDto.email),
+      name: registerDto.name.trim(),
+      phone: registerDto.phone?.trim() || undefined,
+    };
+    const existingUser = await this.usersService.findByEmail(
+      normalizedDto.email,
+    );
 
     if (existingUser) {
       if (existingUser.isEmailVerified) {
@@ -225,6 +237,9 @@ export class AuthService {
       await this.usersService.updateOtpFields(existingUser.id, {
         otpCode: this.hashToken(otpCode),
         otpExpires,
+        password: await bcrypt.hash(normalizedDto.password, BCRYPT_ROUNDS),
+        name: normalizedDto.name,
+        phone: normalizedDto.phone ?? null,
       });
 
       await this.mailerService.sendOtpEmail(
@@ -243,7 +258,7 @@ export class AuthService {
     const otpExpires = this.getOtpExpiration();
 
     const user = await this.usersService.create({
-      ...registerDto,
+      ...normalizedDto,
       roles: ['ROLE_USER'],
     });
 
@@ -262,7 +277,9 @@ export class AuthService {
   }
 
   async verifyOtp(email: string, otpCode: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmail(
+      this.normalizeEmail(email),
+    );
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -279,7 +296,9 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmail(
+      this.normalizeEmail(email),
+    );
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -353,7 +372,8 @@ export class AuthService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.usersService.findByEmail(email);
+    const normalizedEmail = this.normalizeEmail(email);
+    const user = await this.usersService.findByEmail(normalizedEmail);
 
     if (user) {
       const otpCode = this.generateOtp();
@@ -364,14 +384,16 @@ export class AuthService {
         otpExpires,
       });
 
-      await this.mailerService.sendOtpEmail(email, otpCode, 'forgot');
+      await this.mailerService.sendOtpEmail(normalizedEmail, otpCode, 'forgot');
     }
 
     return { message: 'If the email exists, an OTP will be sent' };
   }
 
   async resetPassword(email: string, otpCode: string, newPassword: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmail(
+      this.normalizeEmail(email),
+    );
     if (!user) {
       throw new NotFoundException('User not found');
     }

@@ -25,17 +25,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_KEY = "auth_user";
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
 
   const clearAuthSession = useCallback(async (revoke = false) => {
     setUser(null);
-    localStorage.removeItem(USER_KEY);
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
@@ -78,15 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const bootstrapSession = async () => {
-      const storedUser = localStorage.getItem(USER_KEY);
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch {
-          localStorage.removeItem(USER_KEY);
-        }
-      }
-
       try {
         const refreshResponse = await fetch("/api/auth/refresh", {
           method: "POST",
@@ -104,13 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
         setUser(freshUser);
         scheduleTokenRefresh(payload.accessToken);
       } catch {
         if (isMounted) {
           setUser(null);
-          localStorage.removeItem(USER_KEY);
         }
       } finally {
         if (isMounted) {
@@ -119,7 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    void bootstrapSession();
+    const bootstrapPromise = bootstrapSession();
+    bootstrapPromiseRef.current = bootstrapPromise;
 
     return () => {
       isMounted = false;
@@ -138,23 +126,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearAuthSession]);
 
   const applyAuthSession = useCallback(async (response: AuthResponse) => {
-    await fetch("/api/auth/cookies", {
+    const cookieResponse = await fetch("/api/auth/cookies", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ accessToken: response.accessToken, refreshToken: response.refreshToken }),
     });
-    localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+    if (!cookieResponse.ok) {
+      throw new Error("Không thể lưu phiên đăng nhập. Vui lòng thử lại.");
+    }
     setUser(response.user);
     scheduleTokenRefresh(response.accessToken);
     return response.user;
   }, [scheduleTokenRefresh]);
 
   const login = useCallback(async (data: LoginData) => {
+    await bootstrapPromiseRef.current;
     const response = await authApi.login(data);
     return applyAuthSession(response);
   }, [applyAuthSession]);
 
   const loginWithGoogle = useCallback(async (idToken: string) => {
+    await bootstrapPromiseRef.current;
     const response = await authApi.googleLogin({ idToken });
     return applyAuthSession(response);
   }, [applyAuthSession]);
