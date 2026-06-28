@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import {
   ClipboardList,
+  Coins,
   FileText,
   FilePlus2,
   Folder,
@@ -84,6 +85,7 @@ export function Sidebar() {
       show: isAdmin && showAdvancedPaymentConsole,
     },
     { href: "/dashboard/users", label: "Người dùng", icon: Users, show: isAdmin },
+    { href: "/dashboard/rewards", label: "Điểm thưởng", icon: Coins, show: isAdmin },
     { href: "/dashboard/reports", label: "Báo cáo", icon: Flag, show: isAdmin },
     { href: "/dashboard/homepage", label: "Trang chủ", icon: Home, show: isAdmin },
     { href: "/dashboard/categories", label: "Danh mục", icon: Folder, show: isAdmin },

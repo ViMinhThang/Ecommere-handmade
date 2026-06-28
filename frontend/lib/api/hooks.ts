@@ -1228,6 +1228,12 @@ export const rewardKeys = {
   balance: () => [...rewardKeys.all, "balance"] as const,
   ledger: (page?: number, limit?: number) =>
     [...rewardKeys.all, "ledger", { page, limit }] as const,
+  admin: () => [...rewardKeys.all, "admin"] as const,
+  adminSummary: () => [...rewardKeys.admin(), "summary"] as const,
+  adminUsers: (query: string, page: number, limit: number) =>
+    [...rewardKeys.admin(), "users", { query, page, limit }] as const,
+  adminUserLedger: (userId: string, page: number, limit: number) =>
+    [...rewardKeys.admin(), "ledger", userId, { page, limit }] as const,
 };
 
 export function useRewardBalance(enabled = true) {
@@ -1243,6 +1249,54 @@ export function useRewardLedger(page = 1, limit = 20, enabled = true) {
     queryKey: rewardKeys.ledger(page, limit),
     queryFn: () => rewardsApi.getLedger(page, limit),
     enabled,
+  });
+}
+
+export function useAdminRewardSummary() {
+  return useQuery({
+    queryKey: rewardKeys.adminSummary(),
+    queryFn: () => rewardsApi.getAdminSummary(),
+  });
+}
+
+export function useAdminRewardUsers(
+  query = "",
+  page = 1,
+  limit = 20,
+) {
+  return useQuery({
+    queryKey: rewardKeys.adminUsers(query, page, limit),
+    queryFn: () => rewardsApi.getAdminUsers(query, page, limit),
+  });
+}
+
+export function useAdminRewardLedger(
+  userId: string,
+  page = 1,
+  limit = 20,
+) {
+  return useQuery({
+    queryKey: rewardKeys.adminUserLedger(userId, page, limit),
+    queryFn: () => rewardsApi.getAdminUserLedger(userId, page, limit),
+    enabled: Boolean(userId),
+  });
+}
+
+export function useAdjustAdminRewardPoints() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      points,
+      reason,
+    }: {
+      userId: string;
+      points: number;
+      reason: string;
+    }) => rewardsApi.adjustAdminUserPoints(userId, { points, reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rewardKeys.admin() });
+    },
   });
 }
 

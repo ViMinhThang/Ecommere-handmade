@@ -7,13 +7,25 @@ import {
   OrderStatus,
   PaymentStatus,
   Prisma,
+  Role,
   RewardPointLedger,
   RewardPointLedgerType,
 } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const REWARD_REDEEM_VND_PER_POINT = 1000;
 export const REWARD_EARN_VND_PER_POINT = 10000;
+export const MAX_ADMIN_REWARD_ADJUSTMENT = 10000;
+
+const CUSTOMER_REWARD_USER_WHERE = {
+  deletedAt: null,
+  roles: { has: Role.ROLE_USER },
+  NOT: [
+    { roles: { has: Role.ROLE_SELLER } },
+    { roles: { has: Role.ROLE_ADMIN } },
+  ],
+} satisfies Prisma.UserWhereInput;
 
 interface ApplyLedgerParams {
   userId: string;
@@ -117,6 +129,139 @@ export class RewardsService {
         totalPages: total === 0 ? 0 : Math.ceil(total / normalizedLimit),
       },
     };
+  }
+
+  async getAdminUserLedger(userId: string, page = 1, limit = 20) {
+    await this.assertCustomerAccount(this.prisma, userId);
+    const ledger = await this.getLedger(userId, page, limit);
+
+    return {
+      ...ledger,
+      data: ledger.data.map((entry) => ({
+        ...entry,
+        adjustedByAdminId:
+          entry.type === RewardPointLedgerType.ADJUSTMENT
+            ? (entry.idempotencyKey.match(/^admin:([^:]+):/)?.[1] ?? null)
+            : null,
+      })),
+    };
+  }
+
+  async getAdminSummary() {
+    const [balanceAggregate, usersWithPoints, adjustments] = await Promise.all([
+      this.prisma.user.aggregate({
+        where: CUSTOMER_REWARD_USER_WHERE,
+        _sum: { rewardPointsBalance: true },
+      }),
+      this.prisma.user.count({
+        where: {
+          ...CUSTOMER_REWARD_USER_WHERE,
+          rewardPointsBalance: { gt: 0 },
+        },
+      }),
+      this.prisma.rewardPointLedger.count({
+        where: {
+          type: RewardPointLedgerType.ADJUSTMENT,
+          user: CUSTOMER_REWARD_USER_WHERE,
+        },
+      }),
+    ]);
+
+    return {
+      totalPoints: balanceAggregate._sum.rewardPointsBalance ?? 0,
+      usersWithPoints,
+      adjustments,
+    };
+  }
+
+  async getAdminUsers(query?: string, page = 1, limit = 20) {
+    const normalizedPage = Math.max(Math.floor(Number(page) || 1), 1);
+    const normalizedLimit = Math.min(
+      Math.max(Math.floor(Number(limit) || 20), 1),
+      50,
+    );
+    const search = query?.trim();
+    const where: Prisma.UserWhereInput = {
+      ...CUSTOMER_REWARD_USER_WHERE,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          roles: true,
+          status: true,
+          rewardPointsBalance: true,
+          _count: { select: { rewardPointLedger: true } },
+        },
+        orderBy: [{ rewardPointsBalance: 'desc' }, { createdAt: 'desc' }],
+        skip: (normalizedPage - 1) * normalizedLimit,
+        take: normalizedLimit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: data.map(({ _count, ...user }) => ({
+        ...user,
+        ledgerEntries: _count.rewardPointLedger,
+      })),
+      meta: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / normalizedLimit),
+      },
+    };
+  }
+
+  async adminAdjustPoints(
+    adminId: string,
+    userId: string,
+    points: number,
+    reason: string,
+  ) {
+    if (
+      !Number.isInteger(points) ||
+      points === 0 ||
+      Math.abs(points) > MAX_ADMIN_REWARD_ADJUSTMENT
+    ) {
+      throw new BadRequestException(
+        `Reward adjustment must be a non-zero integer between -${MAX_ADMIN_REWARD_ADJUSTMENT} and ${MAX_ADMIN_REWARD_ADJUSTMENT}`,
+      );
+    }
+
+    const normalizedReason = reason.trim();
+    if (normalizedReason.length < 5 || normalizedReason.length > 200) {
+      throw new BadRequestException(
+        'Adjustment reason must contain between 5 and 200 characters',
+      );
+    }
+
+    const ledger = await this.prisma.$transaction(async (tx) => {
+      await this.assertCustomerAccount(tx, userId);
+      return this.applyLedgerEntry(tx, {
+        userId,
+        type: RewardPointLedgerType.ADJUSTMENT,
+        points,
+        idempotencyKey: `admin:${adminId}:reward_adjustment:${randomUUID()}`,
+        description: `Quản trị viên điều chỉnh: ${normalizedReason}`,
+      });
+    });
+
+    return { ledger };
   }
 
   async redeemForOrder(
@@ -257,5 +402,22 @@ export class RewardsService {
       WHERE id = ${userId}
       FOR UPDATE
     `);
+  }
+
+  private async assertCustomerAccount(
+    tx: Prisma.TransactionClient | PrismaService,
+    userId: string,
+  ) {
+    const customer = await tx.user.findFirst({
+      where: {
+        ...CUSTOMER_REWARD_USER_WHERE,
+        id: userId,
+      },
+      select: { id: true },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer account not found');
+    }
   }
 }
