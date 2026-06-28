@@ -26,6 +26,7 @@ const adminOnlyAccess: Omit<DashboardRouteAccess, "prefix"> = {
 
 const routeAccessRules: DashboardRouteAccess[] = [
   { prefix: "/dashboard/users", ...adminOnlyAccess },
+  { prefix: "/dashboard/rewards", ...adminOnlyAccess },
   { prefix: "/dashboard/reports", ...adminOnlyAccess },
   { prefix: "/dashboard/homepage", ...adminOnlyAccess },
   { prefix: "/dashboard/categories", ...adminOnlyAccess },
