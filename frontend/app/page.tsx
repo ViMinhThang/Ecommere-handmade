@@ -7,6 +7,7 @@ import { HomepageFeaturedProducts } from "@/components/storefront/homepage-featu
 import { ProductsSection } from "@/components/storefront/products-section";
 import { PublicFlashSaleSection } from "@/components/storefront/public-promotions-section";
 import { useHomepage } from "@/lib/api/hooks";
+import { mediaApi } from "@/lib/api/media";
 
 export default function Home() {
   const { data: homepageData, isError } = useHomepage();
@@ -23,7 +24,7 @@ export default function Home() {
             className="relative overflow-hidden bg-cover bg-center px-8 py-20 lg:py-32"
             style={{
               backgroundImage: primaryBanner.imageUrl
-                ? `url(${primaryBanner.imageUrl})`
+                ? `url(${mediaApi.getImageUrl(primaryBanner.imageUrl)})`
                 : undefined,
             }}
           >
@@ -34,7 +35,7 @@ export default function Home() {
                   {primaryBanner.title}
                 </h1>
                 {primaryBanner.subtitle ? (
-                  <p className="mb-10 mx-auto max-w-2xl text-lg leading-relaxed text-white/90 lg:text-xl">
+                  <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-white/90 lg:text-xl">
                     {primaryBanner.subtitle}
                   </p>
                 ) : null}
@@ -63,7 +64,7 @@ export default function Home() {
                   Tâm hồn của <br />
                   Tác phẩm thủ công.
                 </h1>
-                <p className="mb-10 mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground lg:text-xl">
+                <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground lg:text-xl">
                   Một bộ sưu tập được chọn lọc cho những ai tìm kiếm giá trị
                   thật. Mỗi tác phẩm kể một câu chuyện về sự kiên nhẫn, vật
                   liệu và kỹ năng.

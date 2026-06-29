@@ -163,6 +163,12 @@ export default function SellerMarketingPage() {
         </Button>
       </div>
 
+      <div className="rounded-md border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+        Voucher shop chỉ áp dụng cho sản phẩm thuộc gian hàng của bạn. Hệ thống
+        tự lấy shop từ tài khoản đăng nhập, nên người bán không thể tạo hoặc sửa
+        voucher cho shop khác.
+      </div>
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">

@@ -304,7 +304,7 @@ export default function SellerCustomOrderDetailPage() {
                     Yêu cầu chỉnh sửa từ khách hàng:
                   </p>
                   <p className="text-sm italic text-orange-900 dark:text-orange-200">
-                    "{order.revisionNote}"
+                    &quot;{order.revisionNote}&quot;
                   </p>
                 </div>
               )}
@@ -335,7 +335,7 @@ export default function SellerCustomOrderDetailPage() {
                         Ghi chú từ bạn
                       </p>
                       <p className="text-sm leading-relaxed italic text-foreground/80">
-                        "{order.artisanNote}"
+                        &quot;{order.artisanNote}&quot;
                       </p>
                     </div>
                   )}
@@ -486,7 +486,7 @@ export default function SellerCustomOrderDetailPage() {
                 Yêu cầu từ khách:
               </p>
               <p className="text-sm italic text-orange-900 dark:text-orange-200">
-                "{order.revisionNote}"
+                &quot;{order.revisionNote}&quot;
               </p>
             </div>
           )}
@@ -587,7 +587,7 @@ export default function SellerCustomOrderDetailPage() {
           </DialogHeader>
           <p className="py-2 text-sm text-muted-foreground">
             Bạn có chắc muốn hủy đơn{' '}
-            <span className="font-semibold text-foreground">"{order.title}"</span>? Hành động
+            <span className="font-semibold text-foreground">&quot;{order.title}&quot;</span>? Hành động
             này không thể hoàn tác.
           </p>
           <DialogFooter>

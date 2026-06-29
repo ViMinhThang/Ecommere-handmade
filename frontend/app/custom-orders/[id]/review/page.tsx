@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { Check, Truck, ArrowRight, PenTool, User, RotateCcw, XCircle } from "lucide-react";
+import { Check, Truck, ArrowRight, PenTool, User, RotateCcw, XCircle, Ticket } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customOrdersApi, CustomOrder } from "@/lib/api/custom-orders";
 import {
@@ -47,6 +47,13 @@ function stringValue(value: unknown) {
 function numberValue(value: unknown) {
   const amount = Number(value);
   return Number.isFinite(amount) ? amount : null;
+}
+
+function getCustomOrderPayableAmount(order: CustomOrder) {
+  const summaryTotal = numberValue(order.financialSummary?.customerPaid);
+  if (summaryTotal !== null) return summaryTotal;
+
+  return Math.max(0, Number(order.price) - Number(order.discountAmount ?? 0));
 }
 
 function structuredLines(value: unknown) {
@@ -247,7 +254,9 @@ function PaymentForm({ order, onSuccess }: { order: CustomOrder, onSuccess: () =
          disabled={isProcessing || !stripe}
          className="w-full bg-[#1A1A1A] text-white py-4 rounded font-bold uppercase tracking-widest disabled:opacity-50"
        >
-         {isProcessing ? "Đang xử lý..." : `Thanh toán ${formatCurrency(Number(order.price))}`}
+        {isProcessing
+          ? "Đang xử lý..."
+          : `Thanh toán ${formatCurrency(getCustomOrderPayableAmount(order))}`}
        </button>
     </form>
   );
@@ -262,6 +271,9 @@ export default function CustomOrderReviewPage() {
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherCodeTouched, setVoucherCodeTouched] = useState(false);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const handledRedirectPaymentIntentRef = useRef<string | null>(null);
 
@@ -324,18 +336,31 @@ export default function CustomOrderReviewPage() {
     Boolean(isAdmin && order) &&
     order?.status !== "CANCELLED" &&
     order?.status !== "DELIVERED";
+  const visibleVoucherCode = voucherCodeTouched
+    ? voucherCode
+    : order?.voucherCode ?? "";
 
   const approveSketch = useMutation({
-    mutationFn: () => customOrdersApi.approveSketch(id),
+    mutationFn: () =>
+      customOrdersApi.approveSketch(id, {
+        voucherCode: visibleVoucherCode.trim() || undefined,
+      }),
     onSuccess: (data) => {
       if (data?.clientSecret) {
          setClientSecret(data.clientSecret);
          setShowCheckout(true);
       }
+      setVoucherError(null);
       queryClient.invalidateQueries({ queryKey: ["customOrder", id] });
     },
-    onError: (err: unknown) =>
-      toast.error(getErrorMessage(err, "Không thể duyệt bản phác thảo"))
+    onError: (err: unknown) => {
+      const message = getErrorMessage(err, "Không thể duyệt bản phác thảo");
+      if (visibleVoucherCode.trim()) {
+        setVoucherError(message);
+        return;
+      }
+      toast.error(message);
+    }
   });
 
   const requestRevision = useMutation({
@@ -554,6 +579,50 @@ export default function CustomOrderReviewPage() {
                 <div className="space-y-4">
                     {isCustomer ? (
                       <>
+                        <div className="rounded-md border border-[#A35C3D]/20 bg-[#FBF8F2] p-4">
+                          <label
+                            htmlFor="custom-order-voucher"
+                            className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[#A35C3D]"
+                          >
+                            <Ticket className="h-4 w-4" />
+                            Mã giảm giá
+                          </label>
+                          <div className="flex flex-col gap-3 sm:flex-row">
+                            <input
+                              id="custom-order-voucher"
+                              value={visibleVoucherCode}
+                              onChange={(event) => {
+                                setVoucherCodeTouched(true);
+                                setVoucherCode(event.target.value.toUpperCase());
+                                setVoucherError(null);
+                              }}
+                              disabled={approveSketch.isPending}
+                              placeholder="Nhập voucher sàn hoặc voucher shop"
+                              className="min-h-11 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none transition focus:border-[#A35C3D]"
+                            />
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Voucher shop chỉ áp dụng khi mã thuộc đúng shop làm đơn thiết kế này.
+                          </p>
+                          {voucherError ? (
+                            <p className="mt-2 text-xs font-medium text-red-600">
+                              {voucherError}
+                            </p>
+                          ) : null}
+                          {order.voucherCode ? (
+                            <div className="mt-3 rounded-md bg-white p-3 text-sm">
+                              <p className="font-semibold text-foreground">
+                                Đã áp dụng {order.voucherCode}
+                              </p>
+                              <p className="text-muted-foreground">
+                                Giảm {formatCurrency(Number(order.discountAmount ?? 0))}. Số tiền cần thanh toán:{" "}
+                                <span className="font-semibold text-[#A35C3D]">
+                                  {formatCurrency(getCustomOrderPayableAmount(order))}
+                                </span>
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
                         <button 
                           onClick={() => approveSketch.mutate()}
                           disabled={approveSketch.isPending}

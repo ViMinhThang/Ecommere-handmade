@@ -25,21 +25,33 @@ export interface PaginatedResponse<T> {
   };
 }
 
+const MAX_PAGINATION_LIMIT = 50;
+
+function normalizeLimit(limit?: number) {
+  if (!limit || !Number.isFinite(limit)) {
+    return undefined;
+  }
+
+  return Math.min(Math.max(Math.floor(limit), 1), MAX_PAGINATION_LIMIT);
+}
+
 export const usersApi = {
   getAll: (params?: { role?: UserRole; status?: UserStatus; page?: number; limit?: number }) => {
     const query = new URLSearchParams();
+    const limit = normalizeLimit(params?.limit);
     if (params?.role) query.set('role', params.role);
     if (params?.status) query.set('status', params.status);
     if (params?.page) query.set('page', String(params.page));
-    if (params?.limit) query.set('limit', String(params.limit));
+    if (limit) query.set('limit', String(limit));
     return apiClient.get<PaginatedResponse<User>>(`/users${query.toString() ? `?${query}` : ''}`);
   },
 
   getCustomers: (params?: { q?: string; page?: number; limit?: number }) => {
     const query = new URLSearchParams();
+    const limit = normalizeLimit(params?.limit);
     if (params?.q?.trim()) query.set('q', params.q.trim());
     if (params?.page) query.set('page', String(params.page));
-    if (params?.limit) query.set('limit', String(params.limit));
+    if (limit) query.set('limit', String(limit));
     return apiClient.get<PaginatedResponse<User>>(
       `/users/customers${query.toString() ? `?${query}` : ''}`,
     );
@@ -53,9 +65,10 @@ export const usersApi = {
 
   searchSellers: (params?: SellerSearchParams) => {
     const query = new URLSearchParams();
+    const limit = normalizeLimit(params?.limit);
     if (params?.q?.trim()) query.set('q', params.q.trim());
     if (params?.page) query.set('page', String(params.page));
-    if (params?.limit) query.set('limit', String(params.limit));
+    if (limit) query.set('limit', String(limit));
     if (params?.sortBy) query.set('sortBy', params.sortBy);
     if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
 

@@ -1,16 +1,28 @@
 'use client'
 
-/* eslint-disable react-hooks/set-state-in-effect, react/no-unescaped-entities */
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useEffect } from 'react'
-import { Voucher, Category } from '@/types'
+import { Voucher, Category, User } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Trash2, AlertCircle } from 'lucide-react'
@@ -28,6 +40,7 @@ export interface VoucherDialogSavePayload {
   description?: string
   code: string
   categoryId: string
+  sellerId?: string | null
   isActive: boolean
   endDate: string
   maxDiscountAmount?: number | null
@@ -41,15 +54,26 @@ interface VoucherDialogProps {
   onOpenChange: (open: boolean) => void
   voucher?: Voucher | null
   categories: Category[]
+  sellers?: User[]
   onSave: (voucher: VoucherDialogSavePayload) => void
 }
 
-export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave }: VoucherDialogProps) {
+const PLATFORM_VALUE = 'platform'
+
+export function VoucherDialog({
+  open,
+  onOpenChange,
+  voucher,
+  categories,
+  sellers = [],
+  onSave,
+}: VoucherDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     code: '',
     categoryId: '',
+    sellerId: PLATFORM_VALUE,
     isActive: true,
     endDate: '',
     maxDiscountAmount: '',
@@ -63,46 +87,56 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
   const isEdit = !!voucher
 
   useEffect(() => {
-    if (open) {
-      if (voucher) {
-        setFormData({
-          name: voucher.name || '',
-          description: voucher.description || '',
-          code: voucher.code || '',
-          categoryId: voucher.categoryId || '',
-          isActive: voucher.isActive,
-          endDate: voucher.endDate ? new Date(voucher.endDate).toISOString().split('T')[0] : '',
-          maxDiscountAmount:
-            voucher.maxDiscountAmount != null ? String(voucher.maxDiscountAmount) : '',
-          usageLimit: voucher.usageLimit != null ? String(voucher.usageLimit) : '',
-          perUserLimit:
-            voucher.perUserLimit != null ? String(voucher.perUserLimit) : '',
-        })
-        setRanges(
-          voucher.ranges.map((r) => ({
-            id: r.id,
-            minPrice: Number(r.minPrice),
-            maxPrice: Number(r.maxPrice),
-            discountPercent: Number(r.discountPercent),
-            endDate: r.endDate ? new Date(r.endDate).toISOString().split('T')[0] : '',
-          }))
-        )
-      } else {
-        setFormData({
-          name: '',
-          description: '',
-          code: '',
-          categoryId: '',
-          isActive: true,
-          endDate: '',
-          maxDiscountAmount: '',
-          usageLimit: '',
-          perUserLimit: '',
-        })
-        setRanges([])
-      }
-      setErrors([])
+    if (!open) return
+
+    if (voucher) {
+      setFormData({
+        name: voucher.name || '',
+        description: voucher.description || '',
+        code: voucher.code || '',
+        categoryId: voucher.categoryId || '',
+        sellerId: voucher.sellerId || PLATFORM_VALUE,
+        isActive: voucher.isActive,
+        endDate: voucher.endDate
+          ? new Date(voucher.endDate).toISOString().split('T')[0]
+          : '',
+        maxDiscountAmount:
+          voucher.maxDiscountAmount != null
+            ? String(voucher.maxDiscountAmount)
+            : '',
+        usageLimit:
+          voucher.usageLimit != null ? String(voucher.usageLimit) : '',
+        perUserLimit:
+          voucher.perUserLimit != null ? String(voucher.perUserLimit) : '',
+      })
+      setRanges(
+        voucher.ranges.map((range) => ({
+          id: range.id,
+          minPrice: Number(range.minPrice),
+          maxPrice: Number(range.maxPrice),
+          discountPercent: Number(range.discountPercent),
+          endDate: range.endDate
+            ? new Date(range.endDate).toISOString().split('T')[0]
+            : '',
+        })),
+      )
+    } else {
+      setFormData({
+        name: '',
+        description: '',
+        code: '',
+        categoryId: '',
+        sellerId: PLATFORM_VALUE,
+        isActive: true,
+        endDate: '',
+        maxDiscountAmount: '',
+        usageLimit: '',
+        perUserLimit: '',
+      })
+      setRanges([])
     }
+
+    setErrors([])
   }, [open, voucher])
 
   const addRange = () => {
@@ -118,13 +152,17 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
   }
 
   const removeRange = (index: number) => {
-    setRanges(ranges.filter((_, i) => i !== index))
+    setRanges(ranges.filter((_, rangeIndex) => rangeIndex !== index))
   }
 
-  const updateRange = (index: number, field: keyof VoucherRange, value: number | string) => {
-    const newRanges = [...ranges]
-    newRanges[index] = { ...newRanges[index], [field]: value }
-    setRanges(newRanges)
+  const updateRange = (
+    index: number,
+    field: keyof VoucherRange,
+    value: number | string,
+  ) => {
+    const nextRanges = [...ranges]
+    nextRanges[index] = { ...nextRanges[index], [field]: value }
+    setRanges(nextRanges)
   }
 
   const parseOptionalNumber = (value: string) => {
@@ -133,12 +171,14 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
   }
 
   const validate = (): boolean => {
-    const newErrors: string[] = []
+    const nextErrors: string[] = []
 
-    if (!formData.name.trim()) newErrors.push('Tên không được để trống')
-    if (!formData.code.trim()) newErrors.push('Mã không được để trống')
-    if (!formData.categoryId) newErrors.push('Danh mục không được để trống')
-    if (!formData.endDate) newErrors.push('Ngày kết thúc không được để trống')
+    if (!formData.name.trim()) nextErrors.push('Tên không được để trống')
+    if (!formData.code.trim()) nextErrors.push('Mã không được để trống')
+    if (!formData.categoryId) nextErrors.push('Danh mục không được để trống')
+    if (!formData.endDate) {
+      nextErrors.push('Ngày kết thúc không được để trống')
+    }
 
     const maxDiscountAmount = parseOptionalNumber(formData.maxDiscountAmount)
     const usageLimit = parseOptionalNumber(formData.usageLimit)
@@ -148,49 +188,56 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
       maxDiscountAmount != null &&
       (!Number.isFinite(maxDiscountAmount) || maxDiscountAmount < 0)
     ) {
-      newErrors.push('Mức giảm tối đa phải là số không âm')
+      nextErrors.push('Mức giảm tối đa phải là số không âm')
     }
     if (
       usageLimit != null &&
       (!Number.isInteger(usageLimit) || usageLimit <= 0)
     ) {
-      newErrors.push('Giới hạn lượt dùng phải là số nguyên lớn hơn 0')
+      nextErrors.push('Tổng lượt dùng phải là số nguyên lớn hơn 0')
     }
     if (
       perUserLimit != null &&
       (!Number.isInteger(perUserLimit) || perUserLimit <= 0)
     ) {
-      newErrors.push('Giới hạn mỗi khách phải là số nguyên lớn hơn 0')
+      nextErrors.push('Lượt dùng mỗi khách phải là số nguyên lớn hơn 0')
     }
 
     if (ranges.length === 0) {
-      newErrors.push('Vui lòng thêm ít nhất một khoảng giá')
+      nextErrors.push('Vui lòng thêm ít nhất một khoảng giá')
     }
 
     ranges.forEach((range, index) => {
       if (range.minPrice >= range.maxPrice) {
-        newErrors.push(`Khoảng ${index + 1}: Giá tối thiểu phải nhỏ hơn giá tối đa`)
+        nextErrors.push(
+          `Khoảng ${index + 1}: Giá tối thiểu phải nhỏ hơn giá tối đa`,
+        )
       }
       if (range.discountPercent < 0 || range.discountPercent > 100) {
-        newErrors.push(`Khoảng ${index + 1}: Giảm giá phải từ 0 đến 100%`)
+        nextErrors.push(`Khoảng ${index + 1}: Giảm giá phải từ 0 đến 100%`)
       }
       if (!range.endDate) {
-        newErrors.push(`Khoảng ${index + 1}: Vui lòng chọn ngày kết thúc`)
+        nextErrors.push(`Khoảng ${index + 1}: Vui lòng chọn ngày kết thúc`)
       }
     })
 
-    setErrors(newErrors)
-    return newErrors.length === 0
+    setErrors(nextErrors)
+    return nextErrors.length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
     if (!validate()) return
+
     const { maxDiscountAmount, usageLimit, perUserLimit, ...baseFormData } =
       formData
 
     onSave({
       ...baseFormData,
+      sellerId:
+        sellers.length > 0 && baseFormData.sellerId !== PLATFORM_VALUE
+          ? baseFormData.sellerId
+          : null,
       maxDiscountAmount: parseOptionalNumber(maxDiscountAmount),
       usageLimit: parseOptionalNumber(usageLimit),
       perUserLimit: parseOptionalNumber(perUserLimit),
@@ -201,43 +248,52 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Sửa Voucher' : 'Tạo Voucher mới'}</DialogTitle>
+          <DialogTitle>{isEdit ? 'Sửa voucher' : 'Tạo voucher mới'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            {errors.length > 0 && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
+            {errors.length > 0 ? (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+                <div className="mb-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm font-medium text-destructive">Vui lòng sửa các lỗi sau:</span>
+                  <span className="text-sm font-medium text-destructive">
+                    Vui lòng sửa các lỗi sau:
+                  </span>
                 </div>
-                <ul className="list-disc list-inside text-sm text-destructive space-y-1">
-                  {errors.map((error, i) => (
-                    <li key={i}>{error}</li>
+                <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
+                  {errors.map((error, index) => (
+                    <li key={index}>{error}</li>
                   ))}
                 </ul>
               </div>
-            )}
+            ) : null}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="name">Tên Voucher</Label>
+                <Label htmlFor="name">Tên voucher</Label>
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(event) =>
+                    setFormData({ ...formData, name: event.target.value })
+                  }
                   placeholder="VD: Giảm giá mùa hè"
                   required
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="code">Mã Voucher</Label>
+                <Label htmlFor="code">Mã voucher</Label>
                 <Input
                   id="code"
                   value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      code: event.target.value.toUpperCase(),
+                    })
+                  }
                   placeholder="VD: SUMMER2024"
                   required
                 />
@@ -249,65 +305,110 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(event) =>
+                  setFormData({
+                    ...formData,
+                    description: event.target.value,
+                  })
+                }
                 placeholder="Mô tả về voucher này..."
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="category">Danh mục</Label>
                 <Select
                   value={formData.categoryId}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value || '' })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, categoryId: value || '' })
+                  }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue placeholder="Chọn danh mục">
-                      {categories.find(c => c.id === formData.categoryId)?.name}
+                      {categories.find((category) => category.id === formData.categoryId)
+                        ?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="endDate">Ngày kết thúc Voucher</Label>
+                <Label htmlFor="endDate">Ngày kết thúc voucher</Label>
                 <Input
                   id="endDate"
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  onChange={(event) =>
+                    setFormData({ ...formData, endDate: event.target.value })
+                  }
                   required
                 />
               </div>
             </div>
 
+            {sellers.length > 0 ? (
+              <div className="grid gap-2">
+                <Label htmlFor="sellerId">Phạm vi áp dụng</Label>
+                <Select
+                  value={formData.sellerId}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      sellerId: value || PLATFORM_VALUE,
+                    })
+                  }
+                >
+                  <SelectTrigger id="sellerId">
+                    <SelectValue placeholder="Chọn phạm vi voucher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PLATFORM_VALUE}>Voucher sàn</SelectItem>
+                    {sellers.map((seller) => (
+                      <SelectItem key={seller.id} value={seller.id}>
+                        Voucher shop - {seller.shopName || seller.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Voucher shop chỉ áp dụng cho sản phẩm và đơn thiết kế riêng
+                  của seller đã chọn.
+                </p>
+              </div>
+            ) : null}
+
             <div className="flex items-center gap-2">
               <Switch
                 id="isActive"
                 checked={formData.isActive}
-                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, isActive: checked })
+                }
               />
               <Label htmlFor="isActive">Hoạt động</Label>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="grid gap-2">
-                <Label htmlFor="maxDiscountAmount">Mức giảm tối đa (VND)</Label>
+                <Label htmlFor="maxDiscountAmount">
+                  Mức giảm tối đa (VND)
+                </Label>
                 <Input
                   id="maxDiscountAmount"
                   type="number"
                   min={0}
                   value={formData.maxDiscountAmount}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setFormData({
                       ...formData,
-                      maxDiscountAmount: e.target.value,
+                      maxDiscountAmount: event.target.value,
                     })
                   }
                   placeholder="Bỏ trống nếu không giới hạn"
@@ -321,8 +422,8 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
                   min={1}
                   step={1}
                   value={formData.usageLimit}
-                  onChange={(e) =>
-                    setFormData({ ...formData, usageLimit: e.target.value })
+                  onChange={(event) =>
+                    setFormData({ ...formData, usageLimit: event.target.value })
                   }
                   placeholder="Không giới hạn"
                 />
@@ -335,8 +436,11 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
                   min={1}
                   step={1}
                   value={formData.perUserLimit}
-                  onChange={(e) =>
-                    setFormData({ ...formData, perUserLimit: e.target.value })
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      perUserLimit: event.target.value,
+                    })
                   }
                   placeholder="Không giới hạn"
                 />
@@ -344,23 +448,32 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
             </div>
 
             <div className="border-t pt-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3 flex items-center justify-between">
                 <Label className="text-base">Khoảng giá</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addRange}>
-                  <Plus className="h-4 w-4 mr-1" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRange}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
                   Thêm khoảng giá
                 </Button>
               </div>
 
-              {ranges.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Chưa có khoảng giá nào được thêm. Nhấn "Thêm khoảng giá" để tạo.
+              {ranges.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Chưa có khoảng giá nào được thêm. Nhấn &quot;Thêm khoảng giá&quot; để
+                  tạo.
                 </p>
-              )}
+              ) : null}
 
               <div className="space-y-3">
                 {ranges.map((range, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-3">
+                  <div
+                    key={index}
+                    className="space-y-3 rounded-lg border p-4"
+                  >
                     <div className="flex items-center justify-between">
                       <Badge variant="secondary">Khoảng {index + 1}</Badge>
                       <Button
@@ -374,13 +487,19 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-3 md:grid-cols-2">
                       <div className="grid gap-1">
                         <Label className="text-xs">Giá tối thiểu (VND)</Label>
                         <Input
                           type="number"
                           value={range.minPrice}
-                          onChange={(e) => updateRange(index, 'minPrice', Number(e.target.value))}
+                          onChange={(event) =>
+                            updateRange(
+                              index,
+                              'minPrice',
+                              Number(event.target.value),
+                            )
+                          }
                           min={0}
                           placeholder="0"
                         />
@@ -390,38 +509,56 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
                         <Input
                           type="number"
                           value={range.maxPrice}
-                          onChange={(e) => updateRange(index, 'maxPrice', Number(e.target.value))}
+                          onChange={(event) =>
+                            updateRange(
+                              index,
+                              'maxPrice',
+                              Number(event.target.value),
+                            )
+                          }
                           min={0}
                           placeholder="100000"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-3 md:grid-cols-2">
                       <div className="grid gap-1">
                         <Label className="text-xs">Giảm giá (%)</Label>
                         <Input
                           type="number"
                           value={range.discountPercent}
-                          onChange={(e) => updateRange(index, 'discountPercent', Number(e.target.value))}
+                          onChange={(event) =>
+                            updateRange(
+                              index,
+                              'discountPercent',
+                              Number(event.target.value),
+                            )
+                          }
                           min={0}
                           max={100}
                           placeholder="10"
                         />
                       </div>
                       <div className="grid gap-1">
-                        <Label className="text-xs">Ngày kết thúc khoảng giá</Label>
+                        <Label className="text-xs">
+                          Ngày kết thúc khoảng giá
+                        </Label>
                         <Input
                           type="date"
                           value={range.endDate}
-                          onChange={(e) => updateRange(index, 'endDate', e.target.value)}
+                          onChange={(event) =>
+                            updateRange(index, 'endDate', event.target.value)
+                          }
                           required
                         />
                       </div>
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      Sản phẩm có giá từ {formatCurrency(range.minPrice)} đến {formatCurrency(range.maxPrice)} sẽ được giảm {range.discountPercent}%
+                      Sản phẩm có giá từ {formatCurrency(range.minPrice)} đến{' '}
+                      {formatCurrency(range.maxPrice)} sẽ được giảm{' '}
+                      {range.discountPercent}%
                     </p>
                   </div>
                 ))}
@@ -430,10 +567,16 @@ export function VoucherDialog({ open, onOpenChange, voucher, categories, onSave 
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Hủy
             </Button>
-            <Button type="submit">{isEdit ? 'Lưu thay đổi' : 'Tạo Voucher'}</Button>
+            <Button type="submit">
+              {isEdit ? 'Lưu thay đổi' : 'Tạo voucher'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

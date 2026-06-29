@@ -15,6 +15,7 @@ import type { AuthenticatedRequest } from '../common/interfaces/request.interfac
 import { CreateCustomOrderDto } from './dto/create-custom-order.dto';
 import { RequestRevisionDto } from './dto/request-revision.dto';
 import { ConfirmCustomOrderPaymentDto } from './dto/confirm-custom-order-payment.dto';
+import { ApproveCustomOrderPaymentDto } from './dto/approve-custom-order-payment.dto';
 import { UpdateCustomOrderStatusDto } from './dto/update-custom-order-status.dto';
 import { UpdateSketchDto } from './dto/update-sketch.dto';
 import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto';
@@ -124,8 +125,16 @@ export class CustomOrdersController {
 
   @Post(':id/approve-sketch')
   @UseGuards(JwtAuthGuard)
-  approveSketch(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    return this.customOrdersService.approveSketch(id, req.user.id);
+  approveSketch(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() body: ApproveCustomOrderPaymentDto,
+  ) {
+    return this.customOrdersService.approveSketch(
+      id,
+      req.user.id,
+      body.voucherCode,
+    );
   }
 
   @Post(':id/confirm-payment')

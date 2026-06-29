@@ -521,6 +521,7 @@ async function ensureVoucher(input: {
   isActive: boolean;
   endDate: Date;
   discountPercent: string;
+  sellerId?: string | null;
 }) {
   const voucher = await prisma.voucher.upsert({
     where: { code: input.code },
@@ -528,6 +529,7 @@ async function ensureVoucher(input: {
       name: input.name,
       description: input.description,
       categoryId: input.categoryId,
+      sellerId: input.sellerId ?? null,
       isActive: input.isActive,
       endDate: input.endDate,
       deletedAt: null,
@@ -537,6 +539,7 @@ async function ensureVoucher(input: {
       description: input.description,
       code: input.code,
       categoryId: input.categoryId,
+      sellerId: input.sellerId ?? null,
       isActive: input.isActive,
       endDate: input.endDate,
     },
@@ -3331,6 +3334,17 @@ async function main() {
     isActive: true,
     endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
     discountPercent: '10',
+  });
+  await ensureVoucher({
+    code: 'SHOPGOM12',
+    name: 'Voucher shop gốm 12%',
+    description:
+      'Mã demo chỉ áp dụng cho sản phẩm gốm thuộc đúng gian hàng của nghệ nhân.',
+    categoryId: categoryIds.ceramics,
+    sellerId: seller.id,
+    isActive: true,
+    endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+    discountPercent: '12',
   });
   await ensureVoucher({
     code: 'EXPIRED5',

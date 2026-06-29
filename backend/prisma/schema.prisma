@@ -571,6 +571,7 @@ model Voucher {
   ranges            VoucherRange[]
   carts             Cart[]
   usages            VoucherUsage[]
+  customOrders      CustomOrder[]  @relation("CustomOrderVoucher")
 
   @@index([categoryId])
   @@index([sellerId, isActive, endDate])
@@ -593,17 +594,20 @@ model VoucherRange {
 }
 
 model VoucherUsage {
-  id        String   @id @default(uuid())
-  voucherId String
-  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation("UserVoucherUsages", fields: [userId], references: [id], onDelete: Cascade)
-  orderId   String?  @unique
-  order     Order?   @relation("OrderVoucherUsage", fields: [orderId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
+  id            String       @id @default(uuid())
+  voucherId     String
+  voucher       Voucher      @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation("UserVoucherUsages", fields: [userId], references: [id], onDelete: Cascade)
+  orderId       String?      @unique
+  order         Order?       @relation("OrderVoucherUsage", fields: [orderId], references: [id], onDelete: SetNull)
+  customOrderId String?      @unique
+  customOrder   CustomOrder? @relation("CustomOrderVoucherUsage", fields: [customOrderId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
 
   @@index([voucherId, createdAt])
   @@index([userId, createdAt])
+  @@index([customOrderId])
 }
 
 model FlashSale {
@@ -967,6 +971,10 @@ model CustomOrder {
   quoteSnapshot    Json?
   quoteSentAt      DateTime?
   quoteAcceptedAt  DateTime?
+  voucherId        String?
+  voucher          Voucher?                  @relation("CustomOrderVoucher", fields: [voucherId], references: [id], onDelete: SetNull)
+  voucherCode      String?
+  discountAmount   Decimal                   @default(0)
 
   title          String
   artisanNote    String? @db.Text
@@ -986,11 +994,13 @@ model CustomOrder {
   refunds        Refund[]
   progressEvents CustomOrderProgressEvent[]
   review         CustomOrderReview?
+  voucherUsage   VoucherUsage?              @relation("CustomOrderVoucherUsage")
 
   @@index([customerId])
   @@index([sellerId])
   @@index([paymentIntentId])
   @@index([quoteTemplateId])
+  @@index([voucherId])
 }
 
 model CustomOrderProgressEvent {

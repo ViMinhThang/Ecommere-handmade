@@ -23,6 +23,7 @@ import { CreateCustomOrderRefundDto } from './dto/create-custom-order-refund.dto
 import { CreateCustomOrderProgressEventDto } from './dto/create-custom-order-progress-event.dto';
 import { CreateCustomOrderReviewDto } from './dto/create-custom-order-review.dto';
 import { SettingsService } from '../settings/settings.service';
+import { VouchersService } from '../vouchers/vouchers.service';
 
 const CURRENCY = 'vnd';
 const DEFAULT_PLATFORM_COMMISSION_BPS = 1000;
@@ -45,6 +46,7 @@ export class CustomOrdersService {
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
     private readonly settingsService: SettingsService,
+    private readonly vouchersService: VouchersService,
   ) {}
 
   private isAdmin(roles: string[]) {
@@ -78,22 +80,44 @@ export class CustomOrdersService {
     return this.roundMoney((amount * this.getPlatformCommissionBps()) / 10000);
   }
 
+  private getCustomOrderDiscount(order: {
+    price: Prisma.Decimal | number;
+    discountAmount?: Prisma.Decimal | number | null;
+  }) {
+    const gross = Math.max(0, Number(order.price));
+    const discount = Math.max(0, Number(order.discountAmount ?? 0));
+    return this.roundMoney(Math.min(discount, gross));
+  }
+
+  private getCustomOrderCustomerPaid(order: {
+    price: Prisma.Decimal | number;
+    discountAmount?: Prisma.Decimal | number | null;
+  }) {
+    return this.roundMoney(
+      Math.max(0, Number(order.price) - this.getCustomOrderDiscount(order)),
+    );
+  }
+
   private getFinancialSummary(order: {
     price: Prisma.Decimal | number;
+    discountAmount?: Prisma.Decimal | number | null;
     refunds?: Array<{ amount: Prisma.Decimal | number; status: RefundStatus }>;
   }) {
     const gross = Number(order.price);
+    const platformDiscount = this.getCustomOrderDiscount(order);
+    const customerPaid = this.getCustomOrderCustomerPaid(order);
     const platformFee = this.calculatePlatformFee(gross);
     const refundedAmount = (order.refunds ?? [])
       .filter((refund) => refund.status === RefundStatus.SUCCEEDED)
       .reduce((sum, refund) => sum + Number(refund.amount), 0);
     const sellerNetBeforeRefunds = Math.max(0, gross - platformFee);
-    const refundedRatio = gross > 0 ? Math.min(refundedAmount / gross, 1) : 0;
+    const refundedRatio =
+      customerPaid > 0 ? Math.min(refundedAmount / customerPaid, 1) : 0;
 
     return {
       gross,
-      customerPaid: gross,
-      platformDiscount: 0,
+      customerPaid,
+      platformDiscount,
       platformFee,
       sellerNet: this.roundMoney(
         Math.max(0, sellerNetBeforeRefunds * (1 - refundedRatio)),
@@ -104,6 +128,7 @@ export class CustomOrdersService {
 
   private attachFinancialSummary<T extends { price: Prisma.Decimal | number }>(
     order: T & {
+      discountAmount?: Prisma.Decimal | number | null;
       refunds?: Array<{
         amount: Prisma.Decimal | number;
         status: RefundStatus;
@@ -190,6 +215,141 @@ export class CustomOrdersService {
     }
   }
 
+  private normalizeVoucherCode(code?: string | null) {
+    const normalized = code?.trim().toUpperCase();
+    return normalized ? normalized : null;
+  }
+
+  private async resolveCustomOrderVoucher(
+    order: {
+      id: string;
+      customerId: string;
+      sellerId: string;
+      price: Prisma.Decimal | number;
+      discountAmount?: Prisma.Decimal | number | null;
+    },
+    voucherCode?: string | null,
+  ) {
+    const code = this.normalizeVoucherCode(voucherCode);
+
+    if (!code) {
+      return {
+        voucherId: null,
+        voucherCode: null,
+        discountAmount: 0,
+      };
+    }
+
+    const voucher = await this.vouchersService.findByCode(code);
+
+    if (voucher.sellerId && voucher.sellerId !== order.sellerId) {
+      throw new BadRequestException(
+        'Voucher shop chỉ áp dụng cho đơn thiết kế của chính shop đó',
+      );
+    }
+
+    const matchedRange = this.vouchersService.findMatchingRange(
+      voucher.ranges,
+      Number(order.price),
+    );
+
+    if (!matchedRange) {
+      throw new BadRequestException(
+        'Voucher chưa đạt điều kiện giá trị cho đơn thiết kế này',
+      );
+    }
+
+    await this.vouchersService.assertVoucherUsageAvailable(
+      voucher,
+      order.customerId,
+    );
+
+    return {
+      voucherId: voucher.id,
+      voucherCode: voucher.code,
+      discountAmount: this.vouchersService.calculateDiscountAmount(
+        voucher,
+        matchedRange,
+        Number(order.price),
+      ),
+    };
+  }
+
+  private async reserveCustomOrderVoucherUsage(
+    tx: Prisma.TransactionClient,
+    order: {
+      id: string;
+      customerId: string;
+      voucherId: string | null;
+    },
+  ) {
+    if (!order.voucherId) {
+      return;
+    }
+
+    const existingUsage = await tx.voucherUsage.findUnique({
+      where: { customOrderId: order.id },
+      select: { id: true },
+    });
+
+    if (existingUsage) {
+      return;
+    }
+
+    const voucher = await tx.voucher.findUnique({
+      where: { id: order.voucherId },
+      select: {
+        id: true,
+        usageLimit: true,
+        perUserLimit: true,
+        usedCount: true,
+      },
+    });
+
+    if (!voucher) {
+      throw new BadRequestException('Voucher không còn tồn tại');
+    }
+
+    await this.vouchersService.assertVoucherUsageAvailable(
+      voucher,
+      order.customerId,
+      tx,
+    );
+
+    await tx.voucherUsage.create({
+      data: {
+        voucherId: order.voucherId,
+        userId: order.customerId,
+        customOrderId: order.id,
+      },
+    });
+
+    await tx.voucher.update({
+      where: { id: order.voucherId },
+      data: { usedCount: { increment: 1 } },
+    });
+  }
+
+  private async releaseCustomOrderVoucherUsage(
+    tx: Prisma.TransactionClient,
+    customOrderId: string,
+  ) {
+    const usage = await tx.voucherUsage.findUnique({
+      where: { customOrderId },
+      select: { id: true, voucherId: true },
+    });
+
+    if (!usage) {
+      return;
+    }
+
+    await tx.voucherUsage.delete({ where: { id: usage.id } });
+    await tx.voucher.update({
+      where: { id: usage.voucherId },
+      data: { usedCount: { decrement: 1 } },
+    });
+  }
+
   private async postCustomOrderLedger(
     tx: Prisma.TransactionClient,
     customOrderId: string,
@@ -202,13 +362,15 @@ export class CustomOrdersService {
     }
 
     const gross = Number(order.price);
+    const customerPaid = this.getCustomOrderCustomerPaid(order);
+    const platformDiscount = this.getCustomOrderDiscount(order);
     const platformFee = this.calculatePlatformFee(gross);
     const sellerEarning = Math.max(0, gross - platformFee);
 
     await this.createLedgerEntry(tx, {
       type: MarketplaceLedgerEntryType.PAYMENT_CAPTURE,
       status: MarketplaceLedgerEntryStatus.POSTED,
-      amount: gross,
+      amount: customerPaid,
       currency: CURRENCY,
       idempotencyKey: `custom_order:${order.id}:payment_capture`,
       customOrder: { connect: { id: order.id } },
@@ -237,6 +399,19 @@ export class CustomOrdersService {
       customer: { connect: { id: order.customerId } },
       seller: { connect: { id: order.sellerId } },
     });
+
+    if (platformDiscount > 0) {
+      await this.createLedgerEntry(tx, {
+        type: MarketplaceLedgerEntryType.PLATFORM_DISCOUNT,
+        status: MarketplaceLedgerEntryStatus.POSTED,
+        amount: platformDiscount,
+        currency: CURRENCY,
+        idempotencyKey: `custom_order:${order.id}:platform_discount`,
+        customOrder: { connect: { id: order.id } },
+        customer: { connect: { id: order.customerId } },
+        seller: { connect: { id: order.sellerId } },
+      });
+    }
   }
 
   async createCustomOrder(sellerId: string, data: CreateCustomOrderDto) {
@@ -446,7 +621,7 @@ export class CustomOrdersService {
     });
   }
 
-  async approveSketch(id: string, customerId: string) {
+  async approveSketch(id: string, customerId: string, voucherCode?: string) {
     const order = await this.getAndVerifyOrder(id, customerId, 'customer');
 
     const canCreatePayment =
@@ -460,45 +635,103 @@ export class CustomOrdersService {
 
     let { paymentIntentId } = order;
     let clientSecret: string | null = null;
+    const voucherCodeProvided = voucherCode !== undefined;
+    const requestedVoucherCode = this.normalizeVoucherCode(voucherCode);
+    const existingVoucherCode = this.normalizeVoucherCode(order.voucherCode);
+    const effectiveVoucherCode =
+      requestedVoucherCode ?? existingVoucherCode ?? undefined;
     const isExpired =
       order.paymentExpiresAt && order.paymentExpiresAt <= new Date();
 
+    if (
+      paymentIntentId &&
+      !isExpired &&
+      voucherCodeProvided &&
+      requestedVoucherCode !== existingVoucherCode
+    ) {
+      throw new BadRequestException(
+        'Không thể đổi voucher sau khi đã chuẩn bị thanh toán',
+      );
+    }
+
     if (paymentIntentId && isExpired) {
       await this.stripeService.cancelPaymentIntent(paymentIntentId);
-      await this.prisma.customOrder.update({
-        where: { id },
-        data: {
-          paymentIntentId: null,
-          paymentExpiresAt: null,
-          paymentStatus: PaymentStatus.UNPAID,
-        },
+      await this.prisma.$transaction(async (tx) => {
+        await this.releaseCustomOrderVoucherUsage(tx, id);
+        await tx.customOrder.update({
+          where: { id },
+          data: {
+            paymentIntentId: null,
+            paymentExpiresAt: null,
+            paymentStatus: PaymentStatus.UNPAID,
+            voucherId: null,
+            voucherCode: null,
+            discountAmount: 0,
+          },
+        });
       });
       paymentIntentId = null;
     }
 
     if (!paymentIntentId) {
+      const voucherSnapshot = await this.resolveCustomOrderVoucher(
+        order,
+        effectiveVoucherCode,
+      );
+      const payableAmount = this.getCustomOrderCustomerPaid({
+        price: order.price,
+        discountAmount: voucherSnapshot.discountAmount,
+      });
+
+      if (payableAmount <= 0) {
+        throw new BadRequestException(
+          'Voucher không thể làm đơn thiết kế về 0 đồng',
+        );
+      }
+
       const intent = await this.stripeService.createPaymentIntent(
-        Math.round(Number(order.price)),
+        payableAmount,
         'vnd',
         {
           customOrderId: order.id,
           customerId: order.customerId,
           sellerId: order.sellerId,
+          voucherCode: voucherSnapshot.voucherCode ?? '',
+          discountAmount: String(voucherSnapshot.discountAmount),
           type: 'custom_order',
         },
       );
       paymentIntentId = intent.id;
       clientSecret = intent.client_secret;
 
-      await this.prisma.customOrder.update({
-        where: { id },
-        data: {
-          status: CustomOrderStatus.AWAITING_PAYMENT,
-          paymentStatus: PaymentStatus.UNPAID,
-          paymentIntentId,
-          paymentExpiresAt: new Date(Date.now() + STRIPE_PAYMENT_EXPIRY_MS),
-        },
-      });
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          const updatedOrder = await tx.customOrder.update({
+            where: { id },
+            data: {
+              status: CustomOrderStatus.AWAITING_PAYMENT,
+              paymentStatus: PaymentStatus.UNPAID,
+              paymentIntentId,
+              paymentExpiresAt: new Date(
+                Date.now() + STRIPE_PAYMENT_EXPIRY_MS,
+              ),
+              voucherId: voucherSnapshot.voucherId,
+              voucherCode: voucherSnapshot.voucherCode,
+              discountAmount: voucherSnapshot.discountAmount,
+            },
+            select: {
+              id: true,
+              customerId: true,
+              voucherId: true,
+            },
+          });
+
+          await this.reserveCustomOrderVoucherUsage(tx, updatedOrder);
+        });
+      } catch (error) {
+        await this.stripeService.cancelPaymentIntent(paymentIntentId);
+        throw error;
+      }
     } else {
       const intent =
         await this.stripeService.retrievePaymentIntent(paymentIntentId);
@@ -548,7 +781,7 @@ export class CustomOrdersService {
     if (paymentIntent.currency.toLowerCase() !== 'vnd') {
       throw new BadRequestException('Payment currency does not match order');
     }
-    if (paymentIntent.amount !== Math.round(Number(order.price))) {
+    if (paymentIntent.amount !== this.getCustomOrderCustomerPaid(order)) {
       throw new BadRequestException('Payment amount does not match order');
     }
     if (
@@ -666,7 +899,9 @@ export class CustomOrdersService {
       throw new NotFoundException('Custom Order not found');
     }
 
-    const ratio = Math.min(refundAmount / Number(order.price), 1);
+    const customerPaid = this.getCustomOrderCustomerPaid(order);
+    const ratio =
+      customerPaid > 0 ? Math.min(refundAmount / customerPaid, 1) : 0;
     const sellerNet = Math.max(
       0,
       Number(order.price) - this.calculatePlatformFee(Number(order.price)),
@@ -711,7 +946,8 @@ export class CustomOrdersService {
     }
 
     const refundedAmount = this.calculateRefundedAmount(order.refunds);
-    const refundableBalance = Number(order.price) - refundedAmount;
+    const refundableBalance =
+      this.getCustomOrderCustomerPaid(order) - refundedAmount;
     const amount = this.roundMoney(dto.amount ?? refundableBalance);
 
     if (amount <= 0 || amount > refundableBalance) {
@@ -763,7 +999,7 @@ export class CustomOrdersService {
         where: { id: order.id },
         data: {
           paymentStatus: this.getRefundPaymentStatus(
-            Number(order.price),
+            this.getCustomOrderCustomerPaid(order),
             refundedAmount + amount,
           ),
         },
@@ -800,14 +1036,23 @@ export class CustomOrdersService {
         })
       : null;
 
-    const updated = await this.prisma.customOrder.update({
-      where: { id },
-      data: {
-        status: CustomOrderStatus.CANCELLED,
-        paymentStatus: refund ? PaymentStatus.REFUNDED : order.paymentStatus,
-        cancelledAt: new Date(),
-      },
-      include: { refunds: true },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (!refund) {
+        await this.releaseCustomOrderVoucherUsage(tx, id);
+      }
+
+      return tx.customOrder.update({
+        where: { id },
+        data: {
+          status: CustomOrderStatus.CANCELLED,
+          paymentStatus: refund ? PaymentStatus.REFUNDED : order.paymentStatus,
+          voucherId: refund ? undefined : null,
+          voucherCode: refund ? undefined : null,
+          discountAmount: refund ? undefined : 0,
+          cancelledAt: new Date(),
+        },
+        include: { refunds: true },
+      });
     });
 
     return {
@@ -845,6 +1090,7 @@ export class CustomOrdersService {
       customerId: string;
       sellerId: string;
       price: Prisma.Decimal | number;
+      discountAmount?: Prisma.Decimal | number | null;
     },
     payment: {
       amount: number;
@@ -855,7 +1101,7 @@ export class CustomOrdersService {
     if (payment.currency.toLowerCase() !== CURRENCY) {
       throw new BadRequestException('Payment currency does not match order');
     }
-    if (payment.amount !== Math.round(Number(order.price))) {
+    if (payment.amount !== this.getCustomOrderCustomerPaid(order)) {
       throw new BadRequestException('Payment amount does not match order');
     }
 
@@ -942,12 +1188,17 @@ export class CustomOrdersService {
         return { received: true, processed: false, reason: 'terminal_order' };
       }
 
+      await this.releaseCustomOrderVoucherUsage(tx, order.id);
+
       const updatedOrder = await tx.customOrder.update({
         where: { id: order.id },
         data: {
           status: CustomOrderStatus.CANCELLED,
           paymentStatus: PaymentStatus.FAILED,
           paymentExpiresAt: null,
+          voucherId: null,
+          voucherCode: null,
+          discountAmount: 0,
           cancelledAt: new Date(),
         },
       });

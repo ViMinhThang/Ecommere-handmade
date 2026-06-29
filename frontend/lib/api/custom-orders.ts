@@ -12,6 +12,9 @@ export interface CustomOrder {
   customerId: string;
   sellerId: string;
   paymentIntentId: string | null;
+  voucherId?: string | null;
+  voucherCode?: string | null;
+  discountAmount?: string | number | null;
   title: string;
   artisanNote: string | null;
   price: string;
@@ -136,8 +139,11 @@ export const customOrdersApi = {
     return apiClient.post<{ success: boolean; status: string }>(`/custom-orders/${id}/request-revision`, { revisionNote });
   },
 
-  approveSketch: (id: string) => {
-    return apiClient.post<{ success: boolean; clientSecret: string; paymentIntentId: string }>(`/custom-orders/${id}/approve-sketch`);
+  approveSketch: (id: string, data?: { voucherCode?: string }) => {
+    return apiClient.post<{ success: boolean; clientSecret: string; paymentIntentId: string }>(
+      `/custom-orders/${id}/approve-sketch`,
+      data ?? {},
+    );
   },
 
   confirmPayment: (id: string, paymentIntentId: string) => {

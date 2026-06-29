@@ -13,6 +13,8 @@ import { productsApi } from "@/lib/api/products";
 import { formatCurrency } from "@/lib/utils";
 import type { FlashSale, Product, Voucher } from "@/types";
 
+type VoucherPublicFilter = "all" | "platform" | "shop";
+
 function isCurrentFlashSale(flashSale: FlashSale) {
   const now = Date.now();
   return (
@@ -333,11 +335,25 @@ export function PublicFlashSaleSection() {
 }
 
 export function PublicVoucherSection() {
+  const [filter, setFilter] = useState<VoucherPublicFilter>("all");
   const vouchersQuery = useVouchers({ limit: 8 });
   const vouchers = useMemo(
-    () => (vouchersQuery.data?.data ?? []).filter(isCurrentVoucher).slice(0, 6),
-    [vouchersQuery.data],
+    () =>
+      (vouchersQuery.data?.data ?? [])
+        .filter(isCurrentVoucher)
+        .filter((voucher) => {
+          if (filter === "platform") return !voucher.sellerId;
+          if (filter === "shop") return Boolean(voucher.sellerId);
+          return true;
+        })
+        .slice(0, 6),
+    [filter, vouchersQuery.data],
   );
+  const filters: Array<{ value: VoucherPublicFilter; label: string }> = [
+    { value: "all", label: "Tất cả" },
+    { value: "platform", label: "Voucher sàn" },
+    { value: "shop", label: "Voucher shop" },
+  ];
 
   const copyVoucherCode = async (code: string) => {
     try {
@@ -363,6 +379,23 @@ export function PublicVoucherSection() {
             Mã hợp lệ có thể nhập tại giỏ hàng hoặc trang thanh toán. Hệ thống
             sẽ kiểm tra lại điều kiện khi đặt hàng.
           </p>
+        </div>
+
+        <div className="mb-8 flex flex-wrap justify-center rounded-md border border-border/60 bg-muted/30 p-1">
+          {filters.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setFilter(option.value)}
+              className={`rounded-sm px-4 py-2 text-xs font-semibold transition ${
+                filter === option.value
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
 
         {vouchersQuery.isLoading ? (
@@ -397,6 +430,9 @@ export function PublicVoucherSection() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
+                    <span className="mb-2 inline-flex rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
+                      {voucher.sellerId ? "Voucher shop" : "Voucher sàn"}
+                    </span>
                     <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                       {voucher.name}
                     </p>
@@ -427,10 +463,10 @@ export function PublicVoucherSection() {
                     HSD: {new Date(voucher.endDate).toLocaleDateString("vi-VN")}
                   </span>
                   <Link
-                    href="/cart"
+                    href="/checkout"
                     className="font-bold uppercase tracking-widest text-primary underline-offset-4 hover:underline"
                   >
-                    Dùng ở giỏ hàng
+                    Dùng ở checkout
                   </Link>
                 </div>
               </article>

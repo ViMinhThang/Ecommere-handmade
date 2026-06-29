@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { SettingsService } from '../settings/settings.service';
 import { CustomOrdersService } from './custom-orders.service';
+import { VouchersService } from '../vouchers/vouchers.service';
 
 type LedgerCreateArgs = {
   data: {
@@ -24,6 +25,9 @@ type CustomOrderUpdateArgs = {
     paymentStatus?: PaymentStatus;
     paymentExpiresAt?: Date | null;
     paymentIntentId?: string | null;
+    voucherId?: string | null;
+    voucherCode?: string | null;
+    discountAmount?: number;
     cancelledAt?: Date;
   };
 };
@@ -52,6 +56,16 @@ describe('CustomOrdersService', () => {
       create: jest.fn(),
       findUnique: jest.fn(),
     },
+    voucher: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    voucherUsage: {
+      count: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+      findUnique: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
   const mockStripe = {
@@ -63,11 +77,28 @@ describe('CustomOrdersService', () => {
   const mockSettings = {
     getPlatformCommissionBps: jest.fn(() => 1000),
   };
+  const mockVouchers = {
+    assertVoucherUsageAvailable: jest.fn(),
+    calculateDiscountAmount: jest.fn(),
+    findByCode: jest.fn(),
+    findMatchingRange: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     mockPrisma.$transaction.mockImplementation(
       (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma),
+    );
+    mockPrisma.customOrder.update.mockImplementation(
+      (args: CustomOrderUpdateArgs) =>
+        Promise.resolve({
+          id: 'co_1',
+          customerId: 'customer_1',
+          sellerId: 'seller_1',
+          price: 100000,
+          discountAmount: 0,
+          ...args.data,
+        }),
     );
     mockPrisma.paymentWebhookEvent.create.mockResolvedValue({ id: 'evt_row' });
     mockPrisma.marketplaceLedgerEntry.create.mockResolvedValue({
@@ -75,6 +106,17 @@ describe('CustomOrdersService', () => {
     });
     mockPrisma.marketplaceLedgerEntry.findMany.mockResolvedValue([]);
     mockPrisma.refund.findUnique.mockResolvedValue(null);
+    mockPrisma.voucher.findUnique.mockResolvedValue({
+      id: 'voucher_1',
+      usageLimit: null,
+      perUserLimit: null,
+      usedCount: 0,
+    });
+    mockPrisma.voucher.update.mockResolvedValue({ id: 'voucher_1' });
+    mockPrisma.voucherUsage.count.mockResolvedValue(0);
+    mockPrisma.voucherUsage.create.mockResolvedValue({ id: 'usage_1' });
+    mockPrisma.voucherUsage.delete.mockResolvedValue({ id: 'usage_1' });
+    mockPrisma.voucherUsage.findUnique.mockResolvedValue(null);
     mockStripe.cancelPaymentIntent.mockResolvedValue(null);
     mockStripe.createRefund.mockResolvedValue({
       id: 're_1',
@@ -83,6 +125,19 @@ describe('CustomOrdersService', () => {
       currency: 'vnd',
       payment_intent: 'pi_1',
     });
+    mockVouchers.assertVoucherUsageAvailable.mockResolvedValue(undefined);
+    mockVouchers.calculateDiscountAmount.mockReturnValue(0);
+    mockVouchers.findByCode.mockResolvedValue({
+      id: 'voucher_1',
+      code: 'SAVE10',
+      sellerId: null,
+      maxDiscountAmount: null,
+      usageLimit: null,
+      perUserLimit: null,
+      usedCount: 0,
+      ranges: [],
+    });
+    mockVouchers.findMatchingRange.mockReturnValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -90,6 +145,7 @@ describe('CustomOrdersService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StripeService, useValue: mockStripe },
         { provide: SettingsService, useValue: mockSettings },
+        { provide: VouchersService, useValue: mockVouchers },
       ],
     }).compile();
 

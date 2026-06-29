@@ -99,6 +99,7 @@ describe('CartService personalization', () => {
       id: 'product_1',
       price: 100000,
       categoryId: 'cat_1',
+      sellerId: 'seller_1',
       images: [],
       category: { id: 'cat_1', name: 'Trang sức' },
       seller: {
@@ -131,8 +132,9 @@ describe('CartService personalization', () => {
     };
     const vouchers = {
       assertVoucherUsageAvailable: jest.fn(),
-      calculateDiscountAmount: jest.fn(),
+      calculateDiscountAmount: jest.fn(() => 10000),
       findByCode: jest.fn(),
+      findAll: jest.fn(),
     };
     const flashSales = {
       calculateEffectivePrice: jest.fn(() => ({
@@ -150,9 +152,44 @@ describe('CartService personalization', () => {
         flashSales as never,
       ),
       prisma,
+      vouchers,
       flashSales,
     };
   };
+
+  const buildVoucher = (overrides: Record<string, unknown> = {}) => ({
+    id: 'voucher_1',
+    name: 'Voucher demo',
+    description: 'Demo',
+    code: 'DEMO10',
+    categoryId: 'cat_1',
+    sellerId: null,
+    isActive: true,
+    endDate: new Date('2030-01-01T00:00:00.000Z'),
+    maxDiscountAmount: null,
+    usageLimit: null,
+    perUserLimit: null,
+    usedCount: 0,
+    deletedAt: null,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    category: { id: 'cat_1', name: 'Trang sức' },
+    seller: null,
+    ranges: [
+      {
+        id: 'range_1',
+        voucherId: 'voucher_1',
+        minPrice: 50000,
+        maxPrice: null,
+        discountPercent: 10,
+        endDate: new Date('2030-01-01T00:00:00.000Z'),
+        deletedAt: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+    ],
+    ...overrides,
+  });
 
   it('adds a product without personalization as before', async () => {
     const { service, prisma } = createService();
@@ -308,6 +345,60 @@ describe('CartService personalization', () => {
       'cat_1',
       'product_1',
     );
+  });
+
+  it('returns eligible platform vouchers and only matching shop vouchers for the current cart', async () => {
+    const { service, prisma, vouchers } = createService();
+    prisma.cart.findUnique.mockResolvedValue(
+      buildCart({
+        items: [buildCartItem()],
+      }),
+    );
+    vouchers.findAll.mockResolvedValue({
+      data: [
+        buildVoucher({
+          id: 'platform_voucher',
+          code: 'SAN10',
+          sellerId: null,
+        }),
+        buildVoucher({
+          id: 'shop_voucher',
+          code: 'SHOP10',
+          sellerId: 'seller_1',
+          seller: {
+            id: 'seller_1',
+            name: 'Seller',
+            shopName: 'Shop của tôi',
+          },
+        }),
+        buildVoucher({
+          id: 'wrong_shop_voucher',
+          code: 'SHOPSAI',
+          sellerId: 'seller_2',
+          seller: {
+            id: 'seller_2',
+            name: 'Seller khác',
+            shopName: 'Shop khác',
+          },
+        }),
+      ],
+      meta: { page: 1, limit: 50, total: 3, totalPages: 1 },
+    });
+
+    const result = await service.getEligibleVouchers('customer_1');
+
+    expect(result.platformVouchers).toHaveLength(1);
+    expect(result.platformVouchers[0].code).toBe('SAN10');
+    expect(result.shopVouchers).toHaveLength(1);
+    expect(result.shopVouchers[0].code).toBe('SHOP10');
+    expect(result.shopVouchers[0].sellerName).toBe('Shop của tôi');
+    expect(result.ineligibleVouchers).toEqual([
+      {
+        id: 'wrong_shop_voucher',
+        code: 'SHOPSAI',
+        reason: 'Không có sản phẩm thuộc shop áp dụng voucher',
+      },
+    ]);
   });
 
   it('stores selected product options when product has option lists', async () => {

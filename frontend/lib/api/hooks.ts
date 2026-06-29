@@ -1114,6 +1114,7 @@ export function useDeleteFlashSale() {
 export const cartKeys = {
   all: ["cart"] as const,
   cart: () => [...cartKeys.all, "detail"] as const,
+  eligibleVouchers: () => [...cartKeys.all, "eligible-vouchers"] as const,
   suggestions: () => [...cartKeys.all, "suggestions"] as const,
 };
 
@@ -1129,6 +1130,14 @@ export function useCartSuggestions(enabled = true) {
   return useQuery({
     queryKey: cartKeys.suggestions(),
     queryFn: () => cartApi.getSuggestions(),
+    enabled,
+  });
+}
+
+export function useEligibleCartVouchers(enabled = true) {
+  return useQuery({
+    queryKey: cartKeys.eligibleVouchers(),
+    queryFn: () => cartApi.getEligibleVouchers(),
     enabled,
   });
 }

@@ -26,6 +26,11 @@ export class CartController {
     return this.cartService.getCart(req.user.id);
   }
 
+  @Get('eligible-vouchers')
+  getEligibleVouchers(@Request() req: AuthenticatedRequest) {
+    return this.cartService.getEligibleVouchers(req.user.id);
+  }
+
   @Post('items')
   addItem(@Request() req: AuthenticatedRequest, @Body() dto: AddToCartDto) {
     return this.cartService.addToCart(req.user.id, dto);

@@ -74,6 +74,48 @@ type CartWithItems = Prisma.CartGetPayload<{
   };
 }>;
 
+type CartEligibleVoucherSource = Voucher & {
+  category?: { id: string; name: string } | null;
+  seller?: { id: string; name: string; shopName: string | null } | null;
+  ranges: VoucherRange[];
+};
+
+type VoucherEligibilityResult =
+  | {
+      eligible: true;
+      eligibleSubtotal: number;
+      matchedRange: VoucherRange;
+    }
+  | {
+      eligible: false;
+      reason: string;
+    };
+
+export interface EligibleCartVoucherPayload {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  scope: 'platform' | 'shop';
+  sellerId: string | null;
+  sellerName: string | null;
+  categoryId: string;
+  categoryName: string | null;
+  endDate: Date;
+  discountPercent: number;
+  minPrice: number;
+  maxPrice: number | null;
+  maxDiscountAmount: number | null;
+  eligibleSubtotal: number;
+  estimatedDiscountAmount: number;
+}
+
+export interface IneligibleCartVoucherPayload {
+  id: string;
+  code: string;
+  reason: string;
+}
+
 @Injectable()
 export class CartService {
   constructor(
@@ -469,6 +511,53 @@ export class CartService {
     });
   }
 
+  async getEligibleVouchers(userId: string) {
+    const cart = await this.getCart(userId);
+    const vouchersResult = await this.vouchersService.findAll({
+      page: 1,
+      limit: 50,
+    });
+    const vouchers = vouchersResult.data as CartEligibleVoucherSource[];
+    const platformVouchers: EligibleCartVoucherPayload[] = [];
+    const shopVouchers: EligibleCartVoucherPayload[] = [];
+    const ineligibleVouchers: IneligibleCartVoucherPayload[] = [];
+
+    for (const voucher of vouchers) {
+      const eligibility = await this.getVoucherEligibility(
+        cart.items,
+        voucher,
+        userId,
+      );
+
+      if (!eligibility.eligible) {
+        ineligibleVouchers.push({
+          id: voucher.id,
+          code: voucher.code,
+          reason: eligibility.reason,
+        });
+        continue;
+      }
+
+      const payload = this.toEligibleVoucherPayload(
+        voucher,
+        eligibility.matchedRange,
+        eligibility.eligibleSubtotal,
+      );
+
+      if (voucher.sellerId) {
+        shopVouchers.push(payload);
+      } else {
+        platformVouchers.push(payload);
+      }
+    }
+
+    return {
+      platformVouchers,
+      shopVouchers,
+      ineligibleVouchers,
+    };
+  }
+
   async applyVoucher(userId: string, code: string) {
     const cart = await this.getOrCreateCart(userId);
     const voucher = await this.vouchersService.findByCode(code);
@@ -482,32 +571,15 @@ export class CartService {
     }
 
     const cartWithItems = await this.getCart(userId);
-    const hasEligibleItems = cartWithItems.items.some((item) =>
-      this.isVoucherItemEligible(item, voucher),
+    const eligibility = await this.getVoucherEligibility(
+      cartWithItems.items,
+      voucher,
+      userId,
     );
 
-    if (!hasEligibleItems) {
-      throw new BadRequestException(
-        `Voucher này chỉ áp dụng cho các sản phẩm thuộc danh mục: ${voucher.category?.name || 'Không xác định'}`,
-      );
+    if (!eligibility.eligible) {
+      throw new BadRequestException(eligibility.reason);
     }
-
-    const eligibleSubtotal = cartWithItems.items
-      .filter((item) => this.isVoucherItemEligible(item, voucher))
-      .reduce(
-        (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
-        0,
-      );
-    const matchedRange = this.findMatchingVoucherRange(
-      voucher.ranges,
-      eligibleSubtotal,
-    );
-
-    if (!this.isVoucherValid(voucher, matchedRange)) {
-      throw new BadRequestException('Voucher cannot be applied to this cart');
-    }
-
-    await this.vouchersService.assertVoucherUsageAvailable(voucher, userId);
 
     await this.prisma.cart.update({
       where: { id: cart.id },
@@ -515,6 +587,154 @@ export class CartService {
     });
 
     return this.getCart(userId);
+  }
+
+  private async getVoucherEligibility(
+    items: EnrichedCartItem[],
+    voucher: CartEligibleVoucherSource,
+    userId: string,
+  ): Promise<VoucherEligibilityResult> {
+    if (items.length === 0) {
+      return { eligible: false, reason: 'Giỏ hàng đang trống' };
+    }
+
+    const sellerMatchedItems = voucher.sellerId
+      ? items.filter((item) => item.product.sellerId === voucher.sellerId)
+      : items;
+
+    if (sellerMatchedItems.length === 0) {
+      return {
+        eligible: false,
+        reason: 'Không có sản phẩm thuộc shop áp dụng voucher',
+      };
+    }
+
+    const eligibleItems = sellerMatchedItems.filter(
+      (item) => item.product.categoryId === voucher.categoryId,
+    );
+
+    if (eligibleItems.length === 0) {
+      return {
+        eligible: false,
+        reason: 'Không có sản phẩm thuộc danh mục áp dụng voucher',
+      };
+    }
+
+    const eligibleSubtotal = eligibleItems.reduce(
+      (sum, item) => sum + item.pricing.discountedPrice * item.quantity,
+      0,
+    );
+    const matchedRange = this.findMatchingVoucherRange(
+      voucher.ranges,
+      eligibleSubtotal,
+    );
+
+    if (!matchedRange) {
+      return {
+        eligible: false,
+        reason: this.getVoucherRangeReason(voucher.ranges, eligibleSubtotal),
+      };
+    }
+
+    if (!this.isVoucherValid(voucher, matchedRange)) {
+      return {
+        eligible: false,
+        reason: 'Voucher không còn hiệu lực',
+      };
+    }
+
+    try {
+      await this.vouchersService.assertVoucherUsageAvailable(voucher, userId);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        return {
+          eligible: false,
+          reason: 'Voucher đã hết lượt sử dụng',
+        };
+      }
+
+      throw error;
+    }
+
+    return {
+      eligible: true,
+      eligibleSubtotal,
+      matchedRange,
+    };
+  }
+
+  private getVoucherRangeReason(
+    ranges: VoucherRange[],
+    eligibleSubtotal: number,
+  ) {
+    const activeRanges = ranges.filter(
+      (range) =>
+        !range.deletedAt &&
+        new Date(range.endDate).getTime() > Date.now(),
+    );
+
+    if (activeRanges.length === 0) {
+      return 'Voucher không còn khoảng giá hợp lệ';
+    }
+
+    const minPrice = Math.min(
+      ...activeRanges.map((range) => Number(range.minPrice)),
+    );
+    const maxPrices = activeRanges
+      .map((range) => range.maxPrice)
+      .filter((value): value is NonNullable<typeof value> => value != null)
+      .map((value) => Number(value));
+    const hasUnlimitedMax = activeRanges.some(
+      (range) => range.maxPrice == null,
+    );
+    const maxPrice =
+      maxPrices.length > 0 ? Math.max(...maxPrices) : Number.POSITIVE_INFINITY;
+
+    if (eligibleSubtotal < minPrice) {
+      return 'Chưa đủ giá trị đơn để dùng voucher';
+    }
+
+    if (!hasUnlimitedMax && eligibleSubtotal > maxPrice) {
+      return 'Giá trị đơn vượt giới hạn áp dụng voucher';
+    }
+
+    return 'Đơn hàng chưa đủ điều kiện áp dụng voucher';
+  }
+
+  private toEligibleVoucherPayload(
+    voucher: CartEligibleVoucherSource,
+    matchedRange: VoucherRange,
+    eligibleSubtotal: number,
+  ): EligibleCartVoucherPayload {
+    const estimatedDiscountAmount =
+      this.vouchersService.calculateDiscountAmount(
+        voucher,
+        matchedRange,
+        eligibleSubtotal,
+      );
+
+    return {
+      id: voucher.id,
+      code: voucher.code,
+      name: voucher.name,
+      description: voucher.description,
+      scope: voucher.sellerId ? 'shop' : 'platform',
+      sellerId: voucher.sellerId,
+      sellerName: voucher.seller?.shopName || voucher.seller?.name || null,
+      categoryId: voucher.categoryId,
+      categoryName: voucher.category?.name || null,
+      endDate: voucher.endDate,
+      discountPercent: Number(matchedRange.discountPercent),
+      minPrice: Number(matchedRange.minPrice),
+      maxPrice:
+        matchedRange.maxPrice == null ? null : Number(matchedRange.maxPrice),
+      maxDiscountAmount:
+        voucher.maxDiscountAmount == null
+          ? null
+          : Number(voucher.maxDiscountAmount),
+      eligibleSubtotal,
+      estimatedDiscountAmount,
+    };
   }
 
   private isVoucherItemEligible(

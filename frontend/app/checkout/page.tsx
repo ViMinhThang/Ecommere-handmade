@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -12,6 +12,7 @@ import {
   useAddresses,
   useAddAddress,
   useCart,
+  useEligibleCartVouchers,
   useGiftWrapTiers,
   useRewardBalance,
   cartKeys,
@@ -125,6 +126,8 @@ export default function CheckoutPage() {
   const { data: addresses } = useAddresses(user?.id || "");
   const { mutate: addAddress, isPending: isSavingAddress } = useAddAddress();
   const { data: cart } = useCart();
+  const { data: eligibleVouchersData, isLoading: isVouchersLoading } =
+    useEligibleCartVouchers(Boolean(cart?.items?.length));
   const { data: giftWrapTiers = [], isLoading: isGiftWrapTiersLoading } =
     useGiftWrapTiers();
   const { data: rewardBalance } = useRewardBalance(Boolean(user));
@@ -310,19 +313,16 @@ export default function CheckoutPage() {
     }
   }, [formData.email, user]);
 
-  const handleApplyVoucher = async (event: React.FormEvent) => {
-    event.preventDefault();
-
+  const applyVoucherCode = async (rawCode: string) => {
     if (clientSecret) {
       toast.error("Không thể đổi mã giảm giá sau khi đã tạo phiên thanh toán.");
       return;
     }
 
-    const code = voucherCode.trim().toUpperCase();
+    const code = rawCode.trim().toUpperCase();
     if (!code) {
       const message = "Vui lòng nhập mã giảm giá.";
       setVoucherError(message);
-      toast.error(message);
       return;
     }
 
@@ -338,10 +338,14 @@ export default function CheckoutPage() {
     } catch (error) {
       const message = getVoucherErrorMessage(error);
       setVoucherError(message);
-      toast.error(message);
     } finally {
       setIsApplyingVoucher(false);
     }
+  };
+
+  const handleApplyVoucher = (event: React.FormEvent) => {
+    event.preventDefault();
+    void applyVoucherCode(voucherCode);
   };
 
   const handleRemoveVoucher = async () => {
@@ -362,7 +366,6 @@ export default function CheckoutPage() {
     } catch (error) {
       const message = getVoucherErrorMessage(error);
       setVoucherError(message);
-      toast.error(message);
     } finally {
       setIsRemovingVoucher(false);
     }
@@ -469,6 +472,11 @@ export default function CheckoutPage() {
   );
   const voucherDiscountAmount =
     cart?.appliedVoucher?.discountAmount ?? discountAmount;
+  const usableVouchers = useMemo(() => {
+    const platformVouchers = eligibleVouchersData?.platformVouchers ?? [];
+    const shopVouchers = eligibleVouchersData?.shopVouchers ?? [];
+    return [...platformVouchers, ...shopVouchers].slice(0, 4);
+  }, [eligibleVouchersData]);
   const shipping = 25000;
   const giftWrapFee =
     giftOptions.giftWrap && selectedGiftWrapTier
@@ -1195,6 +1203,65 @@ export default function CheckoutPage() {
                       <p className="text-xs font-medium text-red-600">
                         {voucherError}
                       </p>
+                    )}
+                    {!clientSecret && (
+                      <div className="space-y-2 rounded-sm border border-dashed border-[#8B4513]/20 bg-[#8B4513]/5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-[#8B4513]">
+                            Mã có thể dùng
+                          </p>
+                          <a
+                            href="/vouchers"
+                            className="text-xs font-medium text-[#8B4513] underline-offset-4 hover:underline"
+                          >
+                            Xem tất cả
+                          </a>
+                        </div>
+                        {isVouchersLoading ? (
+                          <p className="text-xs text-stone-500">
+                            Đang tải mã giảm giá...
+                          </p>
+                        ) : usableVouchers.length > 0 ? (
+                          <div className="space-y-2">
+                            {usableVouchers.map((voucher) => (
+                              <button
+                                key={voucher.id}
+                                type="button"
+                                onClick={() => {
+                                  setVoucherCode(voucher.code);
+                                  void applyVoucherCode(voucher.code);
+                                }}
+                                disabled={isVoucherActionPending}
+                                className="flex w-full items-center justify-between gap-3 rounded-sm border border-[#8B4513]/15 bg-white px-3 py-2 text-left transition hover:border-[#8B4513]/40 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <span className="min-w-0">
+                                  <span className="block truncate font-bold uppercase text-stone-900">
+                                    {voucher.code}
+                                  </span>
+                                  <span className="block truncate text-xs text-stone-500">
+                                    {voucher.scope === "shop"
+                                      ? `Voucher shop - ${voucher.sellerName || "Gian hàng"}`
+                                      : "Voucher sàn"}{" "}
+                                    · giảm {voucher.discountPercent}%
+                                  </span>
+                                  <span className="block truncate text-xs text-stone-500">
+                                    Ước giảm {formatCurrency(voucher.estimatedDiscountAmount)}
+                                  </span>
+                                </span>
+                                <span className="shrink-0 text-xs font-bold uppercase tracking-widest text-[#8B4513]">
+                                  Dùng mã
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs leading-relaxed text-stone-500">
+                            Chưa có mã phù hợp với sản phẩm trong giỏ. Voucher
+                            shop chỉ hiện khi giỏ có sản phẩm đúng shop, đúng
+                            danh mục và đủ khoảng giá.
+                          </p>
+                        )}
+                      </div>
                     )}
                     {clientSecret && (
                       <p className="text-xs text-stone-500">

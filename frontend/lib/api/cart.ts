@@ -24,6 +24,37 @@ export interface DeleteManyResponse {
   count: number;
 }
 
+export interface EligibleCartVoucher {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  scope: 'platform' | 'shop';
+  sellerId?: string | null;
+  sellerName?: string | null;
+  categoryId: string;
+  categoryName?: string | null;
+  endDate: string;
+  discountPercent: number;
+  minPrice: number;
+  maxPrice?: number | null;
+  maxDiscountAmount?: number | null;
+  eligibleSubtotal: number;
+  estimatedDiscountAmount: number;
+}
+
+export interface IneligibleCartVoucher {
+  id: string;
+  code: string;
+  reason: string;
+}
+
+export interface EligibleCartVouchersResponse {
+  platformVouchers: EligibleCartVoucher[];
+  shopVouchers: EligibleCartVoucher[];
+  ineligibleVouchers: IneligibleCartVoucher[];
+}
+
 export const cartApi = {
   getCart: () => apiClient.get<Cart>('/cart'),
 
@@ -58,6 +89,9 @@ export const cartApi = {
   clearCart: () => apiClient.delete<DeleteManyResponse>('/cart'),
 
   getSuggestions: () => apiClient.get<Product[]>('/cart/suggestions'),
+
+  getEligibleVouchers: () =>
+    apiClient.get<EligibleCartVouchersResponse>('/cart/eligible-vouchers'),
 
   applyVoucher: (code: string) =>
     apiClient.post<Cart>('/cart/apply-voucher', { code }),
